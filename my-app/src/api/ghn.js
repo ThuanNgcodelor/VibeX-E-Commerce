@@ -44,7 +44,7 @@ export const getDistricts = async (provinceId) => {
             return response.data.data;
         }
         return [];
-    } catch (error) {
+    } catch {
         throw new Error('Failed to fetch districts');
     }
 };
@@ -63,24 +63,8 @@ export const getWards = async (districtId) => {
             return response.data.data;
         }
         return [];
-    } catch (error) {
+    } catch  {
         throw new Error('Failed to fetch wards');
     }
 };
 
-/**
- * Tính phí vận chuyển
- * @param {Object} data - Dữ liệu tính phí vận chuyển
- * @returns {Promise} - Promise trả về thông tin phí vận chuyển
- */
-export const calculateShippingFee = async (data) => {
-    try {
-        const response = await ghnApi.post('/v2/shipping-order/fee', data);
-        if (response.data?.code === 200) {
-            return response.data.data;
-        }
-        throw new Error(response.data?.message || 'Failed to calculate shipping fee');
-    } catch (error) {
-        throw error;
-    }
-};

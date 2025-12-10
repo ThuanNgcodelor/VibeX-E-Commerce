@@ -1,4 +1,5 @@
 import React from "react";
+import Cookies from "js-cookie";
 import { getConversations, getMessages, sendMessage, markAsRead, startConversation } from "../../api/chat";
 import { connectWebSocket, subscribeToConversation, disconnectWebSocket, isConnected } from "../../utils/websocket";
 import { fetchImageById } from "../../api/image";
@@ -136,11 +137,21 @@ export default function ChatBotWidget() {
     setIsClient(true);
   }, []);
 
-  // Get current user ID
+  // Get current user ID - chỉ khi có token
   React.useEffect(() => {
+    const token = Cookies.get("accessToken");
+    if (!token) {
+      setCurrentUserId(null);
+      return;
+    }
+    
     getUser().then(user => {
       setCurrentUserId(user?.id || user?.userId || null);
-    }).catch(() => {
+    }).catch((err) => {
+      // Silently fail if 401 (guest or invalid token)
+      if (err?.response?.status === 401) {
+        Cookies.remove("accessToken");
+      }
       setCurrentUserId(null);
     });
   }, []);

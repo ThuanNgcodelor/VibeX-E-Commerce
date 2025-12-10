@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import Cookies from "js-cookie";
 import Header from "../../components/client/Header.jsx";
 import ShopInfoBar from "../../components/client/product/ShopInfoBar.jsx";
 import ChatBotWidget from "../../components/client/ChatBotWidget.jsx";
@@ -39,6 +40,8 @@ export default function ProductDetailPage() {
   const [detailTab, setDetailTab] = useState("spec");
   const [reviewFilter, setReviewFilter] = useState("Tất cả");
 
+  // Note: ProductDetailPage is now public - guest can view products
+  // But some actions (add to cart, buy now) require authentication
   useEffect(() => {
     const load = async () => {
       try {
@@ -54,6 +57,8 @@ export default function ProductDetailPage() {
             setShopOwner(shopData);
           } catch (err) {
             // Shop owner loading failed, continue without it
+            // Guest users may not have access, which is fine
+            console.log('Shop owner info not available:', err.message);
           }
         }
 
@@ -195,6 +200,7 @@ export default function ProductDetailPage() {
           {loading && <p>Loading product...</p>}
           {error && <div className="alert alert-danger">{error}</div>}
           {product && (
+            <>
             <div className="row g-4" style={{ display: 'flex', alignItems: 'stretch' }}>
               {/* Product Image Gallery - Left Side */}
               <div className="col-md-5" style={{ display: 'flex' }}>
@@ -657,6 +663,7 @@ export default function ProductDetailPage() {
                 </div>
               </div>
             </div>
+            </>
           )}
 
           {product && shopOwner && (
@@ -848,8 +855,6 @@ export default function ProductDetailPage() {
         </div>
       </main>
 
-      {/* Chat Widget */}
-      <ChatBotWidget />
 
       {/* Lightbox Modal */}
       {lightboxOpen && imageUrls.length > 0 && (

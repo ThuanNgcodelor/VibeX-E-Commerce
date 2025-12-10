@@ -139,7 +139,7 @@ export const getShopOwnerInfo = async () => {
     try {
         const response = await api.get("/shop-owners/info");
         return response.data;
-    } catch (error) {
+    } catch {
         throw new Error("Failed to fetch shop owner information");
     }
 };
@@ -153,7 +153,7 @@ export const getShopOwnerByUserId = async (userId) => {
     try {
         const response = await api.get(`/shop-owners/${userId}`);
         return response.data;
-    } catch (error) {
+    } catch  {
         throw new Error("Failed to fetch shop owner");
     }
 };
@@ -298,6 +298,23 @@ export const createRoleRequest = async (data) => {
         return response.data;
     } catch (error) {
         throw new Error("Failed to create role request");
+    }
+};
+
+/**
+ * Tạo shop owner và gửi role request (tự động tạo role request PENDING)
+ * @param {Object} data - Dữ liệu đăng ký shop owner đầy đủ
+ * @param {Object} data.roleRequest - { role: "SHOP_OWNER", reason: "..." }
+ * @param {Object} data.shopDetails - { shopName, ownerName, phone, provinceId, provinceName, districtId, districtName, wardCode, wardName, streetAddress, latitude?, longitude? }
+ * @returns {Promise} - Promise trả về kết quả đăng ký
+ */
+export const createShopOwnerRegistration = async (data) => {
+    try {
+        const response = await api.post("/role-requests/createShopOwner", data);
+        return response.data;
+    } catch (error) {
+        const errorMessage = error.response?.data?.message || error.message || "Failed to create shop owner registration";
+        throw new Error(errorMessage);
     }
 };
 

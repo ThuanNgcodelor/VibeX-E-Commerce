@@ -38,11 +38,24 @@ export default function Header() {
   }, [token]);
 
   useEffect(() => {
-    if (isAuthenticated() && token) {
-      getUser().then(setUserData).catch(() => setUserData(null));
-    } else {
+    // Chỉ gọi getUser() khi có token thực sự
+    if (!token) {
       setUserData(null);
+      return;
     }
+    
+    // Có token thì mới gọi API
+    getUser().then(setUserData).catch((err) => {
+      // Silently fail if 401 (guest or invalid token)
+      if (err?.response?.status === 401) {
+        // Token invalid - clear it
+        Cookies.remove("accessToken");
+        setUserData(null);
+      } else {
+        console.error('Error fetching user:', err);
+        setUserData(null);
+      }
+    });
   }, [token]);
 
   useEffect(() => {
@@ -58,7 +71,10 @@ export default function Header() {
         const data = await getCart();
         setCart(data);
       } catch (e) {
-        setError(e);
+        // Silently fail if 401 (invalid token)
+        if (e?.response?.status !== 401) {
+          setError(e);
+        }
       } finally {
         setLoading(false);
       }
@@ -160,7 +176,7 @@ export default function Header() {
   };
 
   useEffect(() => {
-    if (!isAuthenticated()) {
+    if (!isAuthenticated() || !token) {
       setNotifications([]);
       return;
     }
@@ -176,7 +192,10 @@ export default function Header() {
           : [];
         setNotifications(orderNotifications);
       } catch (err) {
-        console.error('Error fetching notifications in header:', err);
+        // Silently fail if 401 (invalid token)
+        if (err?.response?.status !== 401) {
+          console.error('Error fetching notifications in header:', err);
+        }
         setNotifications([]);
       }
     };
