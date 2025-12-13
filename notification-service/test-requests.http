@@ -1,0 +1,48 @@
+### ✅ THROUGHPUT TEST REQUESTS
+### File này có thể dùng với REST Client extension trong VS Code
+### Hoặc copy vào Postman/Thunder Client
+
+### 1. Test Throughput (1000 messages)
+POST http://localhost:8009/v1/test/throughput
+Content-Type: application/json
+
+{
+  "totalMessages": 1000,
+  "batchSize": 100
+}
+
+###
+
+### 2. Quick Test (100 messages - nhanh hơn)
+POST http://localhost:8009/v1/test/throughput/quick
+Content-Type: application/json
+
+###
+
+### 3. Test với 500 messages
+POST http://localhost:8009/v1/test/throughput
+Content-Type: application/json
+
+{
+  "totalMessages": 500,
+  "batchSize": 50
+}
+
+###
+
+### 4. Test với 5000 messages (load test)
+POST http://localhost:8009/v1/test/throughput
+Content-Type: application/json
+
+{
+  "totalMessages": 5000,
+  "batchSize": 500
+}
+
+###
+
+### 5. Xem Stats
+GET http://localhost:8009/v1/test/stats
+
+###
+

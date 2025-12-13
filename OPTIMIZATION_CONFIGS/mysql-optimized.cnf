@@ -1,0 +1,135 @@
+# ✅ TỐI ƯU: MySQL Configuration File
+# Copy nội dung này vào /etc/mysql/my.cnf (Linux) hoặc my.ini (Windows)
+# Sau đó restart MySQL: sudo systemctl restart mysql
+
+[mysqld]
+# ============================================
+# CONNECTION SETTINGS
+# ============================================
+# Tổng số connections tối đa
+# Rule: (số_services × pool_size) + 100 (buffer)
+# Ví dụ: 9 services × 20 connections = 180 + 100 = 280 → set 500 để an toàn
+max_connections=500
+
+# Số connections tối đa cho mỗi user
+max_user_connections=400
+
+# ============================================
+# INNODB BUFFER POOL (QUAN TRỌNG NHẤT!)
+# ============================================
+# Cache data và indexes trong memory → giảm disk I/O
+# Rule: 70-80% của RAM (nếu MySQL là service chính)
+# Ví dụ: 16GB RAM → 8-12GB cho buffer pool
+# 8GB = 8589934592 bytes
+innodb_buffer_pool_size=8G
+
+# Số buffer pool instances (tăng performance trên multi-core)
+# Rule: 1 instance per 1GB buffer pool
+innodb_buffer_pool_instances=8
+
+# ============================================
+# INNODB LOG FILES
+# ============================================
+# Transaction log file size
+# Rule: 25% của buffer pool size, tối đa 2GB
+innodb_log_file_size=512M
+
+# Log buffer size (memory buffer cho transaction log)
+innodb_log_buffer_size=64M
+
+# ============================================
+# TABLE CACHE
+# ============================================
+# Cache table descriptors → giảm file opens
+table_open_cache=4000
+table_definition_cache=2000
+
+# ============================================
+# THREAD SETTINGS
+# ============================================
+# Cache threads để tái sử dụng
+thread_cache_size=50
+
+# Stack size cho mỗi thread
+thread_stack=256K
+
+# ============================================
+# CONNECTION TIMEOUTS
+# ============================================
+# Timeout cho non-interactive connections (s)
+wait_timeout=600
+
+# Timeout cho interactive connections (s)
+interactive_timeout=600
+
+# ============================================
+# SLOW QUERY LOG
+# ============================================
+# Enable slow query log để phát hiện queries chậm
+slow_query_log=1
+slow_query_log_file=/var/log/mysql/slow-query.log
+
+# Log queries mất > 2 giây
+long_query_time=2
+
+# Log queries không dùng indexes
+log_queries_not_using_indexes=1
+
+# ============================================
+# BINARY LOG (nếu cần replication)
+# ============================================
+# Enable binary log
+# log_bin=/var/log/mysql/mysql-bin.log
+# binlog_format=ROW
+# expire_logs_days=7
+# max_binlog_size=100M
+
+# ============================================
+# INNODB SETTINGS
+# ============================================
+# Flush log at transaction commit
+# 0 = write và flush mỗi giây (fastest, có thể mất data nếu crash)
+# 1 = write và flush mỗi transaction (safest, slowest)
+# 2 = write mỗi transaction, flush mỗi giây (balanced)
+innodb_flush_log_at_trx_commit=2
+
+# File I/O threads
+innodb_read_io_threads=4
+innodb_write_io_threads=4
+
+# ============================================
+# QUERY CACHE (MySQL 5.7 trở xuống)
+# ============================================
+# MySQL 8.0 đã remove query cache
+# Nếu dùng MySQL 5.7:
+# query_cache_size=256M
+# query_cache_type=1
+# query_cache_limit=2M
+
+# ============================================
+# OTHER SETTINGS
+# ============================================
+# Max allowed packet size
+max_allowed_packet=64M
+
+# Sort buffer size
+sort_buffer_size=2M
+
+# Read buffer size
+read_buffer_size=1M
+
+# Read rnd buffer size
+read_rnd_buffer_size=4M
+
+# Join buffer size
+join_buffer_size=2M
+
+# ============================================
+# VERIFICATION
+# ============================================
+# Sau khi apply, verify bằng:
+# mysql> SHOW VARIABLES LIKE 'max_connections';
+# mysql> SHOW VARIABLES LIKE 'innodb_buffer_pool_size';
+# mysql> SHOW STATUS LIKE 'Threads_connected';
+# mysql> SHOW STATUS LIKE 'Max_used_connections';
+
