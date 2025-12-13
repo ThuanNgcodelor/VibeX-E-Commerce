@@ -19,4 +19,5 @@ public class CheckOutKafkaRequest {
     @NotEmpty(message = "Selected items cannot be empty")
     private List<SelectedItemDto> selectedItems;
     private String cartId;
+    private String paymentMethod; // COD, VNPAY, CARD
 }

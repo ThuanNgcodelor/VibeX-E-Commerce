@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import Header from "../../components/client/Header.jsx";
 import ShopInfoBar from "../../components/client/product/ShopInfoBar.jsx";
 import { fetchProductById, fetchProductImageById, fetchAddToCart } from "../../api/product.js";
 import { fetchReviewsByProductId } from "../../api/review.js";
 import { getCart, getShopOwnerByUserId } from "../../api/user.js";
 import { useCart } from "../../contexts/CartContext.jsx";
+import { translateAttributeName, translateAttributeValue } from "../../utils/attributeTranslator.js";
 import imgFallback from "../../assets/images/shop/6.png";
 
 const USE_OBJECT_URL = true;
@@ -19,6 +21,7 @@ const arrayBufferToDataUrl = (buffer, contentType) => {
 };
 
 export default function ProductDetailPage() {
+    const { t } = useTranslation();
     const { id } = useParams();
     const navigate = useNavigate();
     const { setCart } = useCart();
@@ -701,7 +704,7 @@ export default function ProductDetailPage() {
                                                 onClick={() => setDetailTab("spec")}
                                                 style={{ borderBottom: detailTab === "spec" ? "2px solid #0d6efd" : "2px solid transparent", borderRadius: 0 }}
                                             >
-                                                Specifications
+                                                {t('product.specifications.tab', 'Specifications')}
                                             </button>
                                             <button
                                                 type="button"
@@ -709,32 +712,50 @@ export default function ProductDetailPage() {
                                                 onClick={() => setDetailTab("reviews")}
                                                 style={{ borderBottom: detailTab === "reviews" ? "2px solid #0d6efd" : "2px solid transparent", borderRadius: 0 }}
                                             >
-                                                Reviews
+                                                {t('product.reviews.tab', 'Reviews')}
                                             </button>
                                         </div>
 
                                         {detailTab === "spec" && (
                                             <div className="d-flex flex-column gap-3">
                                                 <div>
-                                                    <h5 className="fw-semibold">Product Information</h5>
+                                                    <h5 className="fw-semibold">{t('product.specifications.title', 'Product Information')}</h5>
                                                     <table className="table table-sm">
                                                         <tbody>
-                                                        {product.attributes && Object.entries(product.attributes).map(([key, value]) => (
-                                                            <tr key={key}>
-                                                                <th scope="row" style={{ width: '30%' }}>{key}</th>
-                                                                <td>{value}</td>
-                                                            </tr>
-                                                        ))}
-                                                        {(!product.attributes || Object.keys(product.attributes).length === 0) && (
-                                                            <tr><td colSpan="2" className="text-muted fst-italic">No additional information.</td></tr>
-                                                        )}
+                                                        {(() => {
+                                                            // Filter out attributes with empty values
+                                                            const validAttributes = product.attributes 
+                                                                ? Object.entries(product.attributes).filter(([key, value]) => 
+                                                                    key && value && value.toString().trim() !== ''
+                                                                )
+                                                                : [];
+                                                            
+                                                            if (validAttributes.length === 0) {
+                                                                return (
+                                                                    <tr>
+                                                                        <td colSpan="2" className="text-muted fst-italic">
+                                                                            {t('product.specifications.noInformation', 'No additional information.')}
+                                                                        </td>
+                                                                    </tr>
+                                                                );
+                                                            }
+                                                            
+                                                            return validAttributes.map(([key, value]) => (
+                                                                <tr key={key}>
+                                                                    <th scope="row" style={{ width: '30%' }}>
+                                                                        {translateAttributeName(key, t)}
+                                                                    </th>
+                                                                    <td>{translateAttributeValue(key, value, t)}</td>
+                                                                </tr>
+                                                            ));
+                                                        })()}
                                                         </tbody>
                                                     </table>
                                                 </div>
 
                                                 <div>
-                                                    <h5 className="fw-semibold">Product Description</h5>
-                                                    <div className="product-description" dangerouslySetInnerHTML={{ __html: product.description || '<p>No specific description.</p>' }} />
+                                                    <h5 className="fw-semibold">{t('product.specifications.description', 'Product Description')}</h5>
+                                                    <div className="product-description" dangerouslySetInnerHTML={{ __html: product.description || `<p>${t('product.specifications.noDescription', 'No specific description.')}</p>` }} />
                                                 </div>
                                             </div>
                                         )}

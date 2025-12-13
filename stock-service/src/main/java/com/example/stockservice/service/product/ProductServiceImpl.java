@@ -26,10 +26,19 @@ import com.example.stockservice.repository.SizeRepository;
 @Service
 @RequiredArgsConstructor
 public class ProductServiceImpl implements ProductService {
+    @Override
+    public long countProductsByUserId(String userId) {
+        return productRepository.countByUserId(userId);
+    }
+
+    @Override
+    public long countProductsByUserIdAndStatus(String userId, ProductStatus status) {
+        return productRepository.countByUserIdAndStatus(userId, status);
+    }
+
     private final CategoryService categoryService;
     private final ProductRepository productRepository;
     private final FileStorageClient fileStorageClient;
-    private final ModelMapper modelMapper;
     private final SizeRepository sizeRepository;
     private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
 

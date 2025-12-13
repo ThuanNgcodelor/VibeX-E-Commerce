@@ -15,11 +15,13 @@ public class ShopOwnerServiceImpl implements ShopOwnerService {
     private final ShopOwnerRepository shopOwnerRepository;
     private final ModelMapper modelMapper;
     private final FileStorageClient fileStorageClient;
+    private final com.example.userservice.repository.ShopFollowRepository shopFollowRepository;
+    private final com.example.userservice.client.StockServiceClient stockServiceClient;
 
     @Override
     public ShopOwner updateShopOwner(UpdateShopOwnerRequest request, MultipartFile file) {
         ShopOwner toUpdate = shopOwnerRepository.getReferenceById(request.getUserId());
-        
+
         // Update fields from request
         if (request.getShopName() != null) {
             toUpdate.setShopName(request.getShopName());
@@ -33,7 +35,7 @@ public class ShopOwnerServiceImpl implements ShopOwnerService {
         if (request.getAddress() != null) {
             toUpdate.setAddress(request.getAddress());
         }
-        
+
         // Update GHN address fields
         if (request.getProvinceId() != null) {
             toUpdate.setProvinceId(request.getProvinceId());
@@ -65,21 +67,51 @@ public class ShopOwnerServiceImpl implements ShopOwnerService {
         if (request.getLongitude() != null) {
             toUpdate.setLongitude(request.getLongitude());
         }
-        
+
         // Upload image if provided
-        if(file != null && !file.isEmpty()) {
+        if (file != null && !file.isEmpty()) {
             String imageId = fileStorageClient.uploadImageToFIleSystem(file).getBody();
-            if(imageId != null) {
+            if (imageId != null) {
                 toUpdate.setImageUrl(imageId);
             }
         }
-        
+
         return shopOwnerRepository.save(toUpdate);
     }
-    
+
     @Override
     public ShopOwner getShopOwnerByUserId(String userId) {
-        return shopOwnerRepository.findById(userId)
+        ShopOwner shopOwner = shopOwnerRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Shop owner not found with userId: " + userId));
+
+        // Populate stats
+        try {
+            // Followers count
+            int followersCount = (int) shopFollowRepository.countByShopId(userId);
+            System.out.println("DEBUG: Shop Stats - userId: " + userId + ", followers: " + followersCount);
+            shopOwner.setFollowersCount(followersCount);
+
+            // Following count
+            int followingCount = (int) shopFollowRepository.countByFollowerId(userId);
+            System.out.println("DEBUG: Shop Stats - userId: " + userId + ", following: " + followingCount);
+            shopOwner.setFollowingCount(followingCount);
+
+            // Total Ratings from Stock Service
+            org.springframework.http.ResponseEntity<Long> response = stockServiceClient.getShopReviewCount(userId);
+            System.out.println("DEBUG: Shop Stats - userId: " + userId + ", ratings response: " + response.getBody());
+            if (response != null && response.getBody() != null) {
+                shopOwner.setTotalRatings(response.getBody().intValue());
+            }
+
+            // Save updated stats (optional, serves as cache)
+            shopOwnerRepository.save(shopOwner);
+
+        } catch (Exception e) {
+            // Log error but don't fail the request
+            System.err.println("Error fetching shop stats: " + e.getMessage());
+            e.printStackTrace();
+        }
+
+        return shopOwner;
     }
 }

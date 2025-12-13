@@ -327,9 +327,8 @@ export default function CommentsBox({ productId, currentUser, product }) {
                 <button
                   type="button"
                   onClick={() => setActiveTab("spec")}
-                  className={`nav-link fw-semibold ${
-                    activeTab === "spec" ? "active text-success" : "text-success"
-                  }`}
+                  className={`nav-link fw-semibold ${activeTab === "spec" ? "active text-success" : "text-success"
+                    }`}
                   style={{ background: "transparent" }}
                 >
                   Specification

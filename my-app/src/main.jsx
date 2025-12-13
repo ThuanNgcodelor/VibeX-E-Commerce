@@ -3,6 +3,9 @@ window.global = window;
 import { createRoot } from 'react-dom/client'
 import App from './App.jsx'
 
+// Import i18n config TRƯỚC khi import App
+import './i18n/config.js'
+
 import './assets/css/vendor/bootstrap.min.css'
 import './assets/css/plugins/swiper-bundle.min.css'
 import './assets/css/style.css'

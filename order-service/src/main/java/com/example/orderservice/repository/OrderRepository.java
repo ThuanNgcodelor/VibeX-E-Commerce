@@ -15,20 +15,53 @@ import java.util.List;
 @Repository
 public interface OrderRepository extends JpaRepository<Order, String> {
     List<Order> findByUserIdOrderByCreationTimestampDesc(String userId);
+
     List<Order> findByOrderStatus(OrderStatus orderStatus);
+
     List<Order> findByCreationTimestampBetween(LocalDateTime startDate, LocalDateTime endDate);
+
     @Query("select DISTINCT o from Order o " +
             "inner join o.orderItems oi " +
             "where oi.productId in :productIds")
     List<Order> findByOrderItemsProductIdIn(@Param("productIds") List<String> productIds);
+
     @Query("SELECT DISTINCT o FROM Order o " +
             "INNER JOIN o.orderItems oi " +
             "WHERE oi.productId IN :productIds")
     Page<Order> findByOrderItemsProductIdIn(@Param("productIds") List<String> productIds, Pageable pageable);
+
     @Query("SELECT DISTINCT o FROM Order o" +
             " INNER JOIN o.orderItems oi " +
             "WHERE oi.productId IN :productIds " +
-            "AND (:status IS NULL OR o.orderStatus = :status) " +
+            "AND (:statuses IS NULL OR o.orderStatus IN :statuses) " +
             "ORDER BY o.creationTimestamp DESC")
-    Page<Order> findByShopOwnerProducts(@Param("productIds") List<String> productIds, Pageable pageable, OrderStatus status);
+    Page<Order> findByShopOwnerProducts(@Param("productIds") List<String> productIds, Pageable pageable,
+                                        @Param("statuses") List<OrderStatus> statuses);
+
+    @Query("SELECT COUNT(DISTINCT o) FROM Order o JOIN o.orderItems oi WHERE oi.productId IN :productIds AND o.orderStatus = :status")
+    long countByProductIdsAndStatus(@Param("productIds") List<String> productIds,
+                                    @Param("status") OrderStatus status);
+
+    @Query("SELECT COUNT(DISTINCT o) FROM Order o JOIN o.orderItems oi WHERE oi.productId IN :productIds AND o.orderStatus IN :statuses")
+    long countByProductIdsAndStatuses(@Param("productIds") List<String> productIds,
+                                      @Param("statuses") List<OrderStatus> statuses);
+
+    @Query("SELECT SUM(oi.totalPrice) FROM Order o JOIN o.orderItems oi WHERE oi.productId IN :productIds AND o.creationTimestamp BETWEEN :startDate AND :endDate AND o.orderStatus NOT IN :excludedStatuses")
+    Double sumSalesByProductIdsAndDateRange(@Param("productIds") List<String> productIds,
+                                            @Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate,
+                                            @Param("excludedStatuses") List<OrderStatus> excludedStatuses);
+    @Query("SELECT COUNT(DISTINCT o) FROM Order o JOIN o.orderItems oi WHERE oi.productId IN :productIds AND o.creationTimestamp BETWEEN :startDate AND :endDate AND o.orderStatus NOT IN :excludedStatuses")
+    Long countByProductIdsAndCreationTimestampBetween(@Param("productIds") List<String> productIds,
+                                                      @Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate,
+                                                      @Param("excludedStatuses") List<OrderStatus> excludedStatuses);
+
+    @Query("SELECT new com.example.orderservice.dto.TopProductDto(oi.productId, SUM(oi.quantity), SUM(oi.totalPrice)) "
+            +
+            "FROM Order o JOIN o.orderItems oi " +
+            "WHERE oi.productId IN :productIds AND o.orderStatus NOT IN :excludedStatuses " +
+            "GROUP BY oi.productId " +
+            "ORDER BY SUM(oi.quantity) DESC")
+    List<com.example.orderservice.dto.TopProductDto> findTopSellingProducts(
+            @Param("productIds") List<String> productIds,
+            @Param("excludedStatuses") List<OrderStatus> excludedStatuses, Pageable pageable);
 }

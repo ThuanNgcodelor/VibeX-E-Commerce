@@ -10,8 +10,15 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 
 public interface OrderService {
-    Page<Order> getOrdersByShopOwner(String shopOwnerId, String status, Integer pageNo, Integer pageSize);
+    com.example.orderservice.dto.AnalyticsDto getAnalytics(String shopOwnerId); //
+    Order returnOrder(String orderId, String reason);//
+
+    java.util.Map<String, Object> getShopStats(String shopOwnerId);//
+
+
+    Page<Order> getOrdersByShopOwner(String shopOwnerId, List<String> status, Integer pageNo, Integer pageSize);
     List<Order> getOrdersByShopOwner(String shopOwnerId, String status);
+
     Order getOrderById(String orderId);
     List<Order> getUserOrders(String userId);
     // CRUD methods
@@ -26,6 +33,6 @@ public interface OrderService {
     // Frontend order creation
     void orderByKafka(FrontendOrderRequest orderRequest, HttpServletRequest request);
     Order createOrderFromPayment(String userId, String addressId, List<com.example.orderservice.dto.SelectedItemDto> selectedItems);
-    Order cancelOrder(String orderId);
+    Order cancelOrder(String orderId,String reason);
     void rollbackOrderStock(String orderId);
 }

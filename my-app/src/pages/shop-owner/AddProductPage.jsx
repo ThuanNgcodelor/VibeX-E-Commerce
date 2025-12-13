@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { addProduct, getProductById, updateProduct } from '../../api/shopOwner';
 import categoryApi from '../../api/categoryApi';
+import { getCommonAttributeKeys, translateAttributeName } from '../../utils/attributeTranslator';
 import '../../components/shop-owner/ShopOwnerLayout.css';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 
 export default function AddProductPage() {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const { id: productId } = useParams();
     const isEditMode = Boolean(productId);
@@ -53,6 +56,9 @@ export default function AddProductPage() {
         list[index][field] = value;
         setAttributes(list);
     };
+
+    // Get common attributes for dropdown
+    const commonAttributes = useMemo(() => getCommonAttributeKeys(), []);
     const [initialLoading, setInitialLoading] = useState(false);
 
     const quillModules = useMemo(() => ({
@@ -84,12 +90,12 @@ export default function AddProductPage() {
                 setCategories(data);
             } catch (error) {
                 console.error('Error fetching categories:', error);
-                alert('Failed to load categories');
+                alert(t('shopOwner.addProduct.failedToLoadCategories'));
             }
         };
 
         fetchCategories();
-    }, []);
+    }, [t]);
 
     // Load product in edit mode
     useEffect(() => {
@@ -141,7 +147,7 @@ export default function AddProductPage() {
                 setImagePreviews(previews);
             } catch (e) {
                 console.error('Error loading product:', e);
-                alert('Failed to load product details');
+                alert(t('shopOwner.addProduct.failedToLoadProduct'));
                 navigate('/shop-owner/products');
             } finally {
                 setInitialLoading(false);
@@ -216,7 +222,7 @@ export default function AddProductPage() {
         const files = Array.from(e.target.files);
 
         if (files.length + imagePreviews.length > 10) {
-            alert('Maximum 10 images/videos');
+            alert(t('shopOwner.addProduct.maximumImages'));
             return;
         }
 
@@ -233,7 +239,7 @@ export default function AddProductPage() {
                 };
                 reader.readAsDataURL(file);
             } else {
-                alert(`File ${file.name} is not an image or video. Please select image or video files only.`);
+                alert(t('shopOwner.addProduct.fileNotImageOrVideo', { name: file.name }));
             }
         });
     };
@@ -269,28 +275,28 @@ export default function AddProductPage() {
         const newErrors = {};
 
         if (!formData.name.trim()) {
-            newErrors.name = 'Product name is required';
+            newErrors.name = t('shopOwner.addProduct.productNameRequired');
         }
 
         if (!formData.description.trim()) {
-            newErrors.description = 'Product description is required';
+            newErrors.description = t('shopOwner.addProduct.descriptionRequired');
         }
 
         if (!formData.price || parseFloat(formData.price) <= 0) {
-            newErrors.price = 'Invalid product price';
+            newErrors.price = t('shopOwner.addProduct.invalidPrice');
         }
 
         if (!formData.status) {
-            newErrors.status = 'Please select status';
+            newErrors.status = t('shopOwner.addProduct.selectStatus');
         }
 
         if (formData.sizes.some(size => !size.name || !size.stock)) {
-            newErrors.sizes = 'Please fill in all information for all sizes';
+            newErrors.sizes = t('shopOwner.addProduct.fillAllSizes');
         }
 
         if (!isEditMode) {
             if (imagePreviews.length === 0) {
-                newErrors.images = 'Please add at least 1 product photo';
+                newErrors.images = t('shopOwner.addProduct.addAtLeastOnePhoto');
             }
         }
 
@@ -302,7 +308,7 @@ export default function AddProductPage() {
         e.preventDefault();
 
         if (!validateForm()) {
-            alert('Please fill in all required information');
+            alert(t('shopOwner.addProduct.fillAllInformation'));
             return;
         }
 
@@ -339,15 +345,15 @@ export default function AddProductPage() {
 
             if (isEditMode) {
                 await updateProduct(productData, formData.images);
-                alert('Product updated successfully!');
+                alert(t('shopOwner.addProduct.productUpdated'));
             } else {
                 await addProduct(productData, formData.images);
-                alert('Product created successfully!');
+                alert(t('shopOwner.addProduct.productCreated'));
             }
             navigate('/shop-owner/products');
         } catch (error) {
             console.error('Error creating product:', error);
-            alert((isEditMode ? 'Error updating product: ' : 'Error creating product: ') + error.message);
+            alert((isEditMode ? t('shopOwner.addProduct.errorUpdating') : t('shopOwner.addProduct.errorCreating')) + error.message);
         } finally {
             setLoading(false);
         }
@@ -358,11 +364,11 @@ export default function AddProductPage() {
             <div className="dashboard-header">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                        <h1>{isEditMode ? 'Edit Product' : 'Add New Product'}</h1>
-                        <p className="text-muted">{isEditMode ? 'Update details of your product' : 'Fill in detailed information about your product'}</p>
+                        <h1>{isEditMode ? t('shopOwner.addProduct.editTitle') : t('shopOwner.addProduct.title')}</h1>
+                        <p className="text-muted">{isEditMode ? t('shopOwner.addProduct.editSubtitle') : t('shopOwner.addProduct.subtitle')}</p>
                     </div>
                     <Link to="/shop-owner/products" className="btn btn-secondary-shop">
-                        <i className="fas fa-arrow-left"></i> Back
+                        <i className="fas fa-arrow-left"></i> {t('shopOwner.addProduct.back')}
                     </Link>
                 </div>
             </div>
@@ -372,39 +378,39 @@ export default function AddProductPage() {
                     <div className="col-md-8">
                         <div className="card" style={{ marginBottom: '20px' }}>
                             <div className="card-header">
-                                <h5><i className="fas fa-info-circle"></i> Basic Information</h5>
+                                <h5><i className="fas fa-info-circle"></i> {t('shopOwner.addProduct.basicInformation')}</h5>
                             </div>
                             <div className="card-body">
                                 <div className="mb-3">
-                                    <label className="form-label">Product name <span style={{ color: 'red' }}>*</span></label>
+                                    <label className="form-label">{t('shopOwner.addProduct.productName')} <span style={{ color: 'red' }}>*</span></label>
                                     <input
                                         type="text"
                                         className={`form-control ${errors.name ? 'is-invalid' : ''}`}
                                         name="name"
                                         value={formData.name}
                                         onChange={handleInputChange}
-                                        placeholder="Enter product name"
+                                        placeholder={t('shopOwner.addProduct.productName')}
                                     />
                                     {errors.name && <div className="invalid-feedback">{errors.name}</div>}
                                 </div>
 
                                 <div className="mb-3">
-                                    <label className="form-label">Status <span style={{ color: 'red' }}>*</span></label>
+                                    <label className="form-label">{t('shopOwner.addProduct.status')} <span style={{ color: 'red' }}>*</span></label>
                                     <select
                                         className={`form-select ${errors.status ? 'is-invalid' : ''}`}
                                         name="status"
                                         value={formData.status}
                                         onChange={handleInputChange}
                                     >
-                                        <option value="IN_STOCK">In Stock</option>
-                                        <option value="OUT_OF_STOCK">Out of Stock</option>
+                                        <option value="IN_STOCK">{t('shopOwner.allProducts.inStock')}</option>
+                                        <option value="OUT_OF_STOCK">{t('shopOwner.allProducts.outOfStock')}</option>
                                     </select>
                                     {errors.status && <div className="invalid-feedback">{errors.status}</div>}
                                 </div>
 
                                 <div className="mb-3">
                                     <label className="form-label">
-                                        Product description (supports multi-line / image URLs) <span style={{ color: 'red' }}>*</span>
+                                        {t('shopOwner.addProduct.productDescription')} <span style={{ color: 'red' }}>*</span>
                                     </label>
                                     <div className={`${errors.description ? 'is-invalid' : ''}`}>
                                         <ReactQuill
@@ -413,12 +419,12 @@ export default function AddProductPage() {
                                             onChange={handleDescriptionChange}
                                             modules={quillModules}
                                             formats={quillFormats}
-                                            placeholder="Enter detailed description, you can insert links/images. Example: material, care instructions, size chart, illustration image links..."
+                                            placeholder={t('shopOwner.addProduct.descriptionPlaceholder')}
                                             style={{ background: '#fff' }}
                                         />
                                     </div>
                                     <small className="text-muted d-block mt-2">
-                                        You can paste image links or multi-line content; content is saved as HTML.
+                                        {t('shopOwner.addProduct.descriptionHint')}
                                     </small>
                                     {errors.description && <div className="text-danger mt-1">{errors.description}</div>}
                                 </div>
@@ -426,7 +432,7 @@ export default function AddProductPage() {
                                 <div className="row">
                                     <div className="col-md-6">
                                         <div className="mb-3">
-                                            <label className="form-label">Price (₫) <span style={{ color: 'red' }}>*</span></label>
+                                            <label className="form-label">{t('shopOwner.addProduct.price')} <span style={{ color: 'red' }}>*</span></label>
                                             <input
                                                 type="number"
                                                 className={`form-control ${errors.price ? 'is-invalid' : ''}`}
@@ -442,7 +448,7 @@ export default function AddProductPage() {
                                     </div>
                                     <div className="col-md-6">
                                         <div className="mb-3">
-                                            <label className="form-label">Original price (₫)</label>
+                                            <label className="form-label">{t('shopOwner.addProduct.originalPrice')}</label>
                                             <input
                                                 type="number"
                                                 className="form-control"
@@ -459,7 +465,7 @@ export default function AddProductPage() {
 
                                 {formData.discountPercent && parseFloat(formData.discountPercent) > 0 && (
                                     <div className="alert alert-info">
-                                        <i className="fas fa-percent"></i> Discount: {parseFloat(formData.discountPercent).toFixed(1)}%
+                                        <i className="fas fa-percent"></i> {t('shopOwner.addProduct.discount')}: {parseFloat(formData.discountPercent).toFixed(1)}%
                                     </div>
                                 )}
                             </div>
@@ -468,45 +474,45 @@ export default function AddProductPage() {
                         {/* Sizes & Variants */}
                         <div className="card" style={{ marginBottom: '20px' }}>
                             <div className="card-header">
-                                <h5><i className="fas fa-ruler"></i> Sizes / Variants</h5>
+                                <h5><i className="fas fa-ruler"></i> {t('shopOwner.addProduct.sizesVariants')}</h5>
                             </div>
                             <div className="card-body">
                                 {formData.sizes.map((size, index) => (
                                     <div key={index} className="border rounded p-3 mb-3" style={{ background: '#f8f9fa' }}>
                                         <div className="d-flex justify-content-between align-items-center mb-2">
-                                            <strong>Variant #{index + 1}</strong>
+                                            <strong>{t('shopOwner.addProduct.variant', { number: index + 1 })}</strong>
                                             {formData.sizes.length > 1 && (
                                                 <button
                                                     type="button"
                                                     className="btn btn-sm btn-outline-danger"
                                                     onClick={() => removeSize(index)}
                                                 >
-                                                    <i className="fas fa-trash"></i> Remove
+                                                    <i className="fas fa-trash"></i> {t('shopOwner.addProduct.remove')}
                                                 </button>
                                             )}
                                         </div>
                                         <div className="row">
                                             <div className="col-md-6">
                                                 <div className="mb-3">
-                                                    <label className="form-label">Size name <span style={{ color: 'red' }}>*</span></label>
+                                                    <label className="form-label">{t('shopOwner.addProduct.sizeName')} <span style={{ color: 'red' }}>*</span></label>
                                                     <input
                                                         type="text"
                                                         className="form-control"
                                                         value={size.name}
                                                         onChange={(e) => handleSizeChange(index, 'name', e.target.value)}
-                                                        placeholder="E.g., 128GB, XS, S, M, L"
+                                                        placeholder={t('shopOwner.addProduct.sizeNamePlaceholder')}
                                                     />
                                                 </div>
                                             </div>
                                             <div className="col-md-6">
                                                 <div className="mb-3">
-                                                    <label className="form-label">Description (optional)</label>
+                                                    <label className="form-label">{t('shopOwner.addProduct.description')}</label>
                                                     <input
                                                         type="text"
                                                         className="form-control"
                                                         value={size.description}
                                                         onChange={(e) => handleSizeChange(index, 'description', e.target.value)}
-                                                        placeholder="E.g., 128GB storage"
+                                                        placeholder={t('shopOwner.addProduct.descriptionPlaceholder2')}
                                                     />
                                                 </div>
                                             </div>
@@ -514,7 +520,7 @@ export default function AddProductPage() {
                                         <div className="row">
                                             <div className="col-md-6">
                                                 <div className="mb-3">
-                                                    <label className="form-label">Stock <span style={{ color: 'red' }}>*</span></label>
+                                                    <label className="form-label">{t('shopOwner.addProduct.stock')} <span style={{ color: 'red' }}>*</span></label>
                                                     <input
                                                         type="number"
                                                         className="form-control"
@@ -527,7 +533,7 @@ export default function AddProductPage() {
                                             </div>
                                             <div className="col-md-6">
                                                 <div className="mb-3">
-                                                    <label className="form-label">Price modifier (₫)</label>
+                                                    <label className="form-label">{t('shopOwner.addProduct.priceModifier')}</label>
                                                     <input
                                                         type="number"
                                                         className="form-control"
@@ -547,7 +553,7 @@ export default function AddProductPage() {
                                     className="btn btn-outline-primary"
                                     onClick={addSize}
                                 >
-                                    <i className="fas fa-plus"></i> Add variant
+                                    <i className="fas fa-plus"></i> {t('shopOwner.addProduct.addVariant')}
                                 </button>
 
                                 {errors.sizes && (
@@ -559,43 +565,89 @@ export default function AddProductPage() {
                         {/* Flexible Attributes (Specifications) */}
                         <div className="card mb-3">
                             <div className="card-header">
-                                <h5><i className="fas fa-list"></i> Specifications (Custom Attributes)</h5>
+                                <h5><i className="fas fa-list"></i> {t('shopOwner.addProduct.specifications')}</h5>
                             </div>
                             <div className="card-body">
                                 <div className="alert alert-light border">
-                                    <small className="text-muted">Add custom attributes like "Material", "Origin", "Brand", etc.</small>
+                                    <small className="text-muted">{t('shopOwner.addProduct.specificationsHint')}</small>
                                 </div>
-                                {attributes.map((attr, index) => (
-                                    <div key={index} className="row mb-2 align-items-center">
-                                        <div className="col-md-5">
-                                            <input
-                                                type="text"
-                                                className="form-control form-control-sm"
-                                                placeholder="Attribute Name (e.g., Material)"
-                                                value={attr.key}
-                                                onChange={(e) => handleAttributeChange(index, 'key', e.target.value)}
-                                            />
+                                {attributes.map((attr, index) => {
+                                    // Check if this attribute key is already used by other attributes
+                                    const usedKeys = attributes.map(a => a.key).filter((k, i) => i !== index && k);
+                                    const availableAttributes = commonAttributes.filter(key => !usedKeys.includes(key));
+                                    
+                                    // Check if current key is in common list or empty
+                                    const isCustomAttribute = attr.key && !commonAttributes.includes(attr.key);
+                                    
+                                    return (
+                                        <div key={index} className="row mb-2 align-items-center">
+                                            <div className="col-md-5">
+                                                {isCustomAttribute ? (
+                                                    // Show text input for custom attribute
+                                                    <input
+                                                        type="text"
+                                                        className="form-control form-control-sm"
+                                                        placeholder={t('shopOwner.addProduct.attributeName')}
+                                                        value={attr.key}
+                                                        onChange={(e) => handleAttributeChange(index, 'key', e.target.value)}
+                                                    />
+                                                ) : (
+                                                    // Show dropdown for common attributes
+                                                    <select
+                                                        className="form-select form-select-sm"
+                                                        value={attr.key || ''}
+                                                        onChange={(e) => {
+                                                            const selectedValue = e.target.value;
+                                                            if (selectedValue === '__custom__') {
+                                                                // Switch to text input for custom attribute
+                                                                handleAttributeChange(index, 'key', '');
+                                                            } else {
+                                                                handleAttributeChange(index, 'key', selectedValue);
+                                                            }
+                                                        }}
+                                                    >
+                                                        <option value="">{t('shopOwner.attributes.selectAttribute')}</option>
+                                                        {availableAttributes.map(key => (
+                                                            <option key={key} value={key}>
+                                                                {translateAttributeName(key, t)}
+                                                            </option>
+                                                        ))}
+                                                        <option value="__custom__">--- {t('shopOwner.attributes.customAttribute')} ---</option>
+                                                    </select>
+                                                )}
+                                                {isCustomAttribute && (
+                                                    <button
+                                                        type="button"
+                                                        className="btn btn-sm btn-link p-0 mt-1"
+                                                        onClick={() => handleAttributeChange(index, 'key', '')}
+                                                        style={{ fontSize: '0.75rem' }}
+                                                    >
+                                                        <i className="fas fa-arrow-left me-1"></i>
+                                                        {t('common.back', 'Back to list')}
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <div className="col-md-6">
+                                                <input
+                                                    type="text"
+                                                    className="form-control form-control-sm"
+                                                    placeholder={t('shopOwner.addProduct.value')}
+                                                    value={attr.value}
+                                                    onChange={(e) => handleAttributeChange(index, 'value', e.target.value)}
+                                                />
+                                            </div>
+                                            <div className="col-md-1 text-end">
+                                                {attributes.length > 1 && (
+                                                    <button type="button" className="btn btn-sm btn-outline-danger" onClick={() => removeAttribute(index)}>
+                                                        <i className="fas fa-times"></i>
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
-                                        <div className="col-md-6">
-                                            <input
-                                                type="text"
-                                                className="form-control form-control-sm"
-                                                placeholder="Value (e.g., Cotton 100%)"
-                                                value={attr.value}
-                                                onChange={(e) => handleAttributeChange(index, 'value', e.target.value)}
-                                            />
-                                        </div>
-                                        <div className="col-md-1 text-end">
-                                            {attributes.length > 1 && (
-                                                <button type="button" className="btn btn-sm btn-outline-danger" onClick={() => removeAttribute(index)}>
-                                                    <i className="fas fa-times"></i>
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                                 <button type="button" className="btn btn-sm btn-outline-primary mt-2" onClick={addAttribute}>
-                                    <i className="fas fa-plus"></i> Add attribute
+                                    <i className="fas fa-plus"></i> {t('shopOwner.addProduct.addAttribute')}
                                 </button>
                             </div>
                         </div>
@@ -603,11 +655,11 @@ export default function AddProductPage() {
                         {/* Images */}
                         <div className="card">
                             <div className="card-header">
-                                <h5><i className="fas fa-images"></i> Product images</h5>
+                                <h5><i className="fas fa-images"></i> {t('shopOwner.addProduct.productImages')}</h5>
                             </div>
                             <div className="card-body">
                                 <div className="mb-3">
-                                    <label className="form-label">Choose images/videos{isEditMode ? '' : ' '}<span style={{ color: 'red' }}>*</span></label>
+                                    <label className="form-label">{t('shopOwner.addProduct.chooseImages')}{isEditMode ? '' : ' '}<span style={{ color: 'red' }}>*</span></label>
                                     <input
                                         type="file"
                                         className="form-control"
@@ -615,7 +667,7 @@ export default function AddProductPage() {
                                         accept="image/*,video/*"
                                         multiple
                                     />
-                                    <small className="text-muted">Up to 10 images/videos (first image will be the main image)</small>
+                                    <small className="text-muted">{t('shopOwner.addProduct.imagesHint')}</small>
                                 </div>
 
                                 {errors.images && (
@@ -674,7 +726,7 @@ export default function AddProductPage() {
                                                                     fontSize: '0.7rem'
                                                                 }}
                                                             >
-                                Main
+                                {t('shopOwner.addProduct.main')}
                               </span>
                                                         )}
                                                     </div>
@@ -691,18 +743,18 @@ export default function AddProductPage() {
                     <div className="col-md-4">
                         <div className="card" style={{ position: 'sticky', top: '20px' }}>
                             <div className="card-header">
-                                <h5><i className="fas fa-cog"></i> Options</h5>
+                                <h5><i className="fas fa-cog"></i> {t('shopOwner.addProduct.options')}</h5>
                             </div>
                             <div className="card-body">
                                 <div className="mb-3">
-                                    <label className="form-label">Category (optional)</label>
+                                    <label className="form-label">{t('shopOwner.addProduct.category')}</label>
                                     <select
                                         className="form-select"
                                         name="categoryId"
                                         value={formData.categoryId}
                                         onChange={handleInputChange}
                                     >
-                                        <option value="">No category</option>
+                                        <option value="">{t('shopOwner.addProduct.noCategory')}</option>
                                         {categories.map(category => (
                                             <option key={category.id} value={category.id}>
                                                 {category.name}
@@ -721,22 +773,22 @@ export default function AddProductPage() {
                                     >
                                         {loading ? (
                                             <>
-                                                <i className="fas fa-spinner fa-spin"></i> Saving...
+                                                <i className="fas fa-spinner fa-spin"></i> {t('shopOwner.addProduct.saving')}
                                             </>
                                         ) : (
                                             <>
-                                                <i className="fas fa-save"></i> {isEditMode ? 'Update product' : 'Save product'}
+                                                <i className="fas fa-save"></i> {isEditMode ? t('shopOwner.addProduct.updateProduct') : t('shopOwner.addProduct.saveProduct')}
                                             </>
                                         )}
                                     </button>
                                     <Link to="/shop-owner/products" className="btn btn-secondary-shop">
-                                        <i className="fas fa-times"></i> Cancel
+                                        <i className="fas fa-times"></i> {t('shopOwner.addProduct.cancel')}
                                     </Link>
                                 </div>
 
                                 <div className="mt-3">
                                     <small className="text-muted">
-                                        <i className="fas fa-info-circle"></i> Fields marked with <span style={{ color: 'red' }}>*</span> are required
+                                        <i className="fas fa-info-circle"></i> {t('shopOwner.addProduct.requiredFields')} <span style={{ color: 'red' }}>*</span> {t('shopOwner.addProduct.areRequired')}
                                     </small>
                                 </div>
                             </div>

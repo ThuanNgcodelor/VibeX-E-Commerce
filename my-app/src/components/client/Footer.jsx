@@ -1,7 +1,9 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 export default function Footer() {
+  const { t } = useTranslation();
   const year = new Date().getFullYear();
 
   return (
@@ -16,7 +18,7 @@ export default function Footer() {
           {/* Customer Service Column */}
           <div className="col-6 col-md-4 col-lg-2">
             <h6 className="fw-semibold mb-3" style={{ color: '#222', fontSize: '14px', fontWeight: 600 }}>
-              CUSTOMER SERVICE
+              {t('footer.customerService')}
             </h6>
             <ul className="list-unstyled">
               <li className="mb-2">
@@ -31,7 +33,7 @@ export default function Footer() {
                   onMouseEnter={(e) => e.currentTarget.style.color = '#ee4d2d'}
                   onMouseLeave={(e) => e.currentTarget.style.color = '#666'}
                 >
-                  Shopee Help Center
+                  {t('footer.shopeeHelpCenter')}
                 </Link>
               </li>
             </ul>
@@ -40,7 +42,7 @@ export default function Footer() {
           {/* Shopee Vietnam Column */}
           <div className="col-6 col-md-4 col-lg-2">
             <h6 className="fw-semibold mb-3" style={{ color: '#222', fontSize: '14px', fontWeight: 600 }}>
-              SHOPEE VIETNAM
+              {t('footer.shopeeVietnam')}
             </h6>
             <ul className="list-unstyled">
               <li className="mb-2">
@@ -55,7 +57,7 @@ export default function Footer() {
                   onMouseEnter={(e) => e.currentTarget.style.color = '#ee4d2d'}
                   onMouseLeave={(e) => e.currentTarget.style.color = '#666'}
                 >
-                  About Shopee
+                  {t('footer.aboutShopee')}
                 </Link>
               </li>
             </ul>
@@ -64,7 +66,7 @@ export default function Footer() {
           {/* Payment Column */}
           <div className="col-6 col-md-4 col-lg-2">
             <h6 className="fw-semibold mb-3" style={{ color: '#222', fontSize: '14px', fontWeight: 600 }}>
-              PAYMENT
+              {t('footer.payment')}
             </h6>
             <div className="d-flex gap-2 flex-wrap">
               <div style={{
@@ -115,7 +117,7 @@ export default function Footer() {
           {/* Follow Shopee Column */}
           <div className="col-6 col-md-4 col-lg-2">
             <h6 className="fw-semibold mb-3" style={{ color: '#222', fontSize: '14px', fontWeight: 600 }}>
-              FOLLOW SHOPEE
+              {t('footer.followShopee')}
             </h6>
             <div className="d-flex gap-2">
               <a
@@ -139,7 +141,7 @@ export default function Footer() {
           {/* Download App Column */}
           <div className="col-6 col-md-4 col-lg-2">
             <h6 className="fw-semibold mb-3" style={{ color: '#222', fontSize: '14px', fontWeight: 600 }}>
-              DOWNLOAD SHOPEE APP
+              {t('footer.downloadApp')}
             </h6>
             <div className="d-flex gap-2 flex-column">
               <div style={{
@@ -153,7 +155,7 @@ export default function Footer() {
                 fontSize: '12px',
                 color: '#666'
               }}>
-                App Store
+                {t('footer.appStore')}
               </div>
               <div style={{
                 width: '120px',
@@ -166,7 +168,7 @@ export default function Footer() {
                 fontSize: '12px',
                 color: '#666'
               }}>
-                Google Play
+                {t('footer.googlePlay')}
               </div>
             </div>
           </div>
@@ -183,7 +185,7 @@ export default function Footer() {
           <div className="row align-items-center">
             <div className="col-12 text-center">
               <p className="mb-0" style={{ color: '#666', fontSize: '12px' }}>
-                © {year} Shopee. All rights reserved.
+                {t('footer.copyright', { year })}
               </p>
             </div>
           </div>

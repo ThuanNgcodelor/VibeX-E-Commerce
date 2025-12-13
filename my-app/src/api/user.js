@@ -88,7 +88,7 @@ export const getUserById = async (userId) => {
     try {
         const response = await api.get(`/getUserById/${userId}`);
         return response.data;
-    } catch (error) {
+    } catch {
         throw new Error("Failed to fetch user");
     }
 };
@@ -254,7 +254,7 @@ export const deleteAddress = async (id) => {
     try {
         const response = await api.delete(`/address/deleteAddressById/${id}`);
         return response.data;
-    } catch (error) {
+    } catch {
         return false;
     }
 };
@@ -296,7 +296,7 @@ export const createRoleRequest = async (data) => {
     try {
         const response = await api.post("/role-requests", data);
         return response.data;
-    } catch (error) {
+    } catch {
         throw new Error("Failed to create role request");
     }
 };
@@ -326,7 +326,7 @@ export const getUserRoleRequests = async () => {
     try {
         const response = await api.get("/role-requests/user");
         return response.data;
-    } catch (error) {
+    } catch  {
         throw new Error("Failed to fetch user role requests");
     }
 };
@@ -339,7 +339,7 @@ export const createDefaultAddressForTest = async () => {
     try {
         const response = await api.post('/location/debug/create-default-address');
         return response.data;
-    } catch (error) {
+    } catch {
         throw new Error("Failed to create default address");
     }
 };
@@ -352,7 +352,40 @@ export const checkDefaultAddress = async () => {
     try {
         const response = await api.get('/location/check-default-address');
         return response.data;
-    } catch (error) {
+    } catch  {
         throw new Error("Failed to check default address");
     }
+};
+/**
+ * Follow a shop
+ * @param {string} shopId
+ */
+export const followShop = async (shopId) => {
+    return api.post(`/follow/${shopId}`);
+};
+
+/**
+ * Unfollow a shop
+ * @param {string} shopId
+ */
+export const unfollowShop = async (shopId) => {
+    return api.delete(`/follow/${shopId}`);
+};
+
+/**
+ * Get follower count for a shop
+ * @param {string} shopId
+ */
+export const getFollowerCount = async (shopId) => {
+    const res = await api.get(`/follow/${shopId}/count`);
+    return res.data;
+};
+
+/**
+ * Check if current user is following a shop
+ * @param {string} shopId
+ */
+export const checkIsFollowing = async (shopId) => {
+    const res = await api.get(`/follow/${shopId}/status`);
+    return res.data;
 };

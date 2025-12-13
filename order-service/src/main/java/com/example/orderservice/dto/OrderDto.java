@@ -20,4 +20,7 @@ public class OrderDto {
     private LocalDateTime creationTimestamp;
     private LocalDateTime updateTimestamp;
     private List<OrderItemDto> orderItems;
+
+    private String cancelReason;
+    private String returnReason;
 }

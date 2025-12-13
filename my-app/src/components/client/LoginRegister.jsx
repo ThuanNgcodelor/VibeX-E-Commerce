@@ -1,10 +1,12 @@
 import React, {useEffect, useState} from "react";
 import {Link, useLocation, useNavigate} from "react-router-dom";
+import {useTranslation} from "react-i18next";
 import {getUserRole, isAuthenticated, login, register} from "../../api/auth.js";
 import {checkEmailExists} from "../../api/user.js";
 import { GOOGLE_CLIENT_ID, GOOGLE_REDIRECT_URI } from "../../config/config.js";
 
 export default function Auth(){
+    const { t } = useTranslation();
     const [loginData, setLoginData] = useState({
         email: '',
         password: ''
@@ -84,7 +86,7 @@ export default function Auth(){
         setSuccess('');
         setLoading(true);
         if(loginData.email === '' || loginData.password === ''){
-            setError("Please fill in all fields.");
+            setError(t('auth.login.fillAllFields'));
             return;
         }
 
@@ -102,7 +104,7 @@ export default function Auth(){
         } catch(error){
             console.log(loginData);
 
-            setError(error.response?.data?.message || "Login failed. Please check your email and password.");
+            setError(error.response?.data?.message || t('auth.login.loginFailed'));
         } finally {
             setLoading(false);
         }
@@ -115,11 +117,11 @@ export default function Auth(){
         setFieldErrors({}); // Clear field errors
 
         if (registerData.password !== registerData.confirmPassword) {
-            setError("Passwords do not match.");
+            setError(t('auth.register.passwordsNotMatch'));
             return;
         }
         if (registerData.password.length < 6) {
-            setError("Password must be at least 6 characters.");
+            setError(t('auth.register.passwordMinLength'));
             return;
         }
 
@@ -127,12 +129,12 @@ export default function Auth(){
         try {
             const exists = await checkEmailExists(registerData.email);
             if (exists) {
-                setError("Email already exists. Please use a different email.");
+                setError(t('auth.register.emailExists'));
                 return;
             }
 
             await register(registerData);
-            setSuccess("Registration successful! You can now login.");
+            setSuccess(t('auth.register.registerSuccess'));
             setRegisterData({ username: "", email: "", password: "", confirmPassword: "" });
             setFieldErrors({});
         } catch (err) {
@@ -162,7 +164,7 @@ export default function Auth(){
                 }
             } else {
                 const apiMsg = responseData?.message || responseData?.error || responseData?.detail || err?.message;
-                setError(apiMsg || "Register error. Please check your registration information.");
+                setError(apiMsg || t('auth.register.registerError'));
             }
         } finally {
             setLoading(false);
@@ -188,7 +190,7 @@ export default function Auth(){
                                     border: "1px solid #ffcdd2",
                                     textAlign: "center"
                                 }}>
-                                    <strong>Error:</strong> {error}
+                                    <strong>{t('auth.error')}:</strong> {error}
                                 </div>
                             </div>
                         </div>
@@ -206,7 +208,7 @@ export default function Auth(){
                                     border: "1px solid #c8e6c9",
                                     textAlign: "center"
                                 }}>
-                                    <strong>Success:</strong> {success}
+                                    <strong>{t('auth.success')}:</strong> {success}
                                 </div>
                             </div>
                         </div>
@@ -217,8 +219,8 @@ export default function Auth(){
                         <div className="col-md-5 login-register-border">
                             <div className="login-register-content">
                                 <div className="login-register-title mb-30">
-                                    <h2>Login</h2>
-                                    <p>Welcome back! Please enter your email and password to login. </p>
+                                    <h2>{t('auth.login.title')}</h2>
+                                    <p>{t('auth.login.subtitle')}</p>
                                 </div>
                                 <div className="login-register-style login-register-pr">
                                     <form action="" method="post">
@@ -228,7 +230,7 @@ export default function Auth(){
                                                    name="email"
                                                    value={loginData.email}
                                                    onChange={handleLogin}
-                                                   placeholder="Email address"
+                                                   placeholder={t('auth.login.emailPlaceholder')}
                                             />
                                         </div>
                                         <div className="login-register-input">
@@ -237,19 +239,19 @@ export default function Auth(){
                                                    name="password"
                                                    value={loginData.password}
                                                    onChange={handleLogin}
-                                                   placeholder="Password"
+                                                   placeholder={t('auth.login.passwordPlaceholder')}
                                             />
                                             <div className="forgot">
-                                                <a onClick={handleForgotPassword}>Forgot?</a>
+                                                <a onClick={handleForgotPassword}>{t('auth.login.forgot')}</a>
                                             </div>
                                         </div>
                                         <div className="remember-me-btn">
                                             <input type="checkbox" />
-                                            <label>Remember me</label>
+                                            <label>{t('auth.login.rememberMe')}</label>
                                         </div>
                                         <div className="btn-register">
                                             <button className="btn-register-now"
-                                                    onClick={handleLoginSubmit}>Login
+                                                    onClick={handleLoginSubmit}>{t('auth.login.button')}
                                             </button>
                                         </div>
                                         <br/>
@@ -274,7 +276,7 @@ export default function Auth(){
                                                     alt="Google"
                                                     style={{ width: 26, height: 10, marginRight: 10 }}
                                                 />
-                                                Google Login
+                                                {t('auth.login.googleLogin')}
                                             </button>
 
 
@@ -287,8 +289,8 @@ export default function Auth(){
                         <div className="col-md-7">
                             <div className="login-register-content login-register-pl">
                                 <div className="login-register-title mb-30">
-                                    <h2>Register</h2>
-                                    <p>Create new account today to reap the benefits of a personalized shopping experience. </p>
+                                    <h2>{t('auth.register.title')}</h2>
+                                    <p>{t('auth.register.subtitle')}</p>
                                 </div>
                                 <div className="login-register-style">
                                     <form method="post">

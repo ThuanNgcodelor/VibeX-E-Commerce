@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import "../../../assets/css/VerifyOtp.css";
 
 export default function ForgotPassword({ onSendEmail, cooldownSec = 60 }) {
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [touched, setTouched] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -39,14 +41,14 @@ export default function ForgotPassword({ onSendEmail, cooldownSec = 60 }) {
       setSent(true);
       setCooldown(cooldownSec);
     } catch (err) {
-      setError(err?.message || "Could not send reset email. Please try again.");
+      setError(err?.message || t('auth.forgotPassword.error'));
     } finally {
       setLoading(false);
     }
   };
 
   const emailError =
-    touched && !isValidEmail(email) ? "Invalid email format" : "";
+    touched && !isValidEmail(email) ? t('auth.forgotPassword.invalidEmail') : "";
 
   return (
     <div
@@ -56,20 +58,20 @@ export default function ForgotPassword({ onSendEmail, cooldownSec = 60 }) {
       <div className="position-relative">
         <div className="card p-3 text-center custom-card">
           <h6>
-            Forgot your password? <br />
+            {t('auth.forgotPassword.title')} <br />
           </h6>
 
           <form className="mt-3 w-100 px-3" onSubmit={handleSubmit} noValidate>
             <div className="mb-2 text-start">
               <label htmlFor="fp-email" className="form-label fw-semibold">
-                Email
+                {t('auth.forgotPassword.emailLabel')}
               </label>
               <input
                 id="fp-email"
                 ref={inputRef}
                 type="email"
                 className={`form-control ${emailError ? "is-invalid" : ""}`}
-                placeholder="you@example.com"
+                placeholder={t('auth.forgotPassword.emailPlaceholder')}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 onBlur={() => setTouched(true)}
@@ -80,7 +82,7 @@ export default function ForgotPassword({ onSendEmail, cooldownSec = 60 }) {
                 <div className="invalid-feedback">{emailError}</div>
               )}
               <div id="fp-email-help" className="form-text">
-                We’ll send a password reset link to this email.
+                {t('auth.forgotPassword.emailHelp')}
               </div>
             </div>
 
@@ -92,8 +94,7 @@ export default function ForgotPassword({ onSendEmail, cooldownSec = 60 }) {
 
             {sent && !error && (
               <div className="form-text alert-success py-1 my-2" role="alert">
-                Reset link sent to <strong>{email}</strong>. Please check your
-                inbox.
+                {t('auth.forgotPassword.success', { email })}
               </div>
             )}
 
@@ -103,7 +104,7 @@ export default function ForgotPassword({ onSendEmail, cooldownSec = 60 }) {
                 type="submit"
                 disabled={!canSubmit}
               >
-                {loading ? "Sending..." : "Send Reset Link"}
+                {loading ? t('auth.forgotPassword.sending') : t('auth.forgotPassword.sendButton')}
               </button>
             </div>
           </form>

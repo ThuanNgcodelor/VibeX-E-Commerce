@@ -10,7 +10,7 @@ export default function BulkShippingPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expandedRow, setExpandedRow] = useState(null);
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || '');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [pageSize] = useState(10);
@@ -22,6 +22,14 @@ export default function BulkShippingPage() {
   useEffect(() => {
     loadOrders();
   }, [currentPage, statusFilter]);
+
+  // Sync URL params with statusFilter on mount
+  useEffect(() => {
+    const statusFromUrl = searchParams.get('status');
+    if (statusFromUrl) {
+      setStatusFilter(statusFromUrl);
+    }
+  }, [searchParams]);
 
   // Auto-expand order if orderId is in URL
   useEffect(() => {
@@ -50,11 +58,11 @@ export default function BulkShippingPage() {
     try {
       setLoading(true);
       setError(null);
-      
+
       // Pass empty string instead of null if no filter
       const filterValue = statusFilter && statusFilter.trim() !== '' ? statusFilter : null;
       const response = await getShopOwnerOrders(filterValue, currentPage, pageSize);
-      
+
       // Handle both paginated response and simple array
       let ordersList = [];
       if (response && response.content && Array.isArray(response.content)) {
@@ -73,13 +81,13 @@ export default function BulkShippingPage() {
         ordersList = [];
         setTotalPages(1);
       }
-      
+
       setOrders(ordersList);
-      
+
       // Fetch user info (username) for all orders
       const userIds = [...new Set(ordersList.map(order => order.userId).filter(Boolean))];
       const usernameMap = {};
-      
+
       await Promise.all(
         userIds.map(async (userId) => {
           try {
@@ -91,7 +99,7 @@ export default function BulkShippingPage() {
           }
         })
       );
-      
+
       setUsernames(usernameMap);
     } catch (err) {
       console.error('Error loading orders:', err);
@@ -122,7 +130,7 @@ export default function BulkShippingPage() {
       alert('Please select at least one order');
       return;
     }
-    
+
     if (!bulkStatus) {
       alert('Please select a status');
       return;
@@ -136,7 +144,7 @@ export default function BulkShippingPage() {
       const updatePromises = Array.from(selectedOrders).map(orderId =>
         updateOrderStatusForShopOwner(orderId, bulkStatus)
       );
-      
+
       await Promise.all(updatePromises);
       alert(`Successfully updated ${selectedOrders.size} order(s)!`);
       setSelectedOrders(new Set());
@@ -193,7 +201,7 @@ export default function BulkShippingPage() {
       CANCELLED: { label: 'Cancelled', class: 'bg-danger' },
       COMPLETED: { label: 'Completed', class: 'bg-success' }
     };
-    
+
     return statusMap[normalizedStatus] || { label: status || 'N/A', class: 'bg-secondary' };
   };
 
@@ -270,8 +278,8 @@ export default function BulkShippingPage() {
   return (
     <div className="dashboard-container">
       <div className="dashboard-header">
-        <h1>Bulk Shipping</h1>
-        <p className="text-muted">Manage and ship orders in bulk</p>
+        <h1>Manage Order</h1>
+        <p className="text-muted">Manage your orders</p>
       </div>
 
       {error && (
@@ -285,14 +293,14 @@ export default function BulkShippingPage() {
           <div className="table-title">Orders List for Shipping</div>
           <div className="table-actions" style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
             <div className="search-filter">
-              <select 
-                className="form-select" 
-                value={statusFilter} 
+              <select
+                className="form-select"
+                value={statusFilter}
                 onChange={(e) => {
                   setStatusFilter(e.target.value);
                   setCurrentPage(1);
                 }}
-                style={{width: '200px'}}
+                style={{ width: '200px' }}
               >
                 <option value="">All Status</option>
                 <option value="PENDING">Pending</option>
@@ -306,11 +314,11 @@ export default function BulkShippingPage() {
             </div>
             {selectedOrders.size > 0 && (
               <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                <select 
-                  className="form-select" 
-                  value={bulkStatus} 
+                <select
+                  className="form-select"
+                  value={bulkStatus}
                   onChange={(e) => setBulkStatus(e.target.value)}
-                  style={{width: '150px'}}
+                  style={{ width: '150px' }}
                 >
                   <option value="">Select Status</option>
                   <option value="PROCESSING">Processing</option>
@@ -319,7 +327,7 @@ export default function BulkShippingPage() {
                   <option value="CANCELLED">Cancelled</option>
                   <option value="RETURNED">Returned</option>
                 </select>
-                <button 
+                <button
                   className="btn btn-primary-shop"
                   onClick={handleBulkStatusUpdate}
                   disabled={!bulkStatus}
@@ -340,26 +348,26 @@ export default function BulkShippingPage() {
           </div>
         </div>
 
-        <div className="table-responsive" style={{overflowX: 'auto'}}>
+        <div className="table-responsive" style={{ overflowX: 'auto' }}>
           <table className="table table-hover">
             <thead>
               <tr>
-                <th style={{width: '4%'}}>
-                  <input 
-                    type="checkbox" 
+                <th style={{ width: '4%' }}>
+                  <input
+                    type="checkbox"
                     checked={selectedOrders.size === orders.length && orders.length > 0}
                     onChange={toggleSelectAll}
                   />
                 </th>
-                <th style={{width: '12%'}}>Customer</th>
-                <th style={{width: '10%'}}>Phone</th>
-                <th style={{width: '18%'}}>Address</th>
-                <th style={{width: '9%'}}>Subtotal</th>
-                <th style={{width: '9%'}}>Shipping</th>
-                <th style={{width: '9%'}}>Total</th>
-                <th style={{width: '9%'}}>Order Date</th>
-                <th style={{width: '9%'}}>Status</th>
-                <th style={{width: '11%'}}>Actions</th>
+                <th style={{ width: '12%' }}>Customer</th>
+                <th style={{ width: '10%' }}>Phone</th>
+                <th style={{ width: '18%' }}>Address</th>
+                <th style={{ width: '9%' }}>Subtotal</th>
+                <th style={{ width: '9%' }}>Shipping</th>
+                <th style={{ width: '9%' }}>Total</th>
+                <th style={{ width: '9%' }}>Order Date</th>
+                <th style={{ width: '9%' }}>Status</th>
+                <th style={{ width: '11%' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -373,57 +381,57 @@ export default function BulkShippingPage() {
                 orders.map((order, index) => {
                   const statusInfo = getStatusBadge(order.orderStatus);
                   const nextStatus = getNextStatus(order.orderStatus);
-                const isExpanded = expandedRow === order.id;
+                  const isExpanded = expandedRow === order.id;
                   const isSelected = selectedOrders.has(order.id);
                   const orderNumber = (currentPage - 1) * pageSize + index + 1;
-                  
-                return (
-                  <React.Fragment key={order.id}>
-                    <tr data-order-id={order.id}>
-                      <td>
-                          <input 
-                            type="checkbox" 
+
+                  return (
+                    <React.Fragment key={order.id}>
+                      <tr data-order-id={order.id}>
+                        <td>
+                          <input
+                            type="checkbox"
                             checked={isSelected}
                             onChange={() => toggleOrderSelection(order.id)}
                           />
-                      </td>
+                        </td>
                         <td>{usernames[order.userId] || order.userId || 'N/A'}</td>
                         <td>{order.recipientPhone || 'N/A'}</td>
-                        <td className="text-truncate" style={{maxWidth: '200px'}} title={order.fullAddress || order.shippingAddress || 'N/A'}>
+                        <td className="text-truncate" style={{ maxWidth: '200px' }} title={order.fullAddress || order.shippingAddress || 'N/A'}>
                           {order.fullAddress || order.shippingAddress || 'N/A'}
-                      </td>
+                        </td>
                         <td>
-                          <strong style={{color: '#555'}}>
+                          <strong style={{ color: '#555' }}>
                             {formatPrice(order.totalPrice)}
                           </strong>
                         </td>
                         <td>
-                          <span style={{color: '#666', fontSize: '0.9rem'}}>
+                          <span style={{ color: '#666', fontSize: '0.9rem' }}>
                             {order.shippingFee ? formatPrice(order.shippingFee) : 'N/A'}
                           </span>
                         </td>
                         <td>
-                          <strong style={{color: '#ee4d2d'}}>
+                          <strong style={{ color: '#ee4d2d' }}>
                             {formatPrice((order.totalPrice || 0) + (order.shippingFee || 0))}
                           </strong>
                         </td>
                         <td>{formatDate(order.creationTimestamp)}</td>
-                      <td>
-                        <span className={`badge ${statusInfo.class}`}>
-                          {statusInfo.label}
-                        </span>
-                      </td>
-                      <td>
-                          <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
-                        <button 
-                          className="btn btn-sm btn-outline-primary"
-                          onClick={() => toggleRowExpansion(order.id)}
+                        <td>
+                          <span className={`badge ${statusInfo.class}`}>
+                            {statusInfo.label}
+                          </span>
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                            <button
+                              className="btn btn-sm btn-outline-primary"
+                              onClick={() => toggleRowExpansion(order.id)}
                               title="View details"
-                        >
-                          <i className={`fas ${isExpanded ? 'fa-eye-slash' : 'fa-eye'}`}></i>
-                        </button>
+                            >
+                              <i className={`fas ${isExpanded ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                            </button>
                             {nextStatus && (
-                              <button 
+                              <button
                                 className="btn btn-sm btn-outline-success"
                                 onClick={() => handleStatusUpdate(order.id, nextStatus)}
                                 title={`Update to ${getStatusLabel(nextStatus)}`}
@@ -432,57 +440,57 @@ export default function BulkShippingPage() {
                               </button>
                             )}
                           </div>
-                      </td>
-                    </tr>
+                        </td>
+                      </tr>
                       {isExpanded && order.orderItems && order.orderItems.length > 0 && (
-                      <tr>
-                          <td colSpan="10" style={{padding: '20px', background: '#f8f9fa'}}>
-                          <div className="order-details">
-                            <h5 className="mb-3">
+                        <tr>
+                          <td colSpan="10" style={{ padding: '20px', background: '#f8f9fa' }}>
+                            <div className="order-details">
+                              <h5 className="mb-3">
                                 <i className="fas fa-info-circle text-primary"></i> Order Details - {order.id}
-                            </h5>
-                            
-                            <div className="row mb-3">
-                              <div className="col-md-6">
-                                <div className="info-box">
+                              </h5>
+
+                              <div className="row mb-3">
+                                <div className="col-md-6">
+                                  <div className="info-box">
                                     <label><i className="fas fa-user"></i> Customer:</label>
                                     <div>{usernames[order.userId] || order.userId || 'N/A'}</div>
                                   </div>
-                              </div>
-                              <div className="col-md-6">
-                                <div className="info-box">
+                                </div>
+                                <div className="col-md-6">
+                                  <div className="info-box">
                                     <label><i className="fas fa-phone"></i> Phone:</label>
                                     <div>{order.recipientPhone || 'N/A'}</div>
                                   </div>
+                                </div>
                               </div>
-                            </div>
 
-                            <div className="row mb-3">
-                              <div className="col-md-12">
-                                <div className="info-box">
+                              <div className="row mb-3">
+                                <div className="col-md-12">
+                                  <div className="info-box">
                                     <label><i className="fas fa-map-marker-alt"></i> Shipping Address:</label>
                                     <div>{order.fullAddress || order.shippingAddress || 'N/A'}</div>
                                   </div>
+                                </div>
                               </div>
-                            </div>
 
-                            <div className="item-details mt-3">
-                              <h6 className="mb-3">
+                              <div className="item-details mt-3">
+                                <h6 className="mb-3">
                                   <i className="fas fa-box-open"></i> Products in Order
-                              </h6>
-                              <div className="table-responsive">
-                                <table className="table table-sm table-bordered">
-                                  <thead className="table-light">
-                                    <tr>
+                                </h6>
+                                <div className="table-responsive">
+                                  <table className="table table-sm table-bordered">
+                                    <thead className="table-light">
+                                      <tr>
                                         <th>#</th>
                                         <th>Product</th>
                                         <th>Quantity</th>
-                                      <th>Size</th>
+                                        <th>Size</th>
                                         <th>Unit Price</th>
                                         <th>Subtotal</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
                                       {order.orderItems.map((item, itemIndex) => (
                                         <tr key={itemIndex}>
                                           <td>{itemIndex + 1}</td>
@@ -491,58 +499,58 @@ export default function BulkShippingPage() {
                                           <td>{item.sizeName || 'N/A'}</td>
                                           <td>{formatPrice(item.price || item.unitPrice || 0)}</td>
                                           <td><strong>{formatPrice((item.price || item.unitPrice || 0) * (item.quantity || 1))}</strong></td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
                               </div>
-                            </div>
 
-                            <div className="row mt-3">
-                              <div className="col-md-6 offset-md-6">
-                                <div className="price-summary">
-                                  <div className="d-flex justify-content-between mb-2">
-                                    <span>Subtotal:</span>
-                                    <strong>{formatPrice(order.totalPrice)}</strong>
-                                  </div>
-                                  {order.shippingFee && order.shippingFee > 0 && (
+                              <div className="row mt-3">
+                                <div className="col-md-6 offset-md-6">
+                                  <div className="price-summary">
                                     <div className="d-flex justify-content-between mb-2">
-                                      <span>Shipping Fee (GHN):</span>
-                                      <strong style={{color: '#ee4d2d'}}>{formatPrice(order.shippingFee)}</strong>
+                                      <span>Subtotal:</span>
+                                      <strong>{formatPrice(order.totalPrice)}</strong>
                                     </div>
-                                  )}
-                                  <div className="d-flex justify-content-between pt-2 border-top total-amount">
-                                    <strong>Total:</strong>
-                                    <strong style={{color: '#ee4d2d', fontSize: '18px'}}>
-                                      {formatPrice((order.totalPrice || 0) + (order.shippingFee || 0))}
-                                    </strong>
+                                    {order.shippingFee && order.shippingFee > 0 && (
+                                      <div className="d-flex justify-content-between mb-2">
+                                        <span>Shipping Fee (GHN):</span>
+                                        <strong style={{ color: '#ee4d2d' }}>{formatPrice(order.shippingFee)}</strong>
+                                      </div>
+                                    )}
+                                    <div className="d-flex justify-content-between pt-2 border-top total-amount">
+                                      <strong>Total:</strong>
+                                      <strong style={{ color: '#ee4d2d', fontSize: '18px' }}>
+                                        {formatPrice((order.totalPrice || 0) + (order.shippingFee || 0))}
+                                      </strong>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
-                            </div>
 
-                            <div className="mt-3">
-                              <button className="btn btn-primary">
+                              <div className="mt-3">
+                                <button className="btn btn-primary">
                                   <i className="fas fa-print"></i> Print Order
-                              </button>
-                              <button className="btn btn-success ms-2">
+                                </button>
+                                <button className="btn btn-success ms-2">
                                   <i className="fas fa-truck"></i> Create Shipping Label
                                 </button>
                                 {nextStatus && (
-                                  <button 
+                                  <button
                                     className="btn btn-outline-success ms-2"
                                     onClick={() => handleStatusUpdate(order.id, nextStatus)}
                                   >
                                     <i className="fas fa-check"></i> Update Status
-                              </button>
+                                  </button>
                                 )}
                               </div>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </React.Fragment>
-                );
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
                 })
               )}
             </tbody>
@@ -558,8 +566,8 @@ export default function BulkShippingPage() {
             <nav aria-label="Page navigation">
               <ul className="pagination">
                 <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-                  <button 
-                    className="page-link" 
+                  <button
+                    className="page-link"
                     onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                     disabled={currentPage === 1}
                   >
@@ -568,8 +576,8 @@ export default function BulkShippingPage() {
                 </li>
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                   <li key={page} className={`page-item ${currentPage === page ? 'active' : ''}`}>
-                    <button 
-                      className="page-link" 
+                    <button
+                      className="page-link"
                       onClick={() => setCurrentPage(page)}
                     >
                       {page}
@@ -577,8 +585,8 @@ export default function BulkShippingPage() {
                   </li>
                 ))}
                 <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
-                  <button 
-                    className="page-link" 
+                  <button
+                    className="page-link"
                     onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                     disabled={currentPage === totalPages}
                   >

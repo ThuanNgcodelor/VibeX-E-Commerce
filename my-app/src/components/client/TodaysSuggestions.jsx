@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import imgFallback from "../../assets/images/shop/6.png";
 import Loading from "./Loading.jsx";
@@ -19,6 +20,7 @@ const arrayBufferToDataUrl = (buffer, contentType) => {
 };
 
 export default function TodaysSuggestions() {
+  const { t } = useTranslation();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [imageUrls, setImageUrls] = useState({});
@@ -135,10 +137,10 @@ export default function TodaysSuggestions() {
       <div className="container" style={{ maxWidth: '1200px' }}>
         <div className="d-flex justify-content-between align-items-center mb-4">
           <h4 style={{ fontSize: '16px', color: '#757575', textTransform: 'uppercase', margin: 0 }}>
-            TODAY'S SUGGESTIONS
+            {t('home.todaysSuggestions')}
           </h4>
           <Link to="/shop" style={{ fontSize: '14px', color: '#ee4d2d', textDecoration: 'none' }}>
-            View More →
+            {t('home.viewMore')}
           </Link>
         </div>
         

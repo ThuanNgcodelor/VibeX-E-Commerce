@@ -40,6 +40,155 @@ import org.springframework.http.ResponseEntity;
 @Service
 @RequiredArgsConstructor
 public class OrderServiceImpl implements OrderService {
+    @Override
+    public Order returnOrder(String orderId, String reason) {
+        return orderRepository.findById(orderId).map(order -> {
+            order.setOrderStatus(OrderStatus.RETURNED);
+            order.setReturnReason(reason);
+
+            return orderRepository.save(order);
+        }).orElse(null);
+    }
+
+    @Override
+    public AnalyticsDto getAnalytics(String shopOwnerId) {
+        // 1. Get product IDs
+        List<String> productIds = stockServiceClient.getProductIdsByShopOwner(shopOwnerId).getBody();
+        if (productIds == null || productIds.isEmpty()) {
+            return com.example.orderservice.dto.AnalyticsDto.builder()
+                    .todayRevenue(0.0)
+                    .todayOrders(0L)
+                    .todayProducts(0L)
+                    .growth("+0%")
+                    .chartLabels(new ArrayList<>())
+                    .chartData(new ArrayList<>())
+                    .topProducts(new ArrayList<>())
+                    .build();
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime startOfToday = now.toLocalDate().atStartOfDay();
+        LocalDateTime endOfToday = now.toLocalDate().atTime(java.time.LocalTime.MAX);
+
+        // 2. Today's Revenue & Orders
+        List<OrderStatus> excluded = List.of(OrderStatus.CANCELLED, OrderStatus.RETURNED);
+        Double todayRevenue = orderRepository.sumSalesByProductIdsAndDateRange(productIds, startOfToday, endOfToday,
+                excluded);
+        if (todayRevenue == null)
+            todayRevenue = 0.0;
+
+        Long todayOrders = orderRepository.countByProductIdsAndCreationTimestampBetween(productIds, startOfToday,
+                endOfToday, excluded);
+        if (todayOrders == null)
+            todayOrders = 0L;
+
+        // 3. Yesterday's Revenue for Growth
+        LocalDateTime startOfYesterday = startOfToday.minusDays(1);
+        LocalDateTime endOfYesterday = endOfToday.minusDays(1);
+        Double yesterdayRevenue = orderRepository.sumSalesByProductIdsAndDateRange(productIds, startOfYesterday,
+                endOfYesterday, excluded);
+        if (yesterdayRevenue == null)
+            yesterdayRevenue = 0.0;
+
+        String growth;
+        if (yesterdayRevenue == 0) {
+            growth = todayRevenue > 0 ? "+100%" : "0%";
+        } else {
+            double percent = ((todayRevenue - yesterdayRevenue) / yesterdayRevenue) * 100;
+            growth = (percent >= 0 ? "+" : "") + String.format("%.1f", percent) + "%";
+        }
+
+        // 4. Revenue Chart (Last 7 Days)
+        List<String> labels = new ArrayList<>();
+        List<Double> data = new ArrayList<>();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM");
+
+        for (int i = 6; i >= 0; i--) {
+            LocalDateTime start = now.minusDays(i).toLocalDate().atStartOfDay();
+            LocalDateTime end = now.minusDays(i).toLocalDate().atTime(java.time.LocalTime.MAX);
+            Double dailyRevenue = orderRepository.sumSalesByProductIdsAndDateRange(productIds, start, end, excluded);
+
+            labels.add(start.format(formatter));
+            data.add(dailyRevenue != null ? dailyRevenue : 0.0);
+        }
+
+        // 5. Top Products (Limit 5)
+        Pageable pageable = PageRequest.of(0, 5);
+        List<com.example.orderservice.dto.TopProductDto> topProducts = orderRepository
+                .findTopSellingProducts(productIds, excluded, pageable);
+
+        // Populate product names for top products
+        for (com.example.orderservice.dto.TopProductDto top : topProducts) {
+            try {
+                ProductDto p = stockServiceClient.getProductById(top.getProductId()).getBody();
+                if (p != null) {
+                    top.setProductName(p.getName());
+                } else {
+                    top.setProductName("Unknown Product");
+                }
+            } catch (Exception e) {
+                top.setProductName("Product #" + top.getProductId());
+            }
+        }
+
+        return AnalyticsDto.builder()
+                .todayRevenue(todayRevenue)
+                .todayOrders(todayOrders)
+                .todayProducts((long) productIds.size())
+                .growth(growth)
+                .chartLabels(labels)
+                .chartData(data)
+                .topProducts(topProducts)
+                .build();
+    }
+
+    @Override
+    public java.util.Map<String, Object> getShopStats(String shopOwnerId) {
+        // 1. Get product IDs
+        List<String> productIds = stockServiceClient.getProductIdsByShopOwner(shopOwnerId).getBody();
+        java.util.Map<String, Object> stats = new java.util.HashMap<>();
+
+        if (productIds == null || productIds.isEmpty()) {
+            stats.put("pending", 0);
+            stats.put("processing", 0);
+            stats.put("shipped", 0);
+            stats.put("delivered", 0);
+            stats.put("cancelled", 0);
+            stats.put("returned", 0);
+            stats.put("salesToday", 0);
+            return stats;
+        }
+
+        // 2. Count by status
+        long pending = orderRepository.countByProductIdsAndStatus(productIds, OrderStatus.PENDING);
+        long processing = orderRepository.countByProductIdsAndStatus(productIds, OrderStatus.PROCESSING);
+        long shipped = orderRepository.countByProductIdsAndStatus(productIds, OrderStatus.SHIPPED);
+        long delivered = orderRepository.countByProductIdsAndStatus(productIds, OrderStatus.DELIVERED);
+        long cancelled = orderRepository.countByProductIdsAndStatus(productIds, OrderStatus.CANCELLED);
+        long returned = orderRepository.countByProductIdsAndStatus(productIds, OrderStatus.RETURNED);
+
+        // 3. Sales today
+        LocalDateTime startOfDay = java.time.LocalDate.now().atStartOfDay();
+        LocalDateTime endOfDay = java.time.LocalDate.now().atTime(java.time.LocalTime.MAX);
+        Double salesToday = orderRepository.sumSalesByProductIdsAndDateRange(productIds, startOfDay, endOfDay,
+                List.of(OrderStatus.CANCELLED, OrderStatus.RETURNED));
+
+        stats.put("pending", pending);
+        stats.put("processing", processing);
+        stats.put("shipped", shipped);
+        stats.put("delivered", delivered);
+        stats.put("cancelled", cancelled);
+        stats.put("returned", returned);
+
+        // Mappings for old Dashboard compatibility (if needed) or simple groupings
+        stats.put("waitingForPickup", pending + processing);
+        stats.put("processed", shipped + delivered);
+
+        stats.put("salesToday", salesToday != null ? salesToday : 0.0);
+
+        return stats;
+    }
+
     private final OrderRepository orderRepository;
     private final StockServiceClient stockServiceClient;
     private final UserServiceClient userServiceClient;
@@ -54,21 +203,37 @@ public class OrderServiceImpl implements OrderService {
 
     // Get data for shop owner orders
     @Override
-    public Page<Order> getOrdersByShopOwner(String shopOwnerId, String status, Integer pageNo, Integer pageSize) {
-        // 1. Get all productIds belonging to this shop owner from stock-service
+    public Page<Order> getOrdersByShopOwner(String shopOwnerId, List<String> statuses, Integer pageNo,
+                                            Integer pageSize) {
+        Pageable pageable = PageRequest.of(pageNo - 1, pageSize);
         List<String> productIds = stockServiceClient.getProductIdsByShopOwner(shopOwnerId).getBody();
 
         if (productIds == null || productIds.isEmpty()) {
-            return Page.empty(); // No products = no orders
+            return Page.empty();
         }
 
-        // 2. Query orders that have orderItems with these productIds
-        Pageable pageable = PageRequest.of(pageNo - 1, pageSize);
-        OrderStatus orderStatus = (status != null && !status.isEmpty())
-                ? OrderStatus.valueOf(status.toUpperCase())
-                : null;
+        List<OrderStatus> orderStatuses = null;
+        if (statuses != null && !statuses.isEmpty()) {
+            orderStatuses = statuses.stream()
+                    .map(status -> {
+                        try {
+                            return OrderStatus.valueOf(status);
+                        } catch (IllegalArgumentException e) {
+                            return null;
+                        }
+                    })
+                    .filter(java.util.Objects::nonNull)
+                    .collect(java.util.stream.Collectors.toList());
 
-        return orderRepository.findByShopOwnerProducts(productIds,pageable, orderStatus);
+            if (orderStatuses.isEmpty()) {
+                orderStatuses = null; // Return all if filtering resulted in empty valid statuses? Or return empty?
+                // If user provided statuses but all were invalid, likely return empty/all.
+                // Here treating as "ignore filter" if all invalid, or we usually assume valid
+                // enum.
+            }
+        }
+
+        return orderRepository.findByShopOwnerProducts(productIds, pageable, orderStatuses);
     }
 
     @Override
@@ -80,18 +245,20 @@ public class OrderServiceImpl implements OrderService {
         return orderRepository.findByOrderItemsProductIdIn(productIds);
     }
 
-    @Override
-    public Order cancelOrder(String orderId) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found"));
-        if (order.getOrderStatus() == OrderStatus.CANCELLED) {
+    public Order cancelOrder(String orderId, String reason) {
+        return orderRepository.findById(orderId).map(order -> {
+            order.setOrderStatus(OrderStatus.CANCELLED);
+            order.setCancelReason(reason);
+            orderRepository.save(order);
+            // Re-add stock (Commented out as productService is not injected)
+            /*
+             * for (OrderItem item : order.getOrderItems()) {
+             * // productService.addProductQuantity(item.getProductId(),
+             * item.getQuantity());
+             * }
+             */
             return order;
-        }
-        if (order.getOrderStatus() == OrderStatus.DELIVERED || order.getOrderStatus() == OrderStatus.SHIPPED) {
-            throw new RuntimeException("Cannot cancel an order that is already shipped or delivered");
-        }
-        order.setOrderStatus(OrderStatus.CANCELLED);
-        return orderRepository.save(order);
+        }).orElse(null);
     }
 
 
@@ -220,12 +387,13 @@ public class OrderServiceImpl implements OrderService {
 
 
     // ====== Helpers Tạo order ======
-    private Order initPendingOrder(String userId, String addressId) {
+    private Order initPendingOrder(String userId, String addressId, String paymentMethod) {
         Order order = Order.builder()
                 .userId(userId)
                 .addressId(addressId)
                 .orderStatus(OrderStatus.PENDING)
                 .totalPrice(0.0)
+                .paymentMethod(paymentMethod != null ? paymentMethod : "COD") // Default to COD if not specified
                 .build();
         return orderRepository.save(order);
     }
@@ -626,6 +794,7 @@ public class OrderServiceImpl implements OrderService {
                 .addressId(orderRequest.getAddressId())
                 .cartId(cartDto.getId())
                 .selectedItems(orderRequest.getSelectedItems())
+                .paymentMethod(orderRequest.getPaymentMethod() != null ? orderRequest.getPaymentMethod() : "COD") // Default to COD
                 .build();
 
         kafkaTemplate.send(orderTopic.name(), kafkaRequest);
@@ -668,12 +837,13 @@ public class OrderServiceImpl implements OrderService {
             }
         }
 
-        // Create order with PAID status
+        // Create order with PENDING status (payment is successful, but order needs shop confirmation)
         Order order = Order.builder()
                 .userId(userId)
                 .addressId(addressId)
-                .orderStatus(OrderStatus.PAID) // Already paid
+                .orderStatus(OrderStatus.PENDING) // Payment successful, but order pending shop confirmation
                 .totalPrice(0.0)
+                .paymentMethod("VNPAY") // Orders created from payment are VNPay
                 .build();
         order = orderRepository.save(order);
 
@@ -759,7 +929,8 @@ public class OrderServiceImpl implements OrderService {
         }
 
         // 1) Create order skeleton
-        Order order = initPendingOrder(msg.getUserId(), msg.getAddressId());
+        Order order = initPendingOrder(msg.getUserId(), msg.getAddressId(), 
+                msg.getPaymentMethod() != null ? msg.getPaymentMethod() : "COD");
 
         // 2) Items + decrease stock
         List<OrderItem> items = toOrderItemsFromSelected(msg.getSelectedItems(), order);
@@ -806,13 +977,18 @@ public class OrderServiceImpl implements OrderService {
             if ("PAID".equals(event.getStatus())) {
                 // Payment successful
                 if (event.getOrderId() != null && !event.getOrderId().trim().isEmpty()) {
-                    // Order already exists - just update status to PAID
+                    // Order already exists - payment successful, keep order status as PENDING (waiting for shop confirmation)
                     Order order = orderRepository.findById(event.getOrderId())
                             .orElse(null);
                     if (order != null) {
-                        order.setOrderStatus(OrderStatus.PAID);
-                        orderRepository.save(order);
-                        log.info("[PAYMENT-CONSUMER] Updated existing order {} to PAID status", event.getOrderId());
+                        // Payment is successful, but order status should remain PENDING for shop to confirm
+                        // Only update if order was in a different state (e.g., if it was created before payment)
+                        if (order.getOrderStatus() == OrderStatus.PENDING) {
+                            log.info("[PAYMENT-CONSUMER] Order {} payment successful, status remains PENDING for shop confirmation", event.getOrderId());
+                        } else {
+                            log.info("[PAYMENT-CONSUMER] Order {} payment successful, current status: {}", event.getOrderId(), order.getOrderStatus());
+                        }
+                        // No need to change order status - PENDING is correct after successful payment
                     } else {
                         log.warn("[PAYMENT-CONSUMER] Order {} not found for payment event", event.getOrderId());
                     }
@@ -840,9 +1016,17 @@ public class OrderServiceImpl implements OrderService {
                                 })
                                 .collect(java.util.stream.Collectors.toList());
 
-                        // Create order with PAID status
+                        // Create order with PENDING status (payment successful, waiting for shop confirmation)
                         Order order = createOrderFromPayment(event.getUserId(), event.getAddressId(), selectedItems);
-                        log.info("[PAYMENT-CONSUMER] Created order {} from payment event: {}", order.getId(), event.getTxnRef());
+                        
+                        // Set payment method from event (VNPAY, CARD, etc.) if available
+                        if (event.getMethod() != null && !event.getMethod().trim().isEmpty()) {
+                            order.setPaymentMethod(event.getMethod().toUpperCase());
+                            orderRepository.save(order);
+                        }
+                        
+                        log.info("[PAYMENT-CONSUMER] Created order {} with PENDING status and payment method {} from payment event: {}", 
+                                order.getId(), order.getPaymentMethod(), event.getTxnRef());
                     } catch (Exception e) {
                         log.error("[PAYMENT-CONSUMER] Failed to create order from payment event: {}", e.getMessage(), e);
                         // Note: Payment is already successful, but order creation failed

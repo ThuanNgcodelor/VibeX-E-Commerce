@@ -12,17 +12,17 @@ const api = createApiInstance(API_URL);
 export const addProduct = async (productData, images) => {
     try {
         const formData = new FormData();
-        
+
         formData.append('request', new Blob([JSON.stringify(productData)], {
             type: 'application/json'
         }));
-        
+
         if (images && images.length > 0) {
             images.forEach((image) => {
                 formData.append('file', image);
             });
         }
-        
+
         const res = await api.post("/stock/product/create", formData, {
             headers: {
                 "Content-Type": "multipart/form-data"
@@ -43,7 +43,7 @@ export const addProduct = async (productData, images) => {
 export const updateProduct = async (productData, images) => {
     try {
         const formData = new FormData();
-        
+
         formData.append('request', new Blob([JSON.stringify(productData)], {
             type: 'application/json'
         }));
@@ -53,7 +53,7 @@ export const updateProduct = async (productData, images) => {
                 formData.append('file', image);
             });
         }
-        
+
         const res = await api.put("/stock/product/update", formData, {
             headers: {
                 "Content-Type": "multipart/form-data"
@@ -125,5 +125,31 @@ export const deleteProduct = async (id) => {
         return res.data;
     } catch (error) {
         throw new Error(error.response?.data?.message || "Failed to delete product");
+    }
+};
+
+/**
+ * Lấy thống kê sản phẩm cho Shop Owner (bao gồm banned/suspended)
+ * @returns {Promise} - Promise trả về thống kê sản phẩm
+ */
+export const getProductStats = async () => {
+    try {
+        const res = await api.get("/stock/product/shop-owner/stats");
+        return res.data;
+    } catch (error) {
+        throw new Error(error.response?.data?.message || "Failed to fetch product stats");
+    }
+};
+
+/**
+ * Lấy thống kê đơn hàng và doanh thu cho Dashboard
+ * @returns {Promise} - Promise trả về thống kê dashboard
+ */
+export const getDashboardStats = async () => {
+    try {
+        const res = await api.get("/order/shop-owner/dashboard-stats");
+        return res.data;
+    } catch (error) {
+        throw new Error(error.response?.data?.message || "Failed to fetch dashboard stats");
     }
 };

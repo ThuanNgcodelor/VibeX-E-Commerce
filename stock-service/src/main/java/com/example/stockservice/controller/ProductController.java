@@ -4,6 +4,7 @@ import com.example.stockservice.dto.ProductDto;
 import com.example.stockservice.jwt.JwtUtil;
 import com.example.stockservice.model.Product;
 import com.example.stockservice.model.Size;
+import com.example.stockservice.repository.ReviewRepository;
 import com.example.stockservice.request.product.DecreaseStockRequest;
 import com.example.stockservice.request.product.IncreaseStockRequest;
 import com.example.stockservice.request.product.ProductCreateRequest;
@@ -29,8 +30,56 @@ import java.util.stream.Collectors;
 public class ProductController {
     private final ProductService productService;
     private final ModelMapper modelMapper;
+    private final ReviewRepository reviewRepository;
     private final JwtUtil jwtUtil;
     private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
+
+
+    @GetMapping("/public/shop/{shopId}/stats")
+    public ResponseEntity<java.util.Map<String, Object>> getShopStats(@PathVariable String shopId) {
+        long productCount = productService.countProductsByUserId(shopId);
+        Double avgRating = reviewRepository.getAverageRatingByShopId(shopId);
+
+        java.util.Map<String, Object> response = new java.util.HashMap<>();
+        response.put("productCount", productCount);
+        response.put("avgRating", avgRating != null ? avgRating : 0.0);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/shop-owner/stats")
+    public ResponseEntity<java.util.Map<String, Object>> getShopStatsForOwner(HttpServletRequest request) {
+        String shopId = jwtUtil.ExtractUserId(request);
+        long totalProducts = productService.countProductsByUserId(shopId);
+        long bannedProducts = productService.countProductsByUserIdAndStatus(shopId,
+                com.example.stockservice.enums.ProductStatus.BANNED);
+        long suspendedProducts = productService.countProductsByUserIdAndStatus(shopId,
+                com.example.stockservice.enums.ProductStatus.SUSPENDED);
+        long outOfStockProducts = productService.countProductsByUserIdAndStatus(shopId,
+                com.example.stockservice.enums.ProductStatus.OUT_OF_STOCK);
+
+        java.util.Map<String, Object> response = new java.util.HashMap<>();
+        response.put("totalProducts", totalProducts);
+        response.put("bannedProducts", bannedProducts); // Granular
+        response.put("suspendedProducts", suspendedProducts); // Granular
+        response.put("lockedProducts", bannedProducts + suspendedProducts); // Legacy/Aggregated
+        response.put("outOfStockProducts", outOfStockProducts);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/public/shop/{shopId}/products")
+    public ResponseEntity<Page<ProductDto>> getShopProductsPublic(
+            @PathVariable String shopId,
+            @RequestParam(defaultValue = "1") Integer pageNo,
+            @RequestParam(defaultValue = "20") Integer pageSize) {
+
+        Page<ProductDto> products = productService.getProductsByUserIdWithPaging(shopId, pageNo, pageSize)
+                .map(this::toDto);
+
+        return ResponseEntity.ok(products);
+    }
+
 
     @PostMapping("/decreaseStock")
     public ResponseEntity<ProductDto> decreaseStock(@Valid @RequestBody DecreaseStockRequest request) {

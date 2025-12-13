@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api';
 import { createAddress, getAllAddress, getUser, deleteAddress, updateAddress, setDefaultAddress } from "../../../api/user.js";
 import { getProvinces, getDistricts, getWards } from "../../../api/ghn.js";
@@ -21,6 +22,7 @@ const defaultCenter = {
 const GOOGLE_MAPS_LIBRARIES = ['places'];
 
 export default function Address() {
+    const { t } = useTranslation();
     const [, setUserData] = useState(null);
     const [showModal, setShowModal] = useState(false);
     const [addresses, setAddress] = useState([]);
@@ -308,20 +310,20 @@ export default function Address() {
 
         // Validate GHN fields
         if (!newAddress.provinceId || !newAddress.districtId || !newAddress.wardCode) {
-            setError('Please select Province, District, and Ward');
+            setError(t('address.selectProvince') + ', ' + t('address.selectDistrict') + ', ' + t('address.selectWard'));
             setLoading(false);
             return;
         }
 
         try {
             await createAddress(newAddress);
-            setSuccess('Address added successfully!');
+            setSuccess(t('address.saveSuccess'));
             setShowModal(false);
             resetNewAddressForm();
             await fetchAddresses();
         } catch (err) {
             console.error('Error creating address:', err);
-            setError(err.response?.data?.message || 'Failed to add address. Please try again.');
+            setError(err.response?.data?.message || t('address.error'));
         } finally {
             setLoading(false);
         }
@@ -335,19 +337,19 @@ export default function Address() {
 
         // Validate GHN fields
         if (!editAddress.provinceId || !editAddress.districtId || !editAddress.wardCode) {
-            setError('Please select Province, District, and Ward');
+            setError(t('address.selectProvince') + ', ' + t('address.selectDistrict') + ', ' + t('address.selectWard'));
             setLoading(false);
             return;
         }
 
         try {
             await updateAddress(editAddress);
-            setSuccess('Address updated successfully!');
+            setSuccess(t('address.updateSuccess'));
             setShowEditModal(false);
             await fetchAddresses();
         } catch (err) {
             console.error('Error updating address:', err);
-            setError(err.response?.data?.message || 'Failed to update address. Please try again.');
+            setError(err.response?.data?.message || t('address.error'));
         } finally {
             setLoading(false);
         }
@@ -408,11 +410,11 @@ export default function Address() {
                 return;
             }
             await setDefaultAddress(addressId);
-            setSuccess('Default address set successfully!');
+            setSuccess(t('address.setDefaultSuccess'));
             await fetchAddresses();
         } catch (error) {
             console.error('Error setting default address:', error);
-            setError('Failed to set default address. Please try again.');
+            setError(t('address.error'));
         } finally {
             setLoading(false);
         }
@@ -432,11 +434,11 @@ export default function Address() {
                 return;
             }
             await deleteAddress(addressId);
-            setSuccess('Address deleted successfully!');
+            setSuccess(t('address.deleteSuccess'));
             await fetchAddresses();
         } catch (error) {
             console.error('Error deleting address:', error);
-            setError('Failed to delete address. Please try again.');
+            setError(t('address.error'));
         } finally {
             setShowDeleteConfirm(false);
             setAddressToDelete(null);
@@ -527,7 +529,7 @@ export default function Address() {
                         alignItems: 'center'
                     }}>
                         <h5 style={{ margin: 0, fontSize: '18px', fontWeight: 500 }}>
-                            {isEdit ? 'Update Address' : 'New Address'}
+                            {isEdit ? t('address.editAddress') : t('address.addNewAddress')}
                         </h5>
                         <button
                             type="button"
@@ -556,7 +558,7 @@ export default function Address() {
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
                                 <div>
                                     <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 500, color: '#222' }}>
-                                        Full Name *
+                                        {t('address.recipientName')} *
                                     </label>
                                                 <input
                                                     type="text"
@@ -577,7 +579,7 @@ export default function Address() {
                                             </div>
                                 <div>
                                     <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 500, color: '#222' }}>
-                                        Phone Number *
+                                        {t('address.recipientPhone')} *
                                     </label>
                                                 <input
                                                     type="tel"
@@ -585,7 +587,7 @@ export default function Address() {
                                         value={address.recipientPhone}
                                         onChange={handleChange}
                                                     required
-                                        placeholder="(+84) 706 450 544"
+                                        placeholder={t('address.phonePlaceholder')}
                                         style={{
                                             width: '100%',
                                             padding: '12px',
@@ -602,7 +604,7 @@ export default function Address() {
                             {/* Province/District/Ward - Dropdown */}
                             <div style={{ marginBottom: '20px' }}>
                                 <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 500, color: '#222' }}>
-                                    Province/City, District/County, Ward/Commune *
+                                    {t('address.province')}, {t('address.district')}, {t('address.ward')} *
                                 </label>
                                 {provinces.length === 0 && error && (
                                     <div style={{ 
@@ -646,7 +648,7 @@ export default function Address() {
                                             cursor: provinces.length === 0 ? 'not-allowed' : 'pointer'
                                         }}
                                     >
-                                        <option value="">{provinces.length === 0 ? 'GHN API not configured' : 'Select Province'}</option>
+                                        <option value="">{provinces.length === 0 ? 'GHN API not configured' : t('address.selectProvince')}</option>
                                         {provinces.map(province => (
                                             <option key={province.ProvinceID} value={province.ProvinceID}>
                                                 {province.ProvinceName}
@@ -679,7 +681,7 @@ export default function Address() {
                                             background: 'white'
                                         }}
                                     >
-                                        <option value="">Select District</option>
+                                        <option value="">{t('address.selectDistrict')}</option>
                                         {districts.map(district => (
                                             <option key={district.DistrictID} value={district.DistrictID}>
                                                 {district.DistrictName}
@@ -712,7 +714,7 @@ export default function Address() {
                                             background: 'white'
                                         }}
                                     >
-                                        <option value="">Select Ward</option>
+                                        <option value="">{t('address.selectWard')}</option>
                                         {wards.map(ward => (
                                             <option key={ward.WardCode} value={ward.WardCode}>
                                                 {ward.WardName}
@@ -725,7 +727,7 @@ export default function Address() {
                             {/* Specific Address */}
                             <div style={{ marginBottom: '20px' }}>
                                 <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 500, color: '#222' }}>
-                                    Specific Address *
+                                    {t('address.streetAddress')} *
                                 </label>
                                 <textarea
                                     name="streetAddress"
@@ -733,7 +735,7 @@ export default function Address() {
                                     onChange={handleChange}
                                                 required
                                     rows={3}
-                                    placeholder="Enter detailed address"
+                                    placeholder={t('address.streetAddressPlaceholder')}
                                     style={{
                                         width: '100%',
                                         padding: '12px',
@@ -751,7 +753,7 @@ export default function Address() {
                             <div style={{ marginBottom: '20px' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                                     <label style={{ fontSize: '14px', fontWeight: 500, color: '#222' }}>
-                                        Location on Map
+                                        {t('address.location')}
                                     </label>
                                     <button
                                         type="button"
@@ -766,7 +768,7 @@ export default function Address() {
                                             cursor: 'pointer'
                                         }}
                                     >
-                                        {showMap ? 'Hide Map' : 'View Map'}
+                                        {showMap ? t('common.hide') : t('common.view')}
                                     </button>
                                 </div>
                                 {showMap && isLoaded && (
@@ -837,7 +839,7 @@ export default function Address() {
                                     style={{ width: '18px', height: '18px', cursor: 'pointer' }}
                                 />
                                 <label style={{ fontSize: '14px', color: '#222', cursor: 'pointer' }}>
-                                    Set as default address
+                                    {t('address.setAsDefault')}
                                 </label>
                                         </div>
                                     </div>
@@ -863,7 +865,7 @@ export default function Address() {
                                     cursor: 'pointer'
                                 }}
                             >
-                                Back
+                                {t('common.cancel')}
                                         </button>
                             <button
                                 type="submit"
@@ -879,7 +881,7 @@ export default function Address() {
                                     cursor: loading ? 'not-allowed' : 'pointer'
                                 }}
                             >
-                                {loading ? (isEdit ? 'Updating...' : 'Saving...') : 'Complete'}
+                                {loading ? (isEdit ? t('common.updating') : t('common.saving')) : t('common.complete')}
                                         </button>
                                     </div>
                                 </form>
@@ -899,7 +901,7 @@ export default function Address() {
                 justifyContent: 'space-between',
                 alignItems: 'center'
             }}>
-                <h4 style={{ fontSize: '18px', fontWeight: 500, color: '#222', margin: 0 }}>Địa chỉ của tôi</h4>
+                <h4 style={{ fontSize: '18px', fontWeight: 500, color: '#222', margin: 0 }}>{t('address.title')}</h4>
                 <button
                     onClick={() => {
                         setShowModal(true);
@@ -922,7 +924,7 @@ export default function Address() {
                     onMouseEnter={(e) => e.currentTarget.style.background = '#f05d40'}
                     onMouseLeave={(e) => e.currentTarget.style.background = '#ee4d2d'}
                 >
-                    <i className="fa fa-plus"></i> Add New Address
+                    <i className="fa fa-plus"></i> {t('address.addNewAddress')}
                 </button>
             </div>
 
@@ -951,7 +953,7 @@ export default function Address() {
                 ) : addresses.length > 0 ? (
                     <>
                         <div style={{ marginBottom: '12px', fontSize: '14px', color: '#222', fontWeight: 500 }}>
-                            Địa chỉ
+                            {t('address.address')}
                         </div>
                         {addresses.map((address, index) => {
                             const isDefault = address.isDefault || address.default;
@@ -991,7 +993,7 @@ export default function Address() {
                                                     fontWeight: 500,
                                                     background: 'transparent'
                                                 }}>
-                                                    Default
+                                                    {t('address.default')}
                                                 </span>
                                             )}
                                 </div>
@@ -1010,7 +1012,7 @@ export default function Address() {
                                                     opacity: isDefault ? 0.7 : 1
                                                 }}
                                             >
-                                                Set as Default
+                                                {t('address.setAsDefault')}
                                     </button>
                                     <button
                                                 onClick={() => handleEditClick(address)}
@@ -1025,7 +1027,7 @@ export default function Address() {
                                                     textDecoration: 'underline'
                                                 }}
                                             >
-                                                Update
+                                                {t('common.update')}
                                             </button>
                                             {!isDefault && (
                                     <button
@@ -1041,7 +1043,7 @@ export default function Address() {
                                                         textDecoration: 'underline'
                                                     }}
                                     >
-                                        Delete
+                                        {t('address.delete')}
                                     </button>
                                             )}
                                 </div>
@@ -1087,7 +1089,7 @@ export default function Address() {
                             <i className="fa fa-map-marker-alt" style={{ fontSize: '48px', color: '#ddd' }}></i>
                                         </div>
                         <p style={{ color: '#999', fontSize: '14px', margin: 0 }}>
-                            No addresses found. Please add your first address.
+                            {t('address.noAddresses')}
                         </p>
                                         </div>
                 )}
@@ -1121,7 +1123,7 @@ export default function Address() {
                         boxShadow: '0 8px 20px rgba(0,0,0,0.12)'
                     }}>
                         <p style={{ margin: '0 0 20px 0', fontSize: '16px', color: '#333', textAlign: 'center' }}>
-                        Are you sure you want to delete this address?
+                        {t('address.deleteConfirm')}
                         </p>
                         <div style={{ display: 'flex', justifyContent: 'center', gap: '12px' }}>
                             <button
@@ -1137,7 +1139,7 @@ export default function Address() {
                                     cursor: 'pointer'
                                 }}
                             >
-                                Cancel
+                                {t('address.cancel')}
                             </button>
                             <button
                                 type="button"
@@ -1152,7 +1154,7 @@ export default function Address() {
                                     cursor: 'pointer'
                                 }}
                             >
-                                Delete
+                                {t('address.delete')}
                             </button>
                         </div>
                     </div>

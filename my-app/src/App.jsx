@@ -86,27 +86,28 @@ export default function App() {
             <Route path="logout" element={<Logout />} />
           </Route>
           {/* Shop Owner routes */}
-          <Route
-            path="/shop-owner/*"
-            element={
-              <ProtectedRoute allowedRoles={["ROLE_SHOP_OWNER"]}>
-                <ShopOwnerLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<ShopOwnerDashboard />} />
-            <Route path="products" element={<AllProductsPage />} />
-            <Route path="products/add" element={<AddProductPage />} />
-            <Route path="products/edit/:id" element={<AddProductPage />} />
-            <Route path="orders/returns" element={<ReturnOrderPage />} />
-            <Route path="orders/bulk-shipping" element={<BulkShippingPage />} />
-            <Route path="orders/shipping-settings" element={<SettingsPage />} />
-            <Route path="analytics" element={<AnalyticsPage />} />
-            <Route path="chat" element={<ChatPage />} />
-            <Route path="notifications" element={<NotificationPage />} />
-            <Route path="settings" element={<SettingsPage />} />
-            <Route path="logout" element={<Logout />} />
-          </Route>
+            {/* Shop Owner routes */}
+            <Route
+                path="/shop-owner/*"
+                element={
+                    <ProtectedRoute allowedRoles={["ROLE_SHOP_OWNER"]}>
+                        <ShopOwnerLayout />
+                    </ProtectedRoute>
+                }
+            >
+                <Route index element={<ShopOwnerDashboard />} />
+                <Route path="products" element={<AllProductsPage />} />
+                <Route path="products/add" element={<AddProductPage />} />
+                <Route path="products/edit/:id" element={<AddProductPage />} />
+                <Route path="orders/returns" element={<ReturnOrderPage />} />
+                <Route path="orders/bulk-shipping" element={<BulkShippingPage />} />
+
+                <Route path="analytics" element={<AnalyticsPage />} />
+                <Route path="chat" element={<ChatPage />} />
+                <Route path="notifications" element={<NotificationPage />} />
+                <Route path="settings" element={<SettingsPage />} />
+                <Route path="logout" element={<Logout />} />
+            </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

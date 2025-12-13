@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { 
   getNotificationsByUserId, 
@@ -11,8 +12,8 @@ import { getUser } from '../../../api/user.js';
 import useWebSocketNotification from '../../../hooks/useWebSocketNotification.js';
 
 // Format time from timestamp
-const formatTimeAgo = (timestamp) => {
-  if (!timestamp) return 'Unknown';
+const formatTimeAgo = (timestamp, t) => {
+  if (!timestamp) return t('notifications.unknown');
   
   try {
     const date = new Date(timestamp);
@@ -22,25 +23,25 @@ const formatTimeAgo = (timestamp) => {
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
-    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    if (diffMins < 1) return t('notifications.justNow');
+    if (diffMins < 60) return diffMins === 1 ? t('notifications.minuteAgo', { count: diffMins }) : t('notifications.minutesAgo', { count: diffMins });
+    if (diffHours < 24) return diffHours === 1 ? t('notifications.hourAgo', { count: diffHours }) : t('notifications.hoursAgo', { count: diffHours });
+    if (diffDays < 7) return diffDays === 1 ? t('notifications.dayAgo', { count: diffDays }) : t('notifications.daysAgo', { count: diffDays });
     
     return date.toLocaleDateString('en-US');
   } catch (error) {
-    return 'Unknown';
+    return t('notifications.unknown');
   }
 };
 
 // Format data from backend to UI format
-const formatNotification = (notification) => {
+const formatNotification = (notification, t) => {
   // All notifications from backend are order notifications
   const type = 'order';
   const icon = 'fa-shopping-cart';
   
   // Create title from message or orderId
-  let title = 'Order Notification';
+  let title = t('notifications.orderNotification');
   if (notification.orderId) {
     title = `Order #${notification.orderId.substring(0, 8)}`;
   }
@@ -49,8 +50,8 @@ const formatNotification = (notification) => {
     id: notification.id,
     type,
     title,
-    message: notification.message || 'Your order has been updated',
-    time: formatTimeAgo(notification.creationTimestamp),
+    message: notification.message || t('notifications.orderUpdated'),
+    time: formatTimeAgo(notification.creationTimestamp, t),
     isRead: notification.isRead || false,
     icon,
     color: 'primary',
@@ -60,6 +61,7 @@ const formatNotification = (notification) => {
 };
 
 export default function NotificationPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -94,7 +96,7 @@ export default function NotificationPage() {
         const data = await getNotificationsByUserId(user.id);
         // Only get notifications with orderId (orders)
         const orderNotifications = Array.isArray(data) 
-          ? data.filter(n => n.orderId).map(formatNotification)
+          ? data.filter(n => n.orderId).map(n => formatNotification(n, t))
           : [];
         setNotifications(orderNotifications);
       } catch (err) {
@@ -115,7 +117,7 @@ export default function NotificationPage() {
       // Format WebSocket notifications
       const formattedWsNotifications = wsNotifications
         .filter(n => n.orderId) // Only order notifications
-        .map(formatNotification);
+        .map(n => formatNotification(n, t));
       
       // Merge with existing notifications, avoiding duplicates
       setNotifications(prev => {
@@ -187,7 +189,7 @@ export default function NotificationPage() {
       if (user && user.id) {
         const data = await getNotificationsByUserId(user.id);
         const orderNotifications = Array.isArray(data) 
-          ? data.filter(n => n.orderId).map(formatNotification)
+          ? data.filter(n => n.orderId).map(n => formatNotification(n, t))
           : [];
         setNotifications(orderNotifications);
         // Dispatch event to notify Header to refresh
@@ -224,7 +226,7 @@ export default function NotificationPage() {
       window.dispatchEvent(new CustomEvent('notificationsUpdated'));
     } catch (err) {
       console.error('Error marking notification as read:', err);
-      alert('Failed to mark notification as read');
+      alert(t('notifications.failedToMarkRead'));
       // Refresh on error to sync state
       await refreshNotifications();
     }
@@ -238,7 +240,7 @@ export default function NotificationPage() {
       window.dispatchEvent(new CustomEvent('notificationsUpdated'));
     } catch (err) {
       console.error('Error marking all as read:', err);
-      alert('Failed to mark all notifications as read');
+      alert(t('notifications.failedToMarkAllRead'));
       // Refresh on error to sync state
       await refreshNotifications();
     }
@@ -246,14 +248,14 @@ export default function NotificationPage() {
 
   const openConfirm = (type, targetId = null) => {
     const message = type === 'all'
-      ? 'Are you sure you want to delete all notifications?'
-      : 'Are you sure you want to delete this notification?';
-    const confirmText = type === 'all' ? 'DELETE ALL' : 'DELETE';
-    const cancelText = 'CANCEL';
+      ? t('notifications.deleteAllConfirm')
+      : t('notifications.deleteConfirm');
+    const confirmText = type === 'all' ? t('notifications.deleteAllButton') : t('notifications.deleteButton');
+    const cancelText = t('notifications.cancelButton');
     setConfirmModal({ open: true, type, targetId, message, confirmButtonText: confirmText, cancelButtonText: cancelText });  
   };
 
-  const closeConfirm = () => setConfirmModal({ open: false, type: null, targetId: null, message: '', confirmButtonText: 'DELETE', cancelButtonText: 'CANCEL' });
+  const closeConfirm = () => setConfirmModal({ open: false, type: null, targetId: null, message: '', confirmButtonText: t('notifications.deleteButton'), cancelButtonText: t('notifications.cancelButton') });
 
   const handleDelete = async (id) => {
     openConfirm('single', id);
@@ -294,7 +296,7 @@ export default function NotificationPage() {
   };
 
   const getTimeAgoColor = (time) => {
-    if (time.includes('minute') || time.includes('hour') || time === 'Just now') {
+    if (time.includes('minute') || time.includes('hour') || time === t('notifications.justNow')) {
       return '#ee4d2d';
     }
     return '#6c757d';
@@ -304,7 +306,7 @@ export default function NotificationPage() {
     return (
       <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto', textAlign: 'center' }}>
         <i className="fas fa-spinner fa-spin fa-3x" style={{ color: '#ee4d2d', marginBottom: '16px' }}></i>
-        <p>Loading notifications...</p>
+        <p>{t('notifications.loading')}</p>
       </div>
     );
   }
@@ -318,7 +320,7 @@ export default function NotificationPage() {
           className="btn btn-primary mt-3"
           onClick={() => window.location.reload()}
         >
-          Try Again
+          {t('notifications.tryAgain')}
         </button>
       </div>
     );
@@ -338,11 +340,11 @@ export default function NotificationPage() {
         <div>
           <div>
             <h2 style={{ margin: 0, color: '#333', fontWeight: 600 }}>
-              Notifications
+              {t('notifications.title')}
             </h2>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
               <p style={{ margin: 0, color: '#666', fontSize: '14px' }}>
-                You have {unreadCount} unread notification{unreadCount !== 1 ? 's' : ''}
+                {unreadCount === 1 ? t('notifications.unreadCount', { count: unreadCount }) : t('notifications.unreadCountPlural', { count: unreadCount })}
               </p>
               {wsConnected ? (
                 <span style={{ 
@@ -363,7 +365,7 @@ export default function NotificationPage() {
                   borderRadius: '4px',
                   fontWeight: 500
                 }}>
-                  ● Offline
+                  {t('notifications.offline')}
                 </span>
               )}
             </div>
@@ -377,7 +379,7 @@ export default function NotificationPage() {
               style={{ backgroundColor: '#ee4d2d', color: 'white', border: 'none' }}
             >
               <i className="fas fa-check-double me-1"></i>
-              Mark All as Read
+              {t('notifications.markAllAsRead')}
             </button>
           )}
           {notifications.length > 0 && (
@@ -386,7 +388,7 @@ export default function NotificationPage() {
               onClick={handleDeleteAll}
             >
               <i className="fas fa-trash me-1"></i>
-              Delete All
+              {t('notifications.deleteAll')}
             </button>
           )}
         </div>
@@ -408,7 +410,7 @@ export default function NotificationPage() {
             border: filter === 'all' ? 'none' : '1px solid #ee4d2d'
           }}
         >
-          All ({notifications.length})
+          {t('notifications.all')} ({notifications.length})
         </button>
         <button
           className="btn btn-sm"
@@ -419,7 +421,7 @@ export default function NotificationPage() {
             border: filter === 'unread' ? 'none' : '1px solid #ee4d2d'
           }}
         >
-          Unread ({unreadCount})
+          {t('notifications.unread')} ({unreadCount})
         </button>
         <button
           className="btn btn-sm"
@@ -431,7 +433,7 @@ export default function NotificationPage() {
           }}
         >
           <i className="fas fa-shopping-cart me-1"></i>
-          Orders ({notifications.length})
+          {t('notifications.orders')} ({notifications.length})
         </button>
       </div>
 
@@ -444,7 +446,7 @@ export default function NotificationPage() {
           <input
             type="text"
             className="form-control"
-            placeholder="Search notifications..."
+            placeholder={t('notifications.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -461,7 +463,7 @@ export default function NotificationPage() {
         }}>
           <i className="fas fa-bell-slash" style={{ fontSize: '48px', color: '#ccc', marginBottom: '16px' }}></i>
           <p style={{ color: '#999', fontSize: '16px', margin: 0 }}>
-            No notifications found
+            {t('notifications.noNotificationsFound')}
           </p>
         </div>
       ) : (
@@ -530,7 +532,7 @@ export default function NotificationPage() {
                           handleViewOrder(notification.orderId);
                         }}
                       >
-                        <i className="fas fa-eye me-1"></i> View Order
+                        <i className="fas fa-eye me-1"></i> {t('notifications.viewOrder')}
                       </button>
                     )}
                     <button 
@@ -598,7 +600,7 @@ export default function NotificationPage() {
                   fontSize: '12px'
                 }}
               >
-                Cancle
+                {t('notifications.cancel')}
               </button>
               <button
                 type="button"
@@ -614,7 +616,7 @@ export default function NotificationPage() {
                   fontSize: '12px'
                 }}
               >
-                Delete
+                {t('notifications.delete')}
               </button>
             </div>
           </div>

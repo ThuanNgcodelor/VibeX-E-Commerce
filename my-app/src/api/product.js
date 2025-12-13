@@ -41,7 +41,7 @@ export const removeCartItem = async (cartItemId) => {
     try {
         await api.delete(`/stock/cart/item/remove/${cartItemId}`);
         return true;
-    } catch (error) {
+    } catch  {
         return false;
     }
 };
@@ -92,4 +92,26 @@ export const updateCartItemQuantity = async (data) => {
     } catch (err) {
         throw err;
     }
+};
+/**
+ * Get shop statistics (product count, average rating)
+ * @param {string} shopId
+ * @returns {Promise<{productCount: number, avgRating: number}>}
+ */
+export const getShopStats = async (shopId) => {
+    const res = await api.get(`/stock/product/public/shop/${shopId}/stats`);
+    return res.data;
+};
+
+/**
+ * Get products for a shop (public)
+ * @param {string} shopId
+ * @param {number} pageNo
+ * @param {number} pageSize
+ */
+export const getShopProducts = async (shopId, pageNo = 1, pageSize = 12) => {
+    const res = await api.get(`/stock/product/public/shop/${shopId}/products`, {
+        params: { pageNo, pageSize }
+    });
+    return res.data;
 };

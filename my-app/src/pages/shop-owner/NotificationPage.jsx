@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { 
   getNotificationsByShopId, 
   markNotificationAsRead, 
@@ -12,7 +13,7 @@ import { getUser } from '../../api/user.js';
 import '../../components/shop-owner/ShopOwnerLayout.css';
 
 // Format notification from API to frontend format
-const formatNotification = (notification) => {
+const formatNotification = (notification, t) => {
   const now = new Date();
   const createdAt = new Date(notification.creationTimestamp);
   const diffMs = now - createdAt;
@@ -22,19 +23,25 @@ const formatNotification = (notification) => {
 
   let timeAgo = '';
   if (diffMins < 1) {
-    timeAgo = 'Just now';
+    timeAgo = t('shopOwner.notifications.justNow');
   } else if (diffMins < 60) {
-    timeAgo = `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+    timeAgo = diffMins === 1 
+      ? t('shopOwner.notifications.minuteAgo', { count: diffMins })
+      : t('shopOwner.notifications.minutesAgo', { count: diffMins });
   } else if (diffHours < 24) {
-    timeAgo = `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    timeAgo = diffHours === 1
+      ? t('shopOwner.notifications.hourAgo', { count: diffHours })
+      : t('shopOwner.notifications.hoursAgo', { count: diffHours });
   } else {
-    timeAgo = `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    timeAgo = diffDays === 1
+      ? t('shopOwner.notifications.dayAgo', { count: diffDays })
+      : t('shopOwner.notifications.daysAgo', { count: diffDays });
   }
 
   let type = 'order';
   let icon = 'fa-shopping-cart';
   let color = 'primary';
-  let title = 'New Order';
+  let title = t('shopOwner.notifications.newOrder');
 
   if (notification.message) {
     const msg = notification.message.toLowerCase();
@@ -42,42 +49,44 @@ const formatNotification = (notification) => {
       type = 'order';
       icon = 'fa-shopping-cart';
       color = 'primary';
-      title = 'New Order';
+      title = t('shopOwner.notifications.newOrder');
     } else if (msg.includes('paid') || msg.includes('thanh toán')) {
       type = 'order';
       icon = 'fa-check-circle';
       color = 'success';
-      title = 'Order Paid';
+      title = t('shopOwner.notifications.orderPaid');
     } else if (msg.includes('shipped') || msg.includes('vận chuyển')) {
       type = 'order';
       icon = 'fa-truck';
       color = 'info';
-      title = 'Order Shipped';
+      title = t('shopOwner.notifications.orderShipped');
     } else if (msg.includes('cancelled') || msg.includes('cancel') || msg.includes('hủy')) {
       type = 'order';
       icon = 'fa-times-circle';
       color = 'danger';
-      title = 'Order Cancelled';
+      title = t('shopOwner.notifications.orderCancelled');
     } else if (msg.includes('review') || msg.includes('rating') || msg.includes('đánh giá')) {
       type = 'order';
       icon = 'fa-star';
       color = 'warning';
-      title = 'New Review';
+      title = t('shopOwner.notifications.newReview');
     } else if (msg.includes('out of stock') || msg.includes('hết hàng') || msg.includes('sắp hết hàng')) {
       type = 'product';
       icon = 'fa-exclamation-triangle';
       color = 'warning';
-      title = msg.includes('sắp hết hàng') || msg.includes('low stock') ? 'Low Stock Alert' : 'Out of Stock';
+      title = msg.includes('sắp hết hàng') || msg.includes('low stock') 
+        ? t('shopOwner.notifications.lowStockAlert') 
+        : t('shopOwner.notifications.outOfStock');
     } else if (msg.includes('added') || msg.includes('thêm')) {
       type = 'product';
       icon = 'fa-plus-circle';
       color = 'success';
-      title = 'Product Added';
+      title = t('shopOwner.notifications.productAdded');
     } else {
       type = 'system';
       icon = 'fa-bell';
       color = 'secondary';
-      title = 'System Notification';
+      title = t('shopOwner.notifications.systemNotification');
     }
   }
 
@@ -95,6 +104,7 @@ const formatNotification = (notification) => {
 };
 
 export default function NotificationPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -122,12 +132,12 @@ export default function NotificationPage() {
         // Backend automatically extracts userId from JWT token and queries by shopId
         const data = await getNotificationsByShopId();
         const formattedNotifications = Array.isArray(data) 
-          ? data.map(formatNotification)
+          ? data.map(n => formatNotification(n, t))
           : [];
         setNotifications(formattedNotifications);
       } catch (err) {
         console.error('Error fetching notifications:', err);
-        setError(err.message || 'Unable to load notifications');
+        setError(err.message || t('shopOwner.notifications.errorLoading'));
         setNotifications([]);
       } finally {
         setLoading(false);
@@ -135,13 +145,13 @@ export default function NotificationPage() {
     };
 
     fetchNotifications();
-  }, []);
+  }, [t]);
 
   // Merge WebSocket real-time notifications with API notifications
   useEffect(() => {
     if (wsNotifications && wsNotifications.length > 0) {
       // Format WebSocket notifications
-      const formattedWsNotifications = wsNotifications.map(formatNotification);
+      const formattedWsNotifications = wsNotifications.map(n => formatNotification(n, t));
       
       // Merge with existing notifications, avoiding duplicates
       setNotifications(prev => {
@@ -212,7 +222,7 @@ export default function NotificationPage() {
       // Backend automatically extracts userId from JWT token and queries by shopId
       const data = await getNotificationsByShopId();
       const formattedNotifications = Array.isArray(data) 
-        ? data.map(formatNotification)
+        ? data.map(n => formatNotification(n, t))
         : [];
       setNotifications(formattedNotifications);
     } catch (err) {
@@ -249,7 +259,7 @@ export default function NotificationPage() {
       }
     } catch (err) {
       console.error('Error marking notification as read:', err);
-      alert('Failed to mark notification as read');
+      alert(t('shopOwner.notifications.markReadFailed'));
       // Refresh on error to sync state
       await refreshNotifications();
     }
@@ -263,7 +273,7 @@ export default function NotificationPage() {
       window.dispatchEvent(new CustomEvent('notificationsUpdated'));
     } catch (err) {
       console.error('Error marking all notifications as read:', err);
-      alert('Failed to mark all notifications as read');
+      alert(t('shopOwner.notifications.markAllReadFailed'));
       // Refresh on error to sync state
       await refreshNotifications();
     }
@@ -277,14 +287,14 @@ export default function NotificationPage() {
       window.dispatchEvent(new CustomEvent('notificationsUpdated'));
     } catch (err) {
       console.error('Error deleting notification:', err);
-      alert('Failed to delete notification');
+      alert(t('shopOwner.notifications.deleteFailed'));
       // Refresh on error to sync state
       await refreshNotifications();
     }
   };
 
   const handleDeleteAll = async () => {
-    if (!window.confirm('Are you sure you want to delete all notifications?')) {
+    if (!window.confirm(t('shopOwner.notifications.deleteConfirm'))) {
       return;
     }
 
@@ -295,7 +305,7 @@ export default function NotificationPage() {
       window.dispatchEvent(new CustomEvent('notificationsUpdated'));
     } catch (err) {
       console.error('Error deleting all notifications:', err);
-      alert('Failed to delete all notifications');
+      alert(t('shopOwner.notifications.deleteAllFailed'));
       // Refresh on error to sync state
       await refreshNotifications();
     }
@@ -319,9 +329,9 @@ export default function NotificationPage() {
       <div className="dashboard-container">
         <div style={{textAlign: 'center', padding: '60px 20px'}}>
           <div className="spinner-border" role="status">
-            <span className="sr-only">Loading...</span>
+            <span className="sr-only">{t('common.loading')}</span>
           </div>
-          <p style={{marginTop: '16px', color: '#666'}}>Loading notifications...</p>
+          <p style={{marginTop: '16px', color: '#666'}}>{t('shopOwner.notifications.loading')}</p>
         </div>
       </div>
     );
@@ -332,10 +342,10 @@ export default function NotificationPage() {
       <div className="dashboard-container">
         <div style={{textAlign: 'center', padding: '60px 20px'}}>
           <i className="fas fa-exclamation-circle" style={{fontSize: '64px', color: '#dc3545', marginBottom: '16px', display: 'block'}}></i>
-          <h5 style={{color: '#dc3545', marginBottom: '8px'}}>Error Loading Notifications</h5>
+          <h5 style={{color: '#dc3545', marginBottom: '8px'}}>{t('shopOwner.notifications.errorLoading')}</h5>
           <p style={{color: '#666'}}>{error}</p>
           <button className="btn btn-primary-shop" onClick={() => window.location.reload()}>
-            Try Again
+            {t('shopOwner.notifications.tryAgain')}
           </button>
         </div>
       </div>
@@ -348,15 +358,18 @@ export default function NotificationPage() {
         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
           <div>
             <div>
-              <h1>Notifications</h1>
+              <h1>{t('shopOwner.notifications.title')}</h1>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <p className="text-muted" style={{ margin: 0 }}>
                   {unreadCount > 0 ? (
                     <span style={{color: '#ee4d2d', fontWeight: '600'}}>
-                      You have {unreadCount} unread notification{unreadCount > 1 ? 's' : ''}
+                      {unreadCount === 1 
+                        ? t('shopOwner.notifications.unreadCount', { count: unreadCount })
+                        : t('shopOwner.notifications.unreadCountPlural', { count: unreadCount })
+                      }
                     </span>
                   ) : (
-                    'All notifications have been read'
+                    t('shopOwner.notifications.allRead')
                   )}
                 </p>
                 {wsConnected ? (
@@ -368,7 +381,7 @@ export default function NotificationPage() {
                     borderRadius: '4px',
                     fontWeight: 500
                   }}>
-                    ● Real-time
+                    ● {t('shopOwner.notifications.realtime')}
                   </span>
                 ) : (
                   <span style={{ 
@@ -379,7 +392,7 @@ export default function NotificationPage() {
                     borderRadius: '4px',
                     fontWeight: 500
                   }}>
-                    ● Offline
+                    ● {t('shopOwner.notifications.offline')}
                   </span>
                 )}
               </div>
@@ -392,7 +405,7 @@ export default function NotificationPage() {
                 onClick={handleMarkAllAsRead}
                 style={{marginRight: '10px'}}
               >
-                <i className="fas fa-check-double"></i> Mark All as Read
+                <i className="fas fa-check-double"></i> {t('shopOwner.notifications.markAllAsRead')}
               </button>
             )}
             {notifications.length > 0 && (
@@ -400,7 +413,7 @@ export default function NotificationPage() {
                 className="btn btn-outline-danger"
                 onClick={handleDeleteAll}
               >
-                <i className="fas fa-trash"></i> Delete All
+                <i className="fas fa-trash"></i> {t('shopOwner.notifications.deleteAll')}
               </button>
             )}
           </div>
@@ -415,7 +428,7 @@ export default function NotificationPage() {
               <input
                 type="text"
                 className="form-control"
-                placeholder="Search notifications..."
+                placeholder={t('shopOwner.notifications.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 style={{width: '100%'}}
@@ -427,31 +440,31 @@ export default function NotificationPage() {
                   className={`btn ${filter === 'all' ? 'btn-primary-shop' : 'btn-outline-secondary'}`}
                   onClick={() => setFilter('all')}
                 >
-                  All ({notifications.length})
+                  {t('shopOwner.notifications.all')} ({notifications.length})
                 </button>
                 <button 
                   className={`btn ${filter === 'unread' ? 'btn-primary-shop' : 'btn-outline-secondary'}`}
                   onClick={() => setFilter('unread')}
                 >
-                  Unread ({unreadCount})
+                  {t('shopOwner.notifications.unread')} ({unreadCount})
                 </button>
                 <button 
                   className={`btn ${filter === 'order' ? 'btn-primary-shop' : 'btn-outline-secondary'}`}
                   onClick={() => setFilter('order')}
                 >
-                  Orders
+                  {t('shopOwner.notifications.orders')}
                 </button>
                 <button 
                   className={`btn ${filter === 'product' ? 'btn-primary-shop' : 'btn-outline-secondary'}`}
                   onClick={() => setFilter('product')}
                 >
-                  Products
+                  {t('shopOwner.notifications.products')}
                 </button>
                 <button 
                   className={`btn ${filter === 'system' ? 'btn-primary-shop' : 'btn-outline-secondary'}`}
                   onClick={() => setFilter('system')}
                 >
-                  System
+                  {t('shopOwner.notifications.system')}
                 </button>
               </div>
             </div>
@@ -465,8 +478,8 @@ export default function NotificationPage() {
           {filteredNotifications.length === 0 ? (
             <div style={{textAlign: 'center', padding: '60px 20px'}}>
               <i className="fas fa-bell-slash" style={{fontSize: '64px', color: '#ddd', marginBottom: '16px', display: 'block'}}></i>
-              <h5 style={{color: '#666', marginBottom: '8px'}}>No Notifications</h5>
-              <p style={{color: '#999'}}>You don't have any notifications yet</p>
+              <h5 style={{color: '#666', marginBottom: '8px'}}>{t('shopOwner.notifications.noNotifications')}</h5>
+              <p style={{color: '#999'}}>{t('shopOwner.notifications.noNotificationsDesc')}</p>
             </div>
           ) : (
             <div className="notification-list">
@@ -527,7 +540,7 @@ export default function NotificationPage() {
                           handleViewOrder(notification.orderId);
                         }}
                       >
-                        <i className="fas fa-eye"></i> View Order
+                        <i className="fas fa-eye"></i> {t('shopOwner.notifications.viewOrder')}
                       </button>
                     )}
                   </div>

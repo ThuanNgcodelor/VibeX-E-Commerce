@@ -1,12 +1,15 @@
 import React, { useEffect, useMemo,  useState } from "react";
+import { useTranslation } from "react-i18next";
 import "../../../assets/css/VerifyOtp.css";
 
 export default function VerifyOtp({
                                       maskedPhone = "*******9897",
                                       onValidate, // (otp: string) => void
                                       onResend,   // () => void
-                                      resendLabel = "Resend(1/3)"
+                                      resendLabel
                                   }) {
+    const { t } = useTranslation();
+    const defaultResendLabel = resendLabel || t('auth.verifyOtp.resend');
     const length = 6;
     const refs = useMemo(() => Array.from({ length }, () => React.createRef()), []);
     const [values, setValues] = useState(Array(length).fill(""));
@@ -105,11 +108,11 @@ export default function VerifyOtp({
             <div>
                 <div className="card p-2 text-center custom-card">
                     <h6>
-                        Please enter the one time password <br /> to verify your account
+                        {t('auth.verifyOtp.title')}
                     </h6>
 
                     <div>
-                        <span>A code has been sent to</span> <small>{maskedPhone}</small>
+                        <span>{t('auth.verifyOtp.codeSent')}</span> <small>{maskedPhone}</small>
                     </div>
 
                     <div id="otp" className="inputs d-flex flex-row justify-content-center mt-2">
@@ -134,16 +137,16 @@ export default function VerifyOtp({
 
                     <div className="mt-4">
                         <button className="btn btn-danger px-4 validate" onClick={handleValidate}>
-                            Validate
+                            {t('auth.verifyOtp.validateButton')}
                         </button>
                     </div>
                 </div>
 
                 <div className="card-2">
                     <div className="content d-flex justify-content-center align-items-center">
-                        <span>Didn't get the code</span>
+                        <span>{t('auth.verifyOtp.didntGetCode')}</span>
                         <a href="#" className="text-decoration-none ms-3" onClick={handleResend}>
-                            {resendLabel}
+                            {defaultResendLabel}
                         </a>
                     </div>
                 </div>

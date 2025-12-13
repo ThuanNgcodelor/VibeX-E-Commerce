@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { uploadMultipleImages } from "../../../api/image";
 
 /**
@@ -14,6 +15,7 @@ import { uploadMultipleImages } from "../../../api/image";
  * - mode: 'quick' | 'full' (default 'full')
  */
 export default function RatingModal({ isOpen, onClose, onSubmit, product, initialRating = 5, mode = 'full' }) {
+    const { t } = useTranslation();
     const [rating, setRating] = useState(initialRating);
     const [comment, setComment] = useState("");
     const [images, setImages] = useState([]); // File objects
@@ -43,7 +45,7 @@ export default function RatingModal({ isOpen, onClose, onSubmit, product, initia
     const handleImageChange = (e) => {
         const files = Array.from(e.target.files);
         if (files.length + images.length > 5) {
-            alert("Maximum 5 images allowed");
+            alert(t('ratingModal.maxImages'));
             return;
         }
 
@@ -63,7 +65,7 @@ export default function RatingModal({ isOpen, onClose, onSubmit, product, initia
 
     const handleSubmit = async () => {
         if (rating === 0) {
-            alert("Please select a rating");
+            alert(t('ratingModal.pleaseSelectRating'));
             return;
         }
 
@@ -84,7 +86,7 @@ export default function RatingModal({ isOpen, onClose, onSubmit, product, initia
             onClose();
         } catch (error) {
             console.error("Submit review failed:", error);
-            alert("Failed to submit review: " + error.message);
+            alert(t('ratingModal.submitReviewFailed', { message: error.message }));
         } finally {
             setUploading(false);
         }
@@ -97,14 +99,14 @@ export default function RatingModal({ isOpen, onClose, onSubmit, product, initia
             <div className="modal-dialog modal-lg modal-dialog-centered">
                 <div className="modal-content">
                     <div className="modal-header border-bottom-0 pb-0">
-                        <h5 className="modal-title fw-bold">{mode === 'quick' ? 'Quick Rate' : 'Product Review'}</h5>
+                        <h5 className="modal-title fw-bold">{mode === 'quick' ? t('ratingModal.quickRate') : t('ratingModal.productReview')}</h5>
                         <button type="button" className="btn-close" onClick={onClose}></button>
                     </div>
 
                     <div className="modal-body">
                         <div className={`alert ${mode === 'quick' ? 'alert-info' : 'alert-warning'} d-flex align-items-center mb-3`} role="alert" style={{ fontSize: '13px' }}>
                             <i className={`fas ${mode === 'quick' ? 'fa-star' : 'fa-coins'} me-2`}></i>
-                            <div>{mode === 'quick' ? 'Quick rate to complete your order.' : 'Share your review to help others make better choices.'}</div>
+                            <div>{mode === 'quick' ? t('ratingModal.quickRateMessage') : t('ratingModal.shareReviewMessage')}</div>
                         </div>
 
                         <div className="d-flex gap-3 mb-4">
@@ -119,7 +121,7 @@ export default function RatingModal({ isOpen, onClose, onSubmit, product, initia
                             </div>
                             <div>
                                 <div className="fw-semibold text-truncate" style={{ maxWidth: '400px' }}>{product?.name || 'Product Name'}</div>
-                                <div className="text-muted small">Buy from: {product?.shopName || 'Shop'}</div>
+                                <div className="text-muted small">{t('ratingModal.buyFrom')}: {product?.shopName || 'Shop'}</div>
                             </div>
                         </div>
 
@@ -138,11 +140,11 @@ export default function RatingModal({ isOpen, onClose, onSubmit, product, initia
                             </div>
                             <div className="text-warning fw-bold">
                                 {hoverRating || rating ? (
-                                    (hoverRating || rating) === 5 ? 'Excellent' :
-                                        (hoverRating || rating) === 4 ? 'Good' :
-                                            (hoverRating || rating) === 3 ? 'Average' :
-                                                (hoverRating || rating) === 2 ? 'Poor' : 'Terrible'
-                                ) : 'Tap to rate'}
+                                    (hoverRating || rating) === 5 ? t('ratingModal.excellent') :
+                                        (hoverRating || rating) === 4 ? t('ratingModal.good') :
+                                            (hoverRating || rating) === 3 ? t('ratingModal.average') :
+                                                (hoverRating || rating) === 2 ? t('ratingModal.poor') : t('ratingModal.terrible')
+                                ) : t('ratingModal.tapToRate')}
                             </div>
                         </div>
 
@@ -152,7 +154,7 @@ export default function RatingModal({ isOpen, onClose, onSubmit, product, initia
                   <textarea
                       className="form-control"
                       rows="4"
-                      placeholder="Share what you like about this product with other buyers."
+                      placeholder={t('rating.shareWhatYouLike')}
                       value={comment}
                       onChange={(e) => setComment(e.target.value)}
                   ></textarea>
@@ -176,7 +178,7 @@ export default function RatingModal({ isOpen, onClose, onSubmit, product, initia
                                         {images.length < 5 && (
                                             <label className="border rounded d-flex flex-column align-items-center justify-content-center text-muted cursor-pointer" style={{ width: '70px', height: '70px', borderStyle: 'dashed !important', cursor: 'pointer' }}>
                                                 <i className="fas fa-camera mb-1"></i>
-                                                <span style={{ fontSize: '10px' }}>Add Photo</span>
+                                                <span style={{ fontSize: '10px' }}>{t('ratingModal.addPhoto')}</span>
                                                 <input type="file" className="d-none" accept="image/*" multiple onChange={handleImageChange} />
                                             </label>
                                         )}
@@ -187,14 +189,14 @@ export default function RatingModal({ isOpen, onClose, onSubmit, product, initia
 
                     </div>
                     <div className="modal-footer border-top-0 pt-0">
-                        <button type="button" className="btn btn-light" onClick={onClose} disabled={uploading}>Back</button>
+                        <button type="button" className="btn btn-light" onClick={onClose} disabled={uploading}>{t('ratingModal.back')}</button>
                         <button type="button" className="btn btn-primary" onClick={handleSubmit} disabled={uploading} style={{ background: '#ee4d2d', borderColor: '#ee4d2d' }}>
                             {uploading ? (
                                 <>
                                     <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                                    Sending...
+                                    {t('ratingModal.sending')}
                                 </>
-                            ) : (mode === 'quick' ? 'Send Now' : 'Complete')}
+                            ) : (mode === 'quick' ? t('ratingModal.sendNow') : t('ratingModal.complete'))}
                         </button>
                     </div>
                 </div>

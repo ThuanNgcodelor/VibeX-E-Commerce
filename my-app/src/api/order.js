@@ -11,7 +11,7 @@ export const getUserAddresses = async () => {
     try {
         const response = await api.get("/addresses");
         return response.data;
-    } catch (error) {
+    } catch {
         throw new Error("Failed to fetch addresses");
     }
 };
@@ -25,7 +25,7 @@ export const getAddressById = async (addressId) => {
     try {
         const response = await api.get(`/addresses/${addressId}`);
         return response.data;
-    } catch (error) {
+    } catch {
         throw new Error("Failed to fetch address");
     }
 };
@@ -78,7 +78,7 @@ export const getUserOrders = async () => {
     try {
         const response = await api.get("/user-orders");
         return response.data;
-    } catch (error) {
+    } catch  {
         throw new Error("Failed to fetch orders");
     }
 };
@@ -145,12 +145,36 @@ export const getShopOwnerOrders = async (status = null, pageNo = 1, pageSize = 1
     try {
         const params = { pageNo, pageSize };
         if (status) {
-            params.status = status;
+            if (Array.isArray(status)) {
+                params.status = status;
+            } else {
+                params.status = status;
+            }
         }
+
+        if (Array.isArray(status)) {
+            params.status = status.join(',');
+        }
+
         const response = await api.get("/shop-owner/orders", { params });
         return response.data;
-    } catch (error) {
+    } catch {
         throw new Error("Failed to fetch shop owner orders");
+    }
+};
+
+/**
+ * Hoàn trả đơn hàng (Shop Owner/Admin)
+ * @param {string} orderId - ID của đơn hàng
+ * @param {string} reason - Lý do hoàn trả
+ * @returns {Promise} - Promise trả về kết quả hoàn trả
+ */
+export const returnOrder = async (orderId, reason = "") => {
+    try {
+        const response = await api.post(`/return/${orderId}?reason=${encodeURIComponent(reason)}`);
+        return response.data;
+    } catch (error) {
+        throw new Error(error.response?.data?.message || "Failed to return order");
     }
 };
 
@@ -164,7 +188,7 @@ export const getAllShopOwnerOrders = async (status = null) => {
         const params = status ? { status } : {};
         const response = await api.get("/shop-owner/orders/all", { params });
         return response.data;
-    } catch (error) {
+    } catch  {
         throw new Error("Failed to fetch all shop owner orders");
     }
 };
@@ -178,7 +202,7 @@ export const getShopOwnerOrderById = async (orderId) => {
     try {
         const response = await api.get(`/shop-owner/orders/${orderId}`);
         return response.data;
-    } catch (error) {
+    } catch {
         throw new Error("Failed to fetch shop owner order");
     }
 };
@@ -193,7 +217,7 @@ export const updateOrderStatusForShopOwner = async (orderId, status) => {
     try {
         const response = await api.put(`/shop-owner/orders/${orderId}/status?status=${encodeURIComponent(status)}`);
         return response.data;
-    } catch (error) {
+    } catch {
         throw new Error("Failed to update order status");
     }
 };
@@ -220,7 +244,20 @@ export const calculateShippingFee = async (addressId, selectedItems) => {
         
         const response = await api.post("/calculate-shipping-fee", requestData);
         return response.data;
-    } catch (error) {
+    } catch  {
         return null;
+    }
+};
+
+/**
+ * Lấy dữ liệu phân tích bán hàng cho shop owner
+ * @returns {Promise<Object>} - Promise trả về dữ liệu analytics
+ */
+export const getSalesAnalytics = async () => {
+    try {
+        const response = await api.get("/shop-owner/analytics");
+        return response.data;
+    } catch  {
+        throw new Error("Failed to fetch sales analytics");
     }
 };

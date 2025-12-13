@@ -120,6 +120,13 @@ graph TB
     ORDER -->|Publish| KAFKA
     NOTIF -->|Subscribe| KAFKA
     STOCK -->|Subscribe| KAFKA
+    PAYMENT[Payment Service<br/>Port 8006<br/>VNPay Gateway]
+    GW --> PAYMENT
+    PAYMENT --> EUREKA
+    PAYMENT --> CONFIG
+    PAYMENT --> MYSQL
+    PAYMENT -->|Publish| KAFKA
+    ORDER -->|Subscribe| KAFKA
 ```
 
 ### Chi Tiết Các Microservice
@@ -133,9 +140,16 @@ graph TB
 | **user-service** | 8002 | Quản lý người dùng, địa chỉ, shop owner, role requests | MySQL (users, addresses, role_requests, shop_owners) | N/A | N/A |
 | **stock-service** | 8004 | Quản lý sản phẩm, danh mục, size, giỏ hàng | MySQL (products, categories, sizes, carts, cart_items) | Kafka (order topic) | Redis (cart) |
 | **order-service** | 8005 | Xử lý đơn hàng, checkout, đồng bộ tồn kho | MySQL (orders, order_items) | Kafka (order topic, notification topic) | N/A |
-| **notification-service** | 8009 | Thông báo realtime qua WebSocket, lưu trữ notifications | MySQL (notifications) | Kafka (notification topic) | N/A |
+| **notification-service** | 8009 | Thông báo realtime qua WebSocket, Chat, lưu trữ notifications | MySQL (notifications, conversations, messages) | Kafka (notification topic) | N/A |
+| **payment-service** | 8006 | Xử lý thanh toán VNPay, tạo payment URL, xử lý callback | MySQL (payments) | Kafka (payment-topic) | N/A |
 | **file-storage** | 8000 | Upload/Download file (avatar, product images) | MySQL (files) | N/A | N/A |
 | **merier-fe** | 5173 | Giao diện người dùng (React SPA) | N/A | N/A | LocalStorage |
+
+---
+
+## 🎯 CHỨC NĂNG THEO ACTOR
+
+Phần này mô tả chi tiết các chức năng mà từng actor có thể thực hiện trong hệ thống, được tổ chức theo vai trò để dễ tra cứu và phát triển.
 
 ---
 
@@ -181,27 +195,33 @@ graph LR
 - ❌ Không thể đặt hàng
 - ❌ Không thể theo dõi đơn hàng
 
-#### 2. User (Khách Hàng Đã Đăng Nhập)
+#### 2. User / Client (Khách Hàng Đã Đăng Nhập)
 **Quyền hạn:**
 - ✅ Tất cả quyền của Guest
 - ✅ Quản lý hồ sơ cá nhân
 - ✅ Quản lý sổ địa chỉ
 - ✅ Thêm/Sửa/Xóa giỏ hàng
-- ✅ Đặt hàng (Checkout)
+- ✅ Đặt hàng (Checkout) - COD hoặc VNPay
 - ✅ Theo dõi đơn hàng
+- ✅ Hủy đơn hàng (nếu status = PENDING)
 - ✅ Nhận thông báo realtime
+- ✅ Chat với Shop Owner về sản phẩm
 - ✅ Yêu cầu nâng cấp lên Shop Owner
 - ✅ Upload avatar
+- ✅ Xem lịch sử đơn hàng và chi tiết
 
 #### 3. Shop Owner (Chủ Shop)
 **Quyền hạn:**
-- ✅ Tất cả quyền của User
-- ✅ Quản lý thông tin shop
+- ✅ Tất cả quyền của User (có thể mua hàng như khách hàng)
+- ✅ Quản lý thông tin shop (tên, logo, địa chỉ, verified status)
 - ✅ Tạo/Sửa/Xóa sản phẩm
 - ✅ Quản lý tồn kho (sizes, stock)
-- ✅ Xem đơn hàng thuộc sản phẩm của mình
+- ✅ Xem đơn hàng thuộc sản phẩm của mình (phân trang, filter theo status)
+- ✅ Cập nhật trạng thái đơn hàng (PENDING → PROCESSING → SHIPPED)
 - ✅ Nhận thông báo khi có đơn hàng mới
+- ✅ Chat với khách hàng về sản phẩm
 - ✅ Upload logo shop và ảnh sản phẩm
+- ✅ Xem thống kê shop (số sản phẩm, rating trung bình)
 
 **Lưu ý:**
 - Cần được Admin duyệt từ Role Request
@@ -209,12 +229,664 @@ graph LR
 
 #### 4. Admin (Quản Trị Viên)
 **Quyền hạn:**
-- ✅ Quản lý tất cả người dùng
+- ✅ Quản lý tất cả người dùng (xem, cập nhật, xóa, vô hiệu hóa)
 - ✅ Duyệt/Từ chối Role Requests (nâng cấp Shop Owner)
-- ✅ Quản lý danh mục sản phẩm
-- ✅ Giám sát tất cả đơn hàng
+- ✅ Quản lý danh mục sản phẩm (CRUD categories)
+- ✅ Giám sát tất cả đơn hàng trong hệ thống
+- ✅ Cập nhật trạng thái đơn hàng (xử lý khiếu nại)
 - ✅ Vô hiệu hóa/Kích hoạt tài khoản
 - ✅ Xem thống kê hệ thống
+- ✅ Quản lý toàn bộ sản phẩm (nếu cần)
+
+---
+
+## 🎯 CHỨC NĂNG CHI TIẾT THEO ACTOR
+
+### 👤 CLIENT / USER (Khách Hàng)
+
+#### 1. Xác Thực & Tài Khoản
+
+**1.1. Đăng Ký Tài Khoản**
+- **API:** `POST /v1/auth/register`
+- **Service:** Auth Service → User Service
+- **Flow:**
+  1. User điền form: email, password, tên, số điện thoại
+  2. Validate email format, password strength
+  3. Kiểm tra email đã tồn tại chưa
+  4. Hash password với BCrypt
+  5. Tạo User với role USER
+  6. Tự động đăng nhập và trả về JWT token
+
+**1.2. Đăng Nhập Email/Password**
+- **API:** `POST /v1/auth/login`
+- **Service:** Auth Service
+- **Flow:**
+  1. User nhập email và password
+  2. Verify credentials
+  3. Tạo JWT token (exp: 24h)
+  4. Trả về token + user info
+  5. Frontend lưu token vào LocalStorage
+
+**1.3. Đăng Nhập Google OAuth2**
+- **API:** `POST /v1/auth/login/google`
+- **Service:** Auth Service → User Service
+- **Flow:**
+  1. Redirect đến Google consent screen
+  2. User chọn tài khoản Google
+  3. Google redirect về với authorization code
+  4. Verify code với Google API
+  5. Lấy email, tên từ Google
+  6. Tạo user mới nếu chưa tồn tại
+  7. Tạo JWT token và redirect về trang chủ
+
+**1.4. Quên Mật Khẩu (OTP)**
+- **APIs:** 
+  - `POST /v1/auth/forgotPassword` - Gửi OTP
+  - `POST /v1/auth/verifyOtp` - Xác thực OTP
+  - `POST /v1/auth/updatePassword` - Đặt lại mật khẩu
+- **Service:** Auth Service
+- **Flow:**
+  1. User nhập email
+  2. Tạo OTP 6 chữ số, lưu vào Redis (TTL 5 phút)
+  3. Gửi email OTP qua Gmail SMTP
+  4. User nhập OTP → Verify
+  5. User nhập mật khẩu mới → Hash và cập nhật
+
+**1.5. Quản Lý Hồ Sơ Cá Nhân**
+- **APIs:**
+  - `GET /v1/user/information` - Lấy thông tin
+  - `PUT /v1/user/update` - Cập nhật (có thể upload avatar)
+- **Service:** User Service → File Storage (nếu upload avatar)
+- **Thông tin có thể cập nhật:** Tên, email, phone, giới tính, ngày sinh, avatar
+
+**1.6. Đổi Mật Khẩu**
+- **API:** `PUT /v1/user/change-password`
+- **Service:** User Service
+- **Flow:** User nhập mật khẩu cũ và mật khẩu mới → Verify → Update
+
+#### 2. Quản Lý Địa Chỉ
+
+**2.1. Xem Danh Sách Địa Chỉ**
+- **API:** `GET /v1/user/address/getAllAddresses`
+- **Service:** User Service
+- **Response:** Danh sách địa chỉ với thông tin: tên người nhận, SĐT, địa chỉ đầy đủ, isDefault
+
+**2.2. Thêm Địa Chỉ Mới**
+- **API:** `POST /v1/user/address/save`
+- **Service:** User Service
+- **Thông tin cần:** Tên người nhận, SĐT, tỉnh/thành, quận/huyện, phường/xã, địa chỉ cụ thể, lat/long (optional)
+
+**2.3. Sửa Địa Chỉ**
+- **API:** `PUT /v1/user/address/update`
+- **Service:** User Service
+
+**2.4. Xóa Địa Chỉ**
+- **API:** `DELETE /v1/user/address/deleteAddressById/{id}`
+- **Service:** User Service
+
+**2.5. Đặt Địa Chỉ Mặc Định**
+- **API:** `PUT /v1/user/address/setDefault/{id}`
+- **Service:** User Service
+- **Flow:** Set isDefault = true cho địa chỉ được chọn, false cho các địa chỉ khác
+
+#### 3. Mua Sắm
+
+**3.1. Xem Danh Sách Sản Phẩm**
+- **API:** `GET /v1/stock/product/search?keyword={keyword}&page={page}&size={size}`
+- **Service:** Stock Service
+- **Features:** Tìm kiếm, phân trang, filter theo category, giá
+
+**3.2. Xem Chi Tiết Sản Phẩm**
+- **API:** `GET /v1/stock/product/getProductById/{id}`
+- **Service:** Stock Service → User Service (lấy thông tin shop)
+- **Thông tin hiển thị:** Tên, mô tả, giá, discount, sizes, stock, thông tin shop owner
+
+**3.3. Thêm Vào Giỏ Hàng**
+- **API:** `POST /v1/stock/cart/item/add`
+- **Service:** Stock Service
+- **Flow:**
+  1. User chọn size và số lượng
+  2. Kiểm tra tồn kho
+  3. Tạo/Update cart item
+  4. Tính lại total_amount
+  5. Lưu vào MySQL và đồng bộ Redis cache
+
+**3.4. Xem Giỏ Hàng**
+- **API:** `GET /v1/stock/cart/getCartByUserId`
+- **Service:** Stock Service
+- **Response:** Danh sách items với thông tin sản phẩm, size, số lượng, giá
+
+**3.5. Cập Nhật Số Lượng Trong Giỏ**
+- **API:** `PUT /v1/stock/cart/item/update`
+- **Service:** Stock Service
+
+**3.6. Xóa Item Khỏi Giỏ**
+- **API:** `DELETE /v1/stock/cart/item/remove/{cartItemId}`
+- **Service:** Stock Service
+
+#### 4. Đặt Hàng & Thanh Toán
+
+**4.1. Đặt Hàng COD (Cash on Delivery)**
+- **API:** `POST /v1/order/create-from-cart`
+- **Service:** Order Service → Stock Service → Notification Service (via Kafka)
+- **Flow:**
+  1. User chọn địa chỉ giao hàng
+  2. Chọn paymentMethod = "COD"
+  3. Order Service tạo Order với status = PENDING
+  4. Publish Kafka event lên `order-topic`
+  5. Stock Service nhận event → Giảm stock, xóa cart items
+  6. Notification Service tạo thông báo cho user và shop owner
+
+**4.2. Đặt Hàng VNPay (Online Payment)**
+
+**Bước 1: Tạo Payment Request**
+- **API:** `POST /v1/payment/vnpay/create`
+- **Service:** Payment Service
+- **Request Body:**
+  ```json
+  {
+    "amount": 100000,
+    "userId": "uuid",
+    "addressId": "uuid",
+    "orderDataJson": "{\"selectedItems\": [...]}",
+    "orderInfo": "Thanh toan don hang",
+    "bankCode": "VNBANK",
+    "locale": "vn",
+    "returnUrl": "http://localhost:5173/payment/vnpay/return"
+  }
+  ```
+- **Flow:**
+  1. Frontend tính tổng tiền từ cart
+  2. Gửi request đến Payment Service với:
+     - `amount`: Tổng tiền (VND)
+     - `userId`, `addressId`: Thông tin user và địa chỉ
+     - `orderDataJson`: JSON string chứa selectedItems (để tạo order sau)
+  3. Payment Service:
+     - Tạo `txnRef` unique (12 chữ số)
+     - Build VNPay payment URL với các params
+     - Tạo secure hash
+     - Lưu Payment với status = PENDING, method = VNPAY
+     - `orderId` = null (chưa có order)
+  4. Response: `{ code: "00", message: "success", paymentUrl: "...", txnRef: "..." }`
+  5. Frontend redirect user đến `paymentUrl`
+
+**Bước 2: User Thanh Toán tại VNPay**
+- User nhập thông tin thẻ/ngân hàng tại VNPay gateway
+- Xác nhận thanh toán
+- VNPay redirect về `returnUrl` với query params
+
+**Bước 3: Xử Lý Callback**
+- **API:** `GET /v1/payment/vnpay/return?vnp_ResponseCode=00&vnp_TxnRef=...&vnp_SecureHash=...`
+- **Service:** Payment Service
+- **Flow:**
+  1. Payment Service nhận callback từ VNPay
+  2. Verify secure hash
+  3. Parse callback parameters:
+     - `vnp_ResponseCode`: "00" = thành công
+     - `vnp_TxnRef`: Transaction reference
+     - `vnp_Amount`: Số tiền
+     - `vnp_BankCode`: Mã ngân hàng
+     - `vnp_TransactionNo`: Mã giao dịch gateway
+  4. Update Payment:
+     - `status` = PAID (nếu thành công) hoặc FAILED
+     - `responseCode`, `gatewayTxnNo`, `bankCode`, `cardType`
+     - `rawCallback`: Lưu toàn bộ params dạng JSON
+  5. **Publish Kafka event** lên `payment-topic`:
+     ```json
+     {
+       "paymentId": "uuid",
+       "txnRef": "string",
+       "orderId": null,
+       "status": "PAID",
+       "method": "VNPAY",
+       "userId": "uuid",
+       "addressId": "uuid",
+       "orderDataJson": "string"
+     }
+     ```
+
+**Bước 4: Tạo Order từ Payment**
+- **Service:** Order Service (Kafka Consumer)
+- **Flow:**
+  1. Order Service nhận PaymentEvent từ Kafka
+  2. Kiểm tra `status = "PAID"`
+  3. Parse `orderDataJson` → `selectedItems`
+  4. Gọi `createOrderFromPayment()`:
+     - Validate address, stock
+     - Tạo Order với:
+       - `orderStatus` = PENDING
+       - `paymentMethod` = "VNPAY"
+     - Tạo OrderItems và giảm stock
+     - Cleanup cart
+     - Gửi notifications
+  5. Update Payment với `orderId` (link Payment với Order)
+  6. Frontend nhận thông báo "Đặt hàng thành công"
+
+**Đặc Điểm:**
+- ✅ Order chỉ được tạo **SAU KHI thanh toán thành công**
+- ✅ Payment được tạo trước với `orderId = null`
+- ✅ Có Payment record với status = PAID
+- ✅ Payment và Order được link qua orderId
+
+**4.3. Xem Lịch Sử Đơn Hàng**
+- **API:** `GET /v1/order/getOrderByUserId`
+- **Service:** Order Service → Stock Service (lấy thông tin sản phẩm) → User Service (lấy địa chỉ)
+- **Response:** Danh sách orders với: mã đơn, ngày đặt, tổng tiền, trạng thái, danh sách sản phẩm
+
+**4.4. Xem Chi Tiết Đơn Hàng**
+- **API:** `GET /v1/order/getOrderById/{id}`
+- **Service:** Order Service
+- **Thông tin:** Sản phẩm, số lượng, giá, địa chỉ giao hàng, lịch sử trạng thái
+
+**4.5. Hủy Đơn Hàng**
+- **API:** `PUT /v1/order/cancel/{orderId}`
+- **Service:** Order Service
+- **Điều kiện:** Chỉ được hủy nếu status = PENDING
+- **Flow:** Update status = CANCELLED, rollback stock
+
+**4.6. Tính Phí Vận Chuyển (GHN)**
+- **API:** `POST /v1/order/calculate-shipping-fee`
+- **Service:** Order Service → GHN API
+- **Flow:**
+  1. User chọn địa chỉ giao hàng
+  2. Frontend gửi request với addressId và danh sách items
+  3. Order Service lấy thông tin địa chỉ (cần có GHN fields: province, district, ward)
+  4. Gọi GHN API để tính phí vận chuyển
+  5. Trả về shipping fee
+- **Lưu ý:** Địa chỉ cần có đầy đủ thông tin GHN (province, district, ward) để tính phí
+
+#### 5. Review & Rating Sản Phẩm
+
+**5.1. Tạo Review/Đánh Giá Sản Phẩm**
+- **API:** `POST /v1/stock/reviews`
+- **Service:** Stock Service → File Storage (nếu upload ảnh)
+- **Thông tin cần:**
+  - `productId`: ID sản phẩm
+  - `userId`: ID người dùng
+  - `username`: Tên người dùng (cache)
+  - `userAvatar`: Avatar người dùng (optional)
+  - `rating`: Điểm đánh giá (1-5 sao)
+  - `comment`: Nội dung đánh giá
+  - `imageIds`: Danh sách ID ảnh (optional, upload trước qua File Storage)
+- **Flow:**
+  1. User đã mua sản phẩm (có thể kiểm tra order history)
+  2. User điền form: chọn số sao (1-5), viết comment, upload ảnh (nếu có)
+  3. Upload ảnh lên File Storage → Nhận imageIds
+  4. Tạo Review entity và lưu vào database
+  5. Review được hiển thị trên trang sản phẩm
+
+**5.2. Xem Danh Sách Review Của Sản Phẩm**
+- **API:** `GET /v1/stock/reviews/product/{productId}`
+- **Service:** Stock Service
+- **Response:** Danh sách reviews với:
+  - Username, avatar
+  - Rating (số sao)
+  - Comment
+  - Ảnh đính kèm (nếu có)
+  - Ngày đánh giá
+- **Sắp xếp:** Mới nhất trước
+
+**5.3. Đếm Số Review Của Shop**
+- **API:** `GET /v1/stock/reviews/count/shop/{shopId}`
+- **Service:** Stock Service
+- **Response:** Tổng số reviews của tất cả sản phẩm trong shop
+- **Mục đích:** Hiển thị số lượng đánh giá trên trang shop
+
+**5.4. Tính Rating Trung Bình Của Shop**
+- **API:** `GET /v1/stock/product/public/shop/{shopId}/stats`
+- **Service:** Stock Service
+- **Response:** 
+  - `productCount`: Số lượng sản phẩm
+  - `avgRating`: Rating trung bình (tính từ tất cả reviews của shop)
+- **Mục đích:** Hiển thị rating trung bình trên trang shop
+
+#### 6. Thông Báo & Chat
+
+**5.1. Nhận Thông Báo Realtime**
+- **API:** `WS /ws/notifications`
+- **Service:** Notification Service
+- **Flow:**
+  1. User login → Frontend establish WebSocket connection
+  2. Subscribe vào `/user/queue/notifications`
+  3. Khi có event từ Kafka → Push qua WebSocket
+  4. Frontend hiển thị toast notification và cập nhật badge
+
+**5.2. Xem Danh Sách Thông Báo**
+- **API:** `GET /v1/notifications/getAllByUserId`
+- **Service:** Notification Service
+- **Response:** Danh sách notifications với is_read flag
+
+**5.3. Đánh Dấu Đã Đọc**
+- **API:** `PUT /v1/notifications/markAsRead/{notificationId}`
+- **Service:** Notification Service
+
+**5.4. Chat Với Shop Owner**
+- **APIs:**
+  - `POST /v1/notifications/chat/conversations/start` - Bắt đầu conversation
+  - `GET /v1/notifications/chat/conversations` - Lấy danh sách conversations
+  - `GET /v1/notifications/chat/conversations/{id}/messages` - Lấy messages
+  - `POST /v1/notifications/chat/messages` - Gửi message
+  - `PUT /v1/notifications/chat/conversations/{id}/read` - Đánh dấu đã đọc
+- **Service:** Notification Service
+- **WebSocket:** `/topic/conversation/{conversationId}/messages`
+- **Flow:** Client có thể chat với shop owner về sản phẩm, realtime qua WebSocket
+
+#### 6. Yêu Cầu Nâng Cấp Shop Owner
+
+**6.1. Gửi Yêu Cầu**
+- **API:** `POST /v1/user/role-requests`
+- **Service:** User Service
+- **Flow:**
+  1. User điền form: lý do, tên shop dự định
+  2. Tạo RoleRequest với status = PENDING
+  3. Admin sẽ nhận được yêu cầu để duyệt
+
+---
+
+### 🏪 SHOP OWNER (Chủ Shop)
+
+#### 1. Quản Lý Shop
+
+**1.1. Xem Thông Tin Shop**
+- **API:** `GET /v1/user/shop-owners`
+- **Service:** User Service
+- **Thông tin:** Tên shop, logo, địa chỉ, verified status, followers, ratings
+
+**1.2. Cập Nhật Thông Tin Shop**
+- **API:** `PUT /v1/user/shop-owners`
+- **Service:** User Service → File Storage (nếu upload logo)
+- **Có thể cập nhật:** Tên shop, địa chỉ, logo
+
+**1.3. Xem Thống Kê Shop**
+- **API:** `GET /v1/stock/product/public/shop/{shopId}/stats`
+- **Service:** Stock Service
+- **Response:** Số lượng sản phẩm, rating trung bình
+
+#### 2. Quản Lý Sản Phẩm
+
+**2.1. Tạo Sản Phẩm**
+- **API:** `POST /v1/stock/product/create`
+- **Service:** Stock Service → File Storage (upload ảnh)
+- **Thông tin cần:**
+  - Tên, mô tả, category
+  - Giá gốc, giá bán, % discount
+  - Upload ảnh sản phẩm
+  - Sizes/variants: tên size, tồn kho, price modifier
+- **Flow:**
+  1. Upload ảnh lên File Storage → Nhận imageId
+  2. Tạo Product entity
+  3. Tạo Size entities liên kết
+
+**2.2. Xem Danh Sách Sản Phẩm Của Shop**
+- **API:** `GET /v1/stock/product/getProductByUserId`
+- **Service:** Stock Service
+- **Response:** Danh sách sản phẩm với thông tin đầy đủ
+
+**2.3. Sửa Sản Phẩm**
+- **API:** `PUT /v1/stock/product/update`
+- **Service:** Stock Service → File Storage (nếu upload ảnh mới)
+- **Có thể cập nhật:** Tất cả thông tin sản phẩm
+
+**2.4. Xóa Sản Phẩm**
+- **API:** `DELETE /v1/stock/product/deleteProductById/{id}`
+- **Service:** Stock Service
+- **Flow:** Xóa product và các sizes liên quan (cascade)
+
+#### 3. Quản Lý Tồn Kho
+
+**3.1. Xem Tồn Kho**
+- **API:** `GET /v1/stock/product/getProductByUserId` (kèm sizes)
+- **Service:** Stock Service
+- **Hiển thị:** Danh sách sản phẩm với tồn kho theo từng size
+
+**3.2. Cập Nhật Tồn Kho**
+- **API:** `PUT /v1/stock/size/update`
+- **Service:** Stock Service
+- **Flow:**
+  1. Shop owner chọn size cần cập nhật
+  2. Nhập số lượng mới
+  3. Cập nhật `sizes.stock`
+  4. Cảnh báo nếu stock < 10
+  5. Tự động ẩn sản phẩm nếu tất cả sizes đều hết hàng
+
+**3.3. Thêm Size Mới**
+- **API:** `POST /v1/stock/size/create`
+- **Service:** Stock Service
+
+**3.4. Xóa Size**
+- **API:** `DELETE /v1/stock/size/delete/{id}`
+- **Service:** Stock Service
+
+#### 4. Quản Lý Đơn Hàng
+
+**4.1. Xem Đơn Hàng Của Shop**
+- **API:** `GET /v1/order/shop-owner/orders?status={status}&pageNo={page}&pageSize={size}`
+- **Service:** Order Service
+- **Response:** Danh sách orders có chứa sản phẩm của shop (phân trang)
+- **Filter:** Có thể filter theo status (PENDING, PROCESSING, SHIPPED, DELIVERED)
+
+**4.2. Xem Chi Tiết Đơn Hàng**
+- **API:** `GET /v1/order/getOrderById/{id}`
+- **Service:** Order Service
+- **Thông tin:** Chỉ hiển thị items thuộc sản phẩm của shop, thông tin khách hàng
+
+**4.3. Cập Nhật Trạng Thái Đơn Hàng**
+- **API:** `PUT /v1/order/updateStatus/{orderId}?status={status}`
+- **Service:** Order Service → Notification Service (via Kafka)
+- **Flow:**
+  1. Shop owner cập nhật status (PENDING → PROCESSING → SHIPPED)
+  2. Khi status = PROCESSING → Tự động tạo vận đơn GHN (nếu có địa chỉ GHN)
+  3. Notification Service gửi thông báo cho user
+  4. User nhận thông báo realtime qua WebSocket
+
+**4.4. Xem Thống Kê Đơn Hàng**
+- **API:** `GET /v1/order/shop-owner/stats`
+- **Service:** Order Service
+- **Response:** 
+  - Số đơn theo status (pending, processing, shipped, delivered, cancelled, returned)
+  - Doanh thu hôm nay (salesToday)
+  - Đơn chờ lấy hàng (waitingForPickup)
+  - Đơn đã xử lý (processed)
+
+**4.5. Xem Analytics Chi Tiết**
+- **API:** `GET /v1/order/shop-owner/analytics`
+- **Service:** Order Service
+- **Response:** 
+  - Tổng doanh thu
+  - Số đơn hàng
+  - Số sản phẩm đã bán
+  - Biểu đồ theo thời gian (có thể mở rộng)
+
+**4.6. Xem Dashboard Stats**
+- **API:** `GET /v1/order/shop-owner/dashboard-stats`
+- **Service:** Order Service
+- **Response:** Thống kê tổng quan cho dashboard shop owner
+
+#### 5. Quản Lý Vận Chuyển (GHN)
+
+**5.1. Tính Phí Vận Chuyển**
+- **API:** `POST /v1/order/calculate-shipping-fee`
+- **Service:** Order Service → GHN API
+- **Flow:**
+  1. Shop owner hoặc client chọn địa chỉ giao hàng
+  2. Gửi request với addressId và danh sách items (weight, quantity)
+  3. Order Service:
+     - Lấy thông tin địa chỉ (cần có GHN fields: province, district, ward)
+     - Lấy địa chỉ shop owner (cần có GHN fields)
+     - Gọi GHN API để tính phí vận chuyển
+  4. Trả về shipping fee
+- **Lưu ý:** 
+  - Địa chỉ cần có đầy đủ thông tin GHN (province, district, ward)
+  - Shop owner cần cấu hình địa chỉ GHN trong Settings
+
+**5.2. Tạo Vận Đơn GHN Tự Động**
+- **Service:** Order Service (tự động khi order status = PROCESSING)
+- **Flow:**
+  1. Khi shop owner cập nhật order status = PROCESSING
+  2. Order Service tự động:
+     - Lấy thông tin địa chỉ khách hàng và shop owner
+     - Validate GHN fields
+     - Tính tổng weight từ order items
+     - Gọi GHN API để tạo vận đơn
+     - Lưu ShippingOrder vào database với:
+       - `ghnOrderCode`: Mã vận đơn GHN
+       - `shippingFee`: Phí vận chuyển
+       - `expectedDeliveryTime`: Thời gian dự kiến giao hàng
+  3. Nếu thiếu GHN fields → Bỏ qua, log warning
+- **API GHN:** `POST https://dev-online-gateway.ghn.vn/shiip/public-api/v2/shipping-order/create`
+
+**5.3. Xem Thông Tin Vận Đơn**
+- **API:** `GET /v1/order/getOrderById/{id}` (kèm shippingFee trong OrderDto)
+- **Service:** Order Service
+- **Response:** OrderDto có thêm:
+  - `shippingFee`: Phí vận chuyển từ GHN
+  - `shippingAddress`: Địa chỉ giao hàng đầy đủ
+
+#### 5. Chat Với Khách Hàng
+
+**5.1. Xem Danh Sách Conversations**
+- **API:** `GET /v1/notifications/chat/conversations`
+- **Service:** Notification Service
+- **Response:** Danh sách conversations với khách hàng, sản phẩm liên quan
+
+**5.2. Xem Messages Của Conversation**
+- **API:** `GET /v1/notifications/chat/conversations/{id}/messages`
+- **Service:** Notification Service
+
+**5.3. Gửi Message**
+- **API:** `POST /v1/notifications/chat/messages`
+- **Service:** Notification Service
+- **WebSocket:** Push realtime đến client
+
+**5.4. Đánh Dấu Đã Đọc**
+- **API:** `PUT /v1/notifications/chat/conversations/{id}/read`
+- **Service:** Notification Service
+
+#### 6. Thông Báo
+
+**6.1. Nhận Thông Báo Đơn Hàng Mới**
+- **API:** `WS /ws/notifications`
+- **Service:** Notification Service
+- **Flow:** Tự động nhận thông báo khi có đơn hàng mới qua WebSocket
+
+**6.2. Xem Danh Sách Thông Báo Shop**
+- **API:** `GET /v1/notifications/getAllByShopId`
+- **Service:** Notification Service
+- **Response:** Danh sách notifications với flag `is_shop_owner_notification = true`
+
+**6.3. Đánh Dấu Đã Đọc**
+- **API:** `PUT /v1/notifications/markAsRead/{notificationId}`
+- **Service:** Notification Service
+
+---
+
+### 👑 ADMIN (Quản Trị Viên)
+
+#### 1. Quản Lý Người Dùng
+
+**1.1. Xem Danh Sách Tất Cả Users**
+- **API:** `GET /v1/user/getAll`
+- **Service:** User Service
+- **Response:** Danh sách users với: ID, username, email, roles, status, ngày đăng ký
+
+**1.2. Xem Chi Tiết User**
+- **API:** `GET /v1/user/getUserForAdminByUserId/{id}`
+- **Service:** User Service
+- **Thông tin:** Đầy đủ thông tin user, orders, activities, shop info (nếu có)
+
+**1.3. Cập Nhật User**
+- **API:** `PUT /v1/user/update`
+- **Service:** User Service
+- **Có thể cập nhật:** Thông tin user, roles, status (ACTIVE/INACTIVE)
+
+**1.4. Vô Hiệu Hóa/Kích Hoạt Tài Khoản**
+- **API:** `PUT /v1/user/update` (với active = INACTIVE/ACTIVE)
+- **Service:** User Service
+- **Flow:** Set `active = INACTIVE` → User không thể login
+
+**1.5. Xóa User**
+- **API:** `DELETE /v1/user/deleteUserById/{id}`
+- **Service:** User Service
+- **Lưu ý:** Có thể soft delete hoặc hard delete (cascade)
+
+#### 2. Quản Lý Role Requests
+
+**2.1. Xem Danh Sách Role Requests**
+- **API:** `GET /v1/user/role-requests`
+- **Service:** User Service
+- **Response:** Danh sách requests với status = PENDING
+- **Thông tin:** Tên user, email, lý do, ngày gửi
+
+**2.2. Duyệt Role Request**
+- **API:** `PUT /v1/user/role-requests/approve/{id}`
+- **Service:** User Service
+- **Flow:**
+  1. Cập nhật `role_requests.status = APPROVED`
+  2. Thêm role SHOP_OWNER vào `user_roles`
+  3. Tạo ShopOwner entity
+  4. Lưu `reviewed_by = admin_id`, `reviewed_at = now()`
+  5. User login lại → Có quyền shop owner
+
+**2.3. Từ Chối Role Request**
+- **API:** `PUT /v1/user/role-requests/reject/{id}`
+- **Service:** User Service
+- **Flow:**
+  1. Cập nhật `role_requests.status = REJECTED`
+  2. Lưu `rejection_reason`
+  3. User thấy thông báo bị từ chối với lý do
+
+#### 3. Quản Lý Categories
+
+**3.1. Xem Danh Sách Categories**
+- **API:** `GET /v1/stock/category/getAll`
+- **Service:** Stock Service
+- **Response:** Danh sách categories với: ID, tên, mô tả, số lượng products
+
+**3.2. Tạo Category Mới**
+- **API:** `POST /v1/stock/category/create`
+- **Service:** Stock Service
+- **Thông tin:** Tên, mô tả
+
+**3.3. Sửa Category**
+- **API:** `PUT /v1/stock/category/update`
+- **Service:** Stock Service
+
+**3.4. Xóa Category**
+- **API:** `DELETE /v1/stock/category/delete/{id}`
+- **Service:** Stock Service
+- **Điều kiện:** Chỉ được phép nếu không có product nào thuộc category
+
+#### 4. Giám Sát Đơn Hàng
+
+**4.1. Xem Tất Cả Đơn Hàng**
+- **API:** `GET /v1/order/getAllOrders?status={status}`
+- **Service:** Order Service
+- **Response:** Tất cả orders trong hệ thống
+- **Filter:** Có thể filter theo status, date range, user, shop
+
+**4.2. Xem Chi Tiết Đơn Hàng**
+- **API:** `GET /v1/order/getOrderById/{id}`
+- **Service:** Order Service
+
+**4.3. Cập Nhật Trạng Thái Đơn Hàng**
+- **API:** `PUT /v1/order/updateStatus/{orderId}?status={status}`
+- **Service:** Order Service
+- **Mục đích:** Xử lý khiếu nại, can thiệp khi cần
+
+**4.4. Hủy Đơn Hàng**
+- **API:** `PUT /v1/order/cancel/{orderId}`
+- **Service:** Order Service
+- **Mục đích:** Hủy đơn nếu có vấn đề
+
+#### 5. Thống Kê Hệ Thống
+
+**5.1. Dashboard Thống Kê**
+- **APIs:** (Cần bổ sung)
+  - Tổng đơn hàng hôm nay
+  - Doanh thu
+  - Đơn pending cần xử lý
+  - Chart theo thời gian
+- **Service:** Order Service, User Service
 
 ---
 
@@ -957,25 +1629,30 @@ graph TB
         subgraph "Topics"
             T1[order-topic<br/>Partition: 1<br/>Replication: 1]
             T2[notification-topic<br/>Partition: 1<br/>Replication: 1]
+            T3[payment-topic<br/>Partition: 1<br/>Replication: 1]
         end
     end
 
     subgraph "Producers"
         P1[Order Service<br/>Publish Order Events]
         P2[Order Service<br/>Publish Notification Events]
+        P3[Payment Service<br/>Publish Payment Events]
     end
 
     subgraph "Consumers"
         C1[Stock Service<br/>Update Stock & Clear Cart]
         C2[Notification Service<br/>Create & Push Notifications]
+        C3[Order Service<br/>Create Order from Payment]
     end
 
     ZK --> KF
     P1 -->|Publish| T1
     P2 -->|Publish| T2
+    P3 -->|Publish| T3
     
     T1 -->|Subscribe| C1
     T2 -->|Subscribe| C2
+    T3 -->|Subscribe| C3
 
     style T1 fill:#ff9800
     style T2 fill:#4caf50
@@ -1034,6 +1711,34 @@ graph TB
 4. Nếu online: Push qua WebSocket
 5. Nếu offline: Chỉ lưu DB (sẽ load khi login)
 
+#### 3. Payment Topic (`payment-topic`)
+
+**Producer:** Payment Service
+**Consumers:** Order Service
+**Event Type:** `PaymentEvent`
+
+**Payload:**
+```json
+{
+  "paymentId": "uuid",
+  "txnRef": "string",
+  "orderId": "uuid (nullable)",
+  "status": "PAID",
+  "method": "VNPAY",
+  "userId": "uuid",
+  "addressId": "uuid",
+  "orderDataJson": "string (JSON của selectedItems)"
+}
+```
+
+**Consumer Actions (Order Service):**
+1. Nhận PaymentEvent với status = "PAID"
+2. Parse orderDataJson → selectedItems
+3. Gọi createOrderFromPayment()
+4. Tạo Order với paymentMethod = "VNPAY"
+5. Giảm stock, cleanup cart
+6. Publish notification event
+
 ---
 
 ## 💾 DATABASE SCHEMA CHI TIẾT
@@ -1069,6 +1774,20 @@ erDiagram
 
     FILES ||--o{ PRODUCTS : image
     FILES ||--o{ SHOP_OWNERS : logo
+
+    USERS ||--o{ CONVERSATIONS : "client_id"
+    USERS ||--o{ CONVERSATIONS : "shop_owner_id"
+    CONVERSATIONS ||--o{ MESSAGES : contains
+    PRODUCTS ||--o{ CONVERSATIONS : about
+
+    USERS ||--o{ PAYMENTS : makes
+    ORDERS ||--o| PAYMENTS : paid_by
+
+    USERS ||--o{ REVIEWS : writes
+    PRODUCTS ||--o{ REVIEWS : has
+    REVIEWS ||--o{ REVIEW_IMAGES : contains
+
+    ORDERS ||--o| SHIPPING_ORDERS : has
 
     USERS {
         uuid id PK
@@ -1202,6 +1921,7 @@ erDiagram
         uuid address_id FK
         decimal total_price
         enum status
+        enum payment_method
         timestamp created_at
         timestamp updated_at
     }
@@ -1231,6 +1951,73 @@ erDiagram
         uuid id PK
         string type
         string file_path
+    }
+
+    PAYMENTS {
+        uuid id PK
+        uuid order_id FK
+        string txn_ref UK
+        decimal amount
+        string currency
+        enum method
+        enum status
+        string bank_code
+        string card_type
+        string gateway_txn_no
+        string response_code
+        string message
+        string payment_url
+        string return_url
+        text raw_callback
+        text order_data
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    CONVERSATIONS {
+        uuid id PK
+        uuid client_id FK
+        uuid shop_owner_id FK
+        uuid product_id FK
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    MESSAGES {
+        uuid id PK
+        uuid conversation_id FK
+        uuid sender_id FK
+        text content
+        enum delivery_status
+        boolean read
+        timestamp created_at
+    }
+
+    REVIEWS {
+        uuid id PK
+        uuid user_id FK
+        string username
+        string user_avatar
+        uuid product_id FK
+        int rating
+        text comment
+        timestamp created_at
+    }
+
+    REVIEW_IMAGES {
+        uuid review_id FK
+        string image_id
+    }
+
+    SHIPPING_ORDERS {
+        uuid id PK
+        uuid order_id FK
+        string ghn_order_code UK
+        decimal shipping_fee
+        timestamp expected_delivery_time
+        text ghn_response
+        timestamp created_at
+        timestamp updated_at
     }
 ```
 
@@ -1282,6 +2069,7 @@ erDiagram
 
 **orders**
 - Đơn hàng với status: PENDING, PROCESSING, SHIPPED, DELIVERED, CANCELLED
+- `payment_method`: COD, VNPAY, CARD
 - Liên kết với user và address (via Feign)
 
 **order_items**
@@ -1301,6 +2089,52 @@ erDiagram
 - Metadata của file upload
 - `file_path` trỏ đến filesystem thực tế
 - Dùng cho avatar user, logo shop, ảnh sản phẩm
+
+#### Payment Service Database
+
+**payments**
+- Lưu thông tin thanh toán
+- `order_id` có thể null (nếu order chưa tạo)
+- `txn_ref` unique để track transaction
+- `order_data` lưu JSON tạm để tạo order sau
+- `status`: PENDING, PAID, FAILED
+- `method`: VNPAY, COD, CARD
+
+#### Notification Service Database (Chat)
+
+**conversations**
+- Conversation giữa client và shop owner về sản phẩm
+- Unique constraint: (client_id, shop_owner_id, product_id)
+- Một conversation có nhiều messages
+
+**messages**
+- Messages trong conversation
+- `sender_id` là user_id của người gửi
+- `delivery_status`: SENT, DELIVERED, READ
+- `read` flag để track đã đọc chưa
+
+#### Stock Service Database (Review)
+
+**reviews**
+- Đánh giá sản phẩm từ khách hàng
+- `rating`: 1-5 sao
+- `comment`: Nội dung đánh giá
+- `username`, `userAvatar`: Cache để hiển thị nhanh
+- `imageIds`: Danh sách ảnh đính kèm (lưu trong bảng `review_images`)
+
+**review_images**
+- Ảnh đính kèm trong review
+- Quan hệ many-to-many với reviews
+
+#### Order Service Database (Shipping)
+
+**shipping_orders**
+- Vận đơn GHN
+- `ghn_order_code`: Mã vận đơn từ GHN (unique)
+- `shipping_fee`: Phí vận chuyển
+- `expected_delivery_time`: Thời gian dự kiến giao hàng
+- `ghn_response`: Raw response từ GHN API (JSON)
+- Liên kết 1-1 với orders
 
 ---
 
@@ -1385,13 +2219,14 @@ sequenceDiagram
 
 | Method | Endpoint | Description | Auth Required | Role |
 |--------|----------|-------------|---------------|------|
-| GET | `/v1/user` | Lấy thông tin user hiện tại | ✅ | USER |
-| PUT | `/v1/user/update` | Cập nhật profile | ✅ | USER |
-| PUT | `/v1/user/change-password` | Đổi mật khẩu | ✅ | USER |
-| GET | `/v1/user/address` | Lấy danh sách địa chỉ | ✅ | USER |
-| POST | `/v1/user/address` | Thêm địa chỉ mới | ✅ | USER |
-| PUT | `/v1/user/address/{id}` | Sửa địa chỉ | ✅ | USER |
-| DELETE | `/v1/user/address/{id}` | Xóa địa chỉ | ✅ | USER |
+| GET | `/v1/user/information` | Lấy thông tin user hiện tại | ✅ | USER |
+| PUT | `/v1/user/update` | Cập nhật profile (có thể upload avatar) | ✅ | USER |
+| POST | `/v1/user/update-password` | Đổi mật khẩu | ✅ | USER |
+| GET | `/v1/user/address/getAllAddresses` | Lấy danh sách địa chỉ | ✅ | USER |
+| GET | `/v1/user/address/getAddressById/{id}` | Lấy chi tiết địa chỉ | ✅ | USER |
+| POST | `/v1/user/address/save` | Thêm địa chỉ mới | ✅ | USER |
+| PUT | `/v1/user/address/update` | Sửa địa chỉ | ✅ | USER |
+| DELETE | `/v1/user/address/deleteAddressById/{id}` | Xóa địa chỉ | ✅ | USER |
 | POST | `/v1/user/role-requests` | Yêu cầu nâng cấp Shop Owner | ✅ | USER |
 | GET | `/v1/user/role-requests` | Lấy danh sách role requests | ✅ | ADMIN |
 | PUT | `/v1/user/role-requests/approve/{id}` | Duyệt yêu cầu | ✅ | ADMIN |
@@ -1399,6 +2234,9 @@ sequenceDiagram
 | GET | `/v1/user/shop-owners` | Lấy thông tin shop | ✅ | SHOP_OWNER |
 | PUT | `/v1/user/shop-owners` | Cập nhật thông tin shop | ✅ | SHOP_OWNER |
 | GET | `/v1/user/getAll` | Lấy tất cả users | ✅ | ADMIN |
+| GET | `/v1/user/getUserForAdminByUserId/{id}` | Lấy chi tiết user (admin) | ✅ | ADMIN |
+| GET | `/v1/user/getUserById/{id}` | Lấy thông tin user theo ID | ✅ | ALL |
+| DELETE | `/v1/user/deleteUserById/{id}` | Xóa user | ✅ | ADMIN |
 
 ### Stock Service APIs
 
@@ -1413,32 +2251,69 @@ sequenceDiagram
 | POST | `/v1/stock/product` | Tạo sản phẩm | ✅ | SHOP_OWNER |
 | PUT | `/v1/stock/product/{id}` | Sửa sản phẩm | ✅ | SHOP_OWNER |
 | DELETE | `/v1/stock/product/{id}` | Xóa sản phẩm | ✅ | SHOP_OWNER |
-| GET | `/v1/stock/product/user/{userId}` | Sản phẩm của shop owner | ✅ | SHOP_OWNER |
-| POST | `/v1/stock/size` | Thêm size cho sản phẩm | ✅ | SHOP_OWNER |
-| PUT | `/v1/stock/size/{id}` | Cập nhật size | ✅ | SHOP_OWNER |
-| DELETE | `/v1/stock/size/{id}` | Xóa size | ✅ | SHOP_OWNER |
-| GET | `/v1/stock/cart` | Lấy giỏ hàng | ✅ | USER |
-| POST | `/v1/stock/cart/add` | Thêm vào giỏ | ✅ | USER |
-| PUT | `/v1/stock/cart/update` | Sửa số lượng | ✅ | USER |
-| DELETE | `/v1/stock/cart/remove/{itemId}` | Xóa item | ✅ | USER |
+| POST | `/v1/stock/size/create` | Thêm size cho sản phẩm | ✅ | SHOP_OWNER |
+| PUT | `/v1/stock/size/update` | Cập nhật size | ✅ | SHOP_OWNER |
+| DELETE | `/v1/stock/size/delete/{id}` | Xóa size | ✅ | SHOP_OWNER |
+| GET | `/v1/stock/reviews/product/{productId}` | Lấy reviews của sản phẩm | ❌ | ALL |
+| POST | `/v1/stock/reviews` | Tạo review/đánh giá sản phẩm | ✅ | USER |
+| GET | `/v1/stock/reviews/count/shop/{shopId}` | Đếm reviews của shop | ❌ | ALL |
+| POST | `/v1/order/calculate-shipping-fee` | Tính phí vận chuyển GHN | ✅ | USER/SHOP_OWNER |
+| GET | `/v1/order/shop-owner/analytics` | Analytics chi tiết shop | ✅ | SHOP_OWNER |
+| GET | `/v1/order/shop-owner/dashboard-stats` | Dashboard stats shop | ✅ | SHOP_OWNER |
+| GET | `/v1/stock/cart/getCartByUserId` | Lấy giỏ hàng | ✅ | USER |
+| POST | `/v1/stock/cart/item/add` | Thêm vào giỏ | ✅ | USER |
+| PUT | `/v1/stock/cart/item/update` | Sửa số lượng | ✅ | USER |
+| DELETE | `/v1/stock/cart/item/remove/{cartItemId}` | Xóa item | ✅ | USER |
+| GET | `/v1/stock/product/getProductByUserId` | Sản phẩm của shop owner | ✅ | SHOP_OWNER |
+| GET | `/v1/stock/product/public/shop/{shopId}/stats` | Thống kê shop | ❌ | ALL |
+| GET | `/v1/stock/product/shop-owner/stats` | Thống kê shop (shop owner) | ✅ | SHOP_OWNER |
 
 ### Order Service APIs
 
 | Method | Endpoint | Description | Auth Required | Role |
 |--------|----------|-------------|---------------|------|
-| POST | `/v1/order/create-from-cart` | Đặt hàng từ giỏ | ✅ | USER |
-| GET | `/v1/order/user` | Lấy đơn hàng của user | ✅ | USER |
-| GET | `/v1/order/{id}` | Chi tiết đơn hàng | ✅ | USER |
-| GET | `/v1/order/shop-owner` | Đơn hàng của shop | ✅ | SHOP_OWNER |
-| PUT | `/v1/order/{id}/status` | Cập nhật trạng thái đơn | ✅ | SHOP_OWNER/ADMIN |
+| POST | `/v1/order/create-from-cart` | Đặt hàng từ giỏ (COD) | ✅ | USER |
+| GET | `/v1/order/getOrderByUserId` | Lấy đơn hàng của user | ✅ | USER |
+| GET | `/v1/order/getOrderById/{id}` | Chi tiết đơn hàng | ✅ | USER/SHOP_OWNER/ADMIN |
+| PUT | `/v1/order/cancel/{orderId}` | Hủy đơn hàng | ✅ | USER |
+| GET | `/v1/order/shop-owner/orders` | Đơn hàng của shop (phân trang) | ✅ | SHOP_OWNER |
+| GET | `/v1/order/shop-owner/orders/all` | Tất cả đơn hàng của shop | ✅ | SHOP_OWNER |
+| PUT | `/v1/order/updateStatus/{orderId}` | Cập nhật trạng thái đơn | ✅ | SHOP_OWNER/ADMIN |
+| GET | `/v1/order/getAllOrders` | Tất cả đơn hàng (admin) | ✅ | ADMIN |
+| GET | `/v1/order/shop-owner/stats` | Thống kê đơn hàng shop | ✅ | SHOP_OWNER |
+| POST | `/v1/order/internal/create-from-payment` | Tạo order từ payment (internal) | ✅ | Internal |
 
 ### Notification Service APIs
 
 | Method | Endpoint | Description | Auth Required | Role |
 |--------|----------|-------------|---------------|------|
-| GET | `/v1/notifications/user` | Lấy thông báo của user | ✅ | USER |
-| PUT | `/v1/notifications/mark-read/{id}` | Đánh dấu đã đọc | ✅ | USER |
-| WS | `/ws/notifications` | WebSocket connection | ✅ | USER |
+| GET | `/v1/notifications/getAllByUserId` | Lấy thông báo của user | ✅ | USER |
+| GET | `/v1/notifications/getAllByShopId` | Lấy thông báo của shop owner | ✅ | SHOP_OWNER |
+| PUT | `/v1/notifications/markAsRead/{id}` | Đánh dấu đã đọc | ✅ | USER/SHOP_OWNER |
+| PUT | `/v1/notifications/markAllAsReadByUserId` | Đánh dấu tất cả đã đọc (user) | ✅ | USER |
+| PUT | `/v1/notifications/markAllAsReadByShopId` | Đánh dấu tất cả đã đọc (shop) | ✅ | SHOP_OWNER |
+| DELETE | `/v1/notifications/delete/{id}` | Xóa thông báo | ✅ | USER/SHOP_OWNER |
+| DELETE | `/v1/notifications/deleteAllByUserId` | Xóa tất cả thông báo (user) | ✅ | USER |
+| DELETE | `/v1/notifications/deleteAllByShopId` | Xóa tất cả thông báo (shop) | ✅ | SHOP_OWNER |
+| WS | `/ws/notifications` | WebSocket connection | ✅ | USER/SHOP_OWNER |
+
+### Chat Service APIs (Notification Service)
+
+| Method | Endpoint | Description | Auth Required | Role |
+|--------|----------|-------------|---------------|------|
+| POST | `/v1/notifications/chat/conversations/start` | Bắt đầu conversation | ✅ | USER |
+| GET | `/v1/notifications/chat/conversations` | Lấy danh sách conversations | ✅ | USER/SHOP_OWNER |
+| GET | `/v1/notifications/chat/conversations/{id}/messages` | Lấy messages của conversation | ✅ | USER/SHOP_OWNER |
+| POST | `/v1/notifications/chat/messages` | Gửi message | ✅ | USER/SHOP_OWNER |
+| PUT | `/v1/notifications/chat/conversations/{id}/read` | Đánh dấu đã đọc | ✅ | USER/SHOP_OWNER |
+| WS | `/ws/chat` | WebSocket cho chat | ✅ | USER/SHOP_OWNER |
+
+### Payment Service APIs
+
+| Method | Endpoint | Description | Auth Required | Role |
+|--------|----------|-------------|---------------|------|
+| POST | `/v1/payment/vnpay/create` | Tạo VNPay payment URL | ✅ | USER |
+| GET | `/v1/payment/vnpay/return` | Callback từ VNPay gateway | ❌ | N/A |
 
 ### File Storage APIs
 

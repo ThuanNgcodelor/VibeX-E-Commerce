@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
+import { useTranslation } from 'react-i18next';
 import { getConversations, getMessages, sendMessage, markAsRead } from "../../api/chat";
 import { connectWebSocket, subscribeToConversation, disconnectWebSocket, isConnected } from "../../utils/websocket";
 import { fetchImageById } from "../../api/image";
@@ -7,7 +8,7 @@ import { fetchProductById, fetchProductImageById } from "../../api/product";
 import '../../components/shop-owner/ShopOwnerLayout.css';
 
 // Helper functions
-const formatDate = (dateString) => {
+const formatDate = (dateString, t) => {
   if (!dateString) return '';
   try {
     const date = new Date(dateString);
@@ -18,7 +19,7 @@ const formatDate = (dateString) => {
     if (days === 0) {
       return date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
     } else if (days === 1) {
-      return 'Hôm qua';
+      return t('shopOwner.chat.yesterday');
     } else if (days < 7) {
       return date.toLocaleDateString('vi-VN', { weekday: 'short' });
     } else {
@@ -39,6 +40,7 @@ const getInitials = (name) => {
 };
 
 export default function ChatPage() {
+  const { t } = useTranslation();
   const [selectedChat, setSelectedChat] = useState(null);
   const [conversations, setConversations] = useState([]);
   const [messages, setMessages] = useState([]);
@@ -301,7 +303,7 @@ export default function ChatPage() {
       await sendMessage(selectedChat.id, content);
     } catch (error) {
       console.error('Error sending message:', error);
-      alert('Failed to send message. Please try again.');
+      alert(t('shopOwner.chat.sendMessageFailed'));
     }
   };
 
@@ -329,16 +331,16 @@ export default function ChatPage() {
       <div className="chat-page-header">
         <h2 className="chat-page-title">
           <i className="fas fa-comments me-2"></i>
-          Customer Messages
+          {t('shopOwner.chat.title')}
         </h2>
         <div className="chat-page-stats">
           <span className="stat-item">
             <i className="fas fa-inbox me-1"></i>
-            {conversations.length} Conversations
+            {conversations.length} {t('shopOwner.chat.conversations')}
           </span>
           <span className="stat-item">
             <i className="fas fa-envelope me-1"></i>
-            {conversations.reduce((sum, conv) => sum + (conv.unreadCount || 0), 0)} Unread
+            {conversations.reduce((sum, conv) => sum + (conv.unreadCount || 0), 0)} {t('shopOwner.chat.unread')}
           </span>
         </div>
       </div>
@@ -352,7 +354,7 @@ export default function ChatPage() {
               <input
                 type="text"
                 className="chat-search-input"
-                placeholder="Search conversations..."
+                placeholder={t('shopOwner.chat.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -362,26 +364,26 @@ export default function ChatPage() {
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
             >
-              <option value="all">All</option>
-              <option value="unread">Unread</option>
+              <option value="all">{t('shopOwner.chat.all')}</option>
+              <option value="unread">{t('shopOwner.chat.unreadFilter')}</option>
             </select>
           </div>
 
           <div className="chat-list">
             {loading && conversations.length === 0 ? (
               <div className="chat-empty-state">
-                <i className="fas fa-spinner fa-spin"></i> Loading...
+                <i className="fas fa-spinner fa-spin"></i> {t('shopOwner.chat.loading')}
               </div>
             ) : filteredConversations.length === 0 ? (
               <div className="chat-empty-state">
                 <i className="fas fa-inbox"></i>
-                <p>No conversations found</p>
+                <p>{t('shopOwner.chat.noConversations')}</p>
               </div>
             ) : (
               filteredConversations.map((conv) => {
                 // Shop-owner side: Hiển thị username của client
                 // Ưu tiên: cached username > opponent username > title > "Customer"
-                let name = 'Customer';
+                let name = t('shopOwner.chat.customer');
                 if (conv.clientId && userNames[conv.clientId]) {
                   name = userNames[conv.clientId];
                 } else if (conv.opponent?.username) {
@@ -392,8 +394,8 @@ export default function ChatPage() {
                   name = `User ${conv.clientId.substring(0, 8)}`;
                 }
                 
-                const lastMsg = conv.lastMessageContent || 'Start a conversation';
-                const date = formatDate(conv.lastMessageAt);
+                const lastMsg = conv.lastMessageContent || t('shopOwner.chat.startConversation');
+                const date = formatDate(conv.lastMessageAt, t);
                 const unread = conv.unreadCount || 0;
                 const avatarColor = conv.opponent?.id ? 
                   `#${conv.opponent.id.substring(0, 6)}` : 
@@ -437,8 +439,8 @@ export default function ChatPage() {
               <div className="chat-welcome-illustration">
                 <i className="fas fa-comments"></i>
               </div>
-              <h3>Select a conversation</h3>
-              <p>Choose a conversation from the list to start chatting with your customers</p>
+              <h3>{t('shopOwner.chat.selectConversation')}</h3>
+              <p>{t('shopOwner.chat.selectConversationDesc')}</p>
             </div>
           ) : (
             <div className="chat-content">
@@ -447,7 +449,7 @@ export default function ChatPage() {
                 <div className="chat-header-name">
                   {selectedChat.clientId && userNames[selectedChat.clientId]
                     ? userNames[selectedChat.clientId]
-                    : (selectedChat.opponent?.username || selectedChat.title || 'Customer')}
+                    : (selectedChat.opponent?.username || selectedChat.title || t('shopOwner.chat.customer'))}
                 </div>
               </div>
 
@@ -455,7 +457,7 @@ export default function ChatPage() {
               {selectedChat.product && selectedChat.product.name && (
                 <div className="chat-product-card">
                   <div className="chat-product-label">
-                  Customers are talking to you about this product
+                  {t('shopOwner.chat.talkingAboutProduct')}
                   </div>
                   <div className="chat-product-info">
                     {productImageUrl && (
@@ -481,12 +483,12 @@ export default function ChatPage() {
               <div className="chat-messages">
                 {loading && messages.length === 0 ? (
                   <div className="chat-empty-state">
-                    <i className="fas fa-spinner fa-spin"></i> Loading messages...
+                    <i className="fas fa-spinner fa-spin"></i> {t('shopOwner.chat.loadingMessages')}
                   </div>
                 ) : messages.length === 0 ? (
                   <div className="chat-empty-state">
                     <i className="fas fa-comment"></i>
-                    <p>No messages yet. Start the conversation!</p>
+                    <p>{t('shopOwner.chat.noMessages')}</p>
                   </div>
                 ) : (
                   messages.map((msg, idx) => {
@@ -551,7 +553,7 @@ export default function ChatPage() {
                 <input
                   type="text"
                   className="chat-input-field"
-                  placeholder="Type your message..."
+                  placeholder={t('shopOwner.chat.typeMessage')}
                   value={messageInput}
                   onChange={(e) => setMessageInput(e.target.value)}
                   disabled={loading}

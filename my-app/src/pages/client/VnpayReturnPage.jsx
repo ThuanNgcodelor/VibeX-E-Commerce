@@ -1,10 +1,12 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import Swal from "sweetalert2";
 import { checkVnpayReturn } from "../../api/payment.js";
 
 const VnpayReturnPage = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   useEffect(() => {
     const handleVnpayReturn = async () => {
@@ -24,9 +26,9 @@ const VnpayReturnPage = () => {
           // Payment successful - show success message and redirect to orders
           await Swal.fire({
             icon: "success",
-            title: "Payment Successful!",
-            text: "Your order has been created and payment completed successfully.",
-            confirmButtonText: "View Orders",
+            title: t('payment.success.title'),
+            text: t('payment.success.text'),
+            confirmButtonText: t('payment.success.button'),
             confirmButtonColor: "#ff6b35",
           });
 
@@ -36,9 +38,9 @@ const VnpayReturnPage = () => {
           // Payment failed
           await Swal.fire({
             icon: "error",
-            title: "Payment Failed",
-            text: "Payment was not successful. Please try again.",
-            confirmButtonText: "Back to Cart",
+            title: t('payment.failed.title'),
+            text: t('payment.failed.text'),
+            confirmButtonText: t('payment.failed.button'),
             confirmButtonColor: "#ff6b35",
           });
 
@@ -51,9 +53,9 @@ const VnpayReturnPage = () => {
         // Show error message
         await Swal.fire({
           icon: "error",
-          title: "Payment Processing Error",
-          text: error?.response?.data?.message || error?.message || "An error occurred while processing payment.",
-          confirmButtonText: "Back to Cart",
+          title: t('payment.error.title'),
+          text: error?.response?.data?.message || error?.message || t('payment.error.text'),
+          confirmButtonText: t('payment.error.button'),
           confirmButtonColor: "#ff6b35",
         });
 
@@ -63,7 +65,7 @@ const VnpayReturnPage = () => {
     };
 
     handleVnpayReturn();
-  }, [navigate]);
+  }, [navigate, t]);
 
   return (
     <div style={{ 
@@ -75,9 +77,9 @@ const VnpayReturnPage = () => {
       gap: "1rem"
     }}>
       <div className="spinner-border text-primary" role="status">
-        <span className="visually-hidden">Processing...</span>
+        <span className="visually-hidden">{t('common.processing')}</span>
       </div>
-      <p>Processing payment result...</p>
+      <p>{t('common.processing')}</p>
     </div>
   );
 };

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import imgFallback from "../../../assets/images/shop/6.png";
 import {
@@ -19,6 +20,7 @@ const arrayBufferToDataUrl = (buffer, contentType) => {
 const PAGE_SIZE = 40;
 
 const SearchProduct = () => {
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
@@ -223,7 +225,7 @@ const SearchProduct = () => {
     return (
       <div className="container py-5 text-center">
         <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Loading...</span>
+          <span className="visually-hidden">{t('search.loading')}</span>
         </div>
       </div>
     );
@@ -234,18 +236,18 @@ const SearchProduct = () => {
       <div className="container" style={{ maxWidth: '1250px' }}>
         {/* Search Result Title */}
         <div style={{ marginBottom: '12px', fontSize: '16px', color: '#262626', fontWeight: 500 }}>
-          Search results for keyword '{debouncedQuery || query || ''}'
+          {t('search.searchResults', { keyword: debouncedQuery || query || '' })}
         </div>
 
         <div className="row g-3">
           {/* Left Sidebar - Filters */}
           <div className="col-12 col-lg-2 col-md-3">
             <div style={{  borderRadius: 'px', padding: '12px', border: '1px solid #f0f0f0' }}>
-              <h6 style={{ fontSize: '14px', fontWeight: 600, color: '#333', marginBottom: '12px' }}>SEARCH FILTERS</h6>
+              <h6 style={{ fontSize: '14px', fontWeight: 600, color: '#333', marginBottom: '12px' }}>{t('search.searchFilters')}</h6>
 
               {/* Location */}
               <div className="mb-3" style={{ borderBottom: '1px solid #f5f5f5', paddingBottom: '12px' }}>
-                <h6 style={{ fontSize: '13px', fontWeight: 600, color: '#444', marginBottom: '8px' }}>Location</h6>
+                <h6 style={{ fontSize: '13px', fontWeight: 600, color: '#444', marginBottom: '8px' }}>{t('search.location')}</h6>
                 <div style={{ maxHeight: '180px', overflowY: 'auto' }}>
                   {provinces.slice(0, 6).map((province) => (
                     <div key={province} className="form-check mb-2">
@@ -273,7 +275,7 @@ const SearchProduct = () => {
 
               {/* Category */}
               <div className="mb-3" style={{ borderBottom: '1px solid #f5f5f5', paddingBottom: '12px' }}>
-                <h6 style={{ fontSize: '13px', fontWeight: 600, color: '#444', marginBottom: '8px' }}>Category</h6>
+                <h6 style={{ fontSize: '13px', fontWeight: 600, color: '#444', marginBottom: '8px' }}>{t('search.category')}</h6>
                 <div>
                   {categoryList.map((cat) => (
                     <div key={cat} className="form-check mb-2">
@@ -301,7 +303,7 @@ const SearchProduct = () => {
 
               {/* Shipping */}
               <div className="mb-3" style={{ borderBottom: '1px solid #f5f5f5', paddingBottom: '12px' }}>
-                <h6 style={{ fontSize: '13px', fontWeight: 600, color: '#444', marginBottom: '8px' }}>Shipping</h6>
+                <h6 style={{ fontSize: '13px', fontWeight: 600, color: '#444', marginBottom: '8px' }}>{t('search.shipping')}</h6>
                 <div className="form-check mb-2">
                   <input
                     className="form-check-input"
@@ -318,7 +320,7 @@ const SearchProduct = () => {
                     style={{ cursor: 'pointer', marginTop: '3px' }}
                   />
                   <label className="form-check-label" htmlFor="shipping-fast" style={{ fontSize: '13px', color: '#555', cursor: 'pointer' }}>
-                    Fast
+                    {t('search.fast')}
                   </label>
                 </div>
                 <div className="form-check mb-2">
@@ -337,19 +339,19 @@ const SearchProduct = () => {
                     style={{ cursor: 'pointer', marginTop: '3px' }}
                   />
                   <label className="form-check-label" htmlFor="shipping-economical" style={{ fontSize: '13px', color: '#555', cursor: 'pointer' }}>
-                    Economy
+                    {t('search.economy')}
                   </label>
                 </div>
           </div>
 
               {/* Price Range */}
               <div className="mb-3" style={{ borderBottom: '1px solid #f5f5f5', paddingBottom: '12px' }}>
-                <h6 style={{ fontSize: '13px', fontWeight: 600, color: '#444', marginBottom: '8px' }}>Price Range</h6>
+                <h6 style={{ fontSize: '13px', fontWeight: 600, color: '#444', marginBottom: '8px' }}>{t('search.priceRange')}</h6>
                 <div className="d-flex gap-2 mb-2">
                   <input
                     type="number"
                     className="form-control form-control-sm"
-                    placeholder="₫ FROM"
+                    placeholder={t('search.from')}
                     value={priceMin}
                 onChange={(e) => setPriceMin(e.target.value)}
                     style={{ fontSize: '13px', height: '32px' }}
@@ -357,7 +359,7 @@ const SearchProduct = () => {
                   <input
                     type="number"
                     className="form-control form-control-sm"
-                    placeholder="₫ TO"
+                    placeholder={t('search.to')}
                     value={priceMax}
                 onChange={(e) => setPriceMax(e.target.value)}
                     style={{ fontSize: '13px', height: '32px' }}
@@ -374,13 +376,13 @@ const SearchProduct = () => {
                     fontWeight: 600
                   }}
                 >
-                  Apply
+                  {t('search.apply')}
                 </button>
               </div>
 
               {/* Shop Type */}
               <div className="mb-3" style={{ borderBottom: '1px solid #f5f5f5', paddingBottom: '12px' }}>
-                <h6 style={{ fontSize: '13px', fontWeight: 600, color: '#444', marginBottom: '8px' }}>Shop Type</h6>
+                <h6 style={{ fontSize: '13px', fontWeight: 600, color: '#444', marginBottom: '8px' }}>{t('search.shopType')}</h6>
                 <div className="form-check mb-2">
                   <input
                     className="form-check-input"
@@ -397,7 +399,7 @@ const SearchProduct = () => {
                     style={{ cursor: 'pointer', marginTop: '3px' }}
                   />
                   <label className="form-check-label" htmlFor="shop-mall" style={{ fontSize: '13px', color: '#555', cursor: 'pointer' }}>
-                    Mall
+                    {t('search.mall')}
                   </label>
               </div>
                 <div className="form-check mb-2">
@@ -416,14 +418,14 @@ const SearchProduct = () => {
                     style={{ cursor: 'pointer', marginTop: '3px' }}
                   />
                   <label className="form-check-label" htmlFor="shop-favorite" style={{ fontSize: '13px', color: '#555', cursor: 'pointer' }}>
-                    Favorite+
+                    {t('search.favorite')}
                   </label>
             </div>
           </div>
 
               {/* Condition */}
               <div className="mb-3" style={{ borderBottom: '1px solid #f5f5f5', paddingBottom: '12px' }}>
-                <h6 style={{ fontSize: '13px', fontWeight: 600, color: '#444', marginBottom: '8px' }}>Condition</h6>
+                <h6 style={{ fontSize: '13px', fontWeight: 600, color: '#444', marginBottom: '8px' }}>{t('search.condition')}</h6>
                 <div className="form-check mb-2">
                   <input
                     className="form-check-input"
@@ -434,7 +436,7 @@ const SearchProduct = () => {
                     style={{ cursor: 'pointer', marginTop: '3px' }}
                   />
                   <label className="form-check-label" htmlFor="condition-new" style={{ fontSize: '13px', color: '#555', cursor: 'pointer' }}>
-                    New
+                    {t('search.new')}
                   </label>
                 </div>
                 <div className="form-check">
@@ -447,14 +449,14 @@ const SearchProduct = () => {
                     style={{ cursor: 'pointer', marginTop: '3px' }}
                   />
                   <label className="form-check-label" htmlFor="condition-used" style={{ fontSize: '13px', color: '#555', cursor: 'pointer' }}>
-                    Used
+                    {t('search.used')}
                   </label>
                 </div>
               </div>
 
               {/* Rating */}
               <div className="mb-3" style={{ borderBottom: '1px solid #f5f5f5', paddingBottom: '12px' }}>
-                <h6 style={{ fontSize: '13px', fontWeight: 600, color: '#444', marginBottom: '8px' }}>Rating</h6>
+                <h6 style={{ fontSize: '13px', fontWeight: 600, color: '#444', marginBottom: '8px' }}>{t('search.rating')}</h6>
                 {[5, 4, 3, 2, 1].map((stars) => (
                   <div key={stars} className="form-check mb-2">
                     <input
@@ -475,7 +477,7 @@ const SearchProduct = () => {
                       <span style={{ color: '#ffc107', marginRight: '4px', fontSize: '12px' }}>
                         {'★'.repeat(stars)}
                       </span>
-                      {stars === 5 ? '5 stars' : `${stars} stars & up`}
+                      {stars === 5 ? t('search.stars', { count: 5 }) : t('search.starsAndUp', { count: stars })}
                     </label>
                   </div>
                 ))}
@@ -483,7 +485,7 @@ const SearchProduct = () => {
 
               {/* Promotions */}
               <div>
-                <h6 style={{ fontSize: '13px', fontWeight: 600, color: '#444', marginBottom: '8px' }}>Promotions & Vouchers</h6>
+                <h6 style={{ fontSize: '13px', fontWeight: 600, color: '#444', marginBottom: '8px' }}>{t('search.promotions')}</h6>
                 <div className="form-check mb-2">
                   <input
                     className="form-check-input"
@@ -500,7 +502,7 @@ const SearchProduct = () => {
                     style={{ cursor: 'pointer', marginTop: '3px' }}
                   />
                   <label className="form-check-label" htmlFor="promo-sale" style={{ fontSize: '13px', color: '#555', cursor: 'pointer' }}>
-                    On Sale
+                    {t('search.onSale')}
                   </label>
                 </div>
                 <div className="form-check mb-2">
@@ -519,7 +521,7 @@ const SearchProduct = () => {
                     style={{ cursor: 'pointer', marginTop: '3px' }}
                   />
                   <label className="form-check-label" htmlFor="promo-stock" style={{ fontSize: '13px', color: '#555', cursor: 'pointer' }}>
-                    In Stock
+                    {t('search.inStock')}
                   </label>
                 </div>
               </div>
@@ -537,7 +539,7 @@ const SearchProduct = () => {
                   fontWeight: 600
                 }}
               >
-                Clear All
+                {t('search.clearAll')}
               </button>
             </div>
           </div>
@@ -547,11 +549,11 @@ const SearchProduct = () => {
             {/* Sort Tabs */}
             <div style={{ background: '#fff', borderRadius: '4px', padding: '8px 10px', marginBottom: '10px', border: '1px solid #f0f0f0' }}>
               <div className="d-flex align-items-center flex-wrap" style={{ gap: '6px' }}>
-                <span style={{ fontSize: '13px', color: '#757575', marginRight: '4px' }}>Sort by</span>
+                <span style={{ fontSize: '13px', color: '#757575', marginRight: '4px' }}>{t('search.sortBy')}</span>
                 {[
-                  { key: 'relevance', label: 'Relevance' },
-                  { key: 'newest', label: 'Newest' },
-                  { key: 'bestselling', label: 'Bestselling' }
+                  { key: 'relevance', label: t('search.relevance') },
+                  { key: 'newest', label: t('search.newest') },
+                  { key: 'bestselling', label: t('search.bestselling') }
                 ].map((btn) => {
                   const active = sortBy === btn.key;
                   return (
@@ -592,17 +594,17 @@ const SearchProduct = () => {
                       boxShadow: sortBy.startsWith('price') ? '0 1px 3px rgba(0,0,0,0.12)' : 'none'
                     }}
                   >
-                    Price
+                    {t('search.price')}
                   </button>
                   <ul className="dropdown-menu">
                     <li>
                       <button className="dropdown-item" onClick={() => setSortBy('price-asc')}>
-                        Price: Low to High
+                        {t('search.priceLowToHigh')}
                       </button>
                     </li>
                     <li>
                       <button className="dropdown-item" onClick={() => setSortBy('price-desc')}>
-                        Price: High to Low
+                        {t('search.priceHighToLow')}
                       </button>
                     </li>
                   </ul>
@@ -612,7 +614,7 @@ const SearchProduct = () => {
 
             {pageItems.length === 0 ? (
               <div className="text-center py-5" style={{ background: '#fff', borderRadius: '4px' }}>
-                <p style={{ fontSize: '16px', color: '#757575' }}>No products found.</p>
+                <p style={{ fontSize: '16px', color: '#757575' }}>{t('search.noProductsFound')}</p>
             </div>
             ) : (
               <>
@@ -700,7 +702,7 @@ const SearchProduct = () => {
                                   borderRadius: '2px'
                                 }}
                               >
-                                Yêu thích+
+                                {t('search.favorite')}
                               </div>
                 </div>
 
@@ -737,10 +739,10 @@ const SearchProduct = () => {
                   </div>
                                 <div className="d-flex align-items-center gap-1 mb-1" style={{ fontSize: '10px' }}>
                                   <span style={{ color: '#ffc107', fontSize: '9px' }}>★★★★★</span>
-                                  <span style={{ color: '#9e9e9e' }}>Sold {formatSoldCount(product.soldOf || 0)}</span>
+                                  <span style={{ color: '#9e9e9e' }}>{t('search.sold')} {formatSoldCount(product.soldOf || 0)}</span>
                                 </div>
                                 <div style={{ fontSize: '10px', color: '#9e9e9e', marginBottom: '1px' }}>
-                                  Free Shipping
+                                  {t('search.freeShipping')}
                                 </div>
                                 <div style={{ fontSize: '10px', color: '#9e9e9e' }}>
                                   Hồ Chí Minh
@@ -809,7 +811,7 @@ const SearchProduct = () => {
                         fontWeight: 500
                       }}
                     >
-                      See More
+                      {t('search.seeMore')}
                     </button>
                   </div>
                 )}

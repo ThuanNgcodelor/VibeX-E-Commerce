@@ -223,7 +223,7 @@ public class OrderController {
     ResponseEntity<?> cancelOrder(@PathVariable String orderId, @RequestBody(required = false) Map<String, String> payload) {
         try {
             String reason = payload != null ? payload.getOrDefault("reason", null) : null;
-            Order cancelled = orderService.cancelOrder(orderId);
+            Order cancelled = orderService.cancelOrder(orderId,reason);
             if (reason != null && !reason.isBlank()) {
                 log.info("Order {} cancelled. Reason: {}", orderId, reason);
             }
@@ -354,7 +354,7 @@ public class OrderController {
     @GetMapping("/shop-owner/orders")
     public ResponseEntity<Page<OrderDto>> getOrdersByShopOwner(
             HttpServletRequest request,
-            @RequestParam(required = false) String status,
+            @RequestParam(required = false) List<String> status,
             @RequestParam(defaultValue = "1") Integer pageNo,
             @RequestParam(defaultValue = "10") Integer pageSize) {
 
@@ -438,7 +438,7 @@ public class OrderController {
     @GetMapping("/shop-owner/orders/simple")
     public ResponseEntity<Page<OrderDto>> getOrdersByShopOwnerSimple(
             HttpServletRequest request,
-            @RequestParam(required = false) String status,
+            @RequestParam(required = false) List<String> status,
             @RequestParam(defaultValue = "1") Integer pageNo,
             @RequestParam(defaultValue = "10") Integer pageSize) {
 
@@ -454,6 +454,12 @@ public class OrderController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(null);
         }
+    }
+
+    @GetMapping("/shop-owner/analytics")
+    public ResponseEntity<com.example.orderservice.dto.AnalyticsDto> getAnalytics(HttpServletRequest request) {
+        String shopOwnerId = jwtUtil.ExtractUserId(request);
+        return ResponseEntity.ok(orderService.getAnalytics(shopOwnerId));
     }
 
     @PutMapping("/shop-owner/orders/{orderId}/status")
@@ -539,6 +545,7 @@ public class OrderController {
     /**
      * Internal endpoint for payment-service to update order status
      * Should be called when payment succeeds/fails
+     * Note: Payment success doesn't change order status to PAID - order stays PENDING for shop confirmation
      */
     @PutMapping("/internal/update-payment-status/{orderId}")
     public ResponseEntity<?> updatePaymentStatus(
@@ -547,11 +554,20 @@ public class OrderController {
         try {
             // Verify internal call (can add header check if needed)
             if ("PAID".equalsIgnoreCase(paymentStatus)) {
-                Order updatedOrder = orderService.updateOrderStatus(orderId, "PAID");
+                // Payment successful, but order status should remain PENDING (waiting for shop confirmation)
+                // Payment status is tracked separately in Payment entity
+                Order order = orderService.getOrderById(orderId);
+                if (order == null) {
+                    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Order not found"));
+                }
+                
+                // Only log payment success, don't change order status
+                // Order should remain PENDING for shop to confirm and process
                 return ResponseEntity.ok(Map.of(
-                        "message", "Order status updated to PAID",
-                        "orderId", updatedOrder.getId(),
-                        "status", updatedOrder.getOrderStatus().name()
+                        "message", "Payment successful. Order status remains PENDING for shop confirmation",
+                        "orderId", order.getId(),
+                        "orderStatus", order.getOrderStatus().name(),
+                        "paymentStatus", "PAID"
                 ));
             } else if ("FAILED".equalsIgnoreCase(paymentStatus)) {
                 // Rollback stock and cancel order when payment fails
@@ -633,6 +649,44 @@ public class OrderController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
                     "error", "Failed to create order: " + e.getMessage()
             ));
+        }
+    }
+
+    @PostMapping("/cancel/{orderId}")
+    public ResponseEntity<Order> cancelOrder(@PathVariable String orderId,
+                                             @RequestParam(required = false) String reason) {
+        Order order = orderService.cancelOrder(orderId, reason);
+        if (order != null) {
+            // Send notification to user
+            try {
+                // Notif logic here
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return ResponseEntity.ok(order);
+        }
+        return ResponseEntity.badRequest().build();
+    }
+
+    @PostMapping("/return/{orderId}")
+    public ResponseEntity<Order> returnOrder(@PathVariable String orderId,
+                                             @RequestParam(required = false) String reason) {
+        Order order = orderService.returnOrder(orderId, reason);
+        if (order != null) {
+            return ResponseEntity.ok(order);
+        }
+        return ResponseEntity.badRequest().build();
+    }
+
+    @GetMapping("/shop-owner/dashboard-stats")
+    public ResponseEntity<Map<String, Object>> getDashboardStats(HttpServletRequest request) {
+        try {
+            String shopOwnerId = jwtUtil.ExtractUserId(request);
+            Map<String, Object> stats = orderService.getShopStats(shopOwnerId);
+            return ResponseEntity.ok(stats);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
 }

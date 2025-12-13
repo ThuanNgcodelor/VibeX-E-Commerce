@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { updatePassword } from "../../../api/auth.js";
 import "../../../assets/css/VerifyOtp.css";
 
 
 export default function ResetPassword() {
+    const { t } = useTranslation();
     const { state } = useLocation();
     const navigate = useNavigate();
 
@@ -55,19 +57,19 @@ export default function ResetPassword() {
             // Normalize email trước khi gửi để đảm bảo consistency với backend
             const normalizedEmail = email?.trim().toLowerCase();
             if (!normalizedEmail) {
-                setErr("Email is required.");
+                setErr(t('auth.resetPassword.emailRequired'));
                 setLoading(false);
                 return;
             }
             await updatePassword(normalizedEmail, pwd);
-            setMsg("Password updated successfully. Please sign in.");
+            setMsg(t('auth.resetPassword.success'));
             // Xóa email khỏi sessionStorage sau khi reset thành công
             sessionStorage.removeItem("resetPasswordEmail");
             setTimeout(() => navigate("/login"), 800);
         } catch (e2) {
             // Xử lý error response là object hoặc string
             const errorData = e2?.response?.data;
-            let errorMsg = "Verification expired. Please verify again.";
+            let errorMsg = t('auth.resetPassword.verificationExpired');
             if (errorData) {
                 if (typeof errorData === 'string') {
                     errorMsg = errorData;
@@ -94,16 +96,16 @@ export default function ResetPassword() {
 
                 <div className="position-relative d-flex justify-content-center align-items-center">
                 <div className="card p-3 text-center custom-card">
-                    <h6>Reset your password</h6>
+                    <h6>{t('auth.resetPassword.title')}</h6>
                     <form className="mt-2 w-100 px-2" onSubmit={handleSubmit} noValidate>
                         {/* New password */}
                         <div className="mb-2 text-start">
-                            <label className="form-label fw-semibold">New password</label>
+                            <label className="form-label fw-semibold">{t('auth.resetPassword.newPasswordLabel')}</label>
                             <div className="input-group">
                                 <input
                                     type={showPwd ? "text" : "password"}
                                     className={`form-control ${pwd && !strongEnough(pwd) ? "is-invalid" : ""}`}
-                                    placeholder="At least 8 characters"
+                                    placeholder={t('auth.resetPassword.newPasswordPlaceholder')}
                                     value={pwd}
                                     onChange={(e) => setPwd(e.target.value)}
                                     autoComplete="new-password"
@@ -113,22 +115,22 @@ export default function ResetPassword() {
                                     className="btn btn-outline-secondary"
                                     onClick={() => setShowPwd((s) => !s)}
                                 >
-                                    {showPwd ? "Hide" : "Show"}
+                                    {showPwd ? t('auth.resetPassword.hide') : t('auth.resetPassword.show')}
                                 </button>
                             </div>
                             {pwd && !strongEnough(pwd) && (
-                                <div className="invalid-feedback">Password must be at least 8 characters.</div>
+                                <div className="invalid-feedback">{t('auth.resetPassword.passwordMinLength')}</div>
                             )}
                         </div>
 
                         {/* Confirm */}
                         <div className="mb-2 text-start">
-                            <label className="form-label fw-semibold">Confirm password</label>
+                            <label className="form-label fw-semibold">{t('auth.resetPassword.confirmPasswordLabel')}</label>
                             <div className="input-group">
                                 <input
                                     type={showPwd2 ? "text" : "password"}
                                     className={`form-control ${pwd2 && pwd2 !== pwd ? "is-invalid" : ""}`}
-                                    placeholder="Re-enter new password"
+                                    placeholder={t('auth.resetPassword.confirmPasswordPlaceholder')}
                                     value={pwd2}
                                     onChange={(e) => setPwd2(e.target.value)}
                                     autoComplete="new-password"
@@ -138,17 +140,17 @@ export default function ResetPassword() {
                                     className="btn btn-outline-secondary"
                                     onClick={() => setShowPwd2((s) => !s)}
                                 >
-                                    {showPwd2 ? "Hide" : "Show"}
+                                    {showPwd2 ? t('auth.resetPassword.hide') : t('auth.resetPassword.show')}
                                 </button>
                             </div>
                             {pwd2 && pwd2 !== pwd && (
-                                <div className="invalid-feedback">Passwords do not match.</div>
+                                <div className="invalid-feedback">{t('auth.resetPassword.passwordsNotMatch')}</div>
                             )}
                         </div>
 
                         <div className="mt-4">
                             <button className="btn btn-danger px-0 validate" type="submit" disabled={!canSubmit}>
-                                {loading ? "Updating..." : "Update Password"}
+                                {loading ? t('auth.resetPassword.updating') : t('auth.resetPassword.updateButton')}
                             </button>
                         </div>
 

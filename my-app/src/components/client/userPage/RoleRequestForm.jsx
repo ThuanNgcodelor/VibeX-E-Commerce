@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { createShopOwnerRegistration, getUserRoleRequests } from '../../../api/user.js';
 import { getProvinces, getDistricts, getWards } from '../../../api/ghn.js';
 import './RoleRequestForm.css';
 
 export default function RoleRequestForm() {
+    const { t } = useTranslation();
     // Shop Owner Information
     const [shopName, setShopName] = useState('');
     const [ownerName, setOwnerName] = useState('');
@@ -49,7 +51,7 @@ export default function RoleRequestForm() {
             setProvinces(data || []);
         } catch (error) {
             console.error('Error loading provinces:', error);
-            setMessage('Failed to load provinces. Please refresh the page.');
+            setMessage(t('roleRequest.failedToLoadProvinces'));
             setMessageType('error');
         } finally {
             setLoadingProvinces(false);
@@ -78,7 +80,7 @@ export default function RoleRequestForm() {
             setWardName('');
         } catch (error) {
             console.error('Error loading districts:', error);
-            setMessage('Failed to load districts. Please try again.');
+            setMessage(t('roleRequest.failedToLoadDistricts'));
             setMessageType('error');
         } finally {
             setLoadingDistricts(false);
@@ -101,7 +103,7 @@ export default function RoleRequestForm() {
             setWardName('');
         } catch (error) {
             console.error('Error loading wards:', error);
-            setMessage('Failed to load wards. Please try again.');
+            setMessage(t('roleRequest.failedToLoadWards'));
             setMessageType('error');
         } finally {
             setLoadingWards(false);
@@ -136,49 +138,49 @@ export default function RoleRequestForm() {
 
     const validateForm = () => {
         if (!shopName.trim()) {
-            setMessage('Shop name is required');
+            setMessage(t('roleRequest.shopNameRequired'));
             setMessageType('error');
             return false;
         }
         
         if (!ownerName.trim()) {
-            setMessage('Owner name is required');
+            setMessage(t('roleRequest.ownerNameRequired'));
             setMessageType('error');
             return false;
         }
         
         if (!phone.trim()) {
-            setMessage('Phone number is required');
+            setMessage(t('roleRequest.phoneRequired'));
             setMessageType('error');
             return false;
         }
         
         if (!streetAddress.trim()) {
-            setMessage('Street address is required');
+            setMessage(t('roleRequest.streetAddressRequired'));
             setMessageType('error');
             return false;
         }
         
         if (!provinceId || !provinceName) {
-            setMessage('Please select a province/city');
+            setMessage(t('roleRequest.provinceRequired'));
             setMessageType('error');
             return false;
         }
         
         if (!districtId || !districtName) {
-            setMessage('Please select a district/county');
+            setMessage(t('roleRequest.districtRequired'));
             setMessageType('error');
             return false;
         }
         
         if (!wardCode || !wardName) {
-            setMessage('Please select a ward/commune');
+            setMessage(t('roleRequest.wardRequired'));
             setMessageType('error');
             return false;
         }
         
         if (!reason.trim()) {
-            setMessage('Please enter a reason for your role request');
+            setMessage(t('roleRequest.reasonRequired'));
             setMessageType('error');
             return false;
         }
@@ -220,7 +222,7 @@ export default function RoleRequestForm() {
 
             await createShopOwnerRegistration(registrationData);
 
-            setMessage('Your shop owner registration has been submitted successfully! An admin will review and respond shortly.');
+            setMessage(t('roleRequest.successMessage'));
             setMessageType('success');
             
             // Reset form
@@ -243,7 +245,7 @@ export default function RoleRequestForm() {
             
         } catch (error) {
             console.error('Error creating shop owner registration:', error);
-            const errorMessage = error.message || 'An error occurred while submitting your request. Please try again later.';
+            const errorMessage = error.message || t('roleRequest.errorMessage');
             setMessage(errorMessage);
             setMessageType('error');
         } finally {
@@ -262,9 +264,9 @@ export default function RoleRequestForm() {
 
     const getStatusBadge = (status) => {
         const statusMap = {
-            'PENDING': { text: 'Pending', class: 'badge-warning' },
-            'APPROVED': { text: 'Approved', class: 'badge-success' },
-            'REJECTED': { text: 'Rejected', class: 'badge-danger' }
+            'PENDING': { text: t('roleRequest.pending'), class: 'badge-warning' },
+            'APPROVED': { text: t('roleRequest.approved'), class: 'badge-success' },
+            'REJECTED': { text: t('roleRequest.rejected'), class: 'badge-danger' }
         };
         
         const statusInfo = statusMap[status] || { text: status, class: 'badge-secondary' };
@@ -273,8 +275,8 @@ export default function RoleRequestForm() {
 
     return (
         <div className="myaccount-content">
-            <h3>Shop Owner Registration</h3>
-            <p className="text-muted mb-4">Fill in your shop information below to request Shop Owner role. Your request will be reviewed by an admin.</p>
+            <h3>{t('roleRequest.title')}</h3>
+            <p className="text-muted mb-4">{t('roleRequest.description')}</p>
             
             {/* Form to create shop owner registration */}
             <div className="account-details-form">
@@ -282,44 +284,44 @@ export default function RoleRequestForm() {
                     {/* Shop Information Section */}
                     <div style={{ marginBottom: '30px' }}>
                         <h5 style={{ color: '#ee4d2d', marginBottom: '20px', paddingBottom: '10px', borderBottom: '2px solid #ee4d2d' }}>
-                            Shop Information
+                            {t('roleRequest.shopInformation')}
                         </h5>
                         
                         <div className="single-input-item">
-                            <label htmlFor="shopName" className="required">Shop Name</label>
+                            <label htmlFor="shopName" className="required">{t('roleRequest.shopName')}</label>
                             <input
                                 id="shopName"
                                 type="text"
                                 value={shopName}
                                 onChange={(e) => setShopName(e.target.value)}
                                 className="form-control"
-                                placeholder="Enter your shop name"
+                                placeholder={t('roleRequest.enterShopName')}
                                 disabled={isSubmitting}
                             />
                         </div>
                         
                         <div className="single-input-item">
-                            <label htmlFor="ownerName" className="required">Owner Name</label>
+                            <label htmlFor="ownerName" className="required">{t('roleRequest.ownerName')}</label>
                             <input
                                 id="ownerName"
                                 type="text"
                                 value={ownerName}
                                 onChange={(e) => setOwnerName(e.target.value)}
                                 className="form-control"
-                                placeholder="Enter owner's full name"
+                                placeholder={t('roleRequest.enterOwnerName')}
                                 disabled={isSubmitting}
                             />
                         </div>
                         
                         <div className="single-input-item">
-                            <label htmlFor="phone" className="required">Phone Number</label>
+                            <label htmlFor="phone" className="required">{t('roleRequest.phoneNumber')}</label>
                             <input
                                 id="phone"
                                 type="tel"
                                 value={phone}
                                 onChange={(e) => setPhone(e.target.value)}
                                 className="form-control"
-                                placeholder="Enter phone number"
+                                placeholder={t('roleRequest.enterPhoneNumber')}
                                 disabled={isSubmitting}
                             />
                         </div>
@@ -328,11 +330,11 @@ export default function RoleRequestForm() {
                     {/* Address Section */}
                     <div style={{ marginBottom: '30px' }}>
                         <h5 style={{ color: '#ee4d2d', marginBottom: '20px', paddingBottom: '10px', borderBottom: '2px solid #ee4d2d' }}>
-                            Shop Address
+                            {t('roleRequest.shopAddress')}
                         </h5>
                         
                         <div className="single-input-item">
-                            <label className="required">Province/City, District/County, Ward/Commune</label>
+                            <label className="required">{t('roleRequest.provinceCity')}</label>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '12px' }}>
                                 <select
                                     value={provinceId || ''}
@@ -341,7 +343,7 @@ export default function RoleRequestForm() {
                                     className="form-control"
                                     required
                                 >
-                                    <option value="">{loadingProvinces ? 'Loading...' : 'Select Province'}</option>
+                                    <option value="">{loadingProvinces ? t('roleRequest.loading') : t('roleRequest.selectProvince')}</option>
                                     {provinces.map(province => (
                                         <option key={province.ProvinceID} value={province.ProvinceID}>
                                             {province.ProvinceName}
@@ -356,7 +358,7 @@ export default function RoleRequestForm() {
                                     className="form-control"
                                     required
                                 >
-                                    <option value="">{loadingDistricts ? 'Loading...' : 'Select District'}</option>
+                                    <option value="">{loadingDistricts ? t('roleRequest.loading') : t('roleRequest.selectDistrict')}</option>
                                     {districts.map(district => (
                                         <option key={district.DistrictID} value={district.DistrictID}>
                                             {district.DistrictName}
@@ -371,7 +373,7 @@ export default function RoleRequestForm() {
                                     className="form-control"
                                     required
                                 >
-                                    <option value="">{loadingWards ? 'Loading...' : 'Select Ward'}</option>
+                                    <option value="">{loadingWards ? t('roleRequest.loading') : t('roleRequest.selectWard')}</option>
                                     {wards.map(ward => (
                                         <option key={ward.WardCode} value={ward.WardCode}>
                                             {ward.WardName}
@@ -382,14 +384,14 @@ export default function RoleRequestForm() {
                         </div>
                         
                         <div className="single-input-item">
-                            <label htmlFor="streetAddress" className="required">Street Address</label>
+                            <label htmlFor="streetAddress" className="required">{t('roleRequest.streetAddress')}</label>
                             <input
                                 id="streetAddress"
                                 type="text"
                                 value={streetAddress}
                                 onChange={(e) => setStreetAddress(e.target.value)}
                                 className="form-control"
-                                placeholder="Enter detailed street address (house number, street name)"
+                                placeholder={t('roleRequest.streetAddressPlaceholder')}
                                 disabled={isSubmitting}
                             />
                         </div>
@@ -398,18 +400,18 @@ export default function RoleRequestForm() {
                     {/* Role Request Reason Section */}
                     <div style={{ marginBottom: '30px' }}>
                         <h5 style={{ color: '#ee4d2d', marginBottom: '20px', paddingBottom: '10px', borderBottom: '2px solid #ee4d2d' }}>
-                            Role Request Reason
+                            {t('roleRequest.roleRequestReason')}
                         </h5>
                         
                         <div className="single-input-item">
-                            <label htmlFor="reason" className="required">Why do you want to become a Shop Owner?</label>
+                            <label htmlFor="reason" className="required">{t('roleRequest.whyShopOwner')}</label>
                             <textarea
                                 id="reason"
                                 value={reason}
                                 onChange={(e) => setReason(e.target.value)}
                                 rows="4"
                                 className="form-control"
-                                placeholder="Please describe why you want to become a shop owner and what products/services you plan to offer..."
+                                placeholder={t('roleRequest.reasonPlaceholder')}
                                 disabled={isSubmitting}
                             />
                         </div>
@@ -439,7 +441,7 @@ export default function RoleRequestForm() {
                                 transition: 'all 0.3s ease'
                             }}
                         >
-                            {isSubmitting ? 'Submitting...' : 'Submit Registration'}
+                            {isSubmitting ? t('roleRequest.submitting') : t('roleRequest.submitRegistration')}
                         </button>
                     </div>
                 </form>
@@ -448,7 +450,7 @@ export default function RoleRequestForm() {
             {/* List of submitted requests */}
             <div className="mt-4">
                 <div className="d-flex justify-content-between align-items-center mb-3">
-                    <h4>Registration History</h4>
+                    <h4>{t('roleRequest.registrationHistory')}</h4>
                     <div className="single-input-item">
                         <button
                             className="btn"
@@ -466,7 +468,7 @@ export default function RoleRequestForm() {
                                 cursor: 'pointer'
                             }}
                         >
-                            {showRequests ? 'Hide' : 'View'} History
+                            {showRequests ? t('roleRequest.hideHistory') : t('roleRequest.viewHistory')}
                         </button>
                     </div>
                 </div>
@@ -476,24 +478,24 @@ export default function RoleRequestForm() {
                         <table className="table table-bordered">
                             <thead className="thead-light">
                                 <tr>
-                                    <th>Requested Role</th>
-                                    <th>Reason</th>
-                                    <th>Status</th>
-                                    <th>Created At</th>
-                                    <th>Admin Note</th>
+                                    <th>{t('roleRequest.requestedRole')}</th>
+                                    <th>{t('roleRequest.reason')}</th>
+                                    <th>{t('roleRequest.status')}</th>
+                                    <th>{t('roleRequest.createdAt')}</th>
+                                    <th>{t('roleRequest.adminNote')}</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {userRequests.length === 0 ? (
                                     <tr>
-                                        <td colSpan="5" className="text-center">No requests yet</td>
+                                        <td colSpan="5" className="text-center">{t('roleRequest.noRequestsYet')}</td>
                                     </tr>
                                 ) : (
                                     userRequests.map((request) => (
                                         <tr key={request.id}>
                                             <td>
                                                 <strong>
-                                                    {request.requestedRole === 'SHOP_OWNER' ? 'Shop Owner' : request.requestedRole}
+                                                    {request.requestedRole === 'SHOP_OWNER' ? t('roleRequest.shopOwner') : request.requestedRole}
                                                 </strong>
                                             </td>
                                             <td>{request.reason}</td>

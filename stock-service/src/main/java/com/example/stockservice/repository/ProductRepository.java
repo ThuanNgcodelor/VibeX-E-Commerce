@@ -21,4 +21,9 @@ public interface ProductRepository extends JpaRepository<Product,String> {
     List<Product> findAllWithSizes();
 
     long countByCategory_Id(String categoryId);
+    @Query("SELECT COUNT(p) FROM products p WHERE p.userId = :userId")
+    long countByUserId(@Param("userId") String userId);
+
+    @Query("SELECT COUNT(p) FROM products p WHERE p.userId = :userId AND p.status = :status")
+    long countByUserIdAndStatus(@Param("userId") String userId, @Param("status") ProductStatus status);
 }

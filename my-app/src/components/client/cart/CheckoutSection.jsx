@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 
 const formatVND = (n) => (Number(n) || 0).toLocaleString("vi-VN") + "₫";
 
@@ -22,6 +23,7 @@ export function CheckoutSection({
   paymentMethod,
   onPaymentMethodChange
 }) {
+  const { t } = useTranslation();
   const totalWithShipping = selectedSubtotal + (shippingFee || 0);
   return (
     <div className="row">
@@ -126,15 +128,15 @@ export function CheckoutSection({
       `}</style>
       <div className="address-selection col-md-12 col-lg-6 mb-3">
         <h5>
-          Delivery Address{" "}
+          {t('checkout.deliveryAddress')}{" "}
           {addressLoading && (
-            <small className="text-muted">(Loading...)</small>
+            <small className="text-muted">({t('checkout.loading')})</small>
           )}
         </h5>
 
         {addressLoading ? (
           <div className="selected-address p-3 border rounded bg-light">
-            <p className="text-muted mb-0">Loading addresses...</p>
+            <p className="text-muted mb-0">{t('checkout.loadingAddresses')}</p>
           </div>
         ) : addresses.length > 0 ? (
           <>
@@ -150,16 +152,16 @@ export function CheckoutSection({
                       <p className="mb-1">{selectedAddr.streetAddress}</p>
                       <p className="mb-1">{selectedAddr.province}</p>
                       <p className="mb-0">
-                        Phone: {selectedAddr.recipientPhone}
+                        {t('checkout.phone')}: {selectedAddr.recipientPhone}
                       </p>
                       {selectedAddr.isDefault && (
-                        <span className="badge bg-primary">Default</span>
+                        <span className="badge bg-primary">{t('checkout.default')}</span>
                       )}
                     </div>
                   ) : null;
                 })()
               ) : (
-                <p className="text-muted">No address selected</p>
+                <p className="text-muted">{t('checkout.noAddressSelected')}</p>
               )}
             </div>
             <div className="d-flex gap-2 mt-2">
@@ -177,14 +179,14 @@ export function CheckoutSection({
                 }}
               >
                 <i className="fa fa-angle-left me-2"></i>
-                {selectedAddressId ? "Change Address" : "Select Address"}
+                {selectedAddressId ? t('checkout.changeAddress') : t('checkout.selectAddress')}
               </button>
               <button
                 className="btn btn-light btn-sm d-inline-flex align-items-center justify-content-center"
                 type="button"
                 onClick={onRefreshAddresses}
                 disabled={addressLoading}
-                title="Refresh addresses"
+                title={t('checkout.refreshAddresses')}
                 style={{
                   borderRadius: "6px",
                   border: "1px solid #dcdcdc",
@@ -204,7 +206,7 @@ export function CheckoutSection({
         ) : (
           <div className="selected-address p-3 border rounded bg-light">
             <p className="text-muted mb-2">
-              No addresses found. Please add an address to continue.
+              {t('checkout.noAddressesFound')}
             </p>
             <div className="d-flex gap-2">
               <button
@@ -212,14 +214,14 @@ export function CheckoutSection({
                 type="button"
                 onClick={() => navigate("/information/address")}
               >
-                Add Address
+                {t('checkout.addAddress')}
               </button>
               <button
                 className="btn btn-outline-secondary btn-sm"
                 type="button"
                 onClick={onRefreshAddresses}
                 disabled={addressLoading}
-                title="Refresh addresses"
+                title={t('checkout.refreshAddresses')}
               >
                 <i
                   className={`fa fa-refresh ${
@@ -235,12 +237,12 @@ export function CheckoutSection({
       <div className="col-md-12 col-lg-6">
         <div className="checkout-card p-4 mt-10 mt-lg-0">
           <div className="d-flex justify-content-between align-items-center mb-3">
-            <h5>Order Summary</h5>
+            <h5>{t('checkout.orderSummary')}</h5>
           </div>
 
           <div className="payment-box">
             <div className="d-flex align-items-center justify-content-between mb-2">
-              <h6 className="mb-0">Payment Method</h6>
+              <h6 className="mb-0">{t('checkout.paymentMethod')}</h6>
             </div>
             <div
               className={`payment-option ${paymentMethod === "COD" ? "selected" : ""}`}
@@ -254,8 +256,8 @@ export function CheckoutSection({
                 onChange={() => onPaymentMethodChange("COD")}
               />
               <div>
-                <div style={{ fontWeight: 600 }}>Cash on Delivery (COD)</div>
-                <small>Pay when you receive the package (supported).</small>
+                <div style={{ fontWeight: 600 }}>{t('checkout.cod')}</div>
+                <small>{t('checkout.codDescription')}</small>
               </div>
             </div>
             <div
@@ -270,31 +272,31 @@ export function CheckoutSection({
                 onChange={() => onPaymentMethodChange("VNPAY")}
               />
               <div>
-                <div style={{ fontWeight: 600 }}>VNPay (Sandbox)</div>
-                <small>Redirect to VNPay sandbox for card/ATM payment.</small>
+                <div style={{ fontWeight: 600 }}>{t('checkout.vnpay')}</div>
+                <small>{t('checkout.vnpayDescription')}</small>
               </div>
             </div>
           </div>
 
           <div className="summary-row">
-            <span>Cart Subtotal</span>
+            <span>{t('checkout.cartSubtotal')}</span>
             <span className="summary-value">{formatVND(selectedSubtotal)}</span>
           </div>
           <div className="summary-row">
-            <span>Selected Quantity</span>
+            <span>{t('checkout.selectedQuantity')}</span>
             <span className="summary-value">{selectedQuantity}</span>
           </div>
           <div className="summary-row">
-            <span>Shipping Fee</span>
+            <span>{t('checkout.shippingFee')}</span>
             <span className="summary-value">
               {calculatingShippingFee ? (
-                <small className="text-muted">Calculating...</small>
+                <small className="text-muted">{t('checkout.calculating')}</small>
               ) : shippingFee !== null ? (
                 formatVND(shippingFee)
               ) : selectedAddressId && selectedItems.length > 0 ? (
-                <small className="text-muted">Unable to calculate</small>
+                <small className="text-muted">{t('checkout.unableToCalculate')}</small>
               ) : (
-                <small className="text-muted">Select address & items</small>
+                <small className="text-muted">{t('checkout.selectAddressAndItems')}</small>
               )}
             </span>
           </div>
@@ -303,15 +305,15 @@ export function CheckoutSection({
             {shippingFee !== null ? (
               <>
                 <div className="summary-row">
-                  <span style={{ color: "#666" }}>Subtotal</span>
+                  <span style={{ color: "#666" }}>{t('checkout.subtotal')}</span>
                   <span style={{ fontWeight: 600 }}>{formatVND(selectedSubtotal)}</span>
                 </div>
                 <div className="summary-row">
-                  <span style={{ color: "#666" }}>Shipping</span>
+                  <span style={{ color: "#666" }}>{t('checkout.shipping')}</span>
                   <span style={{ fontWeight: 600 }}>{formatVND(shippingFee)}</span>
                 </div>
                 <div className="summary-row" style={{ borderTop: "1px solid #f0f0f0", paddingTop: 12 }}>
-                  <span style={{ fontWeight: 700 }}>Total</span>
+                  <span style={{ fontWeight: 700 }}>{t('checkout.total')}</span>
                   <span style={{ color: "#ee4d2d", fontWeight: 700, fontSize: 18 }}>
                     {formatVND(totalWithShipping)}
                   </span>
@@ -320,13 +322,13 @@ export function CheckoutSection({
             ) : (
               <>
                 <div className="summary-row">
-                  <span style={{ fontWeight: 700 }}>Subtotal</span>
+                  <span style={{ fontWeight: 700 }}>{t('checkout.subtotal')}</span>
                   <span style={{ color: "#ee4d2d", fontWeight: 700 }}>{formatVND(selectedSubtotal)}</span>
                 </div>
                 <small className="text-muted d-block mt-2">
                   {selectedAddressId && selectedItems.length > 0
-                    ? "Shipping fee calculation failed. Will be calculated after order creation."
-                    : "Select address and items to calculate shipping fee"}
+                    ? t('checkout.shippingFeeCalculationFailed')
+                    : t('checkout.selectAddressAndItemsToCalculate')}
                 </small>
               </>
             )}
@@ -339,7 +341,7 @@ export function CheckoutSection({
               onClick={() => onToggleAll(true)}
               disabled={allChecked}
             >
-              Select all
+              {t('checkout.selectAll')}
             </button>
             <button
               className="btn-ghost flex-fill"
@@ -347,7 +349,7 @@ export function CheckoutSection({
               onClick={() => onToggleAll(false)}
               disabled={selected.size === 0}
             >
-              Clear selection
+              {t('checkout.clearSelection')}
             </button>
           </div>
 
@@ -359,17 +361,17 @@ export function CheckoutSection({
               disabled={orderLoading || selected.size === 0}
               title={
                 selected.size === 0
-                  ? "Please select at least one item"
+                  ? t('checkout.pleaseSelectAtLeastOneItem')
                   : !selectedAddressId
-                  ? "Please select a delivery address"
+                  ? t('checkout.pleaseSelectDeliveryAddress')
                   : ""
               }
             >
-              {orderLoading ? "Creating Order..." : "Proceed to Checkout"}
+              {orderLoading ? t('checkout.creatingOrder') : t('checkout.proceedToCheckout')}
             </button>
             {selected.size === 0 && (
               <small className="text-muted d-block mt-2 text-center">
-                Selected items will be sent to checkout.
+                {t('checkout.selectedItemsWillBeSent')}
               </small>
             )}
           </div>

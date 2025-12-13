@@ -1,5 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect,  useState } from "react";
+import { useTranslation } from "react-i18next";
 import VerifyOtp from "../../components/client/auth/VerifyOtp";
 import { verifyOtp, forgotPassword } from "../../api/auth";
 
@@ -16,6 +17,7 @@ const maskEmail = (email) => {
 export default function VerifyOtpPage() {
     const { state } = useLocation();
     const navigate = useNavigate();
+    const { t } = useTranslation();
     const email = state?.email;
 
     useEffect(() => {
@@ -33,14 +35,14 @@ export default function VerifyOtpPage() {
             const trimmedOtp = code?.trim();
             
             if (!normalizedEmail || !trimmedOtp) {
-                setErr("Email and OTP are required.");
+                setErr(t('auth.verifyOtp.emailRequired'));
                 return;
             }
             
             const response = await verifyOtp(normalizedEmail, trimmedOtp);
             // Nếu thành công, response sẽ có status 200 và data.ok === true
             if (response?.data?.ok === true || response?.status === 200) {
-                setMsg("OTP verified. Please proceed.");
+                setMsg(t('auth.verifyOtp.otpVerified'));
                 // Lưu email vào sessionStorage để đảm bảo không bị mất khi navigate
                 sessionStorage.setItem("resetPasswordEmail", normalizedEmail);
                 // Đảm bảo email được pass đúng
@@ -49,12 +51,12 @@ export default function VerifyOtpPage() {
                 }, 500); // Delay nhỏ để user thấy message
             } else {
                 // Trường hợp response không đúng format (không nên xảy ra)
-                setErr("Invalid response from server. Please try again.");
+                setErr(t('auth.verifyOtp.invalidResponse'));
             }
         } catch (e) {
             // Xử lý error response là object hoặc string
             const errorData = e?.response?.data;
-            let errorMsg = "Invalid or expired OTP";
+            let errorMsg = t('auth.verifyOtp.invalidOtp');
             if (errorData) {
                 if (typeof errorData === 'string') {
                     errorMsg = errorData;
@@ -74,15 +76,15 @@ export default function VerifyOtpPage() {
             // Normalize email trước khi gửi
             const normalizedEmail = email?.trim().toLowerCase();
             if (!normalizedEmail) {
-                setErr("Email is required.");
+                setErr(t('auth.verifyOtp.emailRequiredResend'));
                 return;
             }
             await forgotPassword(normalizedEmail);
-            setMsg("A new code has been sent to your email.");
+            setMsg(t('auth.verifyOtp.newCodeSent'));
         } catch (e) {
             // Xử lý error response là object hoặc string
             const errorData = e?.response?.data;
-            let errorMsg = "Please wait before requesting another code.";
+            let errorMsg = t('auth.verifyOtp.waitBeforeResend');
             if (errorData) {
                 if (typeof errorData === 'string') {
                     errorMsg = errorData;
@@ -109,7 +111,6 @@ export default function VerifyOtpPage() {
                     maskedPhone={maskEmail(email)}
                     onValidate={onValidate}
                     onResend={onResend}
-                    resendLabel="Resend"
                 />
             </div>
         </div>

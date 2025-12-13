@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import ReactDOM from "react-dom";
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import Cookies from "js-cookie";
 import { getCart, getAllAddress } from "../../../api/user.js";
 import { fetchImageById } from "../../../api/image.js";
@@ -12,6 +13,7 @@ import { CartItemList } from "./CartItemList";
 import { CheckoutSection } from "./CheckoutSection";
 
 export function Cart() {
+  const { t } = useTranslation();
   const [cart, setCart] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -71,11 +73,11 @@ export function Cart() {
       else if (data.length > 0) setSelectedAddressId(data[0].id);
     } catch (e) {
       console.error("Failed to refresh addresses:", e);
-      setError("Failed to load addresses. Please try again.");
+      setError(t('address.loadFailed'));
       Swal.fire({
         icon: "error",
-        title: "Load addresses failed",
-        text: "Please try again.",
+        title: t('address.loadFailed'),
+        text: t('address.tryAgain'),
       });
     } finally {
       setAddressLoading(false);
@@ -114,12 +116,12 @@ export function Cart() {
           window.history.replaceState({}, document.title);
         }
       } catch {
-        setError("Failed to fetch cart data. Please try again later.");
+        setError(t('product.noProductsYet'));
         setCart({ items: [] });
         Swal.fire({
           icon: "error",
-          title: "No products yet",
-          text: "Please buy the product.",
+          title: t('product.noProductsYet'),
+          text: t('product.pleaseBuy'),
         });
       } finally {
         setLoading(false);
@@ -293,12 +295,12 @@ export function Cart() {
       "this item";
 
     const res = await Swal.fire({
-      title: "Remove item?",
-      text: `Do you want to remove "${name}" from your cart?`,
+      title: t('cart.remove.confirm'),
+      text: t('cart.remove.text', { name }),
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: "Remove",
-      cancelButtonText: "Cancel",
+      confirmButtonText: t('common.remove'),
+      cancelButtonText: t('common.cancel'),
       confirmButtonColor: "#d33",
       cancelButtonColor: "#6c757d",
     });
@@ -306,7 +308,7 @@ export function Cart() {
 
     try {
       Swal.fire({
-        title: "Removing...",
+        title: t('cart.remove.removing'),
         allowOutsideClick: false,
         allowEscapeKey: false,
         didOpen: () => Swal.showLoading(),
@@ -329,13 +331,13 @@ export function Cart() {
           return next;
         });
         Swal.close();
-        toast("success", "Item removed");
+        toast("success", t('cart.remove.success'));
       } else {
         Swal.close();
         Swal.fire({
           icon: "error",
-          title: "Remove failed",
-          text: "Please try again.",
+          title: t('cart.remove.failed'),
+          text: t('cart.remove.tryAgain'),
         });
       }
     } catch (e) {
@@ -343,8 +345,8 @@ export function Cart() {
       console.error("Remove item failed:", e);
       Swal.fire({
         icon: "error",
-        title: "Remove failed",
-        text: e?.response?.data?.message || "Please try again.",
+        title: t('cart.remove.failed'),
+        text: e?.response?.data?.message || t('cart.remove.tryAgain'),
       });
     }
   };
@@ -354,14 +356,14 @@ export function Cart() {
     const sizeId = item.sizeId;
 
     if (newQuantity < 1) {
-      toast("warning", "Quantity must be at least 1");
+      toast("warning", t('cart.quantity.mustBeAtLeast1'));
       return;
     }
 
     // Check stock limit
     const maxStock = item.stock !== undefined ? item.stock : Infinity;
     if (newQuantity > maxStock) {
-      toast("warning", `Only ${maxStock} items available in stock`);
+      toast("warning", t('cart.quantity.onlyAvailable', { count: maxStock }));
       return;
     }
 
@@ -416,7 +418,7 @@ export function Cart() {
         
         const data = await getCart();
         setCart(data);
-        toast("success", "Quantity updated");
+        toast("success", t('cart.quantity.updated'));
       } catch (error) {
         console.error("Failed to update quantity:", error);
         
@@ -427,7 +429,7 @@ export function Cart() {
           console.error("Failed to refresh cart:", refreshError);
         }
         
-        let errorMessage = "Failed to update quantity";
+        let errorMessage = t('cart.quantity.updateFailed');
         if (error?.response?.data?.message) {
           errorMessage = error.response.data.message;
         } else if (error?.message) {
@@ -439,7 +441,7 @@ export function Cart() {
         toast("error", errorMessage);
         Swal.fire({
           icon: "error",
-          title: "Update failed",
+          title: t('cart.quantity.updateFailed'),
           text: errorMessage,
         });
       } finally {
@@ -452,7 +454,7 @@ export function Cart() {
         delete debounceTimeouts.current[itemKey];
       }
     }, 500);
-  }, [cart]);
+  }, [cart, t]);
 
   const handleCheckout = async (e) => {
     e?.preventDefault?.();
@@ -461,20 +463,20 @@ export function Cart() {
     if (selected.size === 0) {
       await Swal.fire({
         icon: "warning",
-        title: "No items selected",
-        text: "Please select at least one item to checkout.",
-        confirmButtonText: "OK",
+        title: t('cart.checkout.noItemsSelected'),
+        text: t('cart.checkout.selectAtLeastOne'),
+        confirmButtonText: t('common.ok'),
       });
       return;
     }
     if (addresses.length === 0) {
       const go = await Swal.fire({
         icon: "info",
-        title: "No address found",
-        text: "You need a delivery address before checkout.",
+        title: t('cart.checkout.noAddressFound'),
+        text: t('cart.checkout.needAddress'),
         showCancelButton: true,
-        confirmButtonText: "Add address",
-        cancelButtonText: "Cancel",
+        confirmButtonText: t('cart.checkout.addAddress'),
+        cancelButtonText: t('common.cancel'),
       });
       if (go.isConfirmed) navigate("/information/address");
       return;
@@ -482,9 +484,9 @@ export function Cart() {
     if (!selectedAddressId) {
       await Swal.fire({
         icon: "info",
-        title: "Select delivery address",
-        text: "Please choose an address for delivery.",
-        confirmButtonText: "Choose now",
+        title: t('cart.checkout.selectDeliveryAddress'),
+        text: t('cart.checkout.chooseAddress'),
+        confirmButtonText: t('cart.checkout.chooseNow'),
       });
       setModalSelectedAddressId(null);
       setShowAddressModal(true);
@@ -505,8 +507,8 @@ export function Cart() {
       };
 
       Swal.fire({
-        title: "Creating order...",
-        text: "Please wait a moment",
+        title: t('cart.checkout.creatingOrder'),
+        text: t('cart.checkout.pleaseWait'),
         allowOutsideClick: false,
         allowEscapeKey: false,
         didOpen: () => Swal.showLoading(),
@@ -556,9 +558,9 @@ export function Cart() {
           Swal.close();
           await Swal.fire({
             icon: "error",
-            title: "Payment Error",
-            text: payErr?.response?.data?.message || payErr?.message || "Cannot create payment. Please try again.",
-            confirmButtonText: "OK",
+            title: t('payment.paymentError.title'),
+            text: payErr?.response?.data?.message || payErr?.message || t('payment.paymentError.text'),
+            confirmButtonText: t('common.ok'),
           });
           return;
         }
@@ -576,7 +578,7 @@ export function Cart() {
       const data = await getCart();
       setCart(data);
       setSelected(new Set());
-      toast("success", "Order created");
+      toast("success", t('cart.checkout.orderCreated'));
 
       navigate("/information/orders");
       } catch (err) {
@@ -588,25 +590,25 @@ export function Cart() {
           let stockMessage = err.message;
           
           if (details && details.available && details.requested) {
-            stockMessage = `Insufficient stock. Available: ${details.available}, Requested: ${details.requested}`;
+            stockMessage = `${t('cart.checkout.insufficientStock')}. ${t('cart.checkout.available')}: ${details.available}, ${t('cart.checkout.requested')}: ${details.requested}`;
           }
           
           await Swal.fire({
             icon: "warning",
-            title: "Insufficient Stock",
+            title: t('cart.checkout.insufficientStock'),
             html: `
               <p>${stockMessage}</p>
-              <p class="text-muted">Please reduce quantity or select other products.</p>
+              <p class="text-muted">${t('cart.checkout.reduceQuantity')}</p>
             `,
-            confirmButtonText: "OK",
+            confirmButtonText: t('common.ok'),
             confirmButtonColor: "#ff6b35"
           });
         } else if (err.type === 'ADDRESS_NOT_FOUND') {
           await Swal.fire({
             icon: "error",
-            title: "Invalid Address",
-            text: "Please select a valid delivery address.",
-            confirmButtonText: "Select Address",
+            title: t('cart.checkout.invalidAddress'),
+            text: t('cart.checkout.selectValidAddress'),
+            confirmButtonText: t('cart.checkout.selectAddress'),
             confirmButtonColor: "#dc3545"
           }).then((result) => {
             if (result.isConfirmed) {
@@ -616,9 +618,9 @@ export function Cart() {
         } else if (err.type === 'CART_EMPTY') {
           await Swal.fire({
             icon: "info",
-            title: "Empty Cart",
-            text: "Your cart is empty. Please add products before checkout.",
-            confirmButtonText: "Go Shopping",
+            title: t('cart.checkout.emptyCart'),
+            text: t('cart.checkout.cartEmpty'),
+            confirmButtonText: t('cart.checkout.goShopping'),
             confirmButtonColor: "#007bff"
           }).then((result) => {
             if (result.isConfirmed) {
@@ -628,12 +630,12 @@ export function Cart() {
         } else {
           await Swal.fire({
             icon: "error",
-            title: "Checkout Failed",
+            title: t('cart.checkout.checkoutFailed'),
             html: `
-              <p>${err.message || 'An error occurred during checkout. Please try again.'}</p>
-              <p class="text-muted">If the problem persists, please contact support.</p>
+              <p>${err.message || t('cart.checkout.errorOccurred')}</p>
+              <p class="text-muted">${t('cart.checkout.contactSupport')}</p>
             `,
-            confirmButtonText: "Try Again",
+            confirmButtonText: t('common.tryAgain'),
             confirmButtonColor: "#dc3545"
           });
         }
@@ -653,7 +655,7 @@ export function Cart() {
     if (modalSelectedAddressId) {
       setSelectedAddressId(modalSelectedAddressId);
       setShowAddressModal(false);
-      toast("success", "Address selected");
+      toast("success", t('cart.address.selected'));
     }
   };
 
@@ -667,7 +669,7 @@ export function Cart() {
     if (loading && !showSuccessModal) {
       return (
         <div className="container cart">
-          <p>Loading cart...</p>
+          <p>{t('common.loading')}</p>
         </div>
       );
     }
@@ -715,12 +717,12 @@ export function Cart() {
                       <Link to="/">David-Nguyen</Link>
                     </li>
                   </ol>
-                  <h2 className="page-header-title">My Cart</h2>
-                  <div className="text-muted">{totalItems} items</div>
+                  <h2 className="page-header-title">{t('cart.title')}</h2>
+                  <div className="text-muted">{totalItems} {t('cart.items')}</div>
                 </div>
               </div>
               <div className="col-sm-4 d-sm-flex justify-content-end align-items-end">
-                <h5 className="showing-pagination-results"> / Cart Page</h5>
+                <h5 className="showing-pagination-results"> / {t('cart.cartPage')}</h5>
               </div>
             </div>
           </div>
@@ -743,14 +745,14 @@ export function Cart() {
                       marginBottom: "20px" 
                     }}></i>
                     <h4 style={{ color: "#6c757d", marginBottom: "10px" }}>
-                      Your cart is empty.
+                      {t('cart.empty.title')}
                     </h4>
                     <p style={{ color: "#adb5bd", marginBottom: "30px" }}>
-                      Start shopping to add items to your cart.
+                      {t('cart.empty.description')}
                     </p>
                     <Link to="/shop" className="btn btn-primary">
                       <i className="fa fa-shopping-bag me-2"></i>
-                      Continue Shopping
+                      {t('cart.empty.continueShopping')}
                     </Link>
                   </div>
                 </div>
@@ -815,14 +817,14 @@ export function Cart() {
               <div className="modal-dialog modal-lg" role="document">
                 <div className="modal-content">
                   <div className="modal-header">
-                    <h5 className="modal-title">Select Delivery Address</h5>
+                    <h5 className="modal-title">{t('cart.address.selectDeliveryAddress')}</h5>
                     <div className="d-flex gap-2">
                       <button
                         type="button"
                         className="btn btn-outline-secondary btn-sm"
                         onClick={refreshAddresses}
                         disabled={addressLoading}
-                        title="Refresh addresses"
+                        title={t('cart.address.refresh')}
                       >
                         <i
                           className={`fa fa-refresh ${
@@ -843,7 +845,7 @@ export function Cart() {
                     {addresses.length === 0 ? (
                       <div className="text-center">
                         <p className="text-muted mb-3">
-                          No addresses found. Please add an address first.
+                          {t('cart.address.noAddressesFound')}
                         </p>
                         <button
                           className="btn btn-primary"
@@ -853,7 +855,7 @@ export function Cart() {
                             navigate("/information/address");
                           }}
                         >
-                          Add Address
+                          {t('cart.address.addAddress')}
                         </button>
                       </div>
                     ) : (
@@ -872,11 +874,11 @@ export function Cart() {
                               <div className="card-body">
                                 <div className="d-flex justify-content-between align-items-start">
                                   <h6 className="card-title">
-                                    {a.addressName || "Unnamed Address"}
+                                    {a.addressName || t('cart.address.unnamedAddress')}
                                   </h6>
                                   {a.isDefault && (
                                     <span className="badge bg-primary">
-                                      Default
+                                      {t('cart.address.default')}
                                     </span>
                                   )}
                                 </div>
@@ -892,7 +894,7 @@ export function Cart() {
                                 {modalSelectedAddressId === a.id && (
                                   <div className="text-primary">
                                     <i className="fa fa-check-circle"></i>{" "}
-                                    Selected
+                                    {t('cart.address.selected')}
                                   </div>
                                 )}
                               </div>
@@ -909,7 +911,7 @@ export function Cart() {
                       className="btn btn-secondary"
                       onClick={() => setShowAddressModal(false)}
                     >
-                      Cancel
+                      {t('common.cancel')}
                     </button>
                     {addresses.length > 0 && (
                       <button
@@ -918,7 +920,7 @@ export function Cart() {
                         onClick={handleConfirmSelection}
                         disabled={!modalSelectedAddressId}
                       >
-                        Confirm Selection
+                        {t('cart.address.confirmSelection')}
                       </button>
                     )}
                   </div>
@@ -991,7 +993,7 @@ export function Cart() {
                   marginBottom: "15px",
                 }}
               >
-                Order Placed Successfully!
+                {t('cart.orderSuccess.title')}
               </h3>
 
               {orderReceipt && (
@@ -999,27 +1001,27 @@ export function Cart() {
                   style={{ marginBottom: 16, color: "#444", textAlign: "left" }}
                 >
                   <div>
-                    <strong>Order ID:</strong>{" "}
+                    <strong>{t('cart.orderSuccess.orderId')}:</strong>{" "}
                     {orderReceipt.id ?? orderReceipt.orderId ?? "-"}
                   </div>
                   {"code" in orderReceipt || "orderCode" in orderReceipt ? (
                     <div>
-                      <strong>Order Code:</strong>{" "}
+                      <strong>{t('cart.orderSuccess.orderCode')}:</strong>{" "}
                       {orderReceipt.code ?? orderReceipt.orderCode}
                     </div>
                   ) : null}
                   <div>
-                    <strong>Status:</strong> {orderReceipt.status ?? "CREATED"}
+                    <strong>{t('cart.orderSuccess.status')}:</strong> {orderReceipt.status ?? "CREATED"}
                   </div>
                   {"createdAt" in orderReceipt ? (
                     <div>
-                      <strong>Created At:</strong>{" "}
+                      <strong>{t('cart.orderSuccess.createdAt')}:</strong>{" "}
                       {String(orderReceipt.createdAt)}
                     </div>
                   ) : null}
                   {"eta" in orderReceipt ? (
                     <div>
-                      <strong>ETA:</strong> {String(orderReceipt.eta)}
+                      <strong>{t('cart.orderSuccess.eta')}:</strong> {String(orderReceipt.eta)}
                     </div>
                   ) : null}
                 </div>
@@ -1048,7 +1050,7 @@ export function Cart() {
                         orderReceipt?.selectedItems?.length ??
                         0}
                     </div>
-                    <small style={{ color: "#666" }}>Items Ordered</small>
+                    <small style={{ color: "#666" }}>{t('cart.orderSuccess.itemsOrdered')}</small>
                   </div>
                   <div>
                     <div
@@ -1060,7 +1062,7 @@ export function Cart() {
                     >
                       {formatCurrency(orderReceipt?.totalAmount ?? 0)}
                     </div>
-                    <small style={{ color: "#666" }}>Total Amount</small>
+                    <small style={{ color: "#666" }}>{t('cart.orderSuccess.totalAmount')}</small>
                   </div>
                 </div>
               </div>
@@ -1078,7 +1080,7 @@ export function Cart() {
                   onClick={() => navigate("/information/orders")}
                 >
                   <i className="fa fa-list-alt me-2"></i>
-                  View Orders
+                  {t('cart.orderSuccess.viewOrders')}
                 </button>
               </div>
             </div>

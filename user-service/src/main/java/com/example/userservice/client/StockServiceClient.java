@@ -16,4 +16,7 @@ public interface StockServiceClient {
     ResponseEntity<CartDto> getCart(@RequestHeader("Authorization") String token);
     @GetMapping(value = "/product/{productId}",headers = "X-Internal-Call=true")
     ResponseEntity<List<ReviewDto>> getReviewsByProductId(@PathVariable String productId);
+
+    @GetMapping(value = "/reviews/count/shop/{shopId}", headers = "X-Internal-Call=true")
+    ResponseEntity<Long> getShopReviewCount(@PathVariable String shopId);
 }

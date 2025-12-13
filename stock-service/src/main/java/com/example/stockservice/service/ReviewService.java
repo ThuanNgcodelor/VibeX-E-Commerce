@@ -31,9 +31,13 @@ public class ReviewService {
     }
 
     public List<ReviewDto> getReviewsByProductId(String productId) {
-        return reviewRepository.findByProductId(productId).stream()
+        return reviewRepository.findByProductIdOrderByCreatedAtDesc(productId).stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
+    }
+
+    public long countReviewsByShopId(String shopId) {
+        return reviewRepository.countReviewsByShopId(shopId);
     }
 
     private ReviewDto mapToDto(Review review) {

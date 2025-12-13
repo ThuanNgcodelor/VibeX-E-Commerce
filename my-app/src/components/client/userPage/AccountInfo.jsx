@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { updateUser, getUser } from "../../../api/user.js";
 import { fetchImageById } from "../../../api/image.js";
 
 export default function AccountInfo() {
+  const { t } = useTranslation();
   const [form, setForm] = useState({
     id: "",
     email: "",
@@ -176,12 +178,12 @@ export default function AccountInfo() {
       await updateUser(formDataToSend, file);
       // after update, reload to get new image id & data
       await loadUserProfile();
-      setMsg("Profile updated successfully");
-      setToast({ open: true, text: "Profile updated successfully" });
+      setMsg(t('accountInfo.updateSuccess'));
+      setToast({ open: true, text: t('accountInfo.updateSuccess') });
       setTimeout(() => setToast({ open: false, text: "" }), 1800);
     } catch (err) {
       const backendMsg = err?.response?.data?.message;
-      const finalMsg = backendMsg || err?.message || "Update failure";
+      const finalMsg = backendMsg || err?.message || t('accountInfo.updateFailure');
       console.error("Update failed:", err?.response || err);
       setMsg(finalMsg);
       setToast({ open: true, text: finalMsg });
@@ -226,7 +228,7 @@ export default function AccountInfo() {
   return (
     <div className="tab-pane fade show active">
       <div className="myaccount-content">
-        <h3>Account Details</h3>
+        <h3>{t('accountInfo.title')}</h3>
         {msg && <div style={{ marginBottom: 12 }}>{msg}</div>}
 
         <div className="account-details-form">
@@ -235,7 +237,7 @@ export default function AccountInfo() {
               <div className="col-lg-6">
                 <div className="single-input-item">
                   <label htmlFor="firstName" className="required">
-                    First Name
+                    {t('accountInfo.firstName')}
                   </label>
                   <input
                     type="text"
@@ -248,7 +250,7 @@ export default function AccountInfo() {
               <div className="col-lg-6">
                 <div className="single-input-item">
                   <label htmlFor="lastName" className="required">
-                    Last Name
+                    {t('accountInfo.lastName')}
                   </label>
                   <input
                     type="text"
@@ -262,7 +264,7 @@ export default function AccountInfo() {
 
             <div className="single-input-item">
               <label htmlFor="username" className="required">
-                Display Name
+                {t('accountInfo.displayName')}
               </label>
               <input
                 type="text"
@@ -274,7 +276,7 @@ export default function AccountInfo() {
 
             <div className="single-input-item">
               <label htmlFor="email" className="required">
-                Email Address
+                {t('accountInfo.emailAddress')}
               </label>
               <input
                 type="email"
@@ -287,7 +289,7 @@ export default function AccountInfo() {
             <div className="row">
               <div className="col-lg-6">
                 <div className="single-input-item">
-                  <label htmlFor="phoneNumber">Phone</label>
+                  <label htmlFor="phoneNumber">{t('accountInfo.phone')}</label>
                   <input
                     type="text"
                     id="phoneNumber"
@@ -298,7 +300,7 @@ export default function AccountInfo() {
               </div>
               <div className="col-lg-6">
             <div className="single-input-item">
-                  <label htmlFor="birthDate">Birth date</label>
+                  <label htmlFor="birthDate">{t('accountInfo.birthDate')}</label>
                   <input
                     type="date"
                     id="birthDate"
@@ -310,7 +312,7 @@ export default function AccountInfo() {
             </div>
 
             <div className="single-input-item">
-              <label htmlFor="aboutMe">About me</label>
+              <label htmlFor="aboutMe">{t('accountInfo.aboutMe')}</label>
               <input
                 type="text"
                 id="aboutMe"
@@ -323,18 +325,18 @@ export default function AccountInfo() {
               <div className="col-md-6">
                 <div className="mb-3">
                   <label htmlFor="gender" className="form-label">
-                    Gender
+                    {t('accountInfo.gender')}
                   </label>
                   <select
                     id="gender"
                     className="form-select"
                     value={form.userDetails.gender}
                     onChange={onChangeDetails}
-                    aria-label="Select gender"
+                    aria-label={t('accountInfo.gender')}
                   >
-                    <option value="MALE">Male</option>
-                    <option value="FEMALE">Female</option>
-                    <option value="OTHER">Other</option>
+                    <option value="MALE">{t('accountInfo.male')}</option>
+                    <option value="FEMALE">{t('accountInfo.female')}</option>
+                    <option value="OTHER">{t('accountInfo.other')}</option>
                   </select>
                 </div>
               </div>
@@ -346,7 +348,7 @@ export default function AccountInfo() {
                       type="button"
                       style={avatarStyles.btn}
                       onClick={() => fileInputRef.current?.click()}
-                      title="Nhấp để thay đổi"
+                      title={t('accountInfo.clickToChange')}
                     >
                       {avatarUrl ? (
                         <img
@@ -360,9 +362,9 @@ export default function AccountInfo() {
                     </button>
                   </div>
                   <label htmlFor="avatar"> </label>
-                  Avatar{" "}
+                  {t('accountInfo.avatar')}{" "}
                   <small style={avatarStyles.hintBelow}>
-                    : Click on the frame to select photos
+                    : {t('accountInfo.avatarHint')}
                   </small>
                   <input
                     ref={fileInputRef}
@@ -378,7 +380,7 @@ export default function AccountInfo() {
 
             <div className="single-input-item">
               <button className="check-btn sqr-btn" disabled={loading}>
-                {loading ? "Saving..." : "Save Changes"}
+                {loading ? t('accountInfo.saving') : t('accountInfo.saveChanges')}
               </button>
             </div>
 

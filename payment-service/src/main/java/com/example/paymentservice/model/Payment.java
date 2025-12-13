@@ -73,7 +73,7 @@ public class Payment {
 
     // Store order data temporarily before order is created
     @Lob
-    @Column(name = "order_data")
+    @Column(name = "order_data", columnDefinition = "TEXT")
     private String orderData; // JSON string: {userId, addressId, selectedItems}
 
     @CreationTimestamp

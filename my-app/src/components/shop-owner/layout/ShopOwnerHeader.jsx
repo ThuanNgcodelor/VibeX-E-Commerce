@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { getShopOwnerInfo } from '../../../api/user';
 import { logout } from '../../../api/auth';
+import LanguageSwitcher from '../../common/LanguageSwitcher';
 
 const ShopOwnerHeader = ({ onMenuClick }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [shopOwnerInfo, setShopOwnerInfo] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -47,7 +50,7 @@ const ShopOwnerHeader = ({ onMenuClick }) => {
     window.location.reload(); 
   };
 
-  const displayName = shopOwnerInfo?.shopName || shopOwnerInfo?.ownerName || 'Shop Owner';
+  const displayName = shopOwnerInfo?.shopName || shopOwnerInfo?.ownerName || t('shopOwner.header.sellerCenter');
   const shopImage = shopOwnerInfo?.imageUrl 
     ? `/v1/file-storage/get/${shopOwnerInfo.imageUrl}`
     : '/src/assets/admin/img/boy.png';
@@ -55,18 +58,19 @@ const ShopOwnerHeader = ({ onMenuClick }) => {
   return (
     <header className="shop-owner-header">
       <div className="header-left">
-        <button className="header-icon-btn mobile-menu-btn" onClick={onMenuClick} title="Menu">
+        <button className="header-icon-btn mobile-menu-btn" onClick={onMenuClick} title={t('shopOwner.header.menu')}>
           <i className="fas fa-bars"></i>
         </button>
         <Link to="/shop-owner" className="logo-section">
-          <span className="header-title">Seller Center</span>
+          <span className="header-title">{t('shopOwner.header.sellerCenter')}</span>
         </Link>
       </div>
       <div className="header-right">
-        <button className="header-icon-btn" title="Apps">
+        <LanguageSwitcher />
+        <button className="header-icon-btn" title={t('shopOwner.header.apps')}>
           <i className="fas fa-th"></i>
         </button>
-        <button className="header-icon-btn" title="Bookmarks">
+        <button className="header-icon-btn" title={t('shopOwner.header.bookmarks')}>
           <i className="far fa-bookmark"></i>
         </button>
         <div className="user-dropdown" ref={dropdownRef}>
@@ -88,7 +92,7 @@ const ShopOwnerHeader = ({ onMenuClick }) => {
                 {(displayName.charAt(0) || 'U').toUpperCase()}
               </div>
             </div>
-            <span>{loading ? 'Loading...' : displayName}</span>
+            <span>{loading ? t('shopOwner.header.loading') : displayName}</span>
             <i className={`fas fa-chevron-${dropdownOpen ? 'up' : 'down'} chevron-icon`}></i>
           </button>
           {dropdownOpen && (
@@ -122,7 +126,7 @@ const ShopOwnerHeader = ({ onMenuClick }) => {
                 onClick={() => setDropdownOpen(false)}
               >
                 <i className="fas fa-cog"></i>
-                <span>Settings</span>
+                <span>{t('shopOwner.header.settings')}</span>
               </Link>
               <div className="dropdown-divider"></div>
               <button 
@@ -130,18 +134,18 @@ const ShopOwnerHeader = ({ onMenuClick }) => {
                 onClick={handleLogout}
               >
                 <i className="fas fa-sign-out-alt"></i>
-                <span>Logout</span>
+                <span>{t('shopOwner.header.logout')}</span>
               </button>
             </div>
           )}
         </div>
-        <button className="header-icon-btn" title="Download">
+        <button className="header-icon-btn" title={t('shopOwner.header.download')}>
           <i className="fas fa-download"></i>
         </button>
-        <button className="header-icon-btn" title="Upload">
+        <button className="header-icon-btn" title={t('shopOwner.header.upload')}>
           <i className="fas fa-upload"></i>
         </button>
-        <button className="header-icon-btn support-btn" title="Support">
+        <button className="header-icon-btn support-btn" title={t('shopOwner.header.support')}>
           <i className="fas fa-headset"></i>
         </button>
       </div>

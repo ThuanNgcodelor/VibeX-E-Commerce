@@ -1,6 +1,8 @@
 import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import logoLight from "../../assets/images/logo.png";
 import NavLink from "./NavLink";
+import LanguageSwitcher from "../common/LanguageSwitcher";
 import Cookies from "js-cookie";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useCart } from "../../contexts/CartContext.jsx";
@@ -11,6 +13,7 @@ import { fetchProducts } from "../../api/product.js";
 
 export default function Header() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { cart, setCart } = useCart();
   const [, setLoading] = useState(true);
   const [, setError] = useState(null);
@@ -101,7 +104,7 @@ export default function Header() {
           // Add shop suggestions
           const shopSuggestions = [{
             id: 'shop',
-            name: `Find Shop '${searchQuery}'`,
+            name: t('header.findShop', { query: searchQuery }),
             type: 'shop'
           }];
           
@@ -243,14 +246,14 @@ export default function Header() {
             <div className="d-none d-md-flex gap-3 align-items-center" style={{ fontSize: '12px' }}>
               {hasRole("ROLE_SHOP_OWNER") && (
                 <Link to="/shop-owner" style={{ color: 'white', textDecoration: 'none', opacity: 0.9 }}>
-                  Seller Center
+                  {t('header.sellerCenter')}
                 </Link>
               )}
               <Link to="#" style={{ color: 'white', textDecoration: 'none', opacity: 0.9 }}>
-                Download App
+                {t('header.downloadApp')}
               </Link>
               <div className="d-flex gap-2 align-items-center">
-                <span style={{ color: 'white', opacity: 0.9 }}>Connect</span>
+                <span style={{ color: 'white', opacity: 0.9 }}>{t('header.connect')}</span>
                 <a href="#" style={{ color: 'white', opacity: 0.9, fontSize: '14px' }}><i className="fa fa-facebook"></i></a>
                 <a href="#" style={{ color: 'white', opacity: 0.9, fontSize: '14px' }}><i className="fa fa-instagram"></i></a>
               </div>
@@ -262,7 +265,7 @@ export default function Header() {
                 <div ref={notificationRef} className="position-relative">
                   <Link to="/information/notifications" style={{ color: 'white', textDecoration: 'none', opacity: 0.9, display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <i className="fa fa-bell"></i>
-                    <span className="d-none d-md-inline">Notifications</span>
+                    <span className="d-none d-md-inline">{t('header.notifications')}</span>
                     {unreadCount > 0 && (
                       <span
                         className="badge rounded-pill"
@@ -282,25 +285,22 @@ export default function Header() {
                 </div>
               )}
               <Link to="#" style={{ color: 'white', textDecoration: 'none', opacity: 0.9 }}>
-                Support
+                {t('header.support')}
               </Link>
-              <div className="d-flex align-items-center gap-2" style={{ color: 'white', opacity: 0.9 }}>
-                <span>English</span>
-                <i className="fa fa-chevron-down" style={{ fontSize: '10px' }}></i>
-              </div>
+              <LanguageSwitcher />
               {isAuthenticated() ? (
                 <Link to="/information" style={{ color: 'white', textDecoration: 'none', opacity: 0.9, display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <i className="fa fa-user-circle"></i>
-                  <span className="d-none d-md-inline">{userData?.username || 'Account'}</span>
+                  <span className="d-none d-md-inline">{userData?.username || t('header.account')}</span>
                 </Link>
               ) : (
                 <>
                   <Link to="/register" style={{ color: 'white', textDecoration: 'none', opacity: 0.9 }}>
-                    Sign Up
+                    {t('header.signUp')}
                   </Link>
                   <div style={{ color: 'rgba(255,255,255,0.5)' }}>|</div>
                   <Link to="/login" style={{ color: 'white', textDecoration: 'none', opacity: 0.9 }}>
-                    Sign In
+                    {t('header.signIn')}
                   </Link>
                 </>
               )}
@@ -350,7 +350,7 @@ export default function Header() {
               <input
                 type="text"
                 className="form-control"
-                placeholder="SUPER SALE UP TO 20% (*)"
+                placeholder={t('header.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onFocus={() => searchQuery.trim() && setShowSearchSuggestions(true)}
@@ -417,7 +417,7 @@ export default function Header() {
                     </div>
                     {suggestion.type === 'product' && (
                       <div style={{ fontSize: '12px', color: '#999', marginTop: '4px' }}>
-                        Product
+                        {t('header.product')}
                       </div>
                     )}
                   </div>
@@ -484,9 +484,9 @@ export default function Header() {
             </div>
             <div className="offcanvas-body">
               <ul className="navbar-nav">
-                <NavLink to="/" close={closeMobile}>Home</NavLink>
-                <NavLink to="/shop" close={closeMobile}>Shop</NavLink>
-                <NavLink to="/contact" close={closeMobile}>Contact</NavLink>
+                <NavLink to="/" close={closeMobile}>{t('header.home')}</NavLink>
+                <NavLink to="/shop" close={closeMobile}>{t('header.shop')}</NavLink>
+                <NavLink to="/contact" close={closeMobile}>{t('header.contact')}</NavLink>
                 {hasRole("ROLE_SHOP_OWNER") && (
                   <li className="nav-item mt-2">
                     <Link
@@ -494,7 +494,7 @@ export default function Header() {
                       className="nav-link fw-bold text-primary"
                       onClick={closeMobile}
                     >
-                      <i className="fa fa-store me-2"></i>My Shop
+                      <i className="fa fa-store me-2"></i>{t('header.myShop')}
                     </Link>
                   </li>
                 )}

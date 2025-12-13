@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { getProducts, searchProducts, deleteProduct } from '../../api/shopOwner';
 import '../../components/shop-owner/ShopOwnerLayout.css';
 
 export default function AllProductsPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   
   const [products, setProducts] = useState([]);
@@ -44,7 +46,7 @@ export default function AllProductsPage() {
       console.error('Error fetching products:', error);
       // Don't show alert if it's just empty data
       if (!error.message.includes('empty')) {
-        alert('Failed to load products: ' + error.message);
+        alert(t('shopOwner.allProducts.failedToLoad') + error.message);
       }
     } finally {
       setLoading(false);
@@ -57,14 +59,14 @@ export default function AllProductsPage() {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this product?')) {
+    if (window.confirm(t('shopOwner.allProducts.deleteConfirm'))) {
       try {
         await deleteProduct(id);
-        alert('Product deleted successfully!');
+        alert(t('shopOwner.allProducts.productDeleted'));
         fetchProducts();
       } catch (error) {
         console.error('Error deleting product:', error);
-        alert('Failed to delete product: ' + error.message);
+        alert(t('shopOwner.allProducts.deleteFailed') + error.message);
       }
     }
   };
@@ -76,17 +78,17 @@ export default function AllProductsPage() {
   return (
     <div className="dashboard-container">
       <div className="dashboard-header">
-        <h1>Product Management</h1>
+        <h1>{t('shopOwner.allProducts.title')}</h1>
       </div>
 
       <div className="orders-table">
             <div className="table-header">
-              <div className="table-title">All Products</div>
+              <div className="table-title">{t('shopOwner.allProducts.allProducts')}</div>
               <div className="table-actions">
                 <input
                   type="text"
                   className="form-control"
-                  placeholder="Search products..."
+                  placeholder={t('shopOwner.allProducts.searchPlaceholder')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyPress={(e) => {
@@ -113,12 +115,12 @@ export default function AllProductsPage() {
                   }}
                   style={{width: '150px', marginRight: '10px'}}
                 >
-                  <option value="all">All</option>
-                  <option value="IN_STOCK">In Stock</option>
-                  <option value="OUT_OF_STOCK">Out of Stock</option>
+                  <option value="all">{t('shopOwner.allProducts.all')}</option>
+                  <option value="IN_STOCK">{t('shopOwner.allProducts.inStock')}</option>
+                  <option value="OUT_OF_STOCK">{t('shopOwner.allProducts.outOfStock')}</option>
                 </select>
                 <Link to="/shop-owner/products/add" className="btn btn-primary-shop">
-                  <i className="fas fa-plus"></i> Add Product
+                  <i className="fas fa-plus"></i> {t('shopOwner.allProducts.addProduct')}
                 </Link>
               </div>
             </div>
@@ -127,11 +129,11 @@ export default function AllProductsPage() {
           <table className="table table-hover">
             <thead>
               <tr>
-                <th>Product</th>
-                <th>Price</th>
-                <th>Stock</th>
-                <th>Status</th>
-                <th>Actions</th>
+                <th>{t('shopOwner.allProducts.product')}</th>
+                <th>{t('shopOwner.allProducts.price')}</th>
+                <th>{t('shopOwner.allProducts.stock')}</th>
+                <th>{t('shopOwner.allProducts.status')}</th>
+                <th>{t('shopOwner.allProducts.actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -139,14 +141,14 @@ export default function AllProductsPage() {
                 <tr>
                   <td colSpan="5" style={{textAlign: 'center', padding: '40px'}}>
                     <i className="fas fa-spinner fa-spin" style={{fontSize: '24px'}}></i>
-                    <p style={{marginTop: '12px'}}>Loading...</p>
+                    <p style={{marginTop: '12px'}}>{t('shopOwner.allProducts.loading')}</p>
                   </td>
                 </tr>
               ) : products.length === 0 ? (
                 <tr>
                   <td colSpan="5" style={{textAlign: 'center', padding: '40px'}}>
                     <i className="fas fa-inbox" style={{fontSize: '48px', color: '#ddd', marginBottom: '12px', display: 'block'}}></i>
-                    <p style={{color: '#999'}}>No products found</p>
+                    <p style={{color: '#999'}}>{t('shopOwner.allProducts.noProductsFound')}</p>
                   </td>
                 </tr>
               ) : (
@@ -175,7 +177,7 @@ export default function AllProductsPage() {
                           {product.createdAt && (
                             <div>
                               <small style={{ color: '#999' }}>
-                                Created: {new Intl.DateTimeFormat('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(product.createdAt))}
+                                {t('shopOwner.allProducts.created')} {new Intl.DateTimeFormat('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(product.createdAt))}
                               </small>
                             </div>
                           )}
@@ -201,7 +203,7 @@ export default function AllProductsPage() {
                     </td>
                     <td>
                       <span className={`badge ${(product.status || '').toUpperCase() === 'IN_STOCK' ? 'bg-success' : 'bg-danger'}`}>
-                        {(product.status || '').toUpperCase() === 'IN_STOCK' ? 'In Stock' : 'Out of Stock'}
+                        {(product.status || '').toUpperCase() === 'IN_STOCK' ? t('shopOwner.allProducts.inStock') : t('shopOwner.allProducts.outOfStock')}
                       </span>
                     </td>
                     <td>
@@ -231,7 +233,7 @@ export default function AllProductsPage() {
         {totalPages > 1 && (
           <div className="pagination-container">
             <div className="pagination-info">
-              Showing {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, totalElements)} of {totalElements} products
+              {t('shopOwner.allProducts.showing')} {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, totalElements)} {t('shopOwner.allProducts.of')} {totalElements} {t('shopOwner.allProducts.products')}
             </div>
             <nav aria-label="Page navigation">
               <ul className="pagination">

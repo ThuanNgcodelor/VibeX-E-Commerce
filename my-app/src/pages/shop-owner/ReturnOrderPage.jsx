@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { getShopOwnerOrders, updateOrderStatusForShopOwner } from '../../api/order';
+import { getShopOwnerOrders, updateOrderStatusForShopOwner, returnOrder } from '../../api/order';
 import { getUserById } from '../../api/user';
 import '../../components/shop-owner/ShopOwnerLayout.css';
 
@@ -53,11 +53,13 @@ export default function ReturnOrderPage() {
     try {
       setLoading(true);
       setError(null);
-      
-      // Pass empty string instead of null if no filter
-      const filterValue = statusFilter && statusFilter.trim() !== '' ? statusFilter : null;
+
+      // Filter for CANCELLED and RETURNED orders if no specific filter is selected
+      // If statusFilter is provided, use it. Otherwise default to CANCELLED and RETURNED.
+      let filterValue = statusFilter && statusFilter.trim() !== '' ? statusFilter : ['CANCELLED', 'RETURNED'];
+
       const response = await getShopOwnerOrders(filterValue, currentPage, pageSize);
-      
+
       // Handle both paginated response and simple array
       let ordersList = [];
       if (response && response.content && Array.isArray(response.content)) {
@@ -76,13 +78,13 @@ export default function ReturnOrderPage() {
         ordersList = [];
         setTotalPages(1);
       }
-      
+
       setOrders(ordersList);
-      
+
       // Fetch usernames for all orders
       const userIds = [...new Set(ordersList.map(order => order.userId).filter(Boolean))];
       const usernameMap = {};
-      
+
       await Promise.all(
         userIds.map(async (userId) => {
           try {
@@ -94,7 +96,7 @@ export default function ReturnOrderPage() {
           }
         })
       );
-      
+
       setUsernames(usernameMap);
     } catch (err) {
       console.error('Error loading orders:', err);
@@ -119,6 +121,22 @@ export default function ReturnOrderPage() {
       alert('Failed to update order status');
     }
   };
+
+  const handleReturn = async (orderId) => {
+    const reason = window.prompt("Enter return reason:");
+    if (reason === null) return; // Cancelled
+
+    try {
+      await returnOrder(orderId, reason);
+      alert('Order returned successfully!');
+      loadOrders();
+    } catch (err) {
+      console.error('Error returning order:', err);
+      alert('Failed to return order: ' + err.message);
+    }
+  };
+
+
 
   const toggleRowExpand = (orderId) => {
     const newExpanded = new Set(expandedRows);
@@ -156,7 +174,7 @@ export default function ReturnOrderPage() {
       CANCELLED: { label: 'Cancelled', class: 'bg-danger' },
       COMPLETED: { label: 'Completed', class: 'bg-success' }
     };
-    
+
     return statusMap[normalizedStatus] || { label: status || 'N/A', class: 'bg-secondary' };
   };
 
@@ -189,7 +207,7 @@ export default function ReturnOrderPage() {
 
   const formatProducts = (orderItems) => {
     if (!orderItems || orderItems.length === 0) return 'No products';
-    
+
     return orderItems
       .map(item => {
         const productName = item.productName || `Product ${item.productId}`;
@@ -271,7 +289,7 @@ export default function ReturnOrderPage() {
           </div>
         </div>
 
-        <div className="table-responsive" style={{overflowX: 'auto'}}>
+        <div className="table-responsive" style={{ overflowX: 'auto' }}>
           <table className="table table-hover">
             <thead>
               <tr>
@@ -299,7 +317,7 @@ export default function ReturnOrderPage() {
                   const nextStatus = getNextStatus(order.orderStatus);
                   const isExpanded = expandedRows.has(order.id);
                   const orderNumber = (currentPage - 1) * pageSize + index + 1;
-                  
+
                   return (
                     <React.Fragment key={order.id}>
                       <tr data-order-id={order.id}>
@@ -322,17 +340,17 @@ export default function ReturnOrderPage() {
                           </div>
                         </td>
                         <td>
-                          <strong style={{color: '#555'}}>
+                          <strong style={{ color: '#555' }}>
                             {formatPrice(order.totalPrice)}
                           </strong>
                         </td>
                         <td>
-                          <span style={{color: '#666', fontSize: '0.9rem'}}>
+                          <span style={{ color: '#666', fontSize: '0.9rem' }}>
                             {order.shippingFee ? formatPrice(order.shippingFee) : 'N/A'}
                           </span>
                         </td>
                         <td>
-                          <strong style={{color: '#ee4d2d'}}>
+                          <strong style={{ color: '#ee4d2d' }}>
                             {formatPrice((order.totalPrice || 0) + (order.shippingFee || 0))}
                           </strong>
                         </td>
@@ -343,8 +361,8 @@ export default function ReturnOrderPage() {
                           </span>
                         </td>
                         <td>
-                          <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
-                            <button 
+                          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                            <button
                               className="btn btn-sm btn-outline-primary"
                               onClick={() => {
                                 toggleRowExpand(order.id);
@@ -354,12 +372,21 @@ export default function ReturnOrderPage() {
                               <i className="fas fa-eye"></i>
                             </button>
                             {nextStatus && (
-                              <button 
+                              <button
                                 className="btn btn-sm btn-outline-success"
                                 onClick={() => handleStatusUpdate(order.id, nextStatus)}
                                 title={`Update to ${getStatusLabel(nextStatus)}`}
                               >
                                 <i className="fas fa-check"></i>
+                              </button>
+                            )}
+                            {order.orderStatus === 'DELIVERED' && (
+                              <button
+                                className="btn btn-sm btn-outline-warning"
+                                onClick={() => handleReturn(order.id)}
+                                title="Process Return"
+                              >
+                                <i className="fas fa-undo"></i>
                               </button>
                             )}
                           </div>
@@ -403,15 +430,32 @@ export default function ReturnOrderPage() {
                                   {order.shippingFee && order.shippingFee > 0 && (
                                     <div className="d-flex justify-content-between mb-2">
                                       <span>Shipping Fee (GHN):</span>
-                                      <strong style={{color: '#ee4d2d'}}>{formatPrice(order.shippingFee)}</strong>
+                                      <strong style={{ color: '#ee4d2d' }}>{formatPrice(order.shippingFee)}</strong>
                                     </div>
                                   )}
                                   <div className="d-flex justify-content-between pt-2 border-top">
                                     <strong>Total:</strong>
-                                    <strong style={{color: '#ee4d2d', fontSize: '1.1rem'}}>
+                                    <strong style={{ color: '#ee4d2d', fontSize: '1.1rem' }}>
                                       {formatPrice((order.totalPrice || 0) + (order.shippingFee || 0))}
                                     </strong>
                                   </div>
+
+                                  {(order.cancelReason || order.returnReason) && (
+                                    <div className="mt-3 p-3 bg-light rounded border border-warning">
+                                      {order.cancelReason && (
+                                        <div className="mb-2">
+                                          <strong className="text-danger">Cancel Reason:</strong>
+                                          <p className="mb-0 text-dark">{order.cancelReason}</p>
+                                        </div>
+                                      )}
+                                      {order.returnReason && (
+                                        <div>
+                                          <strong className="text-danger">Return Reason:</strong>
+                                          <p className="mb-0 text-dark">{order.returnReason}</p>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             </div>

@@ -1,7 +1,9 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 
 export default function TopSearch() {
+  const { t } = useTranslation();
   const topProducts = [
     { id: 1, name: 'Bikini', sales: '9k+/month', image: '👙', category: 'Swimwear' },
     { id: 2, name: 'Halter Top', sales: '3k+/month', image: '👗', category: 'Fashion' },
@@ -16,10 +18,10 @@ export default function TopSearch() {
       <div className="container" style={{ maxWidth: '1200px' }}>
         <div className="d-flex justify-content-between align-items-center mb-3">
           <h4 style={{ fontSize: '18px', color: '#333', fontWeight: 600, margin: 0 }}>
-            TOP SEARCH
+            {t('home.topSearch')}
           </h4>
           <Link to="/shop" style={{ color: '#ee4d2d', textDecoration: 'none', fontSize: '14px' }}>
-            View All →
+            {t('home.viewAll')}
           </Link>
         </div>
         
@@ -60,9 +62,9 @@ export default function TopSearch() {
                   fontSize: '10px',
                   fontWeight: 600
                 }}
-              >
-                TOP
-              </div>
+                >
+                  {t('home.top')}
+                </div>
               
               <div
                 style={{
@@ -82,7 +84,7 @@ export default function TopSearch() {
               </div>
               
               <div style={{ fontSize: '12px', color: '#ee4d2d', marginBottom: '4px', fontWeight: 500 }}>
-                Sold {product.sales}
+                {t('search.sold')} {product.sales}
               </div>
               <div style={{ fontSize: '13px', color: '#333' }}>
                 {product.name}

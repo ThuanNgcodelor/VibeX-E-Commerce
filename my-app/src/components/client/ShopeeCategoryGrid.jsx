@@ -1,7 +1,9 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 
 export default function ShopeeCategoryGrid() {
+  const { t } = useTranslation();
   const categories = [
     { id: 1, name: "Men's Fashion", icon: '👔', link: '/shop?category=men', color: '#4A90E2' },
     { id: 2, name: 'Phones & Accessories', icon: '📱', link: '/shop?category=phone', color: '#50C878' },
@@ -33,7 +35,7 @@ export default function ShopeeCategoryGrid() {
           textTransform: 'uppercase',
           fontWeight: 500
         }}>
-          CATEGORIES
+          {t('home.categories')}
         </h4>
         <div className="row g-2">
           {categories.map((cat) => (

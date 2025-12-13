@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import RatingModal from "./RatingMockModal.jsx";
 import Swal from "sweetalert2";
 import { useSearchParams, useNavigate } from "react-router-dom";
@@ -11,16 +12,15 @@ import Loading from "../Loading.jsx";
 
 const PAGE_SIZE = 5;
 
-const STATUS_CONFIG = {
-    ALL: { label: "All", color: "#555", bg: "#f8f8f8" },
-    PENDING: { label: "Pending", color: "#ee4d2d", bg: "#fff5f0" },
-    PROCESSING: { label: "Processing", color: "#2673dd", bg: "#e8f4ff" },
-    SHIPPED: { label: "Shipped", color: "#2673dd", bg: "#e8f4ff" },
-    DELIVERED: { label: "Delivered", color: "#26aa99", bg: "#e8f9f7" },
-    COMPLETED: { label: "Completed", color: "#26aa99", bg: "#e8f9f7" },
-    CANCELLED: { label: "Cancelled", color: "#999", bg: "#f5f5f5" },
-    RETURNED: { label: "Return/Refund", color: "#ee4d2d", bg: "#fff5f0" }
-};
+const getStatusConfig = (t) => ({
+    ALL: { label: t('orders.all'), color: "#555", bg: "#f8f8f8" },
+    PENDING: { label: t('orders.pending'), color: "#ee4d2d", bg: "#fff5f0" },
+    PROCESSING: { label: t('orders.processing'), color: "#2673dd", bg: "#e8f4ff" },
+    SHIPPED: { label: t('orders.shipped'), color: "#2673dd", bg: "#e8f4ff" },
+    DELIVERED: { label: t('orders.delivered'), color: "#26aa99", bg: "#e8f9f7" },
+    CANCELLED: { label: t('orders.cancelled'), color: "#999", bg: "#f5f5f5" },
+    RETURNED: { label: t('orders.returned'), color: "#ee4d2d", bg: "#fff5f0" }
+});
 
 const STATUS_NUMERIC_MAP = {
     0: "PENDING",
@@ -28,8 +28,7 @@ const STATUS_NUMERIC_MAP = {
     2: "SHIPPED",
     3: "DELIVERED",
     4: "CANCELLED",
-    5: "COMPLETED",
-    6: "RETURNED",
+    5: "RETURNED",
 };
 
 // Styles for action buttons
@@ -93,6 +92,7 @@ function getPageNumbers(current, total) {
 }
 
 export default function OrderList() {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const [orders, setOrders] = useState([]);
@@ -108,6 +108,8 @@ export default function OrderList() {
     const [selectedProduct, setSelectedProduct] = useState(null);
     const [ratingMode, setRatingMode] = useState('full'); // 'quick' or 'full'
     const [currentUser, setCurrentUser] = useState(null);
+    
+    const STATUS_CONFIG = getStatusConfig(t);
 
     useEffect(() => {
         // Fetch user for review submission
@@ -128,7 +130,7 @@ export default function OrderList() {
     const handleSubmitReview = async (data) => {
         if (!selectedProduct) return;
         if (!currentUser) {
-            Swal.fire('Error', 'User info not found. Please login again.', 'error');
+            Swal.fire(t('common.error'), t('orders.reviewError'), 'error');
             return;
         }
 
@@ -141,7 +143,7 @@ export default function OrderList() {
             username: currentUser.username,
             userAvatar: currentUser.avatar
         });
-        Swal.fire('Success', 'Review submitted successfully!', 'success');
+        Swal.fire(t('common.success'), t('orders.reviewSuccess'), 'success');
     };
 
     useEffect(() => {
@@ -334,12 +336,12 @@ export default function OrderList() {
             setSuccessMessage('');
             const reasonText = confirmModal.reason?.trim() || '';
             await cancelOrder(confirmModal.orderId, reasonText);
-            setSuccessMessage('Order cancelled successfully');
+            setSuccessMessage(t('orders.cancelSuccess'));
             const data = await getOrdersByUser();
             setOrders(Array.isArray(data) ? data : []);
             setTimeout(() => setSuccessMessage(''), 3000);
         } catch (e) {
-            setError(e.message || 'Failed to cancel order. Please try again.');
+            setError(e.message || t('orders.cancelError'));
             console.error(e);
         } finally {
             setLoading(false);
@@ -360,7 +362,7 @@ export default function OrderList() {
             />
 
             <div style={{ padding: '20px 24px', borderBottom: '1px solid #f0f0f0', background: 'white', width: '100%' }}>
-                <h4 style={{ fontSize: '20px', fontWeight: 500, color: '#222', margin: 0 }}>My Orders</h4>
+                <h4 style={{ fontSize: '20px', fontWeight: 500, color: '#222', margin: 0 }}>{t('orders.myOrders')}</h4>
             </div>
 
             <div style={{ background: 'white', minHeight: '400px', width: '100%', margin: 0 }}>
@@ -432,7 +434,7 @@ export default function OrderList() {
                             <i className="fa fa-clipboard-list" style={{ fontSize: '48px', color: '#ddd' }}></i>
                         </div>
                         <p style={{ color: '#999', fontSize: '14px', margin: 0 }}>
-                            No orders yet
+                            {t('orders.noOrdersYet')}
                         </p>
                     </div>
                 )}
@@ -601,7 +603,7 @@ export default function OrderList() {
                                                             </div>
                                                         )}
                                                         <div style={{ fontSize: '14px', color: '#ee4d2d', fontWeight: 500, marginBottom: '8px' }}>
-                                                            {formatVND(item.unitPrice)}
+                                                            {formatVND(item.totalPrice)}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -649,7 +651,7 @@ export default function OrderList() {
                                                                 e.currentTarget.style.background = 'white';
                                                             }}
                                                         >
-                                                            Cancel Order
+                                                            {t('orders.cancelOrder')}
                                                         </button>
                                                         <button
                                                             className="btn"
@@ -672,7 +674,7 @@ export default function OrderList() {
                                                                 e.currentTarget.style.color = '#555';
                                                             }}
                                                         >
-                                                            Contact Seller
+                                                            {t('header.contact')}
                                                         </button>
                                                     </>
                                                 )}
@@ -800,10 +802,10 @@ export default function OrderList() {
                             }}
                         >
                             <p style={{ margin: '0 0 20px 0', fontSize: 16, color: '#333', textAlign: 'center' }}>
-                                Are you sure you want to cancel this order?
+                                {t('orders.cancelConfirm')}
                             </p>
                             <textarea
-                                placeholder="Reason (optional)"
+                                placeholder={t('orders.reasonOptional')}
                                 value={confirmModal.reason || ''}
                                 onChange={(e) => setConfirmModal(prev => ({ ...prev, reason: e.target.value }))}
                                 style={{

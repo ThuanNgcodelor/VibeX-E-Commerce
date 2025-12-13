@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { getUserRole, isAuthenticated, logout } from "../../../api/auth.js";
 import { getUser } from "../../../api/user.js";
@@ -11,6 +12,7 @@ import Loading from "../Loading.jsx";
 import { fetchImageById } from "../../../api/image.js";
 
 export default function User() {
+    const { t } = useTranslation();
     const [, setUserInfo] = useState(null);
     const location = useLocation();
     const [userData, setUserData] = useState(null);
@@ -174,7 +176,7 @@ export default function User() {
                                                 textDecoration: 'none'
                                             }}
                                         >
-                                            Edit Profile
+                                            {t('user.editProfile')}
                                         </Link>
                                     </div>
                                 </div>
@@ -199,7 +201,7 @@ export default function User() {
                                     }}
                                 >
                                     <i className="fa fa-bell" style={{ width: '20px', textAlign: 'center' }}></i>
-                                    Notifications
+                                    {t('user.notifications')}
                                 </button>
 
                                 <button
@@ -220,7 +222,7 @@ export default function User() {
                                     }}
                                 >
                                     <i className="fa fa-user" style={{ width: '20px', textAlign: 'center' }}></i>
-                                    My Account
+                                    {t('user.myAccount')}
                                 </button>
 
                                 {/* Sub-menu for Account */}
@@ -240,7 +242,7 @@ export default function User() {
                                                 transition: 'color 0.2s'
                                             }}
                                         >
-                                            Profile
+                                            {t('user.profile')}
                                         </button>
                                         <button
                                             onClick={() => handleTabClick("address")}
@@ -256,7 +258,7 @@ export default function User() {
                                                 transition: 'color 0.2s'
                                             }}
                                         >
-                                            Address
+                                            {t('user.address')}
                                         </button>
                                     </div>
                                 )}
@@ -279,7 +281,7 @@ export default function User() {
                                     }}
                                 >
                                     <i className="fa fa-file-text" style={{ width: '20px', textAlign: 'center' }}></i>
-                                    My Orders
+                                    {t('user.myOrders')}
                                 </button>
 
                                 <button
@@ -300,7 +302,7 @@ export default function User() {
                                     }}
                                 >
                                     <i className="fa fa-user-tie" style={{ width: '20px', textAlign: 'center' }}></i>
-                                    Role Request
+                                    {t('user.roleRequest')}
                                 </button>
 
                                 <button
@@ -321,7 +323,7 @@ export default function User() {
                                     }}
                                 >
                                     <i className="fa fa-ticket" style={{ width: '20px', textAlign: 'center' }}></i>
-                                    Voucher Wallet
+                                    {t('user.voucherWallet')}
                                 </button>
 
                                 <button
@@ -342,7 +344,7 @@ export default function User() {
                                     }}
                                 >
                                     <i className="fa fa-coins" style={{ width: '20px', textAlign: 'center', color: '#ffc107' }}></i>
-                                    Shopee Coins
+                                    {t('user.shopeeCoins')}
                                 </button>
                             </div>
                         </div>
@@ -357,12 +359,12 @@ export default function User() {
                                 {/* Dashboard Tab */}
                                 {activeTab === "dashboard" && (
                                     <div className="p-4">
-                                        <h5 style={{ color: '#222', marginBottom: '16px', fontSize: '18px' }}>My Account</h5>
+                                        <h5 style={{ color: '#222', marginBottom: '16px', fontSize: '18px' }}>{t('user.myAccount')}</h5>
                                         <p style={{ color: '#666', fontSize: '14px', lineHeight: '1.6' }}>
-                                            Hello, <strong>{userData?.username}</strong>!
+                                            {t('user.hello', { username: userData?.username || 'User' })}
                                         </p>
                                         <p style={{ color: '#666', fontSize: '14px', lineHeight: '1.6' }}>
-                                            From your account management page, you can view recent orders, manage shipping addresses, and edit personal information.
+                                            {t('user.accountDescription')}
                                         </p>
                                     </div>
                                 )}
@@ -400,7 +402,7 @@ export default function User() {
                                     <div className="p-4">
                                         <div className="text-center py-5">
                                             <i className="fa fa-ticket" style={{ fontSize: '48px', color: '#ddd', marginBottom: '16px' }}></i>
-                                            <p style={{ color: '#999', fontSize: '14px' }}>No vouchers yet</p>
+                                            <p style={{ color: '#999', fontSize: '14px' }}>{t('user.noVouchersYet')}</p>
                                         </div>
                                     </div>
                                 )}
@@ -410,7 +412,7 @@ export default function User() {
                                     <div className="p-4">
                                         <div className="text-center py-5">
                                             <i className="fa fa-coins" style={{ fontSize: '48px', color: '#ffc107', marginBottom: '16px' }}></i>
-                                            <p style={{ color: '#999', fontSize: '14px' }}>You don't have any Shopee Coins</p>
+                                            <p style={{ color: '#999', fontSize: '14px' }}>{t('user.noShopeeCoins')}</p>
                                         </div>
                                     </div>
                                 )}

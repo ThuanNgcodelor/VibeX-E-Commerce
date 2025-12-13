@@ -1,4 +1,5 @@
 import React, { useState, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import Header from "../../components/client/Header";
 import Footer from "../../components/client/Footer";
 import emailjs from '@emailjs/browser';
@@ -6,6 +7,7 @@ import { GoogleMap, LoadScript, Marker } from '@react-google-maps/api';
 
 
 export default function ContactPage() {
+    const { t } = useTranslation();
     const form = useRef();
     const [formData, setFormData] = useState({
         name: "",
@@ -31,7 +33,7 @@ export default function ContactPage() {
 
         // Simple form validation
         if (!formData.name || !formData.email || !formData.message) {
-            setError("Please fill out all fields.");
+            setError(t('contact.fillAllFields'));
             setSending(false);
             return;
         }
@@ -39,12 +41,12 @@ export default function ContactPage() {
         emailjs.sendForm('service_1fgszbk', 'template_dddhepd', form.current, 'hwJeacFMwiXDUxplu')
             .then((result) => {
                 console.log("Message sent successfully", result.text);
-                setSuccessMessage("Your message has been sent successfully.");
+                setSuccessMessage(t('contact.success'));
                 setSending(false);
                 setFormData({ name: "", email: "", message: "" });
             }, (error) => {
                 console.log("Error sending message", error.text);
-                setError("Failed to send message. Please try again later.");
+                setError(t('contact.error'));
                 setSending(false);
             });
     };
@@ -62,7 +64,7 @@ export default function ContactPage() {
             <Header />
             <main className="main-content">
                 <div className="container py-5">
-                    <h3 className="mb-4">Contact Us</h3>
+                    <h3 className="mb-4">{t('contact.title')}</h3>
 
                     {error && <div className="alert alert-danger">{error}</div>}
                     {successMessage && <div className="alert alert-success">{successMessage}</div>}
@@ -71,7 +73,7 @@ export default function ContactPage() {
                         <div className="col-md-6">
                             <form ref={form} onSubmit={sendEmail}>
                                 <div className="mb-3">
-                                    <label htmlFor="name" className="form-label">Your Name</label>
+                                    <label htmlFor="name" className="form-label">{t('contact.nameLabel')}</label>
                                     <input
                                         type="text"
                                         className="form-control"
@@ -83,7 +85,7 @@ export default function ContactPage() {
                                     />
                                 </div>
                                 <div className="mb-3">
-                                    <label htmlFor="email" className="form-label">Your Email</label>
+                                    <label htmlFor="email" className="form-label">{t('contact.emailLabel')}</label>
                                     <input
                                         type="email"
                                         className="form-control"
@@ -95,7 +97,7 @@ export default function ContactPage() {
                                     />
                                 </div>
                                 <div className="mb-3">
-                                    <label htmlFor="message" className="form-label">Your Message</label>
+                                    <label htmlFor="message" className="form-label">{t('contact.messageLabel')}</label>
                                     <textarea
                                         className="form-control"
                                         id="message"
@@ -107,26 +109,26 @@ export default function ContactPage() {
                                     ></textarea>
                                 </div>
                                 <button type="submit" className="btn btn-primary" disabled={sending}>
-                                    {sending ? "Sending..." : "Send Message"}
+                                    {sending ? t('contact.sending') : t('contact.sendButton')}
                                 </button>
                             </form>
                         </div>
 
                         <div className="col-md-6">
-                            <h4>Our Contact Information</h4>
+                            <h4>{t('contact.contactInfo')}</h4>
                             <p>
-                                <strong>Address:</strong> Ninh Kieu, Can Tho, Vietnam
+                                <strong>{t('contact.address')}:</strong> Ninh Kieu, Can Tho, Vietnam
                             </p>
                             <p>
-                                <strong>Phone:</strong> (+012) 3456 7890
+                                <strong>{t('contact.phone')}:</strong> (+012) 3456 7890
                             </p>
                             <p>
-                                <strong>Email:</strong> info@example.com
+                                <strong>{t('contact.email')}:</strong> info@example.com
                             </p>
 
                             {/* Google Map Embed */}
                             <div className="mb-4">
-                                <h5>Our Location</h5>
+                                <h5>{t('contact.location')}</h5>
                                 <LoadScript googleMapsApiKey="AIzaSyBN_rkyxM1uIXvFEXfRvAMVq3nxRtqO4eo">
                                     <GoogleMap
                                         mapContainerStyle={containerStyle}

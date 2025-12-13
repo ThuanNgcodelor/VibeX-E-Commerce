@@ -24,4 +24,12 @@ public class ReviewController {
     public ResponseEntity<List<ReviewDto>> getReviewsByProductId(@PathVariable String productId) {
         return ResponseEntity.ok(reviewService.getReviewsByProductId(productId));
     }
+
+    @GetMapping("/count/shop/{shopId}")
+    public ResponseEntity<Long> countReviewsByShopId(@PathVariable String shopId) {
+        System.out.println("DEBUG: Counting reviews for shopId: " + shopId);
+        Long count = reviewService.countReviewsByShopId(shopId);
+        System.out.println("DEBUG: Review count: " + count);
+        return ResponseEntity.ok(count);
+    }
 }

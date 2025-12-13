@@ -1,7 +1,9 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 
 export default function FlashSale() {
+  const { t } = useTranslation();
   const flashSaleProducts = [
     { id: 1, name: 'Product 1', discount: 48, price: 265000, originalPrice: 510000, image: '🛍️', sold: 85 },
     { id: 2, name: 'Product 2', discount: 31, price: 40500, originalPrice: 59000, image: '📱', sold: 92 },
@@ -20,11 +22,11 @@ export default function FlashSale() {
           <div className="d-flex align-items-center gap-2">
             <i className="fa fa-clock" style={{ color: '#ee4d2d', fontSize: '20px' }}></i>
             <h4 style={{ fontSize: '18px', color: '#ee4d2d', fontWeight: 600, margin: 0 }}>
-              FLASH SALE
+              {t('home.flashSale')}
             </h4>
           </div>
           <Link to="/shop" style={{ color: '#ee4d2d', textDecoration: 'none', fontSize: '14px' }}>
-            View All →
+            {t('home.viewAll')}
           </Link>
         </div>
         
@@ -127,7 +129,7 @@ export default function FlashSale() {
                   />
                 </div>
                 <div style={{ fontSize: '11px', color: '#999' }}>
-                  {product.sold >= 90 ? 'HOT SELLING' : `SOLD ${product.sold}%`}
+                  {product.sold >= 90 ? t('home.hotSelling') : t('home.soldPercent', { percent: product.sold })}
                 </div>
               </div>
             </Link>

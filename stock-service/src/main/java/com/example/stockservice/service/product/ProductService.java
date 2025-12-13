@@ -24,4 +24,8 @@ public interface ProductService {
     List<Product> getAllProductsByUserId(String userId);
     Page<Product> getProductsByUserIdWithPaging(String userId, Integer pageNo, Integer pageSize);
     Page<Product> searchProductsByUserId(String userId, String keyword, Integer pageNo, Integer pageSize);
+
+    long countProductsByUserId(String userId);
+
+    long countProductsByUserIdAndStatus(String userId, com.example.stockservice.enums.ProductStatus status);
 }
