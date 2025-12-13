@@ -44,19 +44,20 @@ public class KafkaConfig {
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
 
-        // Enable auto-commit (hoặc manual commit nếu cần exactly-once)
+        // Enable auto-commit
         props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, true);
         props.put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, 1000);
 
-        // Cấu hình JsonDeserializer sử dụng kiểu cục bộ, không phụ thuộc vào type info trong message
+        // JsonDeserializer config
         props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, SendNotificationRequest.class);
         props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, false);
         props.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
-        
-        // Force client to use bootstrap servers instead of advertised listeners
-        // This ensures consumer connects to localhost:9092 even if Kafka advertises kafka:9092
-        props.put(ConsumerConfig.CLIENT_DNS_LOOKUP_CONFIG, "use_all_dns_ips");
-        
+
+        //TỐI ƯU: Tăng fetch size và batch size để giảm số lần fetch
+        props.put(ConsumerConfig.FETCH_MIN_BYTES_CONFIG, 1024); // Fetch khi có ít nhất 1KB
+        props.put(ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG, 500); // Đợi tối đa 500ms
+        props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 500); // Poll tối đa 500 records mỗi lần
+
         return new DefaultKafkaConsumerFactory<>(props);
     }
 
@@ -67,9 +68,8 @@ public class KafkaConfig {
         factory.setConsumerFactory(consumerFactory());
 
         // CRITICAL: Đảm bảo ordering bằng cách process tuần tự
-        // setConcurrency(1) = 1 thread cho tất cả partitions (an toàn nhất)
-        // Hoặc setConcurrency(10) = 10 threads, mỗi thread 1 partition (nhanh hơn)
-        factory.setConcurrency(1);
+        // setConcurrency(10) = 10 threads, mỗi thread 1 partition 
+        factory.setConcurrency(10);
 
         return factory;
     }

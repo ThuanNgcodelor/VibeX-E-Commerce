@@ -139,7 +139,7 @@ grep -r "hikari.maximum-pool-size" */src/main/resources/  # Should show 20+
 
 ## 📚 Chi Tiết
 
-Xem file **[TOI_UU_HIEU_NANG.md](./TOI_UU_HIEU_NANG.md)** để hiểu rõ hơn về:
+Xem file **[TOI_UU_HIEU_NANG.md](TOI_UU_HIEU_NANG.md)** để hiểu rõ hơn về:
 - Giải thích chi tiết từng tối ưu
 - Cách tính toán capacity
 - Monitoring & metrics

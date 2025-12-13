@@ -37,3 +37,44 @@ spring:
             exposedHeaders:
               - Authorization
             allowCredentials: true
+
+  # ============================================
+  # ✅ TỐI ƯU: Tomcat Thread Pool (Gateway - High Traffic)
+  # ============================================
+  # Maximum số threads xử lý HTTP requests đồng thời
+  # 500 threads cho phép xử lý 500 requests cùng lúc (Gateway là entry point, cần nhiều threads)
+    server:
+      tomcat:
+        threads:
+          max: 500                    # Maximum threads - Gateway cần nhiều threads vì là entry point
+          min-spare: 50                # Minimum threads giữ sẵn - Giữ 50 threads sẵn để xử lý requests ngay
+        accept-count: 1000             # Maximum connections chờ trong queue - Khi 500 threads busy, 1000 connections chờ
+        max-connections: 10000         # Maximum TCP connections - Gateway cần chịu tải cao, 10000 connections
+      connection-timeout: 20000        # Connection timeout (ms) - Đóng connection không dùng sau 20 giây
+      compression:
+        enabled: true                  # Enable compression - Nén response để giảm bandwidth
+        mime-types: text/html,text/xml,text/plain,text/css,text/javascript,application/javascript,application/json
+        min-response-size: 1024        # Minimum size để nén (bytes) - Chỉ nén response >= 1KB
+
+      # ============================================
+      # ✅ TỐI ƯU: Spring Boot Actuator (Monitoring)
+      # ============================================
+      # Expose các endpoints của Actuator để monitor Gateway
+      # health: Kiểm tra Gateway còn sống không
+      # metrics: Xem các metrics (CPU, memory, requests, etc.)
+      # info: Thông tin về Gateway
+      # prometheus: Export metrics theo format Prometheus (để tích hợp với Grafana)
+    management:
+      endpoints:
+        web:
+          exposure:
+            include: health,metrics,info,prometheus    # Expose endpoints để monitor
+      endpoint:
+        health:
+          show-details: always                          # Hiển thị chi tiết health check
+      metrics:
+        export:
+          prometheus:
+            enabled: true                               # Enable Prometheus metrics export
+        tags:
+          application: ${spring.application.name}      # Tag application name cho metrics

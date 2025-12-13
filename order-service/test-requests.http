@@ -1,0 +1,67 @@
+### ✅ ORDER CHECKOUT THROUGHPUT TEST REQUESTS
+### File này có thể dùng với REST Client extension trong VS Code
+### Hoặc copy vào Postman/Thunder Client
+
+### 1. Test Checkout Throughput (1000 orders)
+POST http://localhost:8005/v1/test/checkout/throughput
+Content-Type: application/json
+
+{
+  "totalOrders": 1000,
+  "batchSize": 100,
+  "addressId": "test-address-1",
+  "paymentMethod": "COD"
+}
+
+###
+
+### 2. Quick Test (100 orders - nhanh hơn)
+POST http://localhost:8005/v1/test/checkout/throughput/quick
+Content-Type: application/json
+
+###
+
+### 3. Test với 500 orders
+POST http://localhost:8005/v1/test/checkout/throughput
+Content-Type: application/json
+
+{
+  "totalOrders": 500,
+  "batchSize": 50,
+  "addressId": "test-address-1",
+  "paymentMethod": "COD"
+}
+
+###
+
+### 4. Test với 5000 orders (load test)
+POST http://localhost:8005/v1/test/checkout/throughput
+Content-Type: application/json
+
+{
+  "totalOrders": 5000,
+  "batchSize": 500,
+  "addressId": "test-address-1",
+  "paymentMethod": "COD"
+}
+
+###
+
+### 5. Test với VNPay payment method
+POST http://localhost:8005/v1/test/checkout/throughput
+Content-Type: application/json
+
+{
+  "totalOrders": 1000,
+  "batchSize": 100,
+  "addressId": "test-address-1",
+  "paymentMethod": "VNPAY"
+}
+
+###
+
+### 6. Xem Stats
+GET http://localhost:8005/v1/test/checkout/stats
+
+###
+

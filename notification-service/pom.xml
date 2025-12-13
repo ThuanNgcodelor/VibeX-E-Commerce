@@ -125,6 +125,12 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- ✅ Actuator for Monitoring - Enable health checks, metrics, and Prometheus export -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
         <!-- Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

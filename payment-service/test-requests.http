@@ -1,0 +1,63 @@
+### ✅ PAYMENT THROUGHPUT TEST REQUESTS
+### File này có thể dùng với REST Client extension trong VS Code
+### Hoặc copy vào Postman/Thunder Client
+
+### 1. Test Payment Throughput (1000 payments)
+POST http://localhost:8006/v1/test/payment/throughput
+Content-Type: application/json
+
+{
+  "totalPayments": 1000,
+  "batchSize": 100,
+  "amount": 100000
+}
+
+###
+
+### 2. Quick Test (100 payments - nhanh hơn)
+POST http://localhost:8006/v1/test/payment/throughput/quick
+Content-Type: application/json
+
+###
+
+### 3. Test với 500 payments
+POST http://localhost:8006/v1/test/payment/throughput
+Content-Type: application/json
+
+{
+  "totalPayments": 500,
+  "batchSize": 50,
+  "amount": 100000
+}
+
+###
+
+### 4. Test với 5000 payments (load test)
+POST http://localhost:8006/v1/test/payment/throughput
+Content-Type: application/json
+
+{
+  "totalPayments": 5000,
+  "batchSize": 500,
+  "amount": 100000
+}
+
+###
+
+### 5. Test với amount khác (200k VND)
+POST http://localhost:8006/v1/test/payment/throughput
+Content-Type: application/json
+
+{
+  "totalPayments": 1000,
+  "batchSize": 100,
+  "amount": 200000
+}
+
+###
+
+### 6. Xem Stats
+GET http://localhost:8006/v1/test/payment/stats
+
+###
+
