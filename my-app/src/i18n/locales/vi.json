@@ -19,7 +19,23 @@
     "processing": "Đang xử lý...",
     "pleaseWait": "Vui lòng đợi",
     "tryAgain": "Thử lại",
-    "back": "Quay lại"
+    "back": "Quay lại",
+    "hide": "Ẩn",
+    "view": "Xem",
+    "update": "Cập nhật",
+    "saving": "Đang lưu...",
+    "updating": "Đang cập nhật...",
+    "complete": "Hoàn thành",
+    "status": {
+      "title": "Trạng thái",
+      "pending": "Đang chờ",
+      "processing": "Đang xử lý",
+      "shipped": "Đã gửi hàng",
+      "delivered": "Đã giao hàng",
+      "cancelled": "Đã hủy",
+      "completed": "Hoàn thành",
+      "returned": "Trả hàng/Hoàn tiền"
+    }
   },
   "header": {
     "sellerCenter": "Kênh Người Bán",
@@ -142,10 +158,6 @@
       "title": "Lỗi thanh toán",
       "text": "Không thể tạo thanh toán. Vui lòng thử lại."
     }
-  },
-  "address": {
-    "loadFailed": "Tải địa chỉ thất bại",
-    "tryAgain": "Vui lòng thử lại."
   },
   "product": {
     "weight": "Trọng lượng",
@@ -611,15 +623,6 @@
     "selectWard": "Chọn Phường/Xã",
     "required": "bắt buộc"
   },
-  "common": {
-    "hide": "Ẩn",
-    "view": "Xem",
-    "cancel": "Hủy",
-    "update": "Cập nhật",
-    "saving": "Đang lưu...",
-    "updating": "Đang cập nhật...",
-    "complete": "Hoàn thành"
-  },
   "ratingModal": {
     "quickRate": "Đánh giá nhanh",
     "productReview": "Đánh giá sản phẩm",
@@ -896,6 +899,12 @@
       "selectAttribute": "Chọn thuộc tính",
       "customAttribute": "Tùy chỉnh (Nhập thủ công)"
     },
+    "product": {
+      "form": {
+        "quantity": "Số lượng",
+        "price": "Giá"
+      }
+    },
     "notifications": {
       "title": "Thông báo",
       "loading": "Đang tải thông báo...",
@@ -1042,7 +1051,53 @@
         "unpaidAmount": "Số tiền chưa thanh toán",
         "paidAmount": "Số tiền đã thanh toán",
         "buyer": "Người mua",
-        "noEntries": "Không có dữ liệu"
+        "noEntries": "Không có dữ liệu",
+        "updatedJustNow": "Cập nhật thời gian thực",
+        "tabs": {
+          "earnings": "Thu nhập",
+          "payouts": "Lịch sử rút tiền"
+        },
+        "exportHistory": "Xuất lịch sử",
+        "description": "Mô tả",
+        "amount": "Số tiền",
+        "exportInvoice": "Hóa đơn",
+        "invoiceFile": "File hóa đơn"
+      },
+      "payoutModal": {
+        "title": "Yêu cầu rút tiền",
+        "balance": "Số dư khả dụng",
+        "amount": "Số tiền muốn rút",
+        "bank": "Thông tin ngân hàng",
+        "bankPlaceholder": "VD: Vietcombank",
+        "accountNumber": "Số tài khoản",
+        "accountHolder": "Tên chủ tài khoản",
+        "description": "Nội dung",
+        "descriptionPlaceholder": "Nhập nội dung...",
+        "fillTemplate": "Điền mẫu",
+        "cancel": "Hủy",
+        "confirm": "Xác nhận"
+      },
+      "notifications": {
+        "insufficientBalance": {
+          "title": "Số dư không đủ",
+          "message": "Số dư khả dụng của bạn không đủ để thực hiện giao dịch rút tiền này."
+        },
+        "payoutSuccess": {
+          "title": "Yêu cầu rút tiền thành công",
+          "message": "Yêu cầu rút tiền của bạn đã được gửi thành công."
+        },
+        "payoutError": {
+          "title": "Rút tiền thất bại",
+          "message": "Không thể xử lý yêu cầu rút tiền: "
+        },
+        "exportInvoiceError": {
+          "title": "Xuất file thất bại",
+          "message": "Không thể xuất hóa đơn."
+        },
+        "exportHistoryError": {
+          "title": "Xuất file thất bại",
+          "message": "Không thể xuất lịch sử rút tiền: "
+        }
       }
     },
     "subscription": {

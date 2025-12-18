@@ -19,7 +19,23 @@
     "processing": "Processing...",
     "pleaseWait": "Please wait",
     "tryAgain": "Try Again",
-    "back": "Back"
+    "back": "Back",
+    "hide": "Hide",
+    "view": "View",
+    "update": "Update",
+    "saving": "Saving...",
+    "updating": "Updating...",
+    "complete": "Complete",
+    "status": {
+      "title": "Status",
+      "pending": "Pending",
+      "processing": "Processing",
+      "shipped": "Shipped",
+      "delivered": "Delivered",
+      "cancelled": "Cancelled",
+      "completed": "Completed",
+      "returned": "Return/Refund"
+    }
   },
   "header": {
     "sellerCenter": "Seller Center",
@@ -143,10 +159,6 @@
       "title": "Payment Error",
       "text": "Cannot create payment. Please try again."
     }
-  },
-  "address": {
-    "loadFailed": "Load addresses failed",
-    "tryAgain": "Please try again."
   },
   "product": {
     "weight": "Weight",
@@ -344,7 +356,6 @@
     "shippingMethod": "Shipping method",
     "fast": "Fast",
     "deliveryEstimate": "Receive between",
-    "change": "Change",
     "shippingFee": "Shipping fee",
     "inspectOnDelivery": "Allowed to inspect upon delivery",
     "totalAmount": "Total amount",
@@ -612,15 +623,6 @@
     "selectWard": "Select Ward",
     "required": "required"
   },
-  "common": {
-    "hide": "Hide",
-    "view": "View",
-    "cancel": "Cancel",
-    "update": "Update",
-    "saving": "Saving...",
-    "updating": "Updating...",
-    "complete": "Complete"
-  },
   "ratingModal": {
     "quickRate": "Quick Rate",
     "productReview": "Product Review",
@@ -670,6 +672,20 @@
       "wallet": "Wallet",
       "subscription": "Subscription",
       "settings": "Settings"
+    },
+    "analytics": {
+      "title": "Sales Analytics",
+      "todayRevenue": "Today's Revenue",
+      "todayOrders": "Today's Orders",
+      "productsOnSale": "Products on Sale",
+      "avgRating": "Average Rating",
+      "revenueChartTitle": "Revenue Chart - Last 7 Days",
+      "revenueLabel": "Revenue (VNĐ)",
+      "topProductsTitle": "Best Selling Products",
+      "product": "Product",
+      "sold": "Sold",
+      "revenue": "Revenue",
+      "noData": "No sales data available"
     },
     "dashboard": {
       "title": "Seller Centre",
@@ -837,6 +853,12 @@
       "selectAttribute": "Select Attribute",
       "customAttribute": "Custom (Enter manually)"
     },
+    "product": {
+      "form": {
+        "quantity": "Quantity",
+        "price": "Price"
+      }
+    },
     "notifications": {
       "title": "Notifications",
       "loading": "Loading notifications...",
@@ -982,7 +1004,53 @@
         "unpaidAmount": "Unpaid amount",
         "paidAmount": "Paid amount",
         "buyer": "Buyer",
-        "noEntries": "No data"
+        "noEntries": "No data",
+        "updatedJustNow": "Real-time update",
+        "tabs": {
+          "earnings": "Earnings",
+          "payouts": "Payout History"
+        },
+        "exportHistory": "Export History",
+        "description": "Description",
+        "amount": "Amount",
+        "exportInvoice": "Invoice",
+        "invoiceFile": "Invoice File"
+      },
+      "payoutModal": {
+        "title": "Request Payout",
+        "balance": "Available Balance",
+        "amount": "Amount to Withdraw",
+        "bank": "Bank Information",
+        "bankPlaceholder": "E.g., Vietcombank",
+        "accountNumber": "Account Number",
+        "accountHolder": "Account Holder Name",
+        "description": "Description",
+        "descriptionPlaceholder": "Enter description...",
+        "fillTemplate": "Fill Template",
+        "cancel": "Cancel",
+        "confirm": "Confirm"
+      },
+      "notifications": {
+        "insufficientBalance": {
+          "title": "Insufficient Balance",
+          "message": "Your available balance is not enough for this payout."
+        },
+        "payoutSuccess": {
+          "title": "Payout Requested",
+          "message": "Your payout request has been submitted successfully."
+        },
+        "payoutError": {
+          "title": "Payout Failed",
+          "message": "Failed to process payout request: "
+        },
+        "exportInvoiceError": {
+          "title": "Export Failed",
+          "message": "Failed to export invoice."
+        },
+        "exportHistoryError": {
+          "title": "Export Failed",
+          "message": "Failed to export payout history: "
+        }
       }
     },
     "subscription": {
@@ -1040,67 +1108,53 @@
         "subscriptionFee": "Subscription fee",
         "perProduct": "per product"
       }
+    },
+    "manageOrder": {
+      "title": "Manage Order",
+      "subtitle": "Manage your orders",
+      "tableTitle": "Orders List for Shipping",
+      "allStatus": "All Status",
+      "selectStatus": "Select Status",
+      "updateSelected": "Update {{count}} Selected",
+      "refresh": "Refresh",
+      "exportExcel": "Export Excel",
+      "createBulkLabels": "Create Bulk Shipping Labels",
+      "noOrders": "No orders found",
+      "loading": "Loading orders list...",
+      "confirmUpdate": "Are you sure you want to update order status to \"{{status}}\"?",
+      "confirmBulkUpdate": "Are you sure you want to update {{count}} order(s) to \"{{status}}\"?",
+      "successUpdate": "Order status updated successfully!",
+      "successBulkUpdate": "Successfully updated {{count}} order(s)!",
+      "selectOne": "Please select at least one order",
+      "selectStatusAlert": "Please select a status",
+      "customer": "Customer",
+      "phone": "Phone",
+      "address": "Address",
+      "subtotal": "Subtotal",
+      "shipping": "Shipping",
+      "total": "Total",
+      "orderDate": "Order Date",
+      "actions": "Actions",
+      "orderDetails": "Order Details",
+      "productsInOrder": "Products in Order",
+      "printOrder": "Print Order",
+      "createLabel": "Create Shipping Label",
+      "updateStatus": "Update Status",
+      "shippingFee": "Shipping Fee (GHN)",
+      "cancelReason": "Cancel Reason",
+      "returnReason": "Return Reason"
+    },
+    "returnOrder": {
+      "title": "Returns & Refunds",
+      "tableTitle": "Orders List",
+      "processReturn": "Process Return",
+      "enterReason": "Enter return reason:",
+      "returnSuccess": "Order returned successfully!",
+      "productDetails": "Product Details",
+      "previous": "Previous",
+      "next": "Next",
+      "pageInfo": "Page {{current}} / {{total}}"
     }
-  },
-  "analytics": {
-    "title": "Sales Analytics",
-    "todayRevenue": "Today's Revenue",
-    "todayOrders": "Today's Orders",
-    "productsOnSale": "Products on Sale",
-    "avgRating": "Average Rating",
-    "revenueChartTitle": "Revenue Chart - Last 7 Days",
-    "revenueLabel": "Revenue (VNĐ)",
-    "topProductsTitle": "Best Selling Products",
-    "product": "Product",
-    "sold": "Sold",
-    "revenue": "Revenue",
-    "noData": "No sales data available"
-  },
-  "manageOrder": {
-    "title": "Manage Order",
-    "subtitle": "Manage your orders",
-    "tableTitle": "Orders List for Shipping",
-    "allStatus": "All Status",
-    "selectStatus": "Select Status",
-    "updateSelected": "Update {{count}} Selected",
-    "refresh": "Refresh",
-    "exportExcel": "Export Excel",
-    "createBulkLabels": "Create Bulk Shipping Labels",
-    "noOrders": "No orders found",
-    "loading": "Loading orders list...",
-    "confirmUpdate": "Are you sure you want to update order status to \"{{status}}\"?",
-    "confirmBulkUpdate": "Are you sure you want to update {{count}} order(s) to \"{{status}}\"?",
-    "successUpdate": "Order status updated successfully!",
-    "successBulkUpdate": "Successfully updated {{count}} order(s)!",
-    "selectOne": "Please select at least one order",
-    "selectStatusAlert": "Please select a status",
-    "customer": "Customer",
-    "phone": "Phone",
-    "address": "Address",
-    "subtotal": "Subtotal",
-    "shipping": "Shipping",
-    "total": "Total",
-    "orderDate": "Order Date",
-    "actions": "Actions",
-    "orderDetails": "Order Details",
-    "productsInOrder": "Products in Order",
-    "printOrder": "Print Order",
-    "createLabel": "Create Shipping Label",
-    "updateStatus": "Update Status",
-    "shippingFee": "Shipping Fee (GHN)",
-    "cancelReason": "Cancel Reason",
-    "returnReason": "Return Reason"
-  },
-  "returnOrder": {
-    "title": "Returns & Refunds",
-    "tableTitle": "Orders List",
-    "processReturn": "Process Return",
-    "enterReason": "Enter return reason:",
-    "returnSuccess": "Order returned successfully!",
-    "productDetails": "Product Details",
-    "previous": "Previous",
-    "next": "Next",
-    "pageInfo": "Page {{current}} / {{total}}"
   }
 }
 
