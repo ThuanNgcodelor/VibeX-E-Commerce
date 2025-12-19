@@ -340,8 +340,40 @@ public class OrderController {
                 weight = request.getQuantity() * 500;
             }
 
-            // 6. Build GHN fee calculation request
-            // GHN Service IDs: 53320 = Express, 53321 = Standard
+            // 6. Get available services from GHN API
+            Integer serviceTypeId = 2; // Default: Hàng nhẹ
+            try {
+                GhnAvailableServicesResponse servicesResponse = ghnApiClient.getAvailableServices(
+                        shopOwner.getDistrictId(), 
+                        customerAddress.getDistrictId()
+                );
+                
+                if (servicesResponse != null && servicesResponse.getCode() == 200 
+                        && servicesResponse.getData() != null && !servicesResponse.getData().isEmpty()) {
+                    
+                    // Ưu tiên service_type_id = 2 (Hàng nhẹ) nếu có
+                    GhnAvailableServicesResponse.ServiceData preferredService = null;
+                    GhnAvailableServicesResponse.ServiceData fallbackService = null;
+                    
+                    for (GhnAvailableServicesResponse.ServiceData service : servicesResponse.getData()) {
+                        if (service.getServiceTypeId() == 2) {
+                            preferredService = service;
+                        } else {
+                            fallbackService = service;
+                        }
+                    }
+                    
+                    if (preferredService != null) {
+                        serviceTypeId = preferredService.getServiceTypeId();
+                    } else if (fallbackService != null) {
+                        serviceTypeId = fallbackService.getServiceTypeId();
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("[GHN] Failed to get available services for fee calculation: {}", e.getMessage());
+            }
+
+            // 7. Build GHN fee calculation request
             com.example.orderservice.dto.GhnCalculateFeeRequest ghnRequest = com.example.orderservice.dto.GhnCalculateFeeRequest
                     .builder()
                     .fromDistrictId(shopOwner.getDistrictId())
@@ -352,8 +384,7 @@ public class OrderController {
                     .length(20) // cm
                     .width(15)
                     .height(10)
-                    .serviceId(53321) // GHN Standard service ID (required)
-                    .serviceTypeId(2) // Standard
+                    .serviceTypeId(serviceTypeId) // Use available service type
                     .build();
 
             // 7. Call GHN API

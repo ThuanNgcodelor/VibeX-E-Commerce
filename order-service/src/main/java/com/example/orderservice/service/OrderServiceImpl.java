@@ -793,8 +793,13 @@ public class OrderServiceImpl implements OrderService {
                     })
                     .collect(Collectors.toList());
 
-            // 7. Lấy dịch vụ khả dụng từ GHN API
-            Integer serviceTypeId = 2; // Default fallback
+            // 7. Chọn service type: ưu tiên theo weight, nhưng phải có trong GHN available services
+            // - Ưu tiên Hàng nhẹ (type 2) nếu weight < 20kg VÀ có khả dụng
+            // - Fallback Hàng nặng (type 5) nếu type 2 không khả dụng
+            Integer preferredType = (totalWeight < 20000) ? 2 : 5;
+            Integer serviceTypeId = preferredType;
+            String selectedServiceName = (preferredType == 2) ? "Hàng nhẹ" : "Hàng nặng";
+            
             try {
                 GhnAvailableServicesResponse servicesResponse = ghnApiClient.getAvailableServices(
                         shopOwner.getDistrictId(), 
@@ -803,20 +808,40 @@ public class OrderServiceImpl implements OrderService {
                 
                 if (servicesResponse != null && servicesResponse.getCode() == 200 
                         && servicesResponse.getData() != null && !servicesResponse.getData().isEmpty()) {
-                    // Lấy service đầu tiên khả dụng (thường là rẻ nhất)
-                    GhnAvailableServicesResponse.ServiceData firstService = servicesResponse.getData().get(0);
-                    serviceTypeId = firstService.getServiceTypeId();
-                    log.info("[GHN] Using service: {} (type: {}) for route {} -> {}", 
-                            firstService.getShortName(), serviceTypeId, 
-                            shopOwner.getDistrictId(), customerAddress.getDistrictId());
-                } else {
-                    log.warn("[GHN] No available services found for route {} -> {}, using default serviceTypeId={}", 
-                            shopOwner.getDistrictId(), customerAddress.getDistrictId(), serviceTypeId);
+                    
+                    // Tìm xem service type ưu tiên có khả dụng không
+                    GhnAvailableServicesResponse.ServiceData preferredService = null;
+                    GhnAvailableServicesResponse.ServiceData fallbackService = null;
+                    
+                    for (GhnAvailableServicesResponse.ServiceData service : servicesResponse.getData()) {
+                        if (service.getServiceTypeId().equals(preferredType)) {
+                            preferredService = service;
+                        } else {
+                            fallbackService = service;
+                        }
+                    }
+                    
+                    // Sử dụng service ưu tiên nếu có, không thì dùng fallback
+                    if (preferredService != null) {
+                        serviceTypeId = preferredService.getServiceTypeId();
+                        selectedServiceName = preferredService.getShortName();
+                        log.info("[GHN] Using preferred service: {} (type: {}) for weight: {}g", 
+                                selectedServiceName, serviceTypeId, totalWeight);
+                    } else if (fallbackService != null) {
+                        serviceTypeId = fallbackService.getServiceTypeId();
+                        selectedServiceName = fallbackService.getShortName();
+                        log.info("[GHN] Preferred type {} not available, using fallback: {} (type: {}) for weight: {}g", 
+                                preferredType, selectedServiceName, serviceTypeId, totalWeight);
+                    }
                 }
             } catch (Exception e) {
-                log.warn("[GHN] Failed to get available services, using default serviceTypeId={}: {}", 
+                log.warn("[GHN] Failed to get available services, using default type {}: {}", 
                         serviceTypeId, e.getMessage());
             }
+            
+            log.info("[GHN] Final service: {} (type: {}) for weight: {}g, route {} -> {}", 
+                    selectedServiceName, serviceTypeId, totalWeight,
+                    shopOwner.getDistrictId(), customerAddress.getDistrictId());
 
             // 8. Build GHN request với FROM address từ shop owner
             GhnCreateOrderRequest.GhnCreateOrderRequestBuilder requestBuilder = GhnCreateOrderRequest.builder()
