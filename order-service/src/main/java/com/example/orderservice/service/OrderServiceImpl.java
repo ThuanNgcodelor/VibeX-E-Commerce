@@ -756,10 +756,12 @@ public class OrderServiceImpl implements OrderService {
                 return;
             }
 
-            // 6. Build items cho GHN
+            // 6. Build items cho GHN (bao gồm weight cho mỗi item - required for service_type_id = 5)
             List<GhnItemDto> ghnItems = order.getOrderItems().stream()
                     .map(item -> {
                         String productName = "Product";
+                        int itemWeight = 500; // Default 500g per item
+                        
                         try {
                             ProductDto product = stockServiceClient.getProductById(item.getProductId()).getBody();
                             if (product != null) {
@@ -767,16 +769,56 @@ public class OrderServiceImpl implements OrderService {
                             }
                         } catch (Exception e) {
                         }
+                        
+                        // Lấy weight từ Size
+                        try {
+                            ResponseEntity<com.example.orderservice.dto.SizeDto> sizeResponse = stockServiceClient
+                                    .getSizeById(item.getSizeId());
+                            if (sizeResponse != null && sizeResponse.getBody() != null) {
+                                com.example.orderservice.dto.SizeDto size = sizeResponse.getBody();
+                                if (size.getWeight() != null && size.getWeight() > 0) {
+                                    itemWeight = size.getWeight();
+                                }
+                            }
+                        } catch (Exception e) {
+                            // Use default weight
+                        }
 
                         return GhnItemDto.builder()
                                 .name(productName)
                                 .quantity(item.getQuantity())
                                 .price((long) item.getUnitPrice())
+                                .weight(itemWeight) // Weight per item in grams
                                 .build();
                     })
                     .collect(Collectors.toList());
 
-            // 7. Build GHN request với FROM address từ shop owner
+            // 7. Lấy dịch vụ khả dụng từ GHN API
+            Integer serviceTypeId = 2; // Default fallback
+            try {
+                GhnAvailableServicesResponse servicesResponse = ghnApiClient.getAvailableServices(
+                        shopOwner.getDistrictId(), 
+                        customerAddress.getDistrictId()
+                );
+                
+                if (servicesResponse != null && servicesResponse.getCode() == 200 
+                        && servicesResponse.getData() != null && !servicesResponse.getData().isEmpty()) {
+                    // Lấy service đầu tiên khả dụng (thường là rẻ nhất)
+                    GhnAvailableServicesResponse.ServiceData firstService = servicesResponse.getData().get(0);
+                    serviceTypeId = firstService.getServiceTypeId();
+                    log.info("[GHN] Using service: {} (type: {}) for route {} -> {}", 
+                            firstService.getShortName(), serviceTypeId, 
+                            shopOwner.getDistrictId(), customerAddress.getDistrictId());
+                } else {
+                    log.warn("[GHN] No available services found for route {} -> {}, using default serviceTypeId={}", 
+                            shopOwner.getDistrictId(), customerAddress.getDistrictId(), serviceTypeId);
+                }
+            } catch (Exception e) {
+                log.warn("[GHN] Failed to get available services, using default serviceTypeId={}: {}", 
+                        serviceTypeId, e.getMessage());
+            }
+
+            // 8. Build GHN request với FROM address từ shop owner
             GhnCreateOrderRequest.GhnCreateOrderRequestBuilder requestBuilder = GhnCreateOrderRequest.builder()
                     .paymentTypeId(2) // 2 = Người nhận trả phí
                     .requiredNote("CHOXEMHANGKHONGTHU") // Cho xem hàng không cho thử
@@ -790,7 +832,7 @@ public class OrderServiceImpl implements OrderService {
                     .length(20) // cm - Hardcode, có thể lấy từ product sau
                     .width(15)
                     .height(10)
-                    .serviceTypeId(2) // 2 = Standard (rẻ hơn), 5 = Express
+                    .serviceTypeId(serviceTypeId) // Sử dụng service type từ API
                     .items(ghnItems);
 
             // Thêm FROM address từ shop owner
@@ -805,10 +847,12 @@ public class OrderServiceImpl implements OrderService {
 
             GhnCreateOrderRequest ghnRequest = requestBuilder.build();
 
-            // 8. Call GHN API
+            // 9. Call GHN API
             GhnCreateOrderResponse ghnResponse = ghnApiClient.createOrder(ghnRequest);
 
             if (ghnResponse == null || ghnResponse.getCode() != 200) {
+                log.error("[GHN] Failed to create order - Response: {}", 
+                        ghnResponse != null ? ghnResponse.getMessage() : "null response");
                 return;
             }
 

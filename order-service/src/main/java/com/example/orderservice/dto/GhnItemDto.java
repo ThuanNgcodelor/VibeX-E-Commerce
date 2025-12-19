@@ -17,5 +17,8 @@ public class GhnItemDto {
     
     @JsonProperty("price")
     private Long price; // VNĐ
+    
+    @JsonProperty("weight")
+    private Integer weight; // Gram - Required for service_type_id = 5 (Hàng nặng)
 }
 

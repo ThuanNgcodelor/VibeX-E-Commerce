@@ -4,6 +4,8 @@ import com.example.orderservice.dto.GhnCreateOrderRequest;
 import com.example.orderservice.dto.GhnCreateOrderResponse;
 import com.example.orderservice.dto.GhnCalculateFeeRequest;
 import com.example.orderservice.dto.GhnCalculateFeeResponse;
+import com.example.orderservice.dto.GhnAvailableServicesRequest;
+import com.example.orderservice.dto.GhnAvailableServicesResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
@@ -129,6 +131,66 @@ public class GhnApiClient {
         } catch (Exception e) {
             log.error("[GHN API] Fee calculation exception: {}", e.getMessage(), e);
             throw new RuntimeException("GHN fee calculation failed: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Lấy danh sách dịch vụ khả dụng cho tuyến giao hàng
+     * API này cần gọi trước khi tạo đơn để lấy service_type_id hợp lệ
+     */
+    public GhnAvailableServicesResponse getAvailableServices(Integer fromDistrictId, Integer toDistrictId) {
+        // Validate GHN configuration
+        if (shopId == null || shopId == 0) {
+            throw new RuntimeException("GHN Shop ID is not configured. Please set ghn.shop.id in application.properties");
+        }
+        if (apiToken == null || apiToken.isBlank() || apiToken.contains("YOUR_STAGING_TOKEN")) {
+            throw new RuntimeException("GHN Token is not configured. Please set ghn.api.token in application.properties");
+        }
+        
+        String url = apiUrl + "/v2/shipping-order/available-services";
+        
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("Token", apiToken);
+        
+        GhnAvailableServicesRequest request = GhnAvailableServicesRequest.builder()
+                .shopId(shopId)
+                .fromDistrict(fromDistrictId)
+                .toDistrict(toDistrictId)
+                .build();
+        
+        HttpEntity<GhnAvailableServicesRequest> entity = new HttpEntity<>(request, headers);
+        
+        log.info("[GHN API] Getting available services - from district: {}, to district: {}", 
+            fromDistrictId, toDistrictId);
+        
+        try {
+            ResponseEntity<GhnAvailableServicesResponse> response = restTemplate.exchange(
+                url,
+                HttpMethod.POST,
+                entity,
+                GhnAvailableServicesResponse.class
+            );
+            
+            GhnAvailableServicesResponse body = response.getBody();
+            
+            if (body != null && body.getCode() == 200 && body.getData() != null) {
+                log.info("[GHN API] Available services found: {}", body.getData().size());
+                for (GhnAvailableServicesResponse.ServiceData service : body.getData()) {
+                    log.info("[GHN API] Service: {} (id: {}, type: {})", 
+                        service.getShortName(), service.getServiceId(), service.getServiceTypeId());
+                }
+            } else {
+                log.error("[GHN API] Get services error - Code: {}, Message: {}", 
+                    body != null ? body.getCode() : "null", 
+                    body != null ? body.getMessage() : "null");
+            }
+            
+            return body;
+            
+        } catch (Exception e) {
+            log.error("[GHN API] Get services exception: {}", e.getMessage(), e);
+            throw new RuntimeException("GHN get available services failed: " + e.getMessage());
         }
     }
 }
