@@ -70,11 +70,15 @@ public class ChatService {
             // Auto-generate title
             try {
                 if (productId != null && !productId.trim().isEmpty()) {
-                    ProductDto product = stockServiceClient.getProductById(productId);
-                    conversation.setTitle("Ask about " + product.getName());
+                    var productResponse = stockServiceClient.getProductById(productId);
+                    if (productResponse.getBody() != null) {
+                        conversation.setTitle("Ask about " + productResponse.getBody().getName());
+                    }
                 } else {
-                    UserDto shop = userServiceClient.getUserById(shopOwnerId);
-                    conversation.setTitle("Chat with " + shop.getUsername());
+                    var userResponse = userServiceClient.getUserById(shopOwnerId);
+                    if (userResponse.getBody() != null) {
+                        conversation.setTitle("Chat with " + userResponse.getBody().getUsername());
+                    }
                 }
             } catch (Exception e) {
                 conversation.setTitle("New Conversation");
@@ -216,8 +220,10 @@ public class ChatService {
             String opponentId = conv.getClientId().equals(currentUserId)
                 ? conv.getShopOwnerId()
                 : conv.getClientId();
-            UserDto opponent = userServiceClient.getUserById(opponentId);
-            dto.setOpponent(opponent);
+            var opponentResponse = userServiceClient.getUserById(opponentId);
+            if (opponentResponse.getBody() != null) {
+                dto.setOpponent(opponentResponse.getBody());
+            }
         } catch (Exception e) {
             log.error("Error fetching opponent: {}", e.getMessage());
             // Set default opponent để frontend không hiển thị "Unknown"
@@ -231,8 +237,10 @@ public class ChatService {
         // Lấy thông tin product nếu có
         if (conv.getProductId() != null) {
             try {
-                ProductDto product = stockServiceClient.getProductById(conv.getProductId());
-                dto.setProduct(product);
+                var productResponse = stockServiceClient.getProductById(conv.getProductId());
+                if (productResponse.getBody() != null) {
+                    dto.setProduct(productResponse.getBody());
+                }
             } catch (Exception e) {
                 log.error("Error fetching product: {}", e.getMessage());
             }
@@ -259,8 +267,12 @@ public class ChatService {
         
         // Lấy sender name
         try {
-            UserDto sender = userServiceClient.getUserById(message.getSenderId());
-            dto.setSenderName(sender.getUsername());
+            var senderResponse = userServiceClient.getUserById(message.getSenderId());
+            if (senderResponse.getBody() != null) {
+                dto.setSenderName(senderResponse.getBody().getUsername());
+            } else {
+                dto.setSenderName("User");
+            }
         } catch (Exception e) {
             log.error("Error fetching sender: {}", e.getMessage());
             dto.setSenderName("User");

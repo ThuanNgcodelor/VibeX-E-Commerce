@@ -181,7 +181,23 @@ public class LiveService {
         }
         
         // Fetch product info from stock-service
-        ProductDto productInfo = stockServiceClient.getProductById(request.getProductId());
+        ProductDto productInfo = null;
+        try {
+            var response = stockServiceClient.getProductById(request.getProductId());
+            if (response.getStatusCode().is2xxSuccessful()) {
+                productInfo = response.getBody();
+            }
+        } catch (Exception e) {
+            log.warn("Could not fetch product info for {}: {}", request.getProductId(), e.getMessage());
+        }
+        
+        if (productInfo == null) {
+            productInfo = ProductDto.builder()
+                    .id(request.getProductId())
+                    .name("Product " + request.getProductId())
+                    .price(0.0)
+                    .build();
+        }
         
         LiveProduct product = LiveProduct.builder()
                 .liveRoom(room)
@@ -346,8 +362,9 @@ public class LiveService {
         String shopName = "Shop";
         String shopAvatarUrl = null;
         try {
-            UserDto user = userServiceClient.getUserById(room.getShopOwnerId());
-            if (user != null) {
+            var response = userServiceClient.getUserById(room.getShopOwnerId());
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                UserDto user = response.getBody();
                 shopName = user.getFirstName() + " " + user.getLastName();
                 shopAvatarUrl = user.getProfileImage();
             }
