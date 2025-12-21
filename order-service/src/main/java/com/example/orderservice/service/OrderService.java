@@ -39,6 +39,8 @@ public interface OrderService {
     void createShippingOrderForOrder(String orderId);
     // Handle GHN status update (simulate / webhook)
     void handleGhnStatus(String ghnOrderCode, String status);
+    // Handle location+status updates (dev webhook / carrier)
+    void handleLocationUpdate(String ghnOrderCode, String status, Double lat, Double lng, String shipperId, String note, String timestamp);
     // Client confirms receipt -> COMPLETE
     Order confirmOrder(String orderId);
 }

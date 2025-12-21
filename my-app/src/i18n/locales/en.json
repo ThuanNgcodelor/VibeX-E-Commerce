@@ -124,7 +124,8 @@
       "unnamedAddress": "Unnamed Address",
       "default": "Default",
       "selected": "Selected",
-      "confirmSelection": "Confirm Selection","loadFailed": "Load addresses failed",
+      "confirmSelection": "Confirm Selection",
+      "loadFailed": "Load addresses failed",
       "tryAgain": "Please try again."
     },
     "orderSuccess": {
@@ -384,6 +385,7 @@
     "toPay": "To Pay",
     "toShip": "To Ship",
     "toReceive": "To Receive",
+    "viewTracking": "View Tracking",
     "all": "All",
     "pending": "Pending",
     "processing": "Processing",
@@ -992,7 +994,8 @@
         "paid": "Paid",
         "total": "Total",
         "thisWeek": "This week",
-        "thisMonth": "This month","withdrawable": "Withdrawable"
+        "thisMonth": "This month",
+        "withdrawable": "Withdrawable"
       },
       "incomeReport": {
         "title": "Income Report",
@@ -1162,6 +1165,63 @@
       "next": "Next",
       "pageInfo": "Page {{current}} / {{total}}"
     }
+  },
+  "tracking": {
+    "title": "Order Details",
+    "orderId": "Order ID",
+    "backButton": "← BACK",
+    "steps": {
+      "orderPlaced": "Order Placed",
+      "paymentConfirmedCOD": "Payment Info Confirmed",
+      "paymentConfirmedVNPAY": "Payment Completed",
+      "handedToShipper": "Handed to Carrier",
+      "delivered": "Delivered",
+      "completed": "Order Completed"
+    },
+    "orderStatus": {
+      "pending": "Pending Confirmation",
+      "confirmed": "Confirmed",
+      "shipped": "In Transit",
+      "delivered": "Delivered",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "returned": "Returned"
+    },
+    "address": {
+      "title": "Delivery Address",
+      "updating": "Updating address..."
+    },
+    "timeline": {
+      "title": "Delivery Timeline",
+      "estimatedDelivery": "Estimated Delivery",
+      "orderPlaced": "Order Placed Successfully",
+      "orderPlacedDescription": "Your order has been placed successfully",
+      "viewMore": "View More",
+      "collapse": "Collapse"
+    },
+    "products": {
+      "title": "Ordered Products"
+    },
+    "priceBreakdown": {
+      "subtotal": "Subtotal",
+      "shippingFee": "Shipping Fee",
+      "shippingDiscount": "Shipping Discount",
+      "voucherDiscount": "Shopee Voucher",
+      "total": "Total",
+      "paymentMethod": "Payment Method"
+    },
+    "paymentMethods": {
+      "cod": "Cash on Delivery",
+      "vnpay": "VNPay",
+      "card": "Credit/Debit Card"
+    },
+    "buttons": {
+      "buyAgain": "Buy Again",
+      "contactSeller": "Contact Seller"
+    },
+    "statusMessages": {
+      "cancelled": "Order has been cancelled",
+      "returned": "Order has been returned"
+    }
   }
 }
-

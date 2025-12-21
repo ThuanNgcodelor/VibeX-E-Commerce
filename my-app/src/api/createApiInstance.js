@@ -19,6 +19,7 @@ const createApiInstance = (baseURL) => {
                 '/verifyOtp',
                 '/updatePassword',
                 '/login/google',
+                '/order/track/',
             ];
 
             // Tạo full URL để kiểm tra
@@ -54,6 +55,7 @@ const createApiInstance = (baseURL) => {
         "/stock/category/getAll", 
         "/file-storage/get",
         "/shop-owners/", // Public - allow guest to view shop owner info
+        "/order/track/",
     ];
 
     api.interceptors.response.use(

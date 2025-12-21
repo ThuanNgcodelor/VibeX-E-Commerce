@@ -211,7 +211,7 @@ export default function BulkShippingPage() {
         const normalized = normalizeStatus(status);
         const statusMap = {
             PENDING: 'Pending',
-            PROCESSING: 'Processing',
+            CONFIRMED: 'Confirmed',
             SHIPPED: 'Shipped',
             DELIVERED: 'Delivered',
             CANCELLED: 'Cancelled',
@@ -223,8 +223,8 @@ export default function BulkShippingPage() {
     const getNextStatus = (currentStatus) => {
         const cur = normalizeStatus(currentStatus);
         const statusFlow = {
-            PENDING: 'PROCESSING',
-            PROCESSING: 'SHIPPED',
+            PENDING: 'CONFIRMED',
+            CONFIRMED: 'SHIPPED',
             SHIPPED: 'DELIVERED'
         };
         return statusFlow[cur];

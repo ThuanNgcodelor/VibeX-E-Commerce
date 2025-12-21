@@ -46,7 +46,7 @@ export default function Header() {
       setUserData(null);
       return;
     }
-    
+
     // Có token thì mới gọi API
     getUser().then(setUserData).catch((err) => {
       // Silently fail if 401 (guest or invalid token)
@@ -100,21 +100,21 @@ export default function Header() {
               name: p.name,
               type: 'product'
             }));
-          
+
           // Add shop suggestions
           const shopSuggestions = [{
             id: 'shop',
             name: t('header.findShop', { query: searchQuery }),
             type: 'shop'
           }];
-          
+
           setSearchSuggestions([...shopSuggestions, ...filtered]);
           setShowSearchSuggestions(true);
         } catch (error) {
           console.error('Error fetching suggestions:', error);
         }
       };
-      
+
       const timeoutId = setTimeout(fetchSuggestions, 300);
       return () => clearTimeout(timeoutId);
     } else {
@@ -245,9 +245,23 @@ export default function Header() {
             {/* Left links */}
             <div className="d-none d-md-flex gap-3 align-items-center" style={{ fontSize: '12px' }}>
               {hasRole("ROLE_SHOP_OWNER") && (
-                <Link to="/shop-owner" style={{ color: 'white', textDecoration: 'none', opacity: 0.9 }}>
-                  {t('header.sellerCenter')}
-                </Link>
+                <>
+                  <Link to="/shop-owner" style={{ color: 'white', textDecoration: 'none', opacity: 0.9 }}>
+                    {t('header.sellerCenter')}
+                  </Link>
+                  <Link to="/live/manage" style={{
+                    color: 'white',
+                    textDecoration: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    background: 'rgba(255,255,255,0.15)',
+                    padding: '4px 10px',
+                    borderRadius: '4px'
+                  }}>
+                    🔴 Shopee Live
+                  </Link>
+                </>
               )}
               <Link to="#" style={{ color: 'white', textDecoration: 'none', opacity: 0.9 }}>
                 {t('header.downloadApp')}
@@ -383,7 +397,7 @@ export default function Header() {
                 <i className="fa fa-search"></i>
               </button>
             </form>
-            
+
             {/* Search Suggestions Dropdown */}
             {showSearchSuggestions && searchSuggestions.length > 0 && (
               <div style={{
@@ -424,7 +438,7 @@ export default function Header() {
                 ))}
               </div>
             )}
-           
+
           </div>
 
           {/* Desktop: Icons */}

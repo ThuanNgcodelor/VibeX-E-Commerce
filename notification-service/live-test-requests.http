@@ -1,0 +1,153 @@
+### LIVESTREAM API TEST REQUESTS
+### File này có thể dùng với REST Client extension trong VS Code
+### Port: 8009 (notification-service)
+
+@baseUrl = http://localhost:8009/v1/notifications/live
+@token = eyJhbGciOiJIUzI1NiJ9.eyJyb2xlcyI6WyJST0xFX1NIT1BfT1dORVIiLCJST0xFX1VTRVIiXSwidXNlcklkIjoiOTAzMTBlNmMtZjAwYS00Mzg1LWI1ZWMtOTdmNWIzNjIwYzlmIiwic3ViIjoibmd1eWVudHJ1bmd0aHVhbjQxN0BnbWFpbC5jb20iLCJpc3MiOiJhdXRoLXNlcnZpY2UiLCJpYXQiOjE3NjYzMDE4OTcsImV4cCI6MTc2NjMwNTQ5N30.EclQHSW30e5aXik4PovKiHnWMqx2y25uUH-3dqbEBtQ
+
+### ==================== ROOM MANAGEMENT ====================
+
+### 1. Tạo phòng live mới
+POST {{baseUrl}}/rooms
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJyb2xlcyI6WyJST0xFX1NIT1BfT1dORVIiLCJST0xFX1VTRVIiXSwidXNlcklkIjoiOTAzMTBlNmMtZjAwYS00Mzg1LWI1ZWMtOTdmNWIzNjIwYzlmIiwic3ViIjoibmd1eWVudHJ1bmd0aHVhbjQxN0BnbWFpbC5jb20iLCJpc3MiOiJhdXRoLXNlcnZpY2UiLCJpYXQiOjE3NjYzMDE4OTcsImV4cCI6MTc2NjMwNTQ5N30.EclQHSW30e5aXik4PovKiHnWMqx2y25uUH-3dqbEBtQ
+
+{
+  "title": "Flash Sale Cuối Năm - Giảm giá 50%",
+  "description": "Livestream bán hàng với nhiều ưu đãi hấp dẫn",
+  "thumbnailUrl": "https://example.com/thumbnail.jpg"
+}
+
+###
+
+### 2. Lấy danh sách phòng đang live (public)
+GET {{baseUrl}}/rooms?page=0&size=10
+
+###
+
+### 3. Lấy chi tiết phòng (public)
+GET {{baseUrl}}/rooms/ROOM_ID_HERE
+
+###
+
+### 4. Lấy chi tiết phòng với Stream Key (chỉ shop owner)
+GET {{baseUrl}}/rooms/ROOM_ID_HERE/details
+Authorization: Bearer {{token}}
+
+###
+
+### 5. Lấy danh sách phòng của tôi (shop owner)
+GET {{baseUrl}}/my-rooms?page=0&size=10
+Authorization: Bearer {{token}}
+
+###
+
+### 6. Bắt đầu Live
+PUT {{baseUrl}}/rooms/ROOM_ID_HERE/start
+Authorization: Bearer {{token}}
+
+###
+
+### 7. Kết thúc Live
+PUT {{baseUrl}}/rooms/ROOM_ID_HERE/end
+Authorization: Bearer {{token}}
+
+###
+
+### ==================== PRODUCT MANAGEMENT ====================
+
+### 8. Thêm sản phẩm vào Live Room
+POST {{baseUrl}}/rooms/ROOM_ID_HERE/products
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "productId": "PRODUCT_ID_FROM_STOCK_SERVICE",
+  "livePrice": 199000,
+  "quantityLimit": 50,
+  "displayOrder": 1
+}
+
+###
+
+### 9. Thêm sản phẩm thứ 2
+POST {{baseUrl}}/rooms/ROOM_ID_HERE/products
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "productId": "ANOTHER_PRODUCT_ID",
+  "livePrice": 299000,
+  "quantityLimit": 30,
+  "displayOrder": 2
+}
+
+###
+
+### 10. Lấy danh sách sản phẩm trong Live Room (public)
+GET {{baseUrl}}/rooms/ROOM_ID_HERE/products
+
+###
+
+### 11. Highlight sản phẩm (đặt featured)
+PUT {{baseUrl}}/rooms/ROOM_ID_HERE/products/PRODUCT_ID_HERE/feature
+Authorization: Bearer {{token}}
+
+###
+
+### 12. Xóa sản phẩm khỏi Live Room
+DELETE {{baseUrl}}/rooms/ROOM_ID_HERE/products/PRODUCT_ID_HERE
+Authorization: Bearer {{token}}
+
+###
+
+### ==================== CHAT ====================
+
+### 13. Gửi tin nhắn chat (cần Auth)
+POST {{baseUrl}}/rooms/ROOM_ID_HERE/chat
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "message": "Xin chào mọi người! Sản phẩm này còn hàng không ạ?"
+}
+
+###
+
+### 14. Lấy tin nhắn gần đây (public)
+GET {{baseUrl}}/rooms/ROOM_ID_HERE/chat
+
+###
+
+### ==================== VIEWER COUNT ====================
+
+### 15. Cập nhật số người xem (testing only)
+PUT {{baseUrl}}/rooms/ROOM_ID_HERE/viewers
+Content-Type: application/json
+
+{
+  "count": 150
+}
+
+###
+
+### ==================== RTMP CALLBACKS (Nginx-RTMP) ====================
+
+### 16. Callback khi OBS bắt đầu stream
+POST {{baseUrl}}/callback/start?name=STREAM_KEY_HERE
+
+###
+
+### 17. Callback khi OBS kết thúc stream
+POST {{baseUrl}}/callback/end?name=STREAM_KEY_HERE
+
+###
+
+### ==================== DEMO FLOW ====================
+### Luồng test hoàn chỉnh:
+### 1. Tạo phòng live (request #1) -> lấy id và streamKey
+### 2. Thêm sản phẩm (request #8, #9)
+### 3. Bắt đầu live (request #6) hoặc dùng OBS stream đến rtmp://localhost:1935/live/STREAM_KEY
+### 4. Gửi chat (request #13)
+### 5. Highlight sản phẩm (request #11)
+### 6. Kết thúc live (request #7)

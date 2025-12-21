@@ -23,4 +23,8 @@ public class OrderDto {
 
     private String cancelReason;
     private String returnReason;
+    
+    // Voucher fields
+    private String voucherId;
+    private Double voucherDiscount;
 }

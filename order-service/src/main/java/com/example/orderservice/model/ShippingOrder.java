@@ -37,5 +37,19 @@ public class ShippingOrder extends BaseEntity {
     
     @Column(name = "ghn_response", columnDefinition = "TEXT")
     private String ghnResponse;
+    
+    // Last known location from tracking updates
+    @Column(name = "last_lat")
+    private Double lastLat;
+
+    @Column(name = "last_lng")
+    private Double lastLng;
+
+    @Column(name = "last_ts")
+    private LocalDateTime lastTs;
+
+    // JSON array of tracking points: [{ts,lat,lng,status,note,shipperId}, ...]
+    @Column(name = "tracking_history", columnDefinition = "TEXT")
+    private String trackingHistory;
 }
 

@@ -112,7 +112,7 @@ export default function OrderList() {
     const [selectedProduct, setSelectedProduct] = useState(null);
     const [ratingMode, setRatingMode] = useState('full'); // 'quick' or 'full'
     const [currentUser, setCurrentUser] = useState(null);
-    
+
     const STATUS_CONFIG = getStatusConfig(t);
 
     useEffect(() => {
@@ -277,9 +277,9 @@ export default function OrderList() {
         if (!activeTab || activeTab === "ALL") return result;
 
         const tabMap = {
-            'TO_PAY': ['PENDING', 'CONFIRMED'],
-            'TO_SHIP': ['PROCESSING'],
-            'TO_RECEIVE': ['SHIPPED'],
+            'TO_PAY': ['PENDING'],                    // Chờ thanh toán - chỉ PENDING
+            'TO_SHIP': ['CONFIRMED', 'PROCESSING'],   // Chờ vận chuyển - CONFIRMED (đã confirm, chờ ship lấy)
+            'TO_RECEIVE': ['SHIPPED'],                // Chờ nhận hàng - đang giao
             'COMPLETED': ['DELIVERED', 'COMPLETED'],
             'CANCELLED': ['CANCELLED'],
             'RETURNED': ['RETURNED']
@@ -319,8 +319,8 @@ export default function OrderList() {
                     textTransform: 'uppercase'
                 }}
             >
-        {config.label}
-      </span>
+                {config.label}
+            </span>
         );
     };
 
@@ -331,6 +331,10 @@ export default function OrderList() {
         } else {
             navigate('/shop');
         }
+    };
+
+    const openTracking = (order) => {
+        navigate(`/order/track/${order.id}`);
     };
 
     const [successMessage, setSuccessMessage] = useState('');
@@ -348,20 +352,20 @@ export default function OrderList() {
             setError('');
             setSuccessMessage('');
             const reasonText = confirmModal.reason?.trim() || '';
-            
+
             // Find order to check payment method
             const orderToCancel = orders.find(o => o.id === confirmModal.orderId);
             const isVnpay = orderToCancel?.paymentMethod === 'VNPAY' || orderToCancel?.paymentMethod === 'vnpay';
-            
+
             await cancelOrder(confirmModal.orderId, reasonText);
-            
+
             // Show appropriate success message based on payment method
             if (isVnpay) {
                 setSuccessMessage(t('orders.cancelSuccessWithRefund') || 'Đơn hàng đã được hủy. Tiền đã được hoàn vào ví của bạn. Bạn có thể rút tiền về tài khoản ngân hàng bất cứ lúc nào.');
             } else {
                 setSuccessMessage(t('orders.cancelSuccess'));
             }
-            
+
             const data = await getOrdersByUser();
             setOrders(Array.isArray(data) ? data : []);
             setTimeout(() => setSuccessMessage(''), 5000); // Show longer for refund message
@@ -403,8 +407,8 @@ export default function OrderList() {
                     <div className="d-flex" style={{ overflowX: 'auto', padding: '0 24px' }}>
                         {[
                             { id: 'ALL', label: t('orders.all') },
-                            { id: 'TO_PAY', label: t('orders.toPay'), statuses: ['PENDING', 'CONFIRMED'] },
-                            { id: 'TO_SHIP', label: t('orders.toShip'), statuses: ['PROCESSING'] },
+                            { id: 'TO_PAY', label: t('orders.toPay'), statuses: ['PENDING'] },
+                            { id: 'TO_SHIP', label: t('orders.toShip'), statuses: ['CONFIRMED', 'PROCESSING'] },
                             { id: 'TO_RECEIVE', label: t('orders.toReceive'), statuses: ['SHIPPED'] },
                             { id: 'COMPLETED', label: t('orders.completed'), statuses: ['DELIVERED', 'COMPLETED'] },
                             { id: 'CANCELLED', label: t('orders.cancelled'), statuses: ['CANCELLED'] },
@@ -498,9 +502,9 @@ export default function OrderList() {
                                         }}
                                     >
                                         <div className="d-flex align-items-center gap-2 flex-wrap">
-                      <span style={{ fontSize: '14px', fontWeight: 500, color: '#222' }}>
-                        MERIER STORE
-                      </span>
+                                            <span style={{ fontSize: '14px', fontWeight: 500, color: '#222' }}>
+                                                MERIER STORE
+                                            </span>
                                             <button
                                                 className="btn btn-sm"
                                                 onClick={() => handleViewShop(order)}
@@ -550,14 +554,22 @@ export default function OrderList() {
                                                 View Shop
                                             </button>
                                         </div>
+                                        <button
+                                            className="btn"
+                                            style={{ background: 'transparent', border: '1px solid #ddd', color: '#555', fontSize: 13, padding: '8px 12px' }}
+                                            onClick={() => openTracking(order)}
+                                        >
+                                            {t('orders.viewTracking') || 'Tracking'}
+                                        </button>
                                         <div className="d-flex align-items-center gap-2">
                                             {(normalizeStatus(order.orderStatus) === 'COMPLETED' || normalizeStatus(order.orderStatus) === 'DELIVERED') && (
                                                 <span style={{ fontSize: '12px', color: '#26aa99' }}>
-                          <i className="fa fa-truck me-1"></i> Delivery successful
-                        </span>
+                                                    <i className="fa fa-truck me-1"></i> Delivery successful
+                                                </span>
                                             )}
                                             {getStatusBadge(order.orderStatus)}
                                         </div>
+
                                     </div>
 
                                     {/* Order Items - Shopee Style */}
@@ -629,8 +641,8 @@ export default function OrderList() {
                                                         </div>
                                                     </div>
 
-                                {/* Price */}
-                                <div className="text-end" style={{ minWidth: '130px', flexShrink: 0 }}>
+                                                    {/* Price */}
+                                                    <div className="text-end" style={{ minWidth: '130px', flexShrink: 0 }}>
                                                         {item.originalPrice && item.originalPrice > item.unitPrice && (
                                                             <div style={{ fontSize: '13px', color: '#999', textDecoration: 'line-through', marginBottom: '4px' }}>
                                                                 {formatVND(item.originalPrice)}
@@ -756,6 +768,7 @@ export default function OrderList() {
                                                         >
                                                             Quick Rate
                                                         </button>
+
                                                         <button
                                                             className="btn"
                                                             style={ratingButtonPrimary}
@@ -925,6 +938,7 @@ export default function OrderList() {
                     </div>
                 )
             }
+            {/* tracking navigates to dedicated page */}
         </div >
     );
 }

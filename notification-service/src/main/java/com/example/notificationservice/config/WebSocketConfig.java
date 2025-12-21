@@ -43,6 +43,25 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                     "http://shopee-fake.id.vn",
                     "http://www.shopee-fake.id.vn"
                 );
+        
+        // NEW: Livestream WebSocket endpoint with SockJS
+        registry.addEndpoint("/ws/live")
+                .setAllowedOriginPatterns(
+                    "http://localhost:5173",
+                    "http://shopee-fake.id.vn",
+                    "http://www.shopee-fake.id.vn",
+                    "*" // Allow all for development
+                )
+                .withSockJS();
+        
+        // NEW: Livestream WebSocket endpoint without SockJS
+        registry.addEndpoint("/ws/live")
+                .setAllowedOriginPatterns(
+                    "http://localhost:5173",
+                    "http://shopee-fake.id.vn",
+                    "http://www.shopee-fake.id.vn",
+                    "*"
+                );
     }
 
     @Override

@@ -384,6 +384,7 @@
     "toPay": "Chờ thanh toán",
     "toShip": "Chờ vận chuyển",
     "toReceive": "Chờ nhận hàng",
+    "viewTracking": "Xem vận đơn",
     "all": "Tất cả",
     "pending": "Đang chờ",
     "processing": "Đang xử lý",
@@ -1162,6 +1163,64 @@
         "subscriptionFee": "Phí gói subscription",
         "perProduct": "mỗi sản phẩm"
       }
+    }
+  },
+  "tracking": {
+    "title": "Chi tiết đơn hàng",
+    "orderId": "Mã đơn hàng",
+    "backButton": "← TRỞ LẠI",
+    "steps": {
+      "orderPlaced": "Đơn Hàng Đã Đặt",
+      "paymentConfirmedCOD": "Đã Xác Nhận Thông Tin Thanh Toán",
+      "paymentConfirmedVNPAY": "Đã Thanh Toán",
+      "handedToShipper": "Đã Giao Cho ĐVVC",
+      "delivered": "Đã Nhận Được Hàng",
+      "completed": "Đơn Hàng Đã Hoàn Thành"
+    },
+    "orderStatus": {
+      "pending": "Đang chờ xác nhận",
+      "confirmed": "Đã xác nhận",
+      "shipped": "Đang giao hàng",
+      "delivered": "Đã giao hàng",
+      "completed": "Hoàn thành",
+      "cancelled": "Đã hủy",
+      "returned": "Trả hàng"
+    },
+    "address": {
+      "title": "Địa Chỉ Nhận Hàng",
+      "updating": "Đang cập nhật địa chỉ..."
+    },
+    "timeline": {
+      "title": "Lịch trình giao hàng",
+      "estimatedDelivery": "Dự kiến giao hàng",
+      "orderPlaced": "Đặt hàng thành công",
+      "orderPlacedDescription": "Đơn hàng đã được đặt thành công",
+      "viewMore": "Xem thêm",
+      "collapse": "Thu gọn"
+    },
+    "products": {
+      "title": "Sản phẩm đã đặt"
+    },
+    "priceBreakdown": {
+      "subtotal": "Tổng tiền hàng",
+      "shippingFee": "Phí vận chuyển",
+      "shippingDiscount": "Giảm giá phí vận chuyển",
+      "voucherDiscount": "Voucher từ Shopee",
+      "total": "Thành tiền",
+      "paymentMethod": "Phương thức Thanh toán"
+    },
+    "paymentMethods": {
+      "cod": "Thanh toán khi nhận hàng",
+      "vnpay": "VNPay",
+      "card": "Thẻ tín dụng/Ghi nợ"
+    },
+    "buttons": {
+      "buyAgain": "Mua Lại",
+      "contactSeller": "Liên Hệ Người Bán"
+    },
+    "statusMessages": {
+      "cancelled": "Đơn hàng đã bị hủy",
+      "returned": "Đơn hàng đã được trả lại"
     }
   }
 }

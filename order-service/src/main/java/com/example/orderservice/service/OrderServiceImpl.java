@@ -32,6 +32,7 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
+import com.example.orderservice.service.TrackingEmitterService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -214,6 +215,7 @@ public class OrderServiceImpl implements OrderService {
     private static final Logger log = LoggerFactory.getLogger(OrderServiceImpl.class);
     // Scheduler for auto-complete after DELIVERED
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+    private final TrackingEmitterService trackingEmitterService;
 
     // Get data for shop owner orders
     @Override
@@ -900,6 +902,41 @@ public class OrderServiceImpl implements OrderService {
                     .ghnResponse(toJson(ghnResponse))
                     .build();
 
+            // Initialize tracking history using shop owner & customer coordinates if available
+            try {
+                java.util.List<java.util.Map<String,Object>> history = new java.util.ArrayList<>();
+                if (shopOwner != null && shopOwner.getLatitude() != null && shopOwner.getLongitude() != null) {
+                    java.util.Map<String,Object> p = new java.util.HashMap<>();
+                    p.put("ts", java.time.LocalDateTime.now().toString());
+                    p.put("lat", shopOwner.getLatitude());
+                    p.put("lng", shopOwner.getLongitude());
+                    p.put("status", "PICKED_FROM_SHOP");
+                    p.put("note", "Shop ready / pickup point");
+                    history.add(p);
+
+                    // set last location to shop initially
+                    shippingOrder.setLastLat(shopOwner.getLatitude());
+                    shippingOrder.setLastLng(shopOwner.getLongitude());
+                    shippingOrder.setLastTs(java.time.LocalDateTime.now());
+                }
+
+                if (customerAddress != null && customerAddress.getLatitude() != null && customerAddress.getLongitude() != null) {
+                    java.util.Map<String,Object> dest = new java.util.HashMap<>();
+                    dest.put("ts", java.time.LocalDateTime.now().toString());
+                    dest.put("lat", customerAddress.getLatitude());
+                    dest.put("lng", customerAddress.getLongitude());
+                    dest.put("status", "DESTINATION");
+                    dest.put("note", "Delivery address");
+                    history.add(dest);
+                }
+
+                if (!history.isEmpty()) {
+                    shippingOrder.setTrackingHistory(objectMapper.writeValueAsString(history));
+                }
+            } catch (Exception e) {
+                log.warn("[GHN] Failed to init tracking history: {}", e.getMessage());
+            }
+
             shippingOrderRepository.save(shippingOrder);
 
         } catch (Exception e) {
@@ -1393,11 +1430,20 @@ public class OrderServiceImpl implements OrderService {
             return;
         }
         ShippingOrder sh = opt.get();
-        String s = status.toUpperCase();
-        sh.setStatus(s);
+        String s = status.toLowerCase(); // GHN returns lowercase status
+        String upperS = s.toUpperCase();
+        sh.setStatus(upperS);
         shippingOrderRepository.save(sh);
 
-        // Update order status accordingly
+        // publish minimal tracking event (no location)
+        Map<String, Object> evt = new HashMap<>();
+        evt.put("orderId", sh.getOrderId());
+        evt.put("ghnOrderCode", sh.getGhnOrderCode());
+        evt.put("status", upperS);
+        evt.put("ts", java.time.LocalDateTime.now().toString());
+        trackingEmitterService.send(sh.getOrderId(), evt);
+
+        // Update order status accordingly based on GHN status
         try {
             Order order = orderRepository.findById(sh.getOrderId()).orElse(null);
             if (order == null) {
@@ -1405,18 +1451,147 @@ public class OrderServiceImpl implements OrderService {
                 return;
             }
 
-            if ("PICKED".equalsIgnoreCase(s) || "PICK_UP".equalsIgnoreCase(s) || "PICK".equalsIgnoreCase(s)) {
-                order.setOrderStatus(OrderStatus.SHIPPED);
+            OrderStatus currentStatus = order.getOrderStatus();
+            OrderStatus newStatus = null;
+
+            // Map GHN statuses to Order statuses
+            switch (s) {
+                // Waiting for pickup - still CONFIRMED
+                case "ready_to_pick":
+                case "picking":
+                case "money_collect_picking":
+                    // Keep as CONFIRMED, shipper not picked up yet
+                    if (currentStatus == OrderStatus.PENDING) {
+                        newStatus = OrderStatus.CONFIRMED;
+                    }
+                    break;
+
+                // Shipper picked up / In transit - SHIPPED
+                case "picked":
+                case "storing":
+                case "transporting":
+                case "sorting":
+                case "delivering":
+                case "money_collect_delivering":
+                    newStatus = OrderStatus.SHIPPED;
+                    break;
+
+                // Delivered to customer - DELIVERED
+                case "delivered":
+                    newStatus = OrderStatus.DELIVERED;
+                    break;
+
+                // Delivery failed - still SHIPPED (can retry)
+                case "delivery_fail":
+                case "waiting_to_return":
+                    // Keep as SHIPPED, delivery failed but may retry
+                    log.info("[GHN] Delivery failed for order {}, status: {}", sh.getOrderId(), s);
+                    break;
+
+                // Cancelled
+                case "cancel":
+                    newStatus = OrderStatus.CANCELLED;
+                    break;
+
+                // Return flow
+                case "return":
+                case "returning":
+                case "return_transporting":
+                case "return_sorting":
+                case "return_fail":
+                case "returned":
+                    newStatus = OrderStatus.RETURNED;
+                    break;
+
+                // Exception cases
+                case "exception":
+                case "damage":
+                case "lost":
+                    log.error("[GHN] Exception status for order {}: {}", sh.getOrderId(), s);
+                    // Keep current status, notify shop owner
+                    break;
+
+                default:
+                    log.info("[GHN] Unhandled status for order {}: {}", sh.getOrderId(), s);
+            }
+
+            // Update order status if changed
+            if (newStatus != null && newStatus != currentStatus) {
+                order.setOrderStatus(newStatus);
                 orderRepository.save(order);
-            } else if ("DELIVERED".equalsIgnoreCase(s) || "DELIVER".equalsIgnoreCase(s)) {
-                order.setOrderStatus(OrderStatus.DELIVERED);
-                orderRepository.save(order);
-                // Schedule auto-complete after 60 seconds
-                scheduleAutoComplete(order.getId(), 60);
+                log.info("[GHN] Order {} status updated: {} -> {}", sh.getOrderId(), currentStatus, newStatus);
+
+                // Schedule auto-complete if delivered
+                if (newStatus == OrderStatus.DELIVERED) {
+                    scheduleAutoComplete(order.getId(), 60);
+                }
             }
         } catch (Exception e) {
             log.error("[GHN] Failed to update order status from GHN status: {}", e.getMessage(), e);
         }
+    }
+
+    @Override
+    public void handleLocationUpdate(String ghnOrderCode, String status, Double lat, Double lng, String shipperId, String note, String timestamp) {
+        if (ghnOrderCode == null || ghnOrderCode.isBlank()) {
+            log.warn("[TRACK] handleLocationUpdate missing ghnOrderCode");
+            return;
+        }
+
+        Optional<ShippingOrder> opt = shippingOrderRepository.findByGhnOrderCode(ghnOrderCode);
+        if (opt.isEmpty()) {
+            log.warn("[TRACK] ShippingOrder not found for code {}", ghnOrderCode);
+            return;
+        }
+        ShippingOrder sh = opt.get();
+
+        // Update last location
+        if (lat != null && lng != null) {
+            sh.setLastLat(lat);
+            sh.setLastLng(lng);
+            sh.setLastTs(java.time.LocalDateTime.now());
+        }
+        if (status != null && !status.isBlank()) {
+            sh.setStatus(status.toUpperCase());
+        }
+
+        // Append to trackingHistory JSON array (simple append, not parsing for brevity)
+        try {
+            java.util.List<Map<String, Object>> history = new java.util.ArrayList<>();
+            String old = sh.getTrackingHistory();
+            if (old != null && !old.isBlank()) {
+                try {
+                    history = objectMapper.readValue(old, java.util.List.class);
+                } catch (Exception e) {
+                    // ignore parse errors
+                }
+            }
+            Map<String, Object> point = new HashMap<>();
+            point.put("ts", timestamp != null ? timestamp : java.time.LocalDateTime.now().toString());
+            point.put("lat", lat);
+            point.put("lng", lng);
+            point.put("status", status);
+            point.put("shipperId", shipperId);
+            point.put("note", note);
+            history.add(point);
+            sh.setTrackingHistory(objectMapper.writeValueAsString(history));
+        } catch (Exception e) {
+            log.error("[TRACK] Failed to append tracking history: {}", e.getMessage());
+        }
+
+        shippingOrderRepository.save(sh);
+
+        // Publish event to SSE subscribers
+        Map<String, Object> evt = new HashMap<>();
+        evt.put("orderId", sh.getOrderId());
+        evt.put("ghnOrderCode", sh.getGhnOrderCode());
+        evt.put("status", sh.getStatus());
+        evt.put("lat", sh.getLastLat());
+        evt.put("lng", sh.getLastLng());
+        evt.put("ts", sh.getLastTs() != null ? sh.getLastTs().toString() : java.time.LocalDateTime.now().toString());
+        evt.put("note", note);
+        evt.put("shipperId", shipperId);
+        trackingEmitterService.send(sh.getOrderId(), evt);
     }
 
     private void scheduleAutoComplete(String orderId, long seconds) {

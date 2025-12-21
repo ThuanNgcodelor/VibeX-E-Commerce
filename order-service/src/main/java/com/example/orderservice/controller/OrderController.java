@@ -16,6 +16,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.HashMap;
 import java.util.List;
@@ -35,6 +36,7 @@ public class OrderController {
     private final UserServiceClient userServiceClient;
     private final ShippingOrderRepository shippingOrderRepository;
     private final GhnApiClient ghnApiClient;
+    private final com.example.orderservice.service.TrackingEmitterService trackingEmitterService;
 
     private OrderDto enrichOrderDto(Order order) {
         OrderDto dto = modelMapper.map(order, OrderDto.class);
@@ -144,6 +146,14 @@ public class OrderController {
                 System.err
                         .println("Failed to fetch shipping fee for orderId: " + order.getId() + " - " + e.getMessage());
             }
+        }
+
+        // Map voucher discount from BigDecimal to Double
+        if (order.getVoucherDiscount() != null) {
+            dto.setVoucherDiscount(order.getVoucherDiscount().doubleValue());
+        }
+        if (order.getVoucherId() != null) {
+            dto.setVoucherId(order.getVoucherId());
         }
 
         return dto;
@@ -833,6 +843,45 @@ public class OrderController {
             return ResponseEntity.ok(order);
         }
         return ResponseEntity.badRequest().build();
+    }
+
+
+    /**
+     * SSE stream for order tracking. Client opens EventSource to receive tracking events.
+     */
+    @GetMapping("/track/{orderId}/stream")
+    public SseEmitter streamOrderTracking(@PathVariable String orderId) {
+        return trackingEmitterService.subscribe(orderId);
+    }
+
+    /**
+     * Get ShippingOrder by orderId (dev convenience)
+     */
+    @GetMapping("/shipping/{orderId}")
+    public ResponseEntity<?> getShippingByOrderId(@PathVariable String orderId) {
+        try {
+            return ResponseEntity.ok(shippingOrderRepository.findByOrderId(orderId).orElse(null));
+        } catch (Exception e) {
+            log.error("getShippingByOrderId error: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Get enriched Order by ID for client view
+     */
+    @GetMapping("/{orderId}")
+    public ResponseEntity<OrderDto> getOrderByIdForClient(@PathVariable String orderId) {
+        try {
+            Order order = orderService.getOrderById(orderId);
+            OrderDto dto = enrichOrderDto(order);
+            return ResponseEntity.ok(dto);
+        } catch (RuntimeException e) {
+            if (e.getMessage().toLowerCase().contains("not found")) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+            }
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
     }
 
     @GetMapping("/shop-owner/dashboard-stats")

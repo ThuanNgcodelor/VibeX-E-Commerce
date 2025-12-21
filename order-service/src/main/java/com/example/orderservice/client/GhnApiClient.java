@@ -6,6 +6,7 @@ import com.example.orderservice.dto.GhnCalculateFeeRequest;
 import com.example.orderservice.dto.GhnCalculateFeeResponse;
 import com.example.orderservice.dto.GhnAvailableServicesRequest;
 import com.example.orderservice.dto.GhnAvailableServicesResponse;
+import com.example.orderservice.dto.ghn.GhnOrderInfoResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
@@ -191,6 +192,59 @@ public class GhnApiClient {
         } catch (Exception e) {
             log.error("[GHN API] Get services exception: {}", e.getMessage(), e);
             throw new RuntimeException("GHN get available services failed: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Lấy thông tin chi tiết đơn hàng GHN
+     * Dùng để polling trạng thái đơn hàng
+     * API: POST /v2/shipping-order/detail
+     */
+    public GhnOrderInfoResponse getOrderInfo(String orderCode) {
+        if (orderCode == null || orderCode.isBlank()) {
+            throw new RuntimeException("Order code is required");
+        }
+        
+        // Validate GHN configuration
+        if (apiToken == null || apiToken.isBlank() || apiToken.contains("YOUR_STAGING_TOKEN")) {
+            throw new RuntimeException("GHN Token is not configured. Please set ghn.api.token in application.properties");
+        }
+        
+        String url = apiUrl + "/v2/shipping-order/detail";
+        
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("Token", apiToken);
+        
+        // Request body
+        java.util.Map<String, String> requestBody = new java.util.HashMap<>();
+        requestBody.put("order_code", orderCode);
+        
+        HttpEntity<java.util.Map<String, String>> entity = new HttpEntity<>(requestBody, headers);
+        
+        try {
+            ResponseEntity<GhnOrderInfoResponse> response = restTemplate.exchange(
+                url,
+                HttpMethod.POST,
+                entity,
+                GhnOrderInfoResponse.class
+            );
+            
+            GhnOrderInfoResponse body = response.getBody();
+            
+            if (body != null && body.getCode() == 200 && body.getData() != null) {
+                log.debug("[GHN API] Order {} status: {}", orderCode, body.getData().getStatus());
+            } else {
+                log.warn("[GHN API] Get order info error - Code: {}, Message: {}", 
+                    body != null ? body.getCode() : "null", 
+                    body != null ? body.getMessage() : "null");
+            }
+            
+            return body;
+            
+        } catch (Exception e) {
+            log.error("[GHN API] Get order info exception for {}: {}", orderCode, e.getMessage());
+            return null; // Return null on error so polling continues
         }
     }
 }

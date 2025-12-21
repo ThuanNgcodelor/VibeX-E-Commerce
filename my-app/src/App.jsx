@@ -21,6 +21,7 @@ import ContactPage from "./pages/client/ContactPage.jsx";
 import Logout from "./components/admin/Logout.jsx";
 import ProductDetailPage from "./pages/client/ProductDetailPage.jsx";
 import ShopDetailPage from "./pages/client/ShopDetailPage.jsx";
+import TrackingPage from "./pages/client/TrackingPage.jsx";
 import ShopOwnerLayout from "./components/shop-owner/ShopOwnerLayout.jsx";
 import ShopOwnerDashboard from "./pages/shop-owner/ShopOwnerDashboard.jsx";
 import AllProductsPage from "./pages/shop-owner/AllProductsPage.jsx";
@@ -33,6 +34,10 @@ import NotificationPage from "./pages/shop-owner/NotificationPage.jsx";
 import ChatPage from "./pages/shop-owner/ChatPage.jsx";
 import WalletPage from "./pages/shop-owner/WalletPage.jsx";
 import SubscriptionPage from "./pages/shop-owner/SubscriptionPage.jsx";
+import LiveStreamPage from "./pages/shop-owner/LiveStreamPage.jsx";
+import LiveListPage from "./pages/client/LiveListPage.jsx";
+import LiveWatchPage from "./pages/client/LiveWatchPage.jsx";
+import LiveManagePage from "./pages/live/LiveManagePage.jsx";
 import VoucherManagementPage from "./pages/admin/VoucherManagementPage.jsx";
 import SubscriptionPlanManagementPage from "./pages/admin/SubscriptionPlanManagementPage.jsx";
 import BannerManagementPage from "./pages/admin/BannerManagementPage.jsx";
@@ -71,58 +76,65 @@ export default function App() {
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/product/:id" element={<ProductDetailPage />} />
           <Route path="/shop/:userId" element={<ShopDetailPage />} />
+          <Route path="/order/track/:orderId" element={<TrackingPage />} />
+
+          {/* Live Stream routes (client) */}
+          <Route path="/live" element={<LiveListPage />} />
+          <Route path="/live/manage" element={<LiveManagePage />} />
+          <Route path="/live/:roomId" element={<LiveWatchPage />} />
 
 
 
           {/* Admin routes */}
-            {/* Admin routes */}
-            <Route
-                path="/admin/*"
-                element={
-                    <ProtectedRoute allowedRoles={["ROLE_ADMIN"]}>
-                        <AdminLayout />
-                    </ProtectedRoute>
-                }
-            >
-                <Route index element={<AdminDashboard />} />
-                <Route path="tables/datatables" element={<DataTablesPage />} />
-                {/* <Route path="orders" element={<OrdersPage />} />
+          {/* Admin routes */}
+          <Route
+            path="/admin/*"
+            element={
+              <ProtectedRoute allowedRoles={["ROLE_ADMIN"]}>
+                <AdminLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<AdminDashboard />} />
+            <Route path="tables/datatables" element={<DataTablesPage />} />
+            {/* <Route path="orders" element={<OrdersPage />} />
                 <Route path="categ  ories" element={<CategoriesPage />} /> */}
-                <Route path="role-request" element={<RolesPage />} />
-                {/* <Route path="charts" element={<ChartAdmin />} />
+            <Route path="role-request" element={<RolesPage />} />
+            {/* <Route path="charts" element={<ChartAdmin />} />
                 <Route path="products" element={<ProductsPage />} /> */}
-                <Route path="shop-owners" element={<ShopOwnerManagementPage />} />
-                <Route path="banner" element={<BannerManagementPage />} />
-                <Route path="voucher" element={<VoucherManagementPage />} />
-                <Route path="subscription" element={<SubscriptionPlanManagementPage />} />
-                <Route path="logout" element={<Logout />} />
-            </Route>
+            <Route path="shop-owners" element={<ShopOwnerManagementPage />} />
+            <Route path="banner" element={<BannerManagementPage />} />
+            <Route path="voucher" element={<VoucherManagementPage />} />
+            <Route path="subscription" element={<SubscriptionPlanManagementPage />} />
+            <Route path="logout" element={<Logout />} />
+          </Route>
 
           {/* Shop Owner routes */}
-            {/* Shop Owner routes */}
-            <Route
-                path="/shop-owner/*"
-                element={
-                    <ProtectedRoute allowedRoles={["ROLE_SHOP_OWNER"]}>
-                        <ShopOwnerLayout />
-                    </ProtectedRoute>
-                }
-            >
-                <Route index element={<ShopOwnerDashboard />} />
-                <Route path="products" element={<AllProductsPage />} />
-                <Route path="products/add" element={<AddProductPage />} />
-                <Route path="products/edit/:id" element={<AddProductPage />} />
-                <Route path="orders/returns" element={<ReturnOrderPage />} />
-                <Route path="orders/bulk-shipping" element={<BulkShippingPage />} />
+          {/* Shop Owner routes */}
+          <Route
+            path="/shop-owner/*"
+            element={
+              <ProtectedRoute allowedRoles={["ROLE_SHOP_OWNER"]}>
+                <ShopOwnerLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<ShopOwnerDashboard />} />
+            <Route path="products" element={<AllProductsPage />} />
+            <Route path="products/add" element={<AddProductPage />} />
+            <Route path="products/edit/:id" element={<AddProductPage />} />
+            <Route path="orders/returns" element={<ReturnOrderPage />} />
+            <Route path="orders/bulk-shipping" element={<BulkShippingPage />} />
 
-                <Route path="analytics" element={<AnalyticsPage />} />
-                <Route path="chat" element={<ChatPage />} />
-                <Route path="notifications" element={<NotificationPage />} />
-                <Route path="wallet" element={<WalletPage />} />
-                <Route path="subscription" element={<SubscriptionPage />} />
-                <Route path="settings" element={<SettingsPage />} />
-                <Route path="logout" element={<Logout />} />
-            </Route>
+            <Route path="analytics" element={<AnalyticsPage />} />
+            <Route path="chat" element={<ChatPage />} />
+            <Route path="notifications" element={<NotificationPage />} />
+            <Route path="wallet" element={<WalletPage />} />
+            <Route path="subscription" element={<SubscriptionPage />} />
+            <Route path="settings" element={<SettingsPage />} />
+            <Route path="live" element={<LiveStreamPage />} />
+            <Route path="logout" element={<Logout />} />
+          </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

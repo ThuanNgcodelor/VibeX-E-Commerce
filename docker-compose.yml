@@ -37,7 +37,6 @@ services:
 
       # 2 listener: nội bộ (PLAINTEXT) & ngoài máy (EXTERNAL)
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,EXTERNAL://0.0.0.0:9094
-      # PLAINTEXT cho các container trong network Docker (Kafka UI)
       # EXTERNAL cho client trên host
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
@@ -66,6 +65,26 @@ services:
     ports:
       - "9090:8080"
     networks: [shopee-network]
+
+  # ============================================
+  # NGINX-RTMP: Media Server cho Livestream
+  # ============================================
+  # Nhận stream từ OBS (RTMP) và phát lại dưới dạng HLS
+  nginx-rtmp:
+    image: tiangolo/nginx-rtmp
+    container_name: nginx-rtmp
+    restart: unless-stopped
+    ports:
+      - "1935:1935"    # RTMP ingest từ OBS
+      - "8088:8080"    # HLS playback (8088 để tránh conflict với gateway 8080)
+    volumes:
+      - ./config/nginx-rtmp/nginx.conf:/etc/nginx/nginx.conf:ro
+    networks: [shopee-network]
+    # Hướng dẫn sử dụng:
+    # 1. OBS Stream Settings:
+    #    - Server: rtmp://localhost:1935/live
+    #    - Stream Key: <stream_key từ API>
+    # 2. Xem stream: http://localhost:8088/hls/<stream_key>.m3u8
 
   redis:
     image: redis:7

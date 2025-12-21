@@ -4,19 +4,6 @@ const API_URL = "/v1/order";
 const api = createApiInstance(API_URL);
 
 /**
- * Lấy danh sách địa chỉ của người dùng
- * @returns {Promise<Array>} - Promise trả về danh sách địa chỉ
- */
-export const getUserAddresses = async () => {
-    try {
-        const response = await api.get("/addresses");
-        return response.data;
-    } catch {
-        throw new Error("Failed to fetch addresses");
-    }
-};
-
-/**
  * Lấy thông tin địa chỉ theo ID
  * @param {string} addressId - ID của địa chỉ
  * @returns {Promise} - Promise trả về thông tin địa chỉ
@@ -92,7 +79,7 @@ export const getOrderById = async (orderId) => {
     try {
         const response = await api.get(`/${orderId}`);
         return response.data;
-    } catch (error) {
+    } catch  {
         throw new Error("Failed to fetch order");
     }
 };
@@ -178,20 +165,6 @@ export const returnOrder = async (orderId, reason = "") => {
     }
 };
 
-/**
- * Lấy tất cả đơn hàng của shop owner (không phân trang)
- * @param {string|null} status - Lọc theo trạng thái (optional)
- * @returns {Promise<Array>} - Promise trả về danh sách tất cả đơn hàng
- */
-export const getAllShopOwnerOrders = async (status = null) => {
-    try {
-        const params = status ? { status } : {};
-        const response = await api.get("/shop-owner/orders/all", { params });
-        return response.data;
-    } catch  {
-        throw new Error("Failed to fetch all shop owner orders");
-    }
-};
 
 /**
  * Lấy thông tin đơn hàng của shop owner theo ID
@@ -223,31 +196,18 @@ export const updateOrderStatusForShopOwner = async (orderId, status) => {
 };
 
 /**
- * Simulate GHN status update (DEV)
- * @param {string} ghnOrderCode
- * @param {string} status
+ * Get shipping order by orderId
+ * @param {string} orderId
  */
-export const simulateGhnStatus = async (ghnOrderCode, status) => {
+export const getShippingByOrderId = async (orderId) => {
     try {
-        const response = await api.post(`/simulate-ghn-status/${ghnOrderCode}`, { status });
+        const response = await api.get(`/shipping/${orderId}`);
         return response.data;
-    } catch (error) {
-        throw new Error(error.response?.data?.message || "Failed to simulate GHN status");
+    } catch {
+        throw new Error("Failed to fetch shipping order");
     }
 };
 
-/**
- * Get tracking info by GHN order code
- * @param {string} ghnOrderCode
- */
-export const getTrackingByGhnCode = async (ghnOrderCode) => {
-    try {
-        const response = await api.get(`/tracking/${ghnOrderCode}`);
-        return response.data;
-    } catch (error) {
-        throw new Error("Failed to fetch tracking info");
-    }
-};
 
 /**
  * Client confirms receipt -> COMPLETE

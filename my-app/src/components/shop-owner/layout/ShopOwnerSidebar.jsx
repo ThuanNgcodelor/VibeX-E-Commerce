@@ -201,6 +201,23 @@ const ShopOwnerSidebar = ({ isOpen, onClose }) => {
                     </Link>
                 </div>
 
+                {/* Livestream */}
+                <div className="sidebar-section">
+                    <Link
+                        className={`sidebar-item ${isActive('/live/manage') ? 'active' : ''}`}
+                        to="/live/manage"
+                        onClick={handleLinkClick}
+                        style={{
+                            background: isActive('/live/manage') ? '' : 'linear-gradient(135deg, #ee4d2d 0%, #ff6b35 100%)',
+                            color: isActive('/live/manage') ? '' : 'white',
+                            borderRadius: '8px'
+                        }}
+                    >
+                        <i className="fas fa-video"></i>
+                        <span>🔴 Livestream</span>
+                    </Link>
+                </div>
+
                 {/* Finance Section */}
                 <div className="sidebar-section">
                     <div
