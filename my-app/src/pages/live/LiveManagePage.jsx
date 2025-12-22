@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import Hls from 'hls.js';
+import SockJS from 'sockjs-client';
+import { Client } from '@stomp/stompjs';
 import {
     createLiveRoom,
     getMyLiveRooms,
@@ -10,6 +12,10 @@ import {
     getLiveRoomDetails,
     getStreamUrl
 } from '../../api/live';
+import { getProducts, searchProducts } from '../../api/shopOwner';
+import { fetchProductImageById } from '../../api/product';
+import { LOCAL_BASE_URL } from '../../config/config';
+import imgFallback from '../../assets/images/shop/6.png';
 
 export default function LiveManagePage() {
     const { t } = useTranslation();
@@ -25,6 +31,23 @@ export default function LiveManagePage() {
         description: '',
         thumbnailUrl: ''
     });
+
+    // Product selection states
+    const [selectedProducts, setSelectedProducts] = useState([]);
+    const [showProductModal, setShowProductModal] = useState(false);
+    const [shopProducts, setShopProducts] = useState([]);
+    const [loadingProducts, setLoadingProducts] = useState(false);
+    const [productSearchKeyword, setProductSearchKeyword] = useState('');
+    const [productPage, setProductPage] = useState(1);
+    const [productTotalPages, setProductTotalPages] = useState(0);
+    const [productImageUrls, setProductImageUrls] = useState({});
+
+    // Chat and viewer states
+    const [viewerCount, setViewerCount] = useState(0);
+    const [likeCount, setLikeCount] = useState(0);
+    const [chatMessages, setChatMessages] = useState([]);
+    const [chatInput, setChatInput] = useState('');
+    const stompClientRef = useRef(null);
 
     useEffect(() => {
         fetchRooms();
@@ -44,6 +67,72 @@ export default function LiveManagePage() {
         }
     }, [step, currentRoom]);
 
+    // Setup WebSocket for chat when streaming
+    useEffect(() => {
+        if (step === 'streaming' && currentRoom?.id) {
+            const token = localStorage.getItem('token');
+            const wsUrl = (LOCAL_BASE_URL || 'http://localhost:8080') + '/ws/live';
+
+            const client = new Client({
+                webSocketFactory: () => new SockJS(wsUrl),
+                connectHeaders: token ? { Authorization: `Bearer ${token}` } : {},
+                onConnect: () => {
+                    console.log('Connected to live chat WebSocket');
+
+                    // Subscribe to chat messages
+                    client.subscribe(`/topic/live/${currentRoom.id}/chat`, (message) => {
+                        const chat = JSON.parse(message.body);
+                        setChatMessages(prev => [...prev, chat]);
+                    });
+
+                    // Subscribe to viewer count
+                    client.subscribe(`/topic/live/${currentRoom.id}/viewers`, (message) => {
+                        const data = JSON.parse(message.body);
+                        setViewerCount(data.count || 0);
+                    });
+
+                    // Join room to increment viewer count
+                    client.publish({
+                        destination: `/app/live/${currentRoom.id}/join`,
+                        body: JSON.stringify({})
+                    });
+                },
+                onStompError: (frame) => {
+                    console.error('STOMP error:', frame);
+                }
+            });
+
+            client.activate();
+            stompClientRef.current = client;
+
+            return () => {
+                if (client.connected) {
+                    client.publish({
+                        destination: `/app/live/${currentRoom.id}/leave`,
+                        body: JSON.stringify({})
+                    });
+                }
+                client.deactivate();
+                setChatMessages([]);
+                setViewerCount(0);
+            };
+        }
+    }, [step, currentRoom?.id]);
+
+    // Send chat message
+    const sendChat = () => {
+        if (!chatInput.trim() || !stompClientRef.current?.connected) return;
+
+        stompClientRef.current.publish({
+            destination: `/app/live/${currentRoom.id}/chat`,
+            body: JSON.stringify({
+                message: chatInput.trim(),
+                type: 'CHAT'
+            })
+        });
+        setChatInput('');
+    };
+
     const fetchRooms = async () => {
         try {
             setLoading(true);
@@ -55,6 +144,78 @@ export default function LiveManagePage() {
             setLoading(false);
         }
     };
+
+    // Fetch shop products
+    const fetchShopProducts = async (keyword = '', page = 1) => {
+        try {
+            setLoadingProducts(true);
+            const response = keyword
+                ? await searchProducts(keyword, page, 20)
+                : await getProducts(page, 20);
+            const products = response.content || [];
+            setShopProducts(products);
+            setProductTotalPages(response.totalPages || 0);
+            setProductPage(page);
+
+            // Load images for products
+            const newImageUrls = {};
+            await Promise.all(
+                products.map(async (product) => {
+                    try {
+                        if (product.imageId) {
+                            const res = await fetchProductImageById(product.imageId);
+                            const contentType = res.headers?.['content-type'] || 'image/png';
+                            const blob = new Blob([res.data], { type: contentType });
+                            newImageUrls[product.id] = URL.createObjectURL(blob);
+                        } else {
+                            newImageUrls[product.id] = imgFallback;
+                        }
+                    } catch {
+                        newImageUrls[product.id] = imgFallback;
+                    }
+                })
+            );
+            setProductImageUrls(prev => ({ ...prev, ...newImageUrls }));
+        } catch (error) {
+            console.error('Error fetching products:', error);
+        } finally {
+            setLoadingProducts(false);
+        }
+    };
+
+    // Open product modal
+    const handleOpenProductModal = () => {
+        setShowProductModal(true);
+        fetchShopProducts();
+    };
+
+    // Toggle product selection
+    const toggleProductSelection = (product) => {
+        setSelectedProducts(prev => {
+            const isSelected = prev.some(p => p.id === product.id);
+            if (isSelected) {
+                return prev.filter(p => p.id !== product.id);
+            } else if (prev.length < 500) {
+                return [...prev, product];
+            }
+            return prev;
+        });
+    };
+
+    // Confirm product selection
+    const handleConfirmProducts = () => {
+        setShowProductModal(false);
+    };
+
+    // Search products with debounce
+    useEffect(() => {
+        if (showProductModal) {
+            const timer = setTimeout(() => {
+                fetchShopProducts(productSearchKeyword, 1);
+            }, 300);
+            return () => clearTimeout(timer);
+        }
+    }, [productSearchKeyword, showProductModal]);
 
     const handleCreateRoom = async (e) => {
         e.preventDefault();
@@ -289,6 +450,99 @@ export default function LiveManagePage() {
                                 </div>
                             </div>
 
+                            {/* Product Selection Section */}
+                            <div style={{ marginBottom: '20px', paddingTop: '20px', borderTop: '1px solid #eee' }}>
+                                <label style={{ display: 'block', marginBottom: '12px', fontWeight: '500' }}>
+                                    Sản phẩm liên quan
+                                </label>
+
+                                {/* Selected Products Grid */}
+                                {selectedProducts.length > 0 && (
+                                    <div style={{
+                                        display: 'flex',
+                                        flexWrap: 'wrap',
+                                        gap: '10px',
+                                        marginBottom: '12px'
+                                    }}>
+                                        {selectedProducts.slice(0, 8).map(product => (
+                                            <div key={product.id} style={{
+                                                width: '60px',
+                                                height: '60px',
+                                                borderRadius: '4px',
+                                                overflow: 'hidden',
+                                                position: 'relative',
+                                                border: '1px solid #ddd'
+                                            }}>
+                                                <img
+                                                    src={productImageUrls[product.id] || imgFallback}
+                                                    onError={(e) => { e.currentTarget.src = imgFallback; }}
+                                                    alt={product.name}
+                                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => toggleProductSelection(product)}
+                                                    style={{
+                                                        position: 'absolute',
+                                                        top: '-6px',
+                                                        right: '-6px',
+                                                        width: '18px',
+                                                        height: '18px',
+                                                        borderRadius: '50%',
+                                                        background: '#333',
+                                                        color: 'white',
+                                                        border: 'none',
+                                                        cursor: 'pointer',
+                                                        fontSize: '10px',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center'
+                                                    }}
+                                                >×</button>
+                                            </div>
+                                        ))}
+                                        {selectedProducts.length > 8 && (
+                                            <div style={{
+                                                width: '60px',
+                                                height: '60px',
+                                                borderRadius: '4px',
+                                                background: '#f5f5f5',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                fontSize: '13px',
+                                                color: '#666'
+                                            }}>
+                                                +{selectedProducts.length - 8}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Add Product Button */}
+                                <button
+                                    type="button"
+                                    onClick={handleOpenProductModal}
+                                    style={{
+                                        background: 'white',
+                                        border: '1px dashed #ee4d2d',
+                                        borderRadius: '4px',
+                                        padding: '12px 20px',
+                                        color: '#ee4d2d',
+                                        cursor: 'pointer',
+                                        fontSize: '14px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '6px'
+                                    }}
+                                >
+                                    + Thêm sản phẩm liên quan ({selectedProducts.length}/500)
+                                </button>
+                                <div style={{ fontSize: '12px', color: '#999', marginTop: '6px' }}>
+                                    Thêm sản phẩm từ Shop của bạn và các sản phẩm bạn thích vào Livestream
+                                </div>
+                            </div>
+
                             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
                                 <button
                                     type="button"
@@ -319,32 +573,52 @@ export default function LiveManagePage() {
                             </div>
                         </form>
                     </div>
-                )}
+                )
+                }
 
                 {/* Step: Streaming Room */}
                 {step === 'streaming' && currentRoom && (
-                    <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr 300px', gap: '20px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr 280px', gap: '15px' }}>
                         {/* Left Sidebar - Tool Box */}
-                        <div style={{ background: 'white', borderRadius: '8px', padding: '20px' }}>
-                            <h3 style={{ fontSize: '14px', marginBottom: '20px', color: '#666' }}>Tool Box</h3>
-                            <div style={{
-                                padding: '15px',
-                                borderRadius: '8px',
-                                background: '#f9f9f9',
-                                marginBottom: '10px',
-                                cursor: 'pointer'
-                            }}>
-                                <div style={{ fontSize: '24px', marginBottom: '5px' }}>🛍️</div>
-                                <div style={{ fontSize: '13px' }}>Sản phẩm</div>
+                        <div style={{ background: 'white', borderRadius: '8px', padding: '15px' }}>
+                            <h4 style={{ fontSize: '12px', marginBottom: '15px', color: '#666', margin: '0 0 15px 0' }}>Tool Box</h4>
+                            <div
+                                onClick={handleOpenProductModal}
+                                style={{
+                                    textAlign: 'center',
+                                    padding: '12px 8px',
+                                    borderRadius: '8px',
+                                    background: selectedProducts.length > 0 ? '#fff5f5' : '#f9f9f9',
+                                    marginBottom: '10px',
+                                    cursor: 'pointer',
+                                    border: selectedProducts.length > 0 ? '1px solid #ee4d2d' : '1px solid transparent'
+                                }}
+                            >
+                                <div style={{ fontSize: '28px', marginBottom: '4px' }}>�</div>
+                                <div style={{ fontSize: '11px', color: '#333' }}>Sản phẩm</div>
+                                {selectedProducts.length > 0 && (
+                                    <div style={{
+                                        fontSize: '10px',
+                                        background: '#ee4d2d',
+                                        color: 'white',
+                                        borderRadius: '10px',
+                                        padding: '2px 6px',
+                                        display: 'inline-block',
+                                        marginTop: '4px'
+                                    }}>
+                                        {selectedProducts.length}
+                                    </div>
+                                )}
                             </div>
                             <div style={{
-                                padding: '15px',
+                                textAlign: 'center',
+                                padding: '12px 8px',
                                 borderRadius: '8px',
                                 background: '#f9f9f9',
                                 cursor: 'pointer'
                             }}>
-                                <div style={{ fontSize: '24px', marginBottom: '5px' }}>🎫</div>
-                                <div style={{ fontSize: '13px' }}>Khuyến mãi</div>
+                                <div style={{ fontSize: '28px', marginBottom: '4px' }}>�</div>
+                                <div style={{ fontSize: '11px', color: '#333' }}>Khuyến mãi</div>
                             </div>
                         </div>
 
@@ -528,29 +802,342 @@ export default function LiveManagePage() {
                         </div>
 
                         {/* Right Sidebar - Chat */}
-                        <div style={{ background: 'white', borderRadius: '8px', padding: '20px' }}>
-                            <h3 style={{ fontSize: '14px', marginBottom: '20px' }}>Bình luận</h3>
+                        <div style={{ background: 'white', borderRadius: '8px', padding: '15px', display: 'flex', flexDirection: 'column', height: '100%' }}>
+                            <h4 style={{ fontSize: '14px', marginBottom: '15px', margin: '0 0 15px 0' }}>Bình luận</h4>
+
+                            {/* Chat Messages */}
                             <div style={{
-                                height: '300px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                color: '#999',
-                                fontSize: '14px',
-                                textAlign: 'center',
-                                border: '2px dashed #eee',
+                                flex: 1,
+                                overflowY: 'auto',
+                                border: '1px solid #eee',
+                                borderRadius: '8px',
+                                padding: '10px',
+                                marginBottom: '15px',
+                                minHeight: '200px',
+                                maxHeight: '300px'
+                            }}>
+                                {chatMessages.length === 0 ? (
+                                    <div style={{ textAlign: 'center', color: '#999', padding: '40px 10px', fontSize: '13px' }}>
+                                        <div style={{ fontSize: '36px', marginBottom: '8px' }}>💬</div>
+                                        Không có bình luận nào
+                                    </div>
+                                ) : (
+                                    chatMessages.map((chat, idx) => (
+                                        <div key={idx} style={{ marginBottom: '10px', fontSize: '13px' }}>
+                                            <span style={{ fontWeight: '600', color: chat.isOwner ? '#ee4d2d' : '#333' }}>
+                                                {chat.username || 'Khách'}:
+                                            </span>{' '}
+                                            <span style={{ color: '#666' }}>{chat.message}</span>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+
+                            {/* Stats Section */}
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: '1fr 1fr',
+                                gap: '10px',
+                                marginBottom: '15px',
+                                padding: '12px',
+                                background: '#f9f9f9',
                                 borderRadius: '8px'
                             }}>
-                                <div>
-                                    <div style={{ fontSize: '48px', marginBottom: '10px' }}>💬</div>
-                                    Không có bình luận nào
+                                <div style={{ textAlign: 'center' }}>
+                                    <div style={{ fontSize: '20px', fontWeight: '600', color: '#333' }}>{viewerCount}</div>
+                                    <div style={{ fontSize: '11px', color: '#999' }}>Người xem</div>
                                 </div>
+                                <div style={{ textAlign: 'center' }}>
+                                    <div style={{ fontSize: '20px', fontWeight: '600', color: '#333' }}>{likeCount}</div>
+                                    <div style={{ fontSize: '11px', color: '#999' }}>Lượt thích</div>
+                                </div>
+                            </div>
+
+                            {/* Chat Input */}
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <input
+                                    type="text"
+                                    value={chatInput}
+                                    onChange={(e) => setChatInput(e.target.value)}
+                                    onKeyPress={(e) => e.key === 'Enter' && sendChat()}
+                                    placeholder="Nhập bình luận..."
+                                    style={{
+                                        flex: 1,
+                                        padding: '10px 12px',
+                                        border: '1px solid #ddd',
+                                        borderRadius: '20px',
+                                        fontSize: '13px',
+                                        outline: 'none'
+                                    }}
+                                />
+                                <button
+                                    onClick={sendChat}
+                                    style={{
+                                        padding: '10px 16px',
+                                        background: '#ee4d2d',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '20px',
+                                        cursor: 'pointer',
+                                        fontSize: '13px',
+                                        fontWeight: '500'
+                                    }}
+                                >
+                                    Gửi
+                                </button>
                             </div>
                         </div>
                     </div>
                 )}
             </main>
-        </div>
+
+            {/* Product Selection Modal */}
+            {showProductModal && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(0,0,0,0.5)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 1000
+                }}>
+                    <div style={{
+                        background: 'white',
+                        borderRadius: '8px',
+                        width: '800px',
+                        maxWidth: '90vw',
+                        maxHeight: '80vh',
+                        display: 'flex',
+                        flexDirection: 'column'
+                    }}>
+                        {/* Modal Header */}
+                        <div style={{
+                            padding: '16px 20px',
+                            borderBottom: '1px solid #eee',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center'
+                        }}>
+                            <h3 style={{ margin: 0, fontSize: '16px' }}>
+                                ☑️ Thêm sản phẩm liên quan
+                            </h3>
+                            <button
+                                onClick={() => setShowProductModal(false)}
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    fontSize: '20px',
+                                    cursor: 'pointer',
+                                    color: '#666'
+                                }}
+                            >×</button>
+                        </div>
+
+                        {/* Modal Body */}
+                        <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+                            {/* Left Sidebar - Tabs */}
+                            <div style={{
+                                width: '160px',
+                                borderRight: '1px solid #eee',
+                                padding: '10px 0'
+                            }}>
+                                <div style={{
+                                    padding: '10px 15px',
+                                    background: '#fff1f0',
+                                    color: '#ee4d2d',
+                                    cursor: 'pointer',
+                                    fontSize: '14px'
+                                }}>
+                                    Shop của tôi
+                                </div>
+                            </div>
+
+                            {/* Right Content - Products */}
+                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                {/* Search */}
+                                <div style={{ padding: '15px' }}>
+                                    <input
+                                        type="text"
+                                        placeholder="Tìm kiếm sản phẩm"
+                                        value={productSearchKeyword}
+                                        onChange={(e) => setProductSearchKeyword(e.target.value)}
+                                        style={{
+                                            width: '100%',
+                                            padding: '10px 15px',
+                                            border: '1px solid #ddd',
+                                            borderRadius: '4px',
+                                            fontSize: '14px'
+                                        }}
+                                    />
+                                </div>
+
+                                {/* Products Grid */}
+                                <div style={{
+                                    flex: 1,
+                                    overflow: 'auto',
+                                    padding: '0 15px'
+                                }}>
+                                    <div style={{ fontSize: '13px', color: '#666', marginBottom: '10px' }}>
+                                        Sản phẩm
+                                    </div>
+                                    {loadingProducts ? (
+                                        <div style={{ textAlign: 'center', padding: '40px', color: '#999' }}>
+                                            Đang tải...
+                                        </div>
+                                    ) : shopProducts.length === 0 ? (
+                                        <div style={{ textAlign: 'center', padding: '40px', color: '#999' }}>
+                                            Không có sản phẩm nào
+                                        </div>
+                                    ) : (
+                                        <div style={{
+                                            display: 'grid',
+                                            gridTemplateColumns: 'repeat(5, 1fr)',
+                                            gap: '12px'
+                                        }}>
+                                            {shopProducts.map(product => {
+                                                const isSelected = selectedProducts.some(p => p.id === product.id);
+                                                return (
+                                                    <div
+                                                        key={product.id}
+                                                        onClick={() => toggleProductSelection(product)}
+                                                        style={{
+                                                            cursor: 'pointer',
+                                                            border: isSelected ? '2px solid #ee4d2d' : '1px solid #eee',
+                                                            borderRadius: '4px',
+                                                            overflow: 'hidden',
+                                                            position: 'relative'
+                                                        }}
+                                                    >
+                                                        {/* Checkbox */}
+                                                        <div style={{
+                                                            position: 'absolute',
+                                                            top: '5px',
+                                                            left: '5px',
+                                                            width: '18px',
+                                                            height: '18px',
+                                                            borderRadius: '3px',
+                                                            background: isSelected ? '#ee4d2d' : 'white',
+                                                            border: isSelected ? 'none' : '1px solid #ddd',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            color: 'white',
+                                                            fontSize: '12px',
+                                                            zIndex: 1
+                                                        }}>
+                                                            {isSelected && '✓'}
+                                                        </div>
+                                                        {/* Image */}
+                                                        <div style={{
+                                                            aspectRatio: '1',
+                                                            background: '#f5f5f5'
+                                                        }}>
+                                                            <img
+                                                                src={productImageUrls[product.id] || imgFallback}
+                                                                onError={(e) => { e.currentTarget.src = imgFallback; }}
+                                                                alt={product.name}
+                                                                style={{
+                                                                    width: '100%',
+                                                                    height: '100%',
+                                                                    objectFit: 'cover'
+                                                                }}
+                                                            />
+                                                        </div>
+                                                        {/* Info */}
+                                                        <div style={{ padding: '8px' }}>
+                                                            <div style={{
+                                                                fontSize: '12px',
+                                                                overflow: 'hidden',
+                                                                textOverflow: 'ellipsis',
+                                                                whiteSpace: 'nowrap',
+                                                                marginBottom: '4px'
+                                                            }}>
+                                                                {product.name}
+                                                            </div>
+                                                            <div style={{
+                                                                fontSize: '12px',
+                                                                color: '#ee4d2d'
+                                                            }}>
+                                                                ₫{product.price?.toLocaleString() || '0'}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div style={{
+                            padding: '15px 20px',
+                            borderTop: '1px solid #eee',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center'
+                        }}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={shopProducts.length > 0 && shopProducts.every(p => selectedProducts.some(sp => sp.id === p.id))}
+                                    onChange={(e) => {
+                                        if (e.target.checked) {
+                                            // Select all current page products (up to 500 total)
+                                            const newProducts = shopProducts.filter(p => !selectedProducts.some(sp => sp.id === p.id));
+                                            const canAdd = 500 - selectedProducts.length;
+                                            setSelectedProducts(prev => [...prev, ...newProducts.slice(0, canAdd)]);
+                                        } else {
+                                            // Deselect all current page products
+                                            const currentIds = shopProducts.map(p => p.id);
+                                            setSelectedProducts(prev => prev.filter(p => !currentIds.includes(p.id)));
+                                        }
+                                    }}
+                                />
+                                <span style={{ fontSize: '14px' }}>Chọn tất cả</span>
+                            </label>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                <span style={{ color: '#ee4d2d', fontSize: '14px' }}>
+                                    {selectedProducts.length}/500 Đã chọn
+                                </span>
+                                <button
+                                    onClick={() => setShowProductModal(false)}
+                                    style={{
+                                        padding: '8px 20px',
+                                        border: '1px solid #ddd',
+                                        borderRadius: '4px',
+                                        background: 'white',
+                                        cursor: 'pointer',
+                                        fontSize: '14px'
+                                    }}
+                                >
+                                    Hủy
+                                </button>
+                                <button
+                                    onClick={handleConfirmProducts}
+                                    style={{
+                                        padding: '8px 20px',
+                                        border: 'none',
+                                        borderRadius: '4px',
+                                        background: '#ee4d2d',
+                                        color: 'white',
+                                        cursor: 'pointer',
+                                        fontSize: '14px'
+                                    }}
+                                >
+                                    Đồng ý
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div >
     );
 }
 

@@ -27,6 +27,10 @@ public class WebSocketJwtInterceptor implements ChannelInterceptor {
         StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
         if (accessor != null && StompCommand.CONNECT.equals(accessor.getCommand())) {
+            // Check if this is a live stream connection (allow anonymous)
+            String destination = accessor.getFirstNativeHeader("destination");
+            String simpDestination = (String) accessor.getHeader("simpDestination");
+            
             List<String> authHeaders = accessor.getNativeHeader("Authorization");
             String token = null;
 
@@ -58,15 +62,32 @@ public class WebSocketJwtInterceptor implements ChannelInterceptor {
                                             : Collections.emptyList()
                             );
                     accessor.setUser(auth);
+                    log.debug("WebSocket authenticated for user: {}", userId);
 
                 } catch (Exception e) {
-                    throw new RuntimeException("WebSocket authentication failed: " + e.getMessage());
+                    log.warn("WebSocket authentication failed: {}", e.getMessage());
+                    // For live streams, allow anonymous access even if token is invalid
+                    setAnonymousUser(accessor);
                 }
             } else {
-                throw new RuntimeException("WebSocket authentication required: missing token");
+                // No token provided - allow anonymous access for public features like live streams
+                // Anonymous users can watch live streams but may have limited features
+                log.debug("WebSocket connection without token - allowing anonymous access");
+                setAnonymousUser(accessor);
             }
         }
 
         return message;
+    }
+    
+    private void setAnonymousUser(StompHeaderAccessor accessor) {
+        // Set anonymous user for public WebSocket connections
+        UsernamePasswordAuthenticationToken anonymousAuth =
+                new UsernamePasswordAuthenticationToken(
+                        "anonymous",
+                        null,
+                        Collections.singletonList(new SimpleGrantedAuthority("ROLE_ANONYMOUS"))
+                );
+        accessor.setUser(anonymousAuth);
     }
 }

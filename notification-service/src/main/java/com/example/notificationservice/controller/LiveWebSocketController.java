@@ -3,6 +3,7 @@ package com.example.notificationservice.controller;
 import com.example.notificationservice.dto.LiveChatDto;
 import com.example.notificationservice.enums.LiveChatType;
 import com.example.notificationservice.request.LiveChatRequest;
+import com.example.notificationservice.service.LiveChatRedisService;
 import com.example.notificationservice.service.LiveService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,12 +36,15 @@ import java.util.concurrent.atomic.AtomicInteger;
  *   /app/live/{roomId}/join       - Join room (tăng viewer count)
  *   /app/live/{roomId}/leave      - Leave room (giảm viewer count)
  */
+
+
 @Slf4j
 @Controller
 @RequiredArgsConstructor
 public class LiveWebSocketController {
     
     private final LiveService liveService;
+    private final LiveChatRedisService liveChatRedisService;
     private final SimpMessagingTemplate messagingTemplate;
     
     // Track viewers per room (in-memory, có thể dùng Redis cho production)
@@ -57,7 +61,7 @@ public class LiveWebSocketController {
             @Payload LiveChatRequest request,
             SimpMessageHeaderAccessor headerAccessor
     ) {
-        // Lấy thông tin user từ header (đã được JWT interceptor xử lý)
+        // Lấy thông tin user từ header
         Principal principal = headerAccessor.getUser();
         String userId = principal != null ? principal.getName() : "anonymous";
         
@@ -84,11 +88,11 @@ public class LiveWebSocketController {
         // Broadcast to all subscribers
         messagingTemplate.convertAndSend("/topic/live/" + roomId + "/chat", chatDto);
         
-        // Lưu vào DB (async để không block)
+        // Lưu vào Redis
         try {
-            liveService.sendChat(roomId, userId, username, avatarUrl, request);
+            liveChatRedisService.saveChat(roomId, chatDto);
         } catch (Exception e) {
-            log.warn("Failed to save chat to DB: {}", e.getMessage());
+            log.warn("Failed to save chat to Redis: {}", e.getMessage());
         }
     }
     
@@ -117,7 +121,7 @@ public class LiveWebSocketController {
         try {
             liveService.updateViewerCount(roomId, currentViewers);
         } catch (Exception e) {
-            log.warn("Failed to update viewer count in DB: {}", e.getMessage());
+                log.warn("Failed to update viewer count in DB: {}", e.getMessage());
         }
         
         // Gửi system message

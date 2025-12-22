@@ -47,6 +47,9 @@ public class GatewayConfig {
                                                 .uri("lb://payment-service"))
                                 .route("notification-websocket", r -> r.path("/ws/notifications/**")
                                                 .uri("lb://notification-service"))
+                                // Livestream WebSocket route
+                                .route("live-websocket", r -> r.path("/ws/live/**")
+                                                .uri("lb://notification-service"))
                                 .build();
         }
 }

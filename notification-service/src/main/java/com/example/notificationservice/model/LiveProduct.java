@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class LiveProduct {
+public class    LiveProduct {
     
     @Id
     @GeneratedValue(generator = "UUID")

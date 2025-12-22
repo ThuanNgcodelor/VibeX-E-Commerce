@@ -30,8 +30,9 @@ export default function LiveWatchPage() {
     useEffect(() => {
         if (!roomId) return;
 
+        // WebSocket connects through Gateway (port 8080) which routes to notification-service
         const wsUrl = (LOCAL_BASE_URL || 'http://localhost:8080') + '/ws/live';
-        
+
         const client = new Client({
             webSocketFactory: () => new SockJS(wsUrl),
             reconnectDelay: 5000,
@@ -54,7 +55,7 @@ export default function LiveWatchPage() {
                     const chatMsg = JSON.parse(message.body);
                     console.log('New chat message:', chatMsg);
                     setMessages(prev => [...prev, chatMsg]);
-                    
+
                     // Auto scroll
                     if (chatContainerRef.current) {
                         setTimeout(() => {
