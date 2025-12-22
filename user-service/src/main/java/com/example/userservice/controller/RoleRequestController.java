@@ -1,21 +1,24 @@
 package com.example.userservice.controller;
 
 import com.example.userservice.dto.FullShopRegistrationRequest;
-import com.example.userservice.enums.Role;
 import com.example.userservice.jwt.JwtUtil;
 import com.example.userservice.model.RoleRequest;
+import com.example.userservice.request.IdentificationRequest;
 import com.example.userservice.request.RoleRequestRequest;
 import com.example.userservice.request.RoleRequestResponse;
 import com.example.userservice.request.ShopOwnerRegisterRequest;
+import com.example.userservice.request.TaxInfoRequest;
 import com.example.userservice.service.role.RoleRequestService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Base64;
 import java.util.List;
 
 @RestController
@@ -29,55 +32,94 @@ public class RoleRequestController {
     private final ModelMapper modelMapper;
 
     @GetMapping("/{requestId}")
-    ResponseEntity<RoleRequestResponse> getRequestById(@PathVariable String requestId){
-        return ResponseEntity.ok(modelMapper.map(roleRequestService.getRoleRequestById(requestId),RoleRequestResponse.class));
+    ResponseEntity<RoleRequestResponse> getRequestById(@PathVariable String requestId) {
+        return ResponseEntity
+                .ok(modelMapper.map(roleRequestService.getRoleRequestById(requestId), RoleRequestResponse.class));
     }
 
+    @PostMapping(value = "/createShopOwner", consumes = { "multipart/form-data" })
+    ResponseEntity<?> createShopOwner(
+            HttpServletRequest request,
+            @RequestParam("roleRequest") String roleRequestJson,
+            @RequestParam("shopDetails") String shopDetailsJson,
+            @RequestParam("identification") String identificationJson,
+            @RequestParam("taxInfo") String taxInfoJson,
+            @RequestPart(value = "imageFront", required = false) MultipartFile imageFront,
+            @RequestPart(value = "imageBack", required = false) MultipartFile imageBack) {
 
-    @PostMapping("/createShopOwner")
-    ResponseEntity<?> createShopOwner(HttpServletRequest request,
-                                                        @Valid @RequestBody FullShopRegistrationRequest fullRegistrationRequest){
-        String userId = jwtUtil.ExtractUserId(request);
-        roleRequestService.createShopOwner(userId,fullRegistrationRequest);
-        return  ResponseEntity.ok().build();
+        try {
+            String userId = jwtUtil.ExtractUserId(request);
+            ObjectMapper objectMapper = new ObjectMapper();
+
+            RoleRequestRequest roleRequestData = objectMapper.readValue(roleRequestJson, RoleRequestRequest.class);
+            ShopOwnerRegisterRequest shopDetailsData = objectMapper.readValue(shopDetailsJson,
+                    ShopOwnerRegisterRequest.class);
+            IdentificationRequest identification = objectMapper.readValue(identificationJson,
+                    IdentificationRequest.class);
+            TaxInfoRequest taxInfo = objectMapper.readValue(taxInfoJson, TaxInfoRequest.class);
+
+            // Convert images to Base64 if provided
+            if (imageFront != null && !imageFront.isEmpty()) {
+                String frontBase64 = "data:" + imageFront.getContentType() + ";base64," +
+                        Base64.getEncoder().encodeToString(imageFront.getBytes());
+                identification.setImageFrontUrl(frontBase64);
+            }
+
+            if (imageBack != null && !imageBack.isEmpty()) {
+                String backBase64 = "data:" + imageBack.getContentType() + ";base64," +
+                        Base64.getEncoder().encodeToString(imageBack.getBytes());
+                identification.setImageBackUrl(backBase64);
+            }
+
+            FullShopRegistrationRequest fullRequest = new FullShopRegistrationRequest();
+            fullRequest.setRoleRequest(roleRequestData);
+            fullRequest.setShopDetails(shopDetailsData);
+            fullRequest.setIdentification(identification);
+            fullRequest.setTaxInfo(taxInfo);
+
+            roleRequestService.createShopOwner(userId, fullRequest);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body("Error processing registration: " + e.getMessage());
+        }
     }
 
-//    @PostMapping
-//    public ResponseEntity<RoleRequestResponse> createRoleRequest(
-//            @Valid @RequestBody RoleRequestRequest request,
-//            HttpServletRequest httpRequest) {
-//
-//
-//        String userId = jwtUtil.ExtractUserId(httpRequest);
-//
-//        if (request.getRole() == null || request.getRole().trim().isEmpty()) {
-//            throw new IllegalArgumentException("Role cannot be null or empty");
-//        }
-//
-//        Role requestedRole;
-//        try {
-//            requestedRole = Role.valueOf(request.getRole().toUpperCase());
-//        } catch (IllegalArgumentException e) {
-//            throw new IllegalArgumentException("Invalid role: " + request.getRole());
-//        }
-//
-//        RoleRequest created = roleRequestService.createRoleRequest(
-//                userId,
-//                requestedRole,
-//                request.getReason()
-//        );
-//
-//        RoleRequestResponse response = RoleRequestResponse.builder()
-//                .id(created.getId())
-//                .userId(created.getUser().getId())
-//                .requestedRole(created.getRequestedRole().name())
-//                .reason(created.getReason())
-//                .status(created.getStatus().name())
-//                .build();
-//
-//        return ResponseEntity.ok(response);
-//    }
-
+    // @PostMapping
+    // public ResponseEntity<RoleRequestResponse> createRoleRequest(
+    // @Valid @RequestBody RoleRequestRequest request,
+    // HttpServletRequest httpRequest) {
+    //
+    //
+    // String userId = jwtUtil.ExtractUserId(httpRequest);
+    //
+    // if (request.getRole() == null || request.getRole().trim().isEmpty()) {
+    // throw new IllegalArgumentException("Role cannot be null or empty");
+    // }
+    //
+    // Role requestedRole;
+    // try {
+    // requestedRole = Role.valueOf(request.getRole().toUpperCase());
+    // } catch (IllegalArgumentException e) {
+    // throw new IllegalArgumentException("Invalid role: " + request.getRole());
+    // }
+    //
+    // RoleRequest created = roleRequestService.createRoleRequest(
+    // userId,
+    // requestedRole,
+    // request.getReason()
+    // );
+    //
+    // RoleRequestResponse response = RoleRequestResponse.builder()
+    // .id(created.getId())
+    // .userId(created.getUser().getId())
+    // .requestedRole(created.getRequestedRole().name())
+    // .reason(created.getReason())
+    // .status(created.getStatus().name())
+    // .build();
+    //
+    // return ResponseEntity.ok(response);
+    // }
 
     @GetMapping("/pending")
     public ResponseEntity<List<RoleRequestResponse>> getPendingRequests() {
@@ -95,7 +137,7 @@ public class RoleRequestController {
                 .toList();
         return ResponseEntity.ok(responses);
     }
-    
+
     @GetMapping("/user")
     public ResponseEntity<List<RoleRequestResponse>> getUserRequests(HttpServletRequest request) {
         String userId = jwtUtil.ExtractUserId(request);
@@ -114,7 +156,7 @@ public class RoleRequestController {
         return ResponseEntity.ok(responses);
     }
 
-    //{{baseURL}}/v1/user/role-requests/ee24db1d-ae50-4894-9a94-9648d2baf4e2/approve?adminNote=vcl
+    // {{baseURL}}/v1/user/role-requests/ee24db1d-ae50-4894-9a94-9648d2baf4e2/approve?adminNote=vcl
     // ee24db1d-ae50-4894-9a94-9648d2baf4e2 laf ID cua roleRequest
     // adminNote=vcl ???
     // nhớ kẹp token admin
@@ -141,7 +183,7 @@ public class RoleRequestController {
         return ResponseEntity.ok(response);
     }
 
-    //{{baseURL}}/v1/user/role-requests/ee24db1d-ae50-4894-9a94-9648d2baf4e2/reject?rejectionReason=vcl
+    // {{baseURL}}/v1/user/role-requests/ee24db1d-ae50-4894-9a94-9648d2baf4e2/reject?rejectionReason=vcl
     // ee24db1d-ae50-4894-9a94-9648d2baf4e2 laf ID cua roleRequest
     // adminNote=vcl ???
     // nhớ kẹp token admin

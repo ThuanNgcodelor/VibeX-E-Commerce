@@ -42,6 +42,7 @@ import VoucherManagementPage from "./pages/admin/VoucherManagementPage.jsx";
 import SubscriptionPlanManagementPage from "./pages/admin/SubscriptionPlanManagementPage.jsx";
 import BannerManagementPage from "./pages/admin/BannerManagementPage.jsx";
 import ShopOwnerManagementPage from "./pages/admin/ShopOwnerManagementPage.jsx";
+import RegisterShopOwner from "./pages/client/RegisterShopOwner.jsx";
 
 // Component to scroll to top on route change
 function ScrollToTop() {
@@ -77,7 +78,7 @@ export default function App() {
           <Route path="/product/:id" element={<ProductDetailPage />} />
           <Route path="/shop/:userId" element={<ShopDetailPage />} />
           <Route path="/order/track/:orderId" element={<TrackingPage />} />
-
+          <Route path="/register-shopowner" element={<RegisterShopOwner />} />
           {/* Live Stream routes (client) */}
           <Route path="/live" element={<LiveListPage />} />
           <Route path="/live/manage" element={<LiveManagePage />} />
@@ -109,7 +110,6 @@ export default function App() {
             <Route path="logout" element={<Logout />} />
           </Route>
 
-          {/* Shop Owner routes */}
           {/* Shop Owner routes */}
           <Route
             path="/shop-owner/*"

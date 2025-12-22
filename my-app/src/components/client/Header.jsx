@@ -244,6 +244,7 @@ export default function Header() {
           <div className="d-flex justify-content-between align-items-center flex-wrap">
             {/* Left links */}
             <div className="d-none d-md-flex gap-3 align-items-center" style={{ fontSize: '12px' }}>
+              {/* Shop Owner: Show Seller Center + Shopee Live */}
               {hasRole("ROLE_SHOP_OWNER") && (
                 <>
                   <Link to="/shop-owner" style={{ color: 'white', textDecoration: 'none', opacity: 0.9 }}>
@@ -259,10 +260,36 @@ export default function Header() {
                     padding: '4px 10px',
                     borderRadius: '4px'
                   }}>
-                    🔴 Shopee Live
+                    🔴 {t('header.shopeeLive')}
                   </Link>
                 </>
               )}
+              {/* Logged-in Client without Shop Owner: Show Register Shop Owner link */}
+              {isAuthenticated() && !hasRole("ROLE_SHOP_OWNER") && (
+                <Link to="/register-shopowner" style={{
+                  color: 'white',
+                  textDecoration: 'none',
+                  opacity: 0.9,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}>
+                  🏪 {t('header.registerShopOwner')}
+                </Link>
+              )}
+              {/* Watch Live - visible to all users */}
+              <Link to="/live" style={{
+                color: 'white',
+                textDecoration: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                background: 'rgba(255,255,255,0.15)',
+                padding: '4px 10px',
+                borderRadius: '4px'
+              }}>
+                🔴 {t('header.watchLive')}
+              </Link>
               <Link to="#" style={{ color: 'white', textDecoration: 'none', opacity: 0.9 }}>
                 {t('header.downloadApp')}
               </Link>

@@ -39,6 +39,9 @@
   },
   "header": {
     "sellerCenter": "Seller Center",
+    "registerShopOwner": "Start Selling",
+    "shopeeLive": "Shopee Live",
+    "watchLive": "Watch Live",
     "downloadApp": "Download App",
     "connect": "Connect",
     "notifications": "Notifications",
@@ -596,7 +599,96 @@
     "loading": "Loading...",
     "enterShopName": "Enter your shop name",
     "enterOwnerName": "Enter owner's full name",
-    "enterPhoneNumber": "Enter phone number"
+    "enterPhoneNumber": "Enter phone number",
+    "headerTitle": "Register as a Shopee Seller",
+    "backHome": "Back to Home",
+    "steps": {
+      "shopInfo": "Shop Information",
+      "taxInfo": "Tax Information",
+      "identity": "Identity Verification",
+      "complete": "Complete"
+    },
+    "welcome": {
+      "title": "Welcome to Shopee!",
+      "description": "To register as a seller on Shopee, you need to provide some basic information.",
+      "registerButton": "Register"
+    },
+    "step1": {
+      "shopName": "Shop Name",
+      "ownerName": "Shop Owner Name:",
+      "pickupAddress": "Pickup Address",
+      "email": "Email",
+      "phone": "Phone Number",
+      "reason": "Reason for Role Request",
+      "add": "+ Add",
+      "edit": "Edit"
+    },
+    "step2": {
+      "taxNotice": "Collecting Tax and Identity information is mandatory according to Vietnamese law...",
+      "businessType": "Business Type",
+      "personal": "Individual",
+      "household": "Household Business",
+      "company": "Company",
+      "businessAddress": "Business Address",
+      "email": "Email",
+      "taxCode": "Tax Code"
+    },
+    "step3": {
+      "identityNotice": "Please provide Identity Information of the Shop Owner or Legal Representative.",
+      "idType": "Identity Type",
+      "cccd": "Citizen ID Card (CCCD)",
+      "cmnd": "Identity Card (CMND)",
+      "passport": "Passport",
+      "idNumber": "Citizen ID Number (CCCD)",
+      "fullName": "Full Name",
+      "fullNameHint": "As per CMND/CCCD/Passport",
+      "frontImage": "Front Image",
+      "backImage": "Back Image",
+      "uploadFront": "Upload front side",
+      "uploadBack": "Upload back side",
+      "imageNote": "Note: Please upload clear images, not blurry or overexposed.",
+      "agreement": "I confirm that all provided data is accurate and truthful."
+    },
+    "step4": {
+      "successTitle": "Registration Successful",
+      "successMessage": "Please wait for confirmation to start selling your first product and begin your journey with Vibe!"
+    },
+    "buttons": {
+      "back": "Back",
+      "save": "Save",
+      "next": "Next",
+      "complete": "Complete",
+      "cancel": "Cancel"
+    },
+    "modal": {
+      "addAddress": "Add New Address",
+      "fullName": "Full Name",
+      "phone": "Phone Number",
+      "address": "Address",
+      "detailAddress": "Detailed Address",
+      "detailPlaceholder": "House number, street name, etc...",
+      "locate": "Locate",
+      "locating": "Locating...",
+      "locateHelp": "Help deliver orders faster",
+      "addressPlaceholder": "Province/City/District/Ward",
+      "enterValue": "Enter value"
+    },
+    "errors": {
+      "loginRequired": "You need to log in to register as a shop owner!",
+      "sessionExpired": "Session expired. Please log in again!",
+      "fillShopInfo": "Please fill in all shop information.",
+      "selectAddress": "Please select a pickup address.",
+      "fillIdentity": "Please fill in all identity information.",
+      "selectFullAddress": "Please select Province/City, District/County, Ward/Commune.",
+      "enterDetailAddress": "Please enter detailed address.",
+      "addressDataIncomplete": "Address data incomplete. Please select address again.",
+      "registerFailed": "Registration failed",
+      "fileSizeLimit": "File size must not exceed 5MB",
+      "geoNotSupported": "Browser does not support GPS location.",
+      "geoPermissionDenied": "Location permission denied.",
+      "geoFailed": "Location failed, please try again.",
+      "geoFetchFailed": "Could not get address from location."
+    }
   },
   "address": {
     "title": "My Addresses",

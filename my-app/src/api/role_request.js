@@ -11,7 +11,7 @@ export const getPendingRequests = async () => {
     try {
         const response = await api.get("/pending");
         return response.data;
-    } catch (error) {
+    } catch {
         throw new Error("Failed to fetch pending requests");
     }
 };
@@ -28,7 +28,7 @@ export async function approveRequest(id, adminNote = '') {
             params: { adminNote }
         });
         return response.data;
-    } catch (error) {
+    } catch {
         throw new Error("Failed to approve request");
     }
 }
@@ -45,7 +45,7 @@ export async function rejectRequest(id, rejectionReason) {
             params: { rejectionReason }
         });
         return response.data;
-    } catch (error) {
+    } catch {
         throw new Error("Failed to reject request");
     }
 }
@@ -59,7 +59,43 @@ export const getRoleRequestById = async (id) => {
     try {
         const response = await api.get(`/${id}`);
         return response.data;
-    } catch (error) {
+    } catch {
         throw new Error("Failed to fetch role request");
     }
 };
+
+/**
+ * Tạo shop owner mới với đầy đủ thông tin (shop, tax, identification)
+ * @param {Object} registrationData - Dữ liệu đăng ký shop owner
+ * @param {Object} registrationData.roleRequest - Thông tin yêu cầu role
+ * @param {Object} registrationData.shopDetails - Thông tin shop
+ * @param {Object} registrationData.taxInfo - Thông tin thuế
+ * @param {Object} registrationData.identification - Thông tin định danh
+ * @returns {Promise} - Promise trả về kết quả tạo shop owner
+ */
+const createShopOwner = async (registrationData, imageFront, imageBack) => {
+    try {
+        const formData = new FormData();
+
+        // Append JSON data as separate fields
+        formData.append('roleRequest', JSON.stringify(registrationData.roleRequest));
+        formData.append('shopDetails', JSON.stringify(registrationData.shopDetails));
+        formData.append('identification', JSON.stringify(registrationData.identification));
+        formData.append('taxInfo', JSON.stringify(registrationData.taxInfo));
+
+        // Append image files
+        if (imageFront) formData.append('imageFront', imageFront);
+        if (imageBack) formData.append('imageBack', imageBack);
+
+        const response = await api.post("/createShopOwner", formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Create shop owner error:", error);
+        throw error;
+    }
+};
+export default createShopOwner

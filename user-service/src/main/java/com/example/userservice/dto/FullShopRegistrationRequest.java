@@ -1,7 +1,9 @@
 package com.example.userservice.dto;
 
+import com.example.userservice.request.IdentificationRequest;
 import com.example.userservice.request.RoleRequestRequest;
 import com.example.userservice.request.ShopOwnerRegisterRequest;
+import com.example.userservice.request.TaxInfoRequest;
 import lombok.Data;
 import jakarta.validation.Valid;
 
@@ -12,4 +14,10 @@ public class FullShopRegistrationRequest {
 
     @Valid
     private ShopOwnerRegisterRequest shopDetails;
+
+    @Valid
+    private TaxInfoRequest taxInfo;
+
+    @Valid
+    private IdentificationRequest identification;
 }

@@ -1,29 +1,96 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Hls from 'hls.js';
+import SockJS from 'sockjs-client';
+import { Client } from '@stomp/stompjs';
 import Header from '../../components/client/Header';
 import Footer from '../../components/client/Footer';
-import { getLiveRoom, getRecentChats, getStreamUrl } from '../../api/live';
+import { getLiveRoom, getRecentChats } from '../../api/live';
+import { LOCAL_BASE_URL } from '../../config/config.js';
 
 export default function LiveWatchPage() {
     const { roomId } = useParams();
     const videoRef = useRef(null);
     const chatContainerRef = useRef(null);
+    const stompClientRef = useRef(null);
     const [room, setRoom] = useState(null);
     const [messages, setMessages] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [viewerCount, setViewerCount] = useState(0);
+    const [isConnected, setIsConnected] = useState(false);
 
+    // Fetch room data
     useEffect(() => {
         fetchRoom();
         fetchChats();
+    }, [roomId]);
 
-        // Auto refresh chats every 5 seconds
-        const chatInterval = setInterval(fetchChats, 5000);
+    // WebSocket connection
+    useEffect(() => {
+        if (!roomId) return;
 
+        const wsUrl = (LOCAL_BASE_URL || 'http://localhost:8080') + '/ws/live';
+        
+        const client = new Client({
+            webSocketFactory: () => new SockJS(wsUrl),
+            reconnectDelay: 5000,
+            heartbeatIncoming: 4000,
+            heartbeatOutgoing: 4000,
+            debug: (str) => console.log('STOMP: ', str),
+            onConnect: () => {
+                console.log('WebSocket connected for room:', roomId);
+                setIsConnected(true);
+
+                // Subscribe to viewer count updates
+                client.subscribe(`/topic/live/${roomId}/viewers`, (message) => {
+                    const data = JSON.parse(message.body);
+                    console.log('Viewer count update:', data);
+                    setViewerCount(data.count || 0);
+                });
+
+                // Subscribe to chat messages
+                client.subscribe(`/topic/live/${roomId}/chat`, (message) => {
+                    const chatMsg = JSON.parse(message.body);
+                    console.log('New chat message:', chatMsg);
+                    setMessages(prev => [...prev, chatMsg]);
+                    
+                    // Auto scroll
+                    if (chatContainerRef.current) {
+                        setTimeout(() => {
+                            chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+                        }, 100);
+                    }
+                });
+
+                // Join room to increment viewer count
+                client.publish({
+                    destination: `/app/live/${roomId}/join`,
+                    body: JSON.stringify({})
+                });
+            },
+            onDisconnect: () => {
+                console.log('WebSocket disconnected');
+                setIsConnected(false);
+            },
+            onStompError: (frame) => {
+                console.error('STOMP error:', frame);
+            }
+        });
+
+        client.activate();
+        stompClientRef.current = client;
+
+        // Cleanup on unmount
         return () => {
-            clearInterval(chatInterval);
+            if (stompClientRef.current && stompClientRef.current.connected) {
+                // Leave room before disconnecting
+                stompClientRef.current.publish({
+                    destination: `/app/live/${roomId}/leave`,
+                    body: JSON.stringify({})
+                });
+                stompClientRef.current.deactivate();
+            }
         };
     }, [roomId]);
 

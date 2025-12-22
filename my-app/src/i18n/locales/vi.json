@@ -39,6 +39,9 @@
   },
   "header": {
     "sellerCenter": "Kênh Người Bán",
+    "registerShopOwner": "Đăng ký bán hàng",
+    "shopeeLive": "Shopee Live",
+    "watchLive": "Xem Live",
     "downloadApp": "Tải Ứng Dụng",
     "connect": "Kết nối",
     "notifications": "Thông báo",
@@ -595,7 +598,96 @@
     "loading": "Đang tải...",
     "enterShopName": "Nhập tên cửa hàng của bạn",
     "enterOwnerName": "Nhập tên đầy đủ của chủ cửa hàng",
-    "enterPhoneNumber": "Nhập số điện thoại"
+    "enterPhoneNumber": "Nhập số điện thoại",
+    "headerTitle": "Đăng ký trở thành Người bán Shopee",
+    "backHome": "Quay lại trang chính",
+    "steps": {
+      "shopInfo": "Thông tin Shop",
+      "taxInfo": "Thông tin thuế",
+      "identity": "Thông tin định danh",
+      "complete": "Hoàn tất"
+    },
+    "welcome": {
+      "title": "Chào mừng đến Shopee!",
+      "description": "Để đăng ký bán hàng trên Shopee, bạn cần cung cấp một số thông tin cơ bản.",
+      "registerButton": "Đăng ký"
+    },
+    "step1": {
+      "shopName": "Tên Shop",
+      "ownerName": "Tên Chủ Cửa Hàng:",
+      "pickupAddress": "Địa chỉ lấy hàng",
+      "email": "Email",
+      "phone": "Số điện thoại",
+      "reason": "Lý Do Yêu Cầu Vai Trò",
+      "add": "+ Thêm",
+      "edit": "Sửa"
+    },
+    "step2": {
+      "taxNotice": "Việc thu thập Thông tin Thuế và Định danh là bắt buộc theo quy định của Pháp luật Việt Nam...",
+      "businessType": "Loại hình kinh doanh",
+      "personal": "Cá nhân",
+      "household": "Hộ kinh doanh",
+      "company": "Công ty",
+      "businessAddress": "Địa chỉ Kinh Doanh",
+      "email": "Email",
+      "taxCode": "Mã số thuế"
+    },
+    "step3": {
+      "identityNotice": "Vui lòng cung cấp Thông Tin Định Danh của Chủ Shop hoặc Người Đại Diện Pháp Lý.",
+      "idType": "Hình thức Định Danh",
+      "cccd": "Căn Cước Công Dân (CCCD)",
+      "cmnd": "Chứng minh Nhân Dân (CMND)",
+      "passport": "Hộ chiếu",
+      "idNumber": "Số Căn Cước Công Dân (CCCD)",
+      "fullName": "Họ & Tên",
+      "fullNameHint": "Theo CMND/CCCD/Hộ Chiếu",
+      "frontImage": "Ảnh mặt trước",
+      "backImage": "Ảnh mặt sau",
+      "uploadFront": "Tải lên mặt trước",
+      "uploadBack": "Tải lên mặt sau",
+      "imageNote": "Lưu ý: Vui lòng tải lên hình ảnh rõ nét, không bị mờ hoặc chói sáng.",
+      "agreement": "Tôi xác nhận tất cả dữ liệu cung cấp là chính xác và trung thực."
+    },
+    "step4": {
+      "successTitle": "Đăng ký thành công",
+      "successMessage": "Hãy đợi đơn xác nhận để đăng bán sản phẩm đầu tiên để khởi động hành trình bán hàng cùng Vibe nhé!"
+    },
+    "buttons": {
+      "back": "Quay lại",
+      "save": "Lưu",
+      "next": "Tiếp theo",
+      "complete": "Hoàn tất",
+      "cancel": "Hủy"
+    },
+    "modal": {
+      "addAddress": "Thêm Địa Chỉ Mới",
+      "fullName": "Họ & Tên",
+      "phone": "Số điện thoại",
+      "address": "Địa chỉ",
+      "detailAddress": "Địa chỉ chi tiết",
+      "detailPlaceholder": "Số nhà, tên đường, v.v...",
+      "locate": "Định vị",
+      "locating": "Đang định vị...",
+      "locateHelp": "Giúp đơn hàng được giao nhanh nhất",
+      "addressPlaceholder": "Tỉnh/Thành phố/Quận/Huyện/Phường/Xã",
+      "enterValue": "Nhập vào"
+    },
+    "errors": {
+      "loginRequired": "Bạn cần đăng nhập để đăng ký trở thành shop owner!",
+      "sessionExpired": "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!",
+      "fillShopInfo": "Vui lòng điền đầy đủ thông tin shop.",
+      "selectAddress": "Vui lòng chọn địa chỉ lấy hàng.",
+      "fillIdentity": "Vui lòng điền đầy đủ thông tin định danh.",
+      "selectFullAddress": "Vui lòng chọn đủ Tỉnh/TP, Quận/Huyện, Phường/Xã.",
+      "enterDetailAddress": "Vui lòng nhập địa chỉ chi tiết.",
+      "addressDataIncomplete": "Dữ liệu địa chỉ không đầy đủ. Vui lòng chọn lại địa chỉ.",
+      "registerFailed": "Đăng ký thất bại",
+      "fileSizeLimit": "Kích thước file không được vượt quá 5MB",
+      "geoNotSupported": "Trình duyệt không hỗ trợ định vị GPS.",
+      "geoPermissionDenied": "Bạn đã từ chối quyền định vị.",
+      "geoFailed": "Định vị thất bại, vui lòng thử lại.",
+      "geoFetchFailed": "Không lấy được địa chỉ từ vị trí."
+    }
   },
   "address": {
     "title": "Địa chỉ của tôi",
@@ -1224,4 +1316,3 @@
     }
   }
 }
-
