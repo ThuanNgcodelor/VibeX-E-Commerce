@@ -43,6 +43,13 @@ public class LedgerController {
         return ResponseEntity.ok(shopLedgerService.requestPayout(shopOwnerId, request));
     }
 
+    @PostMapping("/internal/deduct-fee")
+    public ResponseEntity<Void> deductSubscriptionFee(
+            @RequestBody com.example.orderservice.dto.DeductSubscriptionRequestDTO request) {
+        shopLedgerService.deductSubscriptionFee(request);
+        return ResponseEntity.ok().build();
+    }
+
     @GetMapping("/payout/history/{shopOwnerId}")
     public ResponseEntity<List<PayoutBatch>> getPayoutHistory(@PathVariable String shopOwnerId) {
         return ResponseEntity.ok(shopLedgerService.getPayoutHistory(shopOwnerId));

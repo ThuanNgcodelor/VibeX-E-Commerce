@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getActivePlans, getMySubscription, subscribeToPlan } from '../../api/subscription';
+import { getActivePlans, getMySubscription, subscribeToPlan, cancelSubscription } from '../../api/subscription';
 import { getShopOwnerInfo } from '../../api/user';
 import '../../components/shop-owner/ShopOwnerLayout.css';
 
@@ -29,8 +29,6 @@ export default function SubscriptionPage() {
         try {
             // 1. Get Shop Info
             const shopInfo = await getShopOwnerInfo();
-            // Assuming shopInfo.id or shopInfo.userId is the ID we need. 
-            // Usually shop_owners table PK is user_id.
             const id = shopInfo.userId || shopInfo.id;
             setShopOwnerId(id);
 
@@ -38,7 +36,7 @@ export default function SubscriptionPage() {
                 // 2. Get Data in parallel
                 const [plansBox, mySub] = await Promise.all([
                     getActivePlans(),
-                    getMySubscription(id).catch(() => null) // Ignore error (e.g. 404/null)
+                    getMySubscription(id).catch(() => null)
                 ]);
 
                 // 3. Process Plans
@@ -46,36 +44,47 @@ export default function SubscriptionPage() {
                     const monthly = p.pricing?.find(pr => pr.planDuration === 'MONTHLY')?.price || 0;
                     const yearly = p.pricing?.find(pr => pr.planDuration === 'YEARLY')?.price || 0;
 
+                    let color = '#4caf50'; // Default Green (Freeship)
+                    let lightColor = '#e8f5e9';
+                    let icon = 'fa-truck';
+
+                    if (p.code === 'VOUCHER_XTRA') {
+                        color = '#ff9800'; // Orange
+                        lightColor = '#fff3e0';
+                        icon = 'fa-ticket-alt';
+                    } else if (p.code === 'BOTH') {
+                        color = '#9c27b0'; // Purple
+                        lightColor = '#f3e5f5';
+                        icon = 'fa-star';
+                    }
+
                     return {
                         id: p.id,
-                        code: p.code, // FREESHIP_XTRA, etc.
+                        code: p.code,
                         name: p.name,
                         description: p.description,
                         features: p.features?.map(f => f.featureText) || [],
-                        // Map commission info for display
-                        commission: (p.commissionPaymentRate * 100 + p.commissionFixedRate * 100) + '% + ' +
-                            (p.commissionFreeshipRate > 0 ? (p.commissionFreeshipRate * 100) + '% ' : '') +
-                            (p.commissionVoucherRate > 0 ? (p.commissionVoucherRate * 100) + '%' : ''),
                         monthlyPrice: monthly,
                         yearlyPrice: yearly,
-                        icon: p.icon || 'fa-star', // Fallback icon
-                        color: p.colorHex || '#4caf50',
-                        isPopular: p.code === 'BOTH' // Simple heuristic
+                        icon: icon,
+                        color: color,
+                        lightColor: lightColor,
+                        isPopular: p.code === 'BOTH',
+                        serviceFeePercent: (p.commissionFreeshipRate * 100) + (p.commissionVoucherRate * 100)
                     };
                 });
 
-                // Sort to ensure meaningful order (e.g. Freeship, Voucher, Both)
-                // Using displayOrder from backend is better if available, but for now simple sort
+                // Sort by price
                 setPlans(formattedPlans.sort((a, b) => a.monthlyPrice - b.monthlyPrice));
 
                 // 4. Process Subscription
                 if (mySub && mySub.isActive) {
                     setCurrentSubscription({
-                        planId: plansBox.find(p => p.code === mySub.subscriptionType || p.id === mySub.planId)?.id, // Try to match
+                        planId: plansBox.find(p => p.code === mySub.subscriptionType || p.id === mySub.planId)?.id,
                         type: mySub.subscriptionType,
                         isActive: true,
                         endDate: mySub.endDate,
-                        autoRenew: false // Backend doesn't return autoRenew yet usually, default false
+                        autoRenew: false
                     });
                 } else {
                     setCurrentSubscription({ isActive: false });
@@ -127,8 +136,20 @@ export default function SubscriptionPage() {
     };
 
     const handleCancel = async () => {
-        alert("Feature coming soon! Contact support to cancel.");
-        // Implement cancel API if needed
+        if (!window.confirm(t('shopOwner.subscription.confirmCancel', 'Are you sure you want to cancel your subscription? Benefits will end immediately.'))) {
+            return;
+        }
+
+        setLoading(true);
+        try {
+            await cancelSubscription(shopOwnerId);
+            alert(t('shopOwner.subscription.cancelSuccess', 'Subscription cancelled successfully'));
+            fetchData();
+        } catch (error) {
+            alert(error.message || t('shopOwner.subscription.cancelError', 'Failed to cancel subscription'));
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -155,7 +176,6 @@ export default function SubscriptionPage() {
                         <div className="row align-items-center">
                             <div className="col-md-8">
                                 <h6 className="fw-bold mb-2">
-                                    {/* Try to find plan name */}
                                     {plans.find(p => p.code === currentSubscription.type)?.name || currentSubscription.type}
                                 </h6>
                                 <p className="text-muted mb-2">
@@ -208,39 +228,63 @@ export default function SubscriptionPage() {
             <div className="row g-4">
                 {plans.length > 0 ? plans.map(plan => (
                     <div className="col-md-4" key={plan.id}>
-                        <div className="card h-100 position-relative" style={{
-                            border: currentSubscription.isActive && currentSubscription.type === plan.code ? '2px solid green' : '1px solid #ddd',
-                            transition: 'all 0.3s'
+                        <div className="card h-100 position-relative shadow-sm" style={{
+                            border: currentSubscription.isActive && currentSubscription.type === plan.code
+                                ? `2px solid ${plan.color}`
+                                : '1px solid #eee',
+                            transition: 'all 0.3s',
+                            borderRadius: '12px',
+                            overflow: 'hidden'
                         }}>
+                            {/* Popular Badge */}
                             {plan.isPopular && (
-                                <div className="position-absolute top-0 start-50 translate-middle">
-                                    <span className="badge bg-danger px-3 py-2" style={{ fontSize: '0.85rem' }}>
-                                        <i className="fas fa-star me-1"></i>
-                                        {t('shopOwner.subscription.popular')}
+                                <div className="position-absolute end-0 top-0 mt-3 me-3">
+                                    <span className="badge rounded-pill" style={{ backgroundColor: '#f48fb1', color: '#fff' }}>
+                                        {t('shopOwner.subscription.popular') || 'Popular'}
                                     </span>
                                 </div>
                             )}
-                            <div className="card-header text-center" style={{ background: (plan.color || '#4caf50') + '20', marginTop: plan.isPopular ? '20px' : '0' }}>
-                                <i className={`fas ${plan.icon} fa-3x mb-3`} style={{ color: plan.color }}></i>
-                                <h5 className="fw-bold">{plan.name}</h5>
-                            </div>
-                            <div className="card-body">
-                                <p className="text-muted mb-4">{plan.description}</p>
 
-                                <div className="mb-4">
-                                    <h6 className="fw-bold mb-3">{t('shopOwner.subscription.features')}</h6>
+                            {/* Header */}
+                            <div className="d-flex align-items-center justify-content-between p-4"
+                                style={{ backgroundColor: plan.lightColor, minHeight: '100px' }}>
+                                <i className={`fas ${plan.icon} fa-3x`} style={{ color: plan.color }}></i>
+                                <h5 className="fw-bold mb-0 text-dark">{plan.name}</h5>
+                            </div>
+
+                            <div className="card-body p-4 d-flex flex-column">
+                                <p className="text-muted mb-4 small">{plan.description}</p>
+
+                                {/* Features */}
+                                <div className="mb-4 flex-grow-1">
+                                    <h6 className="fw-bold mb-3 small text-uppercase" style={{ letterSpacing: '0.5px' }}>{t('shopOwner.subscription.features')}</h6>
                                     <ul className="list-unstyled">
                                         {plan.features.map((feature, idx) => (
-                                            <li key={idx} className="mb-2">
-                                                <i className="fas fa-check-circle text-success me-2"></i>
-                                                {feature}
+                                            <li key={idx} className="mb-2 small d-flex align-items-start">
+                                                <i className="fas fa-check-circle me-2 mt-1" style={{ color: plan.color }}></i>
+                                                <span>{feature}</span>
                                             </li>
                                         ))}
                                     </ul>
                                 </div>
 
-                                <div className="text-center mb-3">
-                                    <div className="h3 fw-bold text-danger">
+                                {/* Commission Block */}
+                                <div className="bg-light p-3 rounded mb-4">
+                                    <div className="text-muted small mb-1">{t('shopOwner.subscription.commissionInfo.baseCommission') || 'Commission Fee'}</div>
+                                    <div className="d-flex align-items-baseline">
+                                        <h2 className="fw-bold mb-0" style={{ color: plan.color }}>
+                                            {plan.serviceFeePercent > 0 ? plan.serviceFeePercent : 0}%
+                                        </h2>
+                                    </div>
+                                    <small className="text-muted d-block mt-1">
+                                        {t('shopOwner.subscription.commissionInfo.paymentFee') || 'on order value'}
+                                        {plan.code === 'VOUCHER_XTRA' && ' (Max 50k/item)'}
+                                    </small>
+                                </div>
+
+                                {/* Price */}
+                                <div className="text-center mb-4">
+                                    <div className="h3 fw-bold text-danger mb-0">
                                         {formatCurrency(planDuration === 'MONTHLY' ? plan.monthlyPrice : plan.yearlyPrice)}
                                     </div>
                                     <div className="text-muted small">
@@ -248,14 +292,21 @@ export default function SubscriptionPage() {
                                     </div>
                                 </div>
 
+                                {/* Button */}
                                 <button
-                                    className={`btn w-100 ${currentSubscription.isActive && currentSubscription.type === plan.code ? 'btn-success' : 'btn-primary'}`}
+                                    className={`btn w-100 fw-bold py-2`}
+                                    style={{
+                                        backgroundColor: currentSubscription.isActive && currentSubscription.type === plan.code ? '#28a745' : '#0d6efd',
+                                        color: '#fff',
+                                        border: 'none',
+                                        borderRadius: '8px'
+                                    }}
                                     onClick={() => handleSubscribe(plan)}
                                     disabled={loading || (currentSubscription.isActive && currentSubscription.type === plan.code)}
                                 >
                                     {currentSubscription.isActive && currentSubscription.type === plan.code
                                         ? t('shopOwner.subscription.currentPlan')
-                                        : t('shopOwner.subscription.subscribe')
+                                        : (t('shopOwner.subscription.subscribe') || 'SUBSCRIBE NOW').toUpperCase()
                                     }
                                 </button>
                             </div>
@@ -303,4 +354,3 @@ export default function SubscriptionPage() {
         </div>
     );
 }
-

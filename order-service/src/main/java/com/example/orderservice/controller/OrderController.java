@@ -61,6 +61,20 @@ public class OrderController {
                     if (address.getStreetAddress() != null && !address.getStreetAddress().trim().isEmpty()) {
                         fullAddressBuilder.append(address.getStreetAddress());
                     }
+
+                    if (address.getWardName() != null && !address.getWardName().trim().isEmpty()) {
+                        if (fullAddressBuilder.length() > 0)
+                            fullAddressBuilder.append(", ");
+                        fullAddressBuilder.append(address.getWardName());
+                    }
+
+                    // Add District
+                    if (address.getDistrictName() != null && !address.getDistrictName().trim().isEmpty()) {
+                        if (fullAddressBuilder.length() > 0)
+                            fullAddressBuilder.append(", ");
+                        fullAddressBuilder.append(address.getDistrictName());
+                    }
+
                     // Use provinceName instead of deprecated getProvince()
                     String province = address.getProvinceName() != null ? address.getProvinceName()
                             : (address.getProvince() != null ? address.getProvince() : null);

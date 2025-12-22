@@ -59,6 +59,10 @@ public class ShopSubscription extends BaseEntity {
     @Builder.Default
     private BigDecimal pricePaid = BigDecimal.ZERO;
 
+    @Column(name = "price", precision = 15, scale = 2)
+    @Builder.Default
+    private BigDecimal price = BigDecimal.ZERO;
+
     @Column(name = "start_date", nullable = false)
     private LocalDateTime startDate;
 

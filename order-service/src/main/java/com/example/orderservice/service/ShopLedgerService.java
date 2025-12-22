@@ -24,4 +24,6 @@ public interface ShopLedgerService {
 
     CommissionResult calculateCommission(String shopOwnerId, Order order,
             List<com.example.orderservice.model.OrderItem> shopItems);
+
+    void deductSubscriptionFee(com.example.orderservice.dto.DeductSubscriptionRequestDTO request);
 }

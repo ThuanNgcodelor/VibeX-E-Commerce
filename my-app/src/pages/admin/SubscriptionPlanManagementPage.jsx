@@ -1,8 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import {
     getAllSubscriptionPlans, deleteSubscriptionPlan, toggleSubscriptionPlanActive,
-    createSubscriptionPlan, updateSubscriptionPlan
+    createSubscriptionPlan, updateSubscriptionPlan,
+    getPlanPricing, createPlanPricing, updatePlanPricing, deletePlanPricing,
+    getPlanFeatures, createPlanFeature, updatePlanFeature, deletePlanFeature, reorderPlanFeatures
 } from '../../api/subscriptionPlan';
+import PricingManagement from '../../components/admin/subscription/PricingManagement';
+import FeaturesManagement from '../../components/admin/subscription/FeaturesManagement';
 import Swal from 'sweetalert2';
 import '../../assets/admin/css/SubscriptionPlanManagement.css';
 
@@ -15,6 +19,12 @@ const SubscriptionPlanManagementPage = () => {
     const [filterStatus, setFilterStatus] = useState('all');
     const [showModal, setShowModal] = useState(false);
     const [editingPlan, setEditingPlan] = useState(null);
+    const [activeTab, setActiveTab] = useState('basic'); // 'basic', 'pricing', 'features'
+
+    // Pricing and Features state
+    const [pricingList, setPricingList] = useState([]);
+    const [featuresList, setFeaturesList] = useState([]);
+    const [loadingDetails, setLoadingDetails] = useState(false);
 
     const [formData, setFormData] = useState({
         code: '',
@@ -23,7 +33,6 @@ const SubscriptionPlanManagementPage = () => {
         subscriptionType: 'FREESHIP_XTRA',
         colorHex: '#4caf50',
         icon: 'truck',
-        displayOrder: 0,
         commissionPaymentRate: 0.04,
         commissionFixedRate: 0.04,
         commissionFreeshipRate: 0.08,
@@ -114,7 +123,25 @@ const SubscriptionPlanManagementPage = () => {
         }
     };
 
-    const handleEdit = (plan) => {
+    const loadPlanDetails = async (planId) => {
+        try {
+            setLoadingDetails(true);
+            const [pricing, features] = await Promise.all([
+                getPlanPricing(planId),
+                getPlanFeatures(planId)
+            ]);
+            setPricingList(pricing || []);
+            setFeaturesList(features || []);
+        } catch (error) {
+            console.error('Error loading plan details:', error);
+            setPricingList([]);
+            setFeaturesList([]);
+        } finally {
+            setLoadingDetails(false);
+        }
+    };
+
+    const handleEdit = async (plan) => {
         setEditingPlan(plan);
         setFormData({
             code: plan.code || '',
@@ -123,7 +150,6 @@ const SubscriptionPlanManagementPage = () => {
             subscriptionType: plan.subscriptionType || 'FREESHIP_XTRA',
             colorHex: plan.colorHex || '#4caf50',
             icon: plan.icon || 'truck',
-            displayOrder: plan.displayOrder || 0,
             commissionPaymentRate: plan.commissionPaymentRate || 0.04,
             commissionFixedRate: plan.commissionFixedRate || 0.04,
             commissionFreeshipRate: plan.commissionFreeshipRate || 0.08,
@@ -133,11 +159,19 @@ const SubscriptionPlanManagementPage = () => {
             voucherEnabled: plan.voucherEnabled || false,
             isActive: plan.isActive !== undefined ? plan.isActive : true
         });
+        setActiveTab('basic');
         setShowModal(true);
+
+        // Load pricing and features if editing existing plan
+        if (plan.id) {
+            await loadPlanDetails(plan.id);
+        }
     };
 
     const handleCreate = () => {
         setEditingPlan(null);
+        setPricingList([]);
+        setFeaturesList([]);
         setFormData({
             code: '',
             name: '',
@@ -145,7 +179,6 @@ const SubscriptionPlanManagementPage = () => {
             subscriptionType: 'FREESHIP_XTRA',
             colorHex: '#4caf50',
             icon: 'truck',
-            displayOrder: 0,
             commissionPaymentRate: 0.04,
             commissionFixedRate: 0.04,
             commissionFreeshipRate: 0.08,
@@ -155,6 +188,7 @@ const SubscriptionPlanManagementPage = () => {
             voucherEnabled: false,
             isActive: true
         });
+        setActiveTab('basic');
         setShowModal(true);
     };
 
@@ -171,16 +205,78 @@ const SubscriptionPlanManagementPage = () => {
                 await updateSubscriptionPlan(editingPlan.id, formData);
                 Swal.fire('Success!', 'Plan updated successfully.', 'success');
             } else {
-                await createSubscriptionPlan(formData);
-                Swal.fire('Success!', 'Plan created successfully.', 'success');
+                const newPlan = await createSubscriptionPlan(formData);
+                setEditingPlan(newPlan); // Set to enable pricing/features management
+                Swal.fire('Success!', 'Plan created successfully. You can now add pricing and features.', 'success');
             }
 
-            setShowModal(false);
+            // Don't close modal after create - allow adding pricing/features
+            if (!editingPlan) {
+                setActiveTab('pricing'); // Switch to pricing tab after create
+            } else {
+                setShowModal(false);
+            }
             fetchPlans();
         } catch (error) {
             console.error('Error saving plan:', error);
             Swal.fire('Error!', error.response?.data?.message || 'Failed to save plan.', 'error');
         }
+    };
+
+    // Pricing CRUD handlers
+    const handleAddPricing = async (pricingData) => {
+        if (!editingPlan?.id) {
+            Swal.fire('Error!', 'Please save the plan first before adding pricing.', 'error');
+            return;
+        }
+        const newPricing = await createPlanPricing(editingPlan.id, pricingData);
+        setPricingList([...pricingList, newPricing]);
+        Swal.fire('Success!', 'Pricing added successfully.', 'success');
+    };
+
+    const handleUpdatePricing = async (pricingId, pricingData) => {
+        await updatePlanPricing(pricingId, pricingData);
+        setPricingList(prev => prev.map(p =>
+            p.id === pricingId ? { ...p, ...pricingData } : p
+        ));
+        Swal.fire('Success!', 'Pricing updated successfully.', 'success');
+    };
+
+    const handleDeletePricing = async (pricingId) => {
+        await deletePlanPricing(pricingId);
+        setPricingList(prev => prev.filter(p => p.id !== pricingId));
+    };
+
+    // Features CRUD handlers
+    const handleAddFeature = async (featureData) => {
+        if (!editingPlan?.id) {
+            Swal.fire('Error!', 'Please save the plan first before adding features.', 'error');
+            return;
+        }
+        const newFeature = await createPlanFeature(editingPlan.id, featureData);
+        setFeaturesList([...featuresList, newFeature]);
+        Swal.fire('Success!', 'Feature added successfully.', 'success');
+    };
+
+    const handleUpdateFeature = async (featureId, featureData) => {
+        await updatePlanFeature(featureId, featureData);
+        setFeaturesList(prev => prev.map(f =>
+            f.id === featureId ? { ...f, ...featureData } : f
+        ));
+        Swal.fire('Success!', 'Feature updated successfully.', 'success');
+    };
+
+    const handleDeleteFeature = async (featureId) => {
+        await deletePlanFeature(featureId);
+        setFeaturesList(prev => prev.filter(f => f.id !== featureId));
+    };
+
+    const handleReorderFeatures = async (featureIds) => {
+        if (!editingPlan?.id) return;
+        await reorderPlanFeatures(editingPlan.id, featureIds);
+        // Reload features to get updated order
+        const updated = await getPlanFeatures(editingPlan.id);
+        setFeaturesList(updated);
     };
 
     const getTypeBadge = (type) => {
@@ -234,26 +330,6 @@ const SubscriptionPlanManagementPage = () => {
                     <div className="stat-info">
                         <span className="stat-label">Active Plans</span>
                         <h2 className="stat-value">{stats.active}</h2>
-                    </div>
-                </div>
-
-                <div className="stat-card">
-                    <div className="stat-icon stat-icon-freeship">
-                        <i className="fas fa-truck-fast"></i>
-                    </div>
-                    <div className="stat-info">
-                        <span className="stat-label">Freeship Xtra</span>
-                        <h2 className="stat-value">{stats.freeshipXtra}</h2>
-                    </div>
-                </div>
-
-                <div className="stat-card">
-                    <div className="stat-icon stat-icon-voucher">
-                        <i className="fas fa-ticket-alt"></i>
-                    </div>
-                    <div className="stat-info">
-                        <span className="stat-label">Voucher Xtra</span>
-                        <h2 className="stat-value">{stats.voucherXtra}</h2>
                     </div>
                 </div>
             </div>
@@ -313,7 +389,8 @@ const SubscriptionPlanManagementPage = () => {
                                         <th>Name</th>
                                         <th>Type</th>
                                         <th>Commission</th>
-                                        <th>Display Order</th>
+                                        <th>Pricing</th>
+                                        <th>Features</th>
                                         <th>Status</th>
                                         <th>Actions</th>
                                     </tr>
@@ -350,7 +427,28 @@ const SubscriptionPlanManagementPage = () => {
                                                     </div>
                                                 </td>
                                                 <td>
-                                                    <span className="order-badge">{plan.displayOrder}</span>
+                                                    <div className="pricing-cell">
+                                                        {plan.pricing && plan.pricing.length > 0 ? (
+                                                            plan.pricing.map((p, idx) => (
+                                                                <span key={idx} className="pricing-chip">
+                                                                    {p.planDuration === 'MONTHLY' ? '📅 Monthly' : '📅 Yearly'}: {p.price?.toLocaleString('vi-VN')}đ
+                                                                </span>
+                                                            ))
+                                                        ) : (
+                                                            <span className="no-data-text">No pricing</span>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div className="features-cell">
+                                                        {plan.features && plan.features.length > 0 ? (
+                                                            <span className="features-badge" title={plan.features.map(f => f.featureText).join('\n')}>
+                                                                <i className="fas fa-list-check"></i> {plan.features.length} feature{plan.features.length > 1 ? 's' : ''}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="no-data-text">No features</span>
+                                                        )}
+                                                    </div>
                                                 </td>
                                                 <td>
                                                     <label className="toggle-switch">
@@ -384,7 +482,7 @@ const SubscriptionPlanManagementPage = () => {
                                         ))
                                     ) : (
                                         <tr>
-                                            <td colSpan="8" className="no-data">
+                                            <td colSpan="9" className="no-data">
                                                 <i className="fas fa-inbox"></i>
                                                 <p>No plans found</p>
                                             </td>
@@ -410,226 +508,272 @@ const SubscriptionPlanManagementPage = () => {
                             </button>
                         </div>
 
+                        {/* Tabs Navigation */}
+                        <div className="modal-tabs">
+                            <button
+                                type="button"
+                                className={`tab-button ${activeTab === 'basic' ? 'active' : ''}`}
+                                onClick={() => setActiveTab('basic')}
+                            >
+                                <i className="fas fa-info-circle"></i> Basic Info
+                            </button>
+                            {editingPlan?.id && (
+                                <>
+                                    <button
+                                        type="button"
+                                        className={`tab-button ${activeTab === 'pricing' ? 'active' : ''}`}
+                                        onClick={() => setActiveTab('pricing')}
+                                    >
+                                        <i className="fas fa-dollar-sign"></i> Pricing ({pricingList.length})
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={`tab-button ${activeTab === 'features' ? 'active' : ''}`}
+                                        onClick={() => setActiveTab('features')}
+                                    >
+                                        <i className="fas fa-list-check"></i> Features ({featuresList.length})
+                                    </button>
+                                </>
+                            )}
+                        </div>
+
                         <form onSubmit={handleSubmit}>
                             <div className="modal-body">
-                                <div className="form-grid">
-                                    <div className="form-group">
-                                        <label>Code *</label>
-                                        <input
-                                            type="text"
-                                            className="form-input"
-                                            value={formData.code}
-                                            onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                                            required
-                                            disabled={!!editingPlan}
-                                            placeholder="VD: FREESHIP_XTRA"
-                                        />
-                                    </div>
-
-                                    <div className="form-group">
-                                        <label>Name *</label>
-                                        <input
-                                            type="text"
-                                            className="form-input"
-                                            value={formData.name}
-                                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                            required
-                                            placeholder="VD: Freeship Xtra"
-                                        />
-                                    </div>
-
-                                    <div className="form-group full-width">
-                                        <label>Description</label>
-                                        <textarea
-                                            className="form-input"
-                                            rows="3"
-                                            value={formData.description}
-                                            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                            placeholder="Mô tả gói đăng ký..."
-                                        />
-                                    </div>
-
-                                    <div className="form-group">
-                                        <label>Type *</label>
-                                        <select
-                                            className="form-input"
-                                            value={formData.subscriptionType}
-                                            onChange={(e) => setFormData({ ...formData, subscriptionType: e.target.value })}
-                                            required
-                                        >
-                                            <option value="FREESHIP_XTRA">Freeship Xtra</option>
-                                            <option value="VOUCHER_XTRA">Voucher Xtra</option>
-                                            <option value="BOTH">Both</option>
-                                        </select>
-                                    </div>
-
-                                    <div className="form-group">
-                                        <label>Display Order</label>
-                                        <input
-                                            type="number"
-                                            className="form-input"
-                                            value={formData.displayOrder}
-                                            onChange={(e) => setFormData({ ...formData, displayOrder: parseInt(e.target.value) })}
-                                            min="0"
-                                        />
-                                    </div>
-
-                                    <div className="form-group">
-                                        <label>Color (Hex)</label>
-                                        <input
-                                            type="color"
-                                            className="form-input"
-                                            value={formData.colorHex}
-                                            onChange={(e) => setFormData({ ...formData, colorHex: e.target.value })}
-                                        />
-                                    </div>
-
-                                    <div className="form-group">
-                                        <label>Icon (FontAwesome)</label>
-                                        <input
-                                            type="text"
-                                            className="form-input"
-                                            value={formData.icon}
-                                            onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
-                                            placeholder="VD: truck, ticket-alt"
-                                        />
-                                    </div>
-
-                                    {/* Commission Rates Section */}
-                                    <div className="form-group full-width">
-                                        <h4 style={{ marginTop: '1rem', marginBottom: '0.5rem', color: '#FF6B35' }}>Commission Rates</h4>
-                                    </div>
-
-                                    <div className="form-group">
-                                        <label>Payment Rate (%) *</label>
-                                        <input
-                                            type="number"
-                                            className="form-input"
-                                            value={(formData.commissionPaymentRate * 100).toFixed(2)}
-                                            onChange={(e) => setFormData({
-                                                ...formData,
-                                                commissionPaymentRate: parseFloat(e.target.value) / 100
-                                            })}
-                                            step="0.01"
-                                            min="0"
-                                            max="100"
-                                            required
-                                        />
-                                    </div>
-
-                                    <div className="form-group">
-                                        <label>Fixed Rate (%) *</label>
-                                        <input
-                                            type="number"
-                                            className="form-input"
-                                            value={(formData.commissionFixedRate * 100).toFixed(2)}
-                                            onChange={(e) => setFormData({
-                                                ...formData,
-                                                commissionFixedRate: parseFloat(e.target.value) / 100
-                                            })}
-                                            step="0.01"
-                                            min="0"
-                                            max="100"
-                                            required
-                                        />
-                                    </div>
-
-                                    <div className="form-group">
-                                        <label>Freeship Rate (%) *</label>
-                                        <input
-                                            type="number"
-                                            className="form-input"
-                                            value={(formData.commissionFreeshipRate * 100).toFixed(2)}
-                                            onChange={(e) => setFormData({
-                                                ...formData,
-                                                commissionFreeshipRate: parseFloat(e.target.value) / 100
-                                            })}
-                                            step="0.01"
-                                            min="0"
-                                            max="100"
-                                            required
-                                        />
-                                    </div>
-
-                                    <div className="form-group">
-                                        <label>Voucher Rate (%) *</label>
-                                        <input
-                                            type="number"
-                                            className="form-input"
-                                            value={(formData.commissionVoucherRate * 100).toFixed(2)}
-                                            onChange={(e) => setFormData({
-                                                ...formData,
-                                                commissionVoucherRate: parseFloat(e.target.value) / 100
-                                            })}
-                                            step="0.01"
-                                            min="0"
-                                            max="100"
-                                            required
-                                        />
-                                    </div>
-
-                                    <div className="form-group">
-                                        <label>Voucher Max Per Item (VNĐ)</label>
-                                        <input
-                                            type="number"
-                                            className="form-input"
-                                            value={formData.voucherMaxPerItem}
-                                            onChange={(e) => setFormData({
-                                                ...formData,
-                                                voucherMaxPerItem: parseFloat(e.target.value)
-                                            })}
-                                            min="0"
-                                        />
-                                    </div>
-
-                                    <div className="form-group">
-                                        {/* Empty for grid alignment */}
-                                    </div>
-
-                                    {/* Feature Toggles */}
-                                    <div className="form-group checkbox-group">
-                                        <label className="checkbox-label">
+                                {/* Basic Info Tab */}
+                                {activeTab === 'basic' && (
+                                    <div className="form-grid">
+                                        <div className="form-group">
+                                            <label>Code *</label>
                                             <input
-                                                type="checkbox"
-                                                checked={formData.freeshipEnabled}
-                                                onChange={(e) => setFormData({ ...formData, freeshipEnabled: e.target.checked })}
+                                                type="text"
+                                                className="form-input"
+                                                value={formData.code}
+                                                onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+                                                required
+                                                disabled={!!editingPlan}
+                                                placeholder="VD: FREESHIP_XTRA"
                                             />
-                                            <span>Freeship Enabled</span>
-                                        </label>
-                                    </div>
+                                        </div>
 
-                                    <div className="form-group checkbox-group">
-                                        <label className="checkbox-label">
+                                        <div className="form-group">
+                                            <label>Name *</label>
                                             <input
-                                                type="checkbox"
-                                                checked={formData.voucherEnabled}
-                                                onChange={(e) => setFormData({ ...formData, voucherEnabled: e.target.checked })}
+                                                type="text"
+                                                className="form-input"
+                                                value={formData.name}
+                                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                                required
+                                                placeholder="VD: Freeship Xtra"
                                             />
-                                            <span>Voucher Enabled</span>
-                                        </label>
-                                    </div>
+                                        </div>
 
-                                    <div className="form-group checkbox-group">
-                                        <label className="checkbox-label">
-                                            <input
-                                                type="checkbox"
-                                                checked={formData.isActive}
-                                                onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                                        <div className="form-group full-width">
+                                            <label>Description</label>
+                                            <textarea
+                                                className="form-input"
+                                                rows="3"
+                                                value={formData.description}
+                                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                                placeholder="Mô tả gói đăng ký..."
                                             />
-                                            <span>Active</span>
-                                        </label>
+                                        </div>
+
+                                        <div className="form-group">
+                                            <label>Type *</label>
+                                            <select
+                                                className="form-input"
+                                                value={formData.subscriptionType}
+                                                onChange={(e) => setFormData({ ...formData, subscriptionType: e.target.value })}
+                                                required
+                                            >
+                                                <option value="FREESHIP_XTRA">Freeship Xtra</option>
+                                                <option value="VOUCHER_XTRA">Voucher Xtra</option>
+                                                <option value="BOTH">Both</option>
+                                            </select>
+                                        </div>
+
+                                        <div className="form-group">
+                                            <label>Color (Hex)</label>
+                                            <input
+                                                type="color"
+                                                className="form-input"
+                                                value={formData.colorHex}
+                                                onChange={(e) => setFormData({ ...formData, colorHex: e.target.value })}
+                                            />
+                                        </div>
+
+                                        <div className="form-group">
+                                            <label>Icon (FontAwesome)</label>
+                                            <input
+                                                type="text"
+                                                className="form-input"
+                                                value={formData.icon}
+                                                onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
+                                                placeholder="VD: truck, ticket-alt"
+                                            />
+                                        </div>
+
+                                        {/* Commission Rates Section */}
+                                        <div className="form-group full-width">
+                                            <h4 style={{ marginTop: '1rem', marginBottom: '0.5rem', color: '#FF6B35' }}>Commission Rates</h4>
+                                        </div>
+
+                                        <div className="form-group">
+                                            <label>Payment Rate (%) *</label>
+                                            <input
+                                                type="number"
+                                                className="form-input"
+                                                value={(formData.commissionPaymentRate * 100).toFixed(2)}
+                                                onChange={(e) => setFormData({
+                                                    ...formData,
+                                                    commissionPaymentRate: parseFloat(e.target.value) / 100
+                                                })}
+                                                step="0.01"
+                                                min="0"
+                                                max="100"
+                                                required
+                                            />
+                                        </div>
+
+                                        <div className="form-group">
+                                            <label>Fixed Rate (%) *</label>
+                                            <input
+                                                type="number"
+                                                className="form-input"
+                                                value={(formData.commissionFixedRate * 100).toFixed(2)}
+                                                onChange={(e) => setFormData({
+                                                    ...formData,
+                                                    commissionFixedRate: parseFloat(e.target.value) / 100
+                                                })}
+                                                step="0.01"
+                                                min="0"
+                                                max="100"
+                                                required
+                                            />
+                                        </div>
+
+                                        <div className="form-group">
+                                            <label>Freeship Rate (%) *</label>
+                                            <input
+                                                type="number"
+                                                className="form-input"
+                                                value={(formData.commissionFreeshipRate * 100).toFixed(2)}
+                                                onChange={(e) => setFormData({
+                                                    ...formData,
+                                                    commissionFreeshipRate: parseFloat(e.target.value) / 100
+                                                })}
+                                                step="0.01"
+                                                min="0"
+                                                max="100"
+                                                required
+                                            />
+                                        </div>
+
+                                        <div className="form-group">
+                                            <label>Voucher Rate (%) *</label>
+                                            <input
+                                                type="number"
+                                                className="form-input"
+                                                value={(formData.commissionVoucherRate * 100).toFixed(2)}
+                                                onChange={(e) => setFormData({
+                                                    ...formData,
+                                                    commissionVoucherRate: parseFloat(e.target.value) / 100
+                                                })}
+                                                step="0.01"
+                                                min="0"
+                                                max="100"
+                                                required
+                                            />
+                                        </div>
+
+                                        <div className="form-group">
+                                            <label>Voucher Max Per Item (VNĐ)</label>
+                                            <input
+                                                type="number"
+                                                className="form-input"
+                                                value={formData.voucherMaxPerItem}
+                                                onChange={(e) => setFormData({
+                                                    ...formData,
+                                                    voucherMaxPerItem: parseFloat(e.target.value)
+                                                })}
+                                                min="0"
+                                            />
+                                        </div>
+
+                                        <div className="form-group">
+                                            {/* Empty for grid alignment */}
+                                        </div>
+
+                                        {/* Feature Toggles */}
+                                        <div className="form-group checkbox-group">
+                                            <label className="checkbox-label">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={formData.freeshipEnabled}
+                                                    onChange={(e) => setFormData({ ...formData, freeshipEnabled: e.target.checked })}
+                                                />
+                                                <span>Freeship Enabled</span>
+                                            </label>
+                                        </div>
+
+                                        <div className="form-group checkbox-group">
+                                            <label className="checkbox-label">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={formData.voucherEnabled}
+                                                    onChange={(e) => setFormData({ ...formData, voucherEnabled: e.target.checked })}
+                                                />
+                                                <span>Voucher Enabled</span>
+                                            </label>
+                                        </div>
+
+                                        <div className="form-group checkbox-group">
+                                            <label className="checkbox-label">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={formData.isActive}
+                                                    onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                                                />
+                                                <span>Active</span>
+                                            </label>
+                                        </div>
                                     </div>
+                                )}
+
+                                {/* Pricing Tab */}
+                                {activeTab === 'pricing' && (
+                                    <PricingManagement
+                                        planId={editingPlan?.id}
+                                        pricingList={pricingList}
+                                        onAdd={handleAddPricing}
+                                        onUpdate={handleUpdatePricing}
+                                        onDelete={handleDeletePricing}
+                                    />
+                                )}
+
+                                {/* Features Tab */}
+                                {activeTab === 'features' && (
+                                    <FeaturesManagement
+                                        planId={editingPlan?.id}
+                                        featuresList={featuresList}
+                                        onAdd={handleAddFeature}
+                                        onUpdate={handleUpdateFeature}
+                                        onDelete={handleDeleteFeature}
+                                        onReorder={handleReorderFeatures}
+                                    />
+                                )}
+                            </div>
+
+                            {activeTab === 'basic' && (
+                                <div className="modal-footer">
+                                    <button type="button" className="btn-cancel" onClick={() => setShowModal(false)}>
+                                        Cancel
+                                    </button>
+                                    <button type="submit" className="btn-save">
+                                        <i className="fas fa-save"></i> {editingPlan ? 'Update' : 'Create'} Plan
+                                    </button>
                                 </div>
-                            </div>
-
-                            <div className="modal-footer">
-                                <button type="button" className="btn-cancel" onClick={() => setShowModal(false)}>
-                                    Cancel
-                                </button>
-                                <button type="submit" className="btn-save">
-                                    <i className="fas fa-save"></i> {editingPlan ? 'Update' : 'Create'} Plan
-                                </button>
-                            </div>
+                            )}
                         </form>
                     </div>
                 </div>

@@ -1,16 +1,16 @@
 package com.example.stockservice.controller;
 
 import com.example.stockservice.dto.CategoryDto;
-import com.example.stockservice.model.Category;
 import com.example.stockservice.request.category.CategoryCreateRequest;
 import com.example.stockservice.request.category.CategoryUpdateRequest;
 import com.example.stockservice.service.category.CategoryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.modelmapper.ModelMapper;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -19,35 +19,32 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CategoryController {
     private final CategoryService categoryService;
-    private final ModelMapper modelMapper;
 
     @GetMapping("/getAll")
     public ResponseEntity<List<CategoryDto>> getAll() {
-        List<Category> categories = categoryService.getAll();
-        List<CategoryDto> categoryDtos = categories.stream()
-                .map(category -> modelMapper.map(category, CategoryDto.class))
-                .toList();
+        List<CategoryDto> categoryDtos = categoryService.getAll();
         return ResponseEntity.ok(categoryDtos);
     }
 
     @GetMapping("/getCategoryById/{id}")
     public ResponseEntity<CategoryDto> getCategoryById(@PathVariable String id) {
-        Category category = categoryService.getCategoryById(id);
-        CategoryDto categoryDto = modelMapper.map(category, CategoryDto.class);
+        CategoryDto categoryDto = categoryService.getCategoryById(id);
         return ResponseEntity.ok(categoryDto);
     }
 
-    @PostMapping("/create")
-    public ResponseEntity<CategoryDto> createCategory(@Valid @RequestBody CategoryCreateRequest request) {
-        Category category = categoryService.createCategory(request);
-        CategoryDto categoryDto = modelMapper.map(category, CategoryDto.class);
+    @PostMapping(value = "/create", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<CategoryDto> createCategory(
+            @RequestPart("request") @Valid CategoryCreateRequest request,
+            @RequestPart(value = "image", required = false) MultipartFile image) {
+        CategoryDto categoryDto = categoryService.createCategory(request, image);
         return ResponseEntity.status(HttpStatus.CREATED).body(categoryDto);
     }
 
-    @PutMapping("/update")
-    public ResponseEntity<CategoryDto> updateCategory(@Valid @RequestBody CategoryUpdateRequest request) {
-        Category category = categoryService.updateCategory(request);
-        CategoryDto categoryDto = modelMapper.map(category, CategoryDto.class);
+    @PutMapping(value = "/update", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<CategoryDto> updateCategory(
+            @RequestPart("request") @Valid CategoryUpdateRequest request,
+            @RequestPart(value = "image", required = false) MultipartFile image) {
+        CategoryDto categoryDto = categoryService.updateCategory(request, image);
         return ResponseEntity.ok(categoryDto);
     }
 
@@ -57,4 +54,3 @@ public class CategoryController {
         return ResponseEntity.status(HttpStatus.OK).build();
     }
 }
-

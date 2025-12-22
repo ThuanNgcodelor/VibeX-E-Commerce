@@ -213,26 +213,26 @@ export default function AnalyticsPage() {
                 <div className="table-responsive">
                     <table className="table">
                         <thead>
-                        <tr>
-                            <th>{t('shopOwner.analytics.product')}</th>
-                            <th>{t('shopOwner.analytics.sold')}</th>
-                            <th>{t('shopOwner.analytics.revenue')}</th>
-                        </tr>
+                            <tr>
+                                <th>{t('shopOwner.analytics.product')}</th>
+                                <th>{t('shopOwner.analytics.sold')}</th>
+                                <th>{t('shopOwner.analytics.revenue')}</th>
+                            </tr>
                         </thead>
                         <tbody>
-                        {stats.topProducts.length > 0 ? (
-                            stats.topProducts.map((product, index) => (
-                                <tr key={index}>
-                                    <td>{product.productName}</td>
-                                    <td>{product.sold}</td>
-                                    <td>{product.revenue.toLocaleString()}₫</td>
+                            {stats.topProducts.length > 0 ? (
+                                stats.topProducts.map((product, index) => (
+                                    <tr key={index}>
+                                        <td>{product.productName}</td>
+                                        <td>{product.sold}</td>
+                                        <td>{product.revenue.toLocaleString()}₫</td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan="3" className="text-center text-muted">{t('shopOwner.analytics.noData')}</td>
                                 </tr>
-                            ))
-                        ) : (
-                            <tr>
-                                <td colSpan="3" className="text-center text-muted">{t('shopOwner.analytics.noData')}</td>
-                            </tr>
-                        )}
+                            )}
                         </tbody>
                     </table>
                 </div>

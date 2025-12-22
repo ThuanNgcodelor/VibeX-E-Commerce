@@ -21,4 +21,7 @@ public interface ReviewRepository extends JpaRepository<Review, String> {
 
     @Query("SELECT count(r) FROM reviews r WHERE r.productId IN (SELECT p.id FROM products p WHERE p.userId = :shopId)")
     long countReviewsByShopId(@Param("shopId") String shopId);
+
+    @Query("SELECT r FROM reviews r WHERE r.productId IN (SELECT p.id FROM products p WHERE p.userId = :shopId) ORDER BY r.createdAt DESC")
+    List<Review> findByShopId(@Param("shopId") String shopId);
 }

@@ -5,5 +5,6 @@ public enum LedgerEntryType {
     PAYOUT,         // Rút tiền
     ADJUST,         // Điều chỉnh (admin)
     FEE_DEDUCTION   // Trừ phí
+    ,SUBSCRIPTION_PAYMENT
 }
 

@@ -8,10 +8,15 @@ import java.math.BigDecimal;
 
 public interface UserWalletService {
     UserWallet getOrCreateWallet(String userId);
+
     UserWallet getWallet(String userId);
+
     UserWallet addRefund(String userId, String orderId, String paymentId, BigDecimal amount, String reason);
+
     UserWallet withdraw(String userId, BigDecimal amount, String bankAccount, String bankName, String accountHolder);
-    UserWalletEntry createEntry(String userId, String orderId, String paymentId, WalletEntryType entryType, 
+
+    UserWallet paySubscription(String userId, BigDecimal amount, String planName);
+
+    UserWalletEntry createEntry(String userId, String orderId, String paymentId, WalletEntryType entryType,
                                 BigDecimal amount, String description);
 }
-

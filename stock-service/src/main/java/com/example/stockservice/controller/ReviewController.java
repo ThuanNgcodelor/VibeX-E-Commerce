@@ -32,4 +32,14 @@ public class ReviewController {
         System.out.println("DEBUG: Review count: " + count);
         return ResponseEntity.ok(count);
     }
+
+    @GetMapping("/shop/{shopId}")
+    public ResponseEntity<List<ReviewDto>> getReviewsByShopId(@PathVariable String shopId) {
+        return ResponseEntity.ok(reviewService.getReviewsByShopId(shopId));
+    }
+
+    @PostMapping("/{reviewId}/reply")
+    public ResponseEntity<ReviewDto> replyReview(@PathVariable String reviewId, @RequestBody String reply) {
+        return ResponseEntity.ok(reviewService.replyToReview(reviewId, reply));
+    }
 }

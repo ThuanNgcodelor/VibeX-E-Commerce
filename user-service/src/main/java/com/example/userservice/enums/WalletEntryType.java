@@ -5,5 +5,6 @@ public enum WalletEntryType {
     WITHDRAWAL,  // Rút tiền về tài khoản ngân hàng
     DEPOSIT,     // Nạp tiền vào ví
     ADJUST       // Điều chỉnh (admin)
+    ,SUBSCRIPTION_FEE
 }
 

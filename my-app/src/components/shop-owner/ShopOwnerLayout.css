@@ -11,13 +11,13 @@
 
 /* Header Styles */
 .shop-owner-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-bottom: none;
+    background: #ffffff;
+    border-bottom: 1px solid #f0f0f0;
     padding: 15px 30px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .header-left {
@@ -44,7 +44,7 @@
 .header-title {
     font-size: 20px;
     font-weight: 700;
-    color: #ffffff;
+    color: #333333;
     letter-spacing: 0.5px;
 }
 
@@ -55,21 +55,20 @@
 }
 
 .header-icon-btn {
-    background: rgba(255, 255, 255, 0.15);
+    background: transparent;
     border: none;
     padding: 10px 14px;
     cursor: pointer;
-    color: #ffffff;
-    font-size: 16px;
+    color: #555555;
+    font-size: 18px;
     border-radius: 8px;
     transition: all 0.3s ease;
-    backdrop-filter: blur(10px);
 }
 
 .header-icon-btn:hover {
-    background: rgba(255, 255, 255, 0.25);
+    background: #f5f5f5;
+    color: #ee4d2d;
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .user-btn {
@@ -81,11 +80,11 @@
 }
 
 .user-btn:hover {
-    background: rgba(255, 255, 255, 0.2) !important;
+    background: #f5f5f5 !important;
 }
 
 .user-btn span {
-    color: #ffffff;
+    color: #555555;
     font-weight: 500;
     max-width: 200px;
     overflow: hidden;
@@ -112,12 +111,12 @@
     width: 28px;
     height: 28px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border: 2px solid rgba(255, 255, 255, 0.3);
+    background: #f0f0f0;
+    border: 1px solid #ddd;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
+    color: #555;
     font-weight: 600;
     font-size: 12px;
     text-transform: uppercase;
@@ -170,7 +169,8 @@
     display: flex;
     align-items: flex-start;
     gap: 16px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    gap: 16px;
+    background: linear-gradient(135deg, #ee4d2d 0%, #ff6b4a 100%);
     position: relative;
     overflow: hidden;
 }
@@ -297,7 +297,8 @@
     top: 0;
     bottom: 0;
     width: 3px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    width: 3px;
+    background: #ee4d2d;
     transform: scaleY(0);
     transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -330,7 +331,7 @@
 }
 
 .dropdown-item:hover i {
-    color: #667eea;
+    color: #ee4d2d;
     transform: scale(1.1);
 }
 
@@ -385,11 +386,11 @@
 
 /* Sidebar Styles */
 .sidebar {
-    background-color: #2d3748;
+    background-color: #ffffff;
     min-height: calc(100vh - 70px);
     padding: 20px 0;
-    color: white;
-    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+    color: #333333;
+    border-right: 1px solid #f0f0f0;
 }
 
 .sidebar-close-btn {
@@ -398,7 +399,7 @@
 
 .sidebar-brand {
     padding: 15px 20px;
-    border-bottom: 1px solid #34495e;
+    border-bottom: 1px solid #f0f0f0;
     margin-bottom: 20px;
     position: relative;
 }
@@ -407,7 +408,7 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    color: white;
+    color: #ee4d2d;
     text-decoration: none;
     font-weight: 700;
     font-size: 16px;
@@ -415,7 +416,7 @@
 }
 
 .sidebar-title {
-    color: white;
+    color: #ee4d2d;
 }
 
 .sidebar-menu {
@@ -439,7 +440,8 @@
 }
 
 .sidebar-section-header:hover {
-    background-color: #34495e;
+    background-color: #f5f5f5;
+    color: #ee4d2d;
 }
 
 .sidebar-menu-items {
@@ -451,7 +453,7 @@
     align-items: center;
     gap: 12px;
     padding: 10px 15px;
-    color: #bdc3c7;
+    color: #666666;
     text-decoration: none;
     border-radius: 6px;
     transition: all 0.2s;
@@ -465,13 +467,15 @@
 }
 
 .sidebar-item:hover {
-    background-color: #34495e;
-    color: white;
+    background-color: #fff5f5;
+    color: #ee4d2d;
 }
 
 .sidebar-item.active {
-    background-color: #ee4d2d;
-    color: white;
+    background-color: #fff5f5;
+    color: #ee4d2d;
+    font-weight: 600;
+    border-left: 3px solid #ee4d2d;
 }
 
 /* Main Content */

@@ -1,11 +1,7 @@
 package com.example.userservice.model;
 
 import com.example.userservice.enums.SubscriptionType;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -14,6 +10,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "subscription_plans")
@@ -74,5 +72,13 @@ public class SubscriptionPlan extends BaseEntity {
     @Column(name = "voucher_enabled")
     @Builder.Default
     private Boolean voucherEnabled = false;
+
+    @OneToMany(mappedBy = "plan", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<SubscriptionPlanPricing> pricing = new ArrayList<>();
+
+    @OneToMany(mappedBy = "plan", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<SubscriptionPlanFeature> features = new ArrayList<>();
 }
 

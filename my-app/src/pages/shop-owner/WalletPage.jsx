@@ -227,7 +227,7 @@ export default function WalletPage() {
                         {/* Unpaid Section */}
                         <div className="col-md-6">
                             <div className="p-4 rounded-3 h-100 position-relative overflow-hidden"
-                                 style={{ background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)', border: '1px solid #e9ecef', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
+                                style={{ background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)', border: '1px solid #e9ecef', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
                                 <div className="position-absolute top-0 end-0 p-3 opacity-25">
                                     <i className="fas fa-wallet fa-4x" style={{ color: '#EE4D2D' }}></i>
                                 </div>
@@ -257,7 +257,7 @@ export default function WalletPage() {
                         {/* Paid Section */}
                         <div className="col-md-6">
                             <div className="p-4 rounded-3 h-100 position-relative overflow-hidden"
-                                 style={{ background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)', border: '1px solid #e9ecef', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
+                                style={{ background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)', border: '1px solid #e9ecef', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
                                 <div className="position-absolute top-0 end-0 p-3 opacity-25">
                                     <i className="fas fa-history fa-4x" style={{ color: '#EE4D2D' }}></i>
                                 </div>
@@ -338,67 +338,91 @@ export default function WalletPage() {
                     <div className="table-responsive">
                         <table className="table table-hover align-middle mb-0">
                             <thead className="bg-light text-muted text-uppercase small">
-                            <tr>
-                                <th scope="col" className="ps-4 py-3 border-0">{t('shopOwner.wallet.details.order')} / Ref</th>
-                                <th scope="col" className="py-3 border-0">{t('shopOwner.wallet.details.estimatedPaymentDate')}</th>
-                                <th scope="col" className="py-3 border-0 text-center">{t('shopOwner.wallet.details.status')}</th>
-                                <th scope="col" className="py-3 border-0">{t('shopOwner.wallet.details.description', 'Description')}</th>
-                                <th scope="col" className="pe-4 py-3 border-0 text-end">{t('shopOwner.wallet.details.amount')}</th>
-                            </tr>
+                                <tr>
+                                    <th scope="col" className="ps-4 py-3 border-0">{t('shopOwner.wallet.details.order')} / Ref</th>
+                                    <th scope="col" className="py-3 border-0">{t('shopOwner.wallet.details.estimatedPaymentDate')}</th>
+                                    <th scope="col" className="py-3 border-0 text-center">{t('shopOwner.wallet.details.status')}</th>
+                                    <th scope="col" className="py-3 border-0">{t('shopOwner.wallet.details.description', 'Description')}</th>
+                                    <th scope="col" className="pe-4 py-3 border-0 text-end">{t('shopOwner.wallet.details.amount')}</th>
+                                </tr>
                             </thead>
                             <tbody>
-                            {filteredEntries.length === 0 ? (
-                                <tr>
-                                    <td colSpan="5" className="text-center py-5 text-muted">
-                                        <div className="d-flex flex-column align-items-center">
-                                            <i className="fas fa-box-open fa-3x mb-3 text-secondary opacity-50"></i>
-                                            <p className="mb-0">{t('shopOwner.wallet.details.noEntries')}</p>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ) : (
-                                filteredEntries.map((entry) => (
-                                    <tr key={entry.id}>
-                                        <td className="ps-4 py-3">
-                                            <div className="d-flex flex-column">
-                                                <span className="fw-bold text-dark">{entry.orderId}</span>
-                                                {entry.type === 'PAYOUT' && entry.payoutId && (
-                                                    <button
-                                                        className="btn btn-sm btn-outline-secondary border-0 text-start p-0 mt-1 d-inline-flex align-items-center"
-                                                        onClick={(e) => { e.stopPropagation(); handleExportInvoice(entry.payoutId); }}
-                                                        title={t('shopOwner.wallet.details.exportInvoice', 'Invoice')}
-                                                        style={{ fontSize: '0.85rem' }}
-                                                    >
-                                                        <i className="fas fa-file-excel text-success me-1"></i>
-                                                        <span className="text-decoration-underline text-muted px-1">{t('shopOwner.wallet.details.invoiceFile')}</span>
-                                                    </button>
-                                                )}
+                                {filteredEntries.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="5" className="text-center py-5 text-muted">
+                                            <div className="d-flex flex-column align-items-center">
+                                                <i className="fas fa-box-open fa-3x mb-3 text-secondary opacity-50"></i>
+                                                <p className="mb-0">{t('shopOwner.wallet.details.noEntries')}</p>
                                             </div>
                                         </td>
-                                        <td className="text-muted small">
-                                            <i className="far fa-calendar-alt me-1"></i>
-                                            {entry.estimatedPaymentDate}
-                                        </td>
-                                        <td className="text-center">
-<span className={`badge rounded-pill ${entry.status === 'COMPLETED' ? 'bg-success' :
-    entry.status === 'PENDING' ? 'bg-warning text-dark' : 'bg-secondary'
-} bg-opacity-75 px-3 py-2`}>
-                                                    {entry.status}
-                                                </span>
-                                        </td>
-                                        <td>
-                                                <span className="text-muted small text-truncate d-inline-block" style={{ maxWidth: '200px' }}>
-                                                    {entry.productName}
-                                                </span>
-                                        </td>
-                                        <td className="pe-4 text-end">
-                                                <span className={`fw-bold font-monospace ${entry.unpaidAmount > 0 ? 'text-success' : 'text-danger'}`}>
-                                                    {entry.unpaidAmount > 0 ? '+' : ''}{formatCurrency(entry.unpaidAmount)}
-                                                </span>
-                                        </td>
                                     </tr>
-                                ))
-                            )}
+                                ) : (
+                                    filteredEntries.map((entry) => {
+                                        // Determine status badge style
+                                        let badgeClass = 'bg-secondary text-white';
+                                        let statusLabel = entry.status;
+
+                                        if (entry.status === 'COMPLETED') {
+                                            badgeClass = 'bg-success-subtle text-success border border-success-subtle';
+                                        } else if (entry.status === 'PENDING') {
+                                            badgeClass = 'bg-warning-subtle text-warning border border-warning-subtle';
+                                        } else if (entry.status === 'EARNING') {
+                                            badgeClass = 'bg-teal-subtle text-teal border border-teal-subtle'; // Custom or use success
+                                            // Fallback if teal not in bootstrap standard without custom css
+                                            badgeClass = 'bg-success-subtle text-success border border-success-subtle';
+                                        } else if (entry.status === 'PAYOUT') {
+                                            badgeClass = 'bg-danger-subtle text-danger border border-danger-subtle';
+                                        }
+
+                                        // Override for specific types if status alone isn't enough, or just styling based on type
+                                        if (entry.type === 'EARNING') {
+                                            // Make Earning distinct if needed, but status usually covers it. 
+                                            // If status is just 'EARNING' (from DTO), it falls into above.
+                                        }
+
+                                        return (
+                                            <tr key={entry.id}>
+                                                <td className="ps-4 py-3">
+                                                    <div className="d-flex flex-column">
+                                                        <span className="fw-bold font-monospace text-dark" style={{ letterSpacing: '-0.5px' }}>{entry.orderId}</span>
+                                                        {entry.type === 'PAYOUT' && entry.payoutId && (
+                                                            <button
+                                                                className="btn btn-sm btn-link text-decoration-none p-0 mt-1 d-inline-flex align-items-center"
+                                                                onClick={(e) => { e.stopPropagation(); handleExportInvoice(entry.payoutId); }}
+                                                                title={t('shopOwner.wallet.details.exportInvoice', 'Invoice')}
+                                                                style={{ fontSize: '0.85rem' }}
+                                                            >
+                                                                <i className="fas fa-file-invoice text-primary me-1"></i>
+                                                                <span className="text-muted small">{t('shopOwner.wallet.details.invoiceFile')}</span>
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td className="text-muted small">
+                                                    <div className="d-flex align-items-center">
+                                                        <i className="far fa-calendar-alt me-2 text-primary opacity-50"></i>
+                                                        {entry.estimatedPaymentDate}
+                                                    </div>
+                                                </td>
+                                                <td className="text-center">
+                                                    <span className={`badge rounded-pill px-3 py-2 fw-normal ${badgeClass}`}>
+                                                        {statusLabel}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <span className="text-secondary small d-inline-block text-truncate" style={{ maxWidth: '250px' }} title={entry.productName}>
+                                                        {entry.productName}
+                                                    </span>
+                                                </td>
+                                                <td className="pe-4 text-end">
+                                                    <span className={`fw-bold font-monospace fs-6 ${entry.unpaidAmount > 0 ? 'text-success' : 'text-danger'}`}>
+                                                        {entry.unpaidAmount > 0 ? '+' : ''}{formatCurrency(entry.unpaidAmount)}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        )
+                                    })
+                                )}
                             </tbody>
                         </table>
                     </div>
@@ -542,12 +566,12 @@ export default function WalletPage() {
                             <div className={`custom-modal-header text-white ${notification.type === 'success' ? 'bg-success' :
                                 notification.type === 'error' ? 'bg-danger' :
                                     'bg-warning'
-                            }`}>
+                                }`}>
                                 <h5 className="custom-modal-title text-white">
                                     <i className={`fas ${notification.type === 'success' ? 'fa-check-circle' :
                                         notification.type === 'error' ? 'fa-exclamation-circle' :
                                             'fa-exclamation-triangle'
-                                    } me-2`}></i>
+                                        } me-2`}></i>
                                     {notification.title}
                                 </h5>
                                 <button type="button" className="btn-close btn-close-white" onClick={closeNotification}></button>
@@ -556,11 +580,11 @@ export default function WalletPage() {
                                 <div className={`mb-3 ${notification.type === 'success' ? 'text-success' :
                                     notification.type === 'error' ? 'text-danger' :
                                         'text-warning'
-                                }`}>
+                                    }`}>
                                     <i className={`fas ${notification.type === 'success' ? 'fa-check-circle' :
                                         notification.type === 'error' ? 'fa-times-circle' :
                                             'fa-exclamation-triangle'
-                                    } fa-4x`}></i>
+                                        } fa-4x`}></i>
                                 </div>
                                 <h5 className="mb-2 fw-bold">{notification.title}</h5>
                                 <p className="text-muted mb-0">{notification.message}</p>
@@ -569,7 +593,7 @@ export default function WalletPage() {
                                 <button type="button" className={`btn ${notification.type === 'success' ? 'btn-success' :
                                     notification.type === 'error' ? 'btn-danger' :
                                         'btn-warning text-white'
-                                } px-4`} onClick={closeNotification}>
+                                    } px-4`} onClick={closeNotification}>
                                     {t('common.close', 'Đóng')}
                                 </button>
                             </div>

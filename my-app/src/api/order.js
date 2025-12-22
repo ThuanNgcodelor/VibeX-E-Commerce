@@ -265,3 +265,13 @@ export const getSalesAnalytics = async () => {
         throw new Error("Failed to fetch sales analytics");
     }
 };
+
+export const getAllShopOwnerOrders = async (status = null) => {
+    try {
+        const params = status ? { status } : {};
+        const response = await api.get("/shop-owner/orders/all", { params });
+        return response.data;
+    } catch {
+        throw new Error("Failed to fetch all shop owner orders");
+    }
+};

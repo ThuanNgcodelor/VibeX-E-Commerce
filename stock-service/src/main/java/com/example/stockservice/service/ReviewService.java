@@ -7,6 +7,7 @@ import com.example.stockservice.request.ReviewRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -36,6 +37,26 @@ public class ReviewService {
                 .collect(Collectors.toList());
     }
 
+    public List<ReviewDto> getReviewsByShopId(String shopId) {
+        System.out.println("DEBUG: Fetching reviews for shopId: " + shopId);
+        List<Review> reviews = reviewRepository.findByShopId(shopId);
+        System.out.println("DEBUG: Found " + reviews.size() + " reviews for shopId: " + shopId);
+        return reviews.stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+
+    public ReviewDto replyToReview(String reviewId, String reply) {
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new RuntimeException("Review not found"));
+
+        review.setReply(reply);
+        review.setRepliedAt(LocalDateTime.now());
+
+        Review saved = reviewRepository.save(review);
+        return mapToDto(saved);
+    }
+
     public long countReviewsByShopId(String shopId) {
         return reviewRepository.countReviewsByShopId(shopId);
     }
@@ -50,6 +71,8 @@ public class ReviewService {
                 .rating(review.getRating())
                 .comment(review.getComment())
                 .imageIds(review.getImageIds())
+                .reply(review.getReply())
+                .repliedAt(review.getRepliedAt())
                 .createdAt(review.getCreatedAt())
                 .build();
     }

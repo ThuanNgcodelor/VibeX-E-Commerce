@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import toast from "react-hot-toast";
 import Header from "../../components/client/Header.jsx";
 import ShopInfoBar from "../../components/client/product/ShopInfoBar.jsx";
 import { fetchProductById, fetchProductImageById, fetchAddToCart } from "../../api/product.js";
@@ -36,6 +37,7 @@ export default function ProductDetailPage() {
     const [hoveredThumbnailIndex, setHoveredThumbnailIndex] = useState(null); // For hover preview
     const [lightboxOpen, setLightboxOpen] = useState(false); // Lightbox modal
     const [lightboxIndex, setLightboxIndex] = useState(0); // Current image in lightbox
+    const [activeLightboxImages, setActiveLightboxImages] = useState([]); // Images currently in lightbox
     const createdUrlsRef = useRef([]);
     const [error, setError] = useState(null);
     const [posting, setPosting] = useState(false);
@@ -131,16 +133,16 @@ export default function ProductDetailPage() {
         if (!lightboxOpen) return;
         const handleKeyDown = (e) => {
             if (e.key === 'ArrowLeft') {
-                setLightboxIndex((prev) => (prev > 0 ? prev - 1 : imageUrls.length - 1));
+                setLightboxIndex((prev) => (prev > 0 ? prev - 1 : activeLightboxImages.length - 1));
             } else if (e.key === 'ArrowRight') {
-                setLightboxIndex((prev) => (prev < imageUrls.length - 1 ? prev + 1 : 0));
+                setLightboxIndex((prev) => (prev < activeLightboxImages.length - 1 ? prev + 1 : 0));
             } else if (e.key === 'Escape') {
                 setLightboxOpen(false);
             }
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [lightboxOpen, imageUrls.length]);
+    }, [lightboxOpen, activeLightboxImages.length]);
 
     const priceDisplay = useMemo(() => {
         if (!product) return "";
@@ -148,20 +150,20 @@ export default function ProductDetailPage() {
         if (discountPercent && discountPercent > 0 && originalPrice && originalPrice > price) {
             return (
                 <div className="d-flex align-items-center gap-2">
-          <span className="fs-4 fw-bold">
-            {price.toLocaleString("vi-VN")} ₫
-</span>
+                    <span className="fs-4 fw-bold">
+                        {price.toLocaleString("vi-VN")} ₫
+                    </span>
                     <span className="text-decoration-line-through text-muted">
-            {originalPrice.toLocaleString("vi-VN")} ₫
-          </span>
+                        {originalPrice.toLocaleString("vi-VN")} ₫
+                    </span>
                     <span className="badge bg-danger">-{discountPercent}%</span>
                 </div>
             );
         }
         return (
             <span className="fs-4 fw-bold">
-        {(product.price || 0).toLocaleString("vi-VN")} ₫
-      </span>
+                {(product.price || 0).toLocaleString("vi-VN")} ₫
+            </span>
         );
     }, [product]);
 
@@ -193,8 +195,10 @@ export default function ProductDetailPage() {
             window.dispatchEvent(new CustomEvent('cart-updated'));
 
         } catch (e) {
-            if (e?.response?.status === 403) {
-                setError("You need to sign in to add items to the cart.");
+            if (e?.response?.status === 403 || e?.response?.status === 401) {
+                // Redirect to login if not authenticated
+                toast.error(t("auth.loginRequired"));
+                navigate("/login");
             } else {
                 setError(e?.response?.data?.message || e.message || "Failed to add to cart");
             }
@@ -228,6 +232,7 @@ export default function ProductDetailPage() {
                                             }}
                                             onClick={() => {
                                                 if (imageUrls.length > 0) {
+                                                    setActiveLightboxImages(imageUrls);
                                                     setLightboxIndex(currentImageIndex);
                                                     setLightboxOpen(true);
                                                 }
@@ -409,16 +414,16 @@ export default function ProductDetailPage() {
                                             <div className="d-flex align-items-center gap-1">
                                                 <span style={{ color: '#ffc107', fontSize: '1rem' }}>★</span>
                                                 <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>
-                          {reviews.length > 0 ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1) : "0.0"}
-                        </span>
+                                                    {reviews.length > 0 ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1) : "0.0"}
+                                                </span>
                                             </div>
                                             <span className="text-muted" style={{ fontSize: '0.875rem' }}>
-                        ({reviews.length} reviews)
-                      </span>
+                                                ({reviews.length} reviews)
+                                            </span>
                                             {product.soldOf > 0 && (
                                                 <span className="text-muted" style={{ fontSize: '0.875rem' }}>
-| Sold: <strong>{product.soldOf}</strong>
-                        </span>
+                                                    | Sold: <strong>{product.soldOf}</strong>
+                                                </span>
                                             )}
                                         </div>
                                         {/* Price Display */}
@@ -433,12 +438,12 @@ export default function ProductDetailPage() {
                                                 <strong style={{ fontSize: '0.9rem' }}>Shop Voucher</strong>
                                             </div>
                                             <div className="d-flex flex-wrap gap-2">
-                        <span className="badge bg-danger" style={{ fontSize: '0.8rem', padding: '4px 8px' }}>
-                          2% OFF
-                        </span>
                                                 <span className="badge bg-danger" style={{ fontSize: '0.8rem', padding: '4px 8px' }}>
-                          3% OFF
-                        </span>
+                                                    2% OFF
+                                                </span>
+                                                <span className="badge bg-danger" style={{ fontSize: '0.8rem', padding: '4px 8px' }}>
+                                                    3% OFF
+                                                </span>
                                                 {/* Add more vouchers here */}
                                             </div>
                                         </div>
@@ -629,8 +634,9 @@ export default function ProductDetailPage() {
                                                                 }
                                                             });
                                                         } catch (e) {
-                                                            if (e?.response?.status === 403) {
-                                                                setError("You need to sign in to buy products.");
+                                                            if (e?.response?.status === 403 || e?.response?.status === 401) {
+                                                                toast.error(t("auth.loginRequired"));
+                                                                navigate("/login");
                                                             } else {
                                                                 setError(e?.response?.data?.message || e.message || "Failed to add to cart");
                                                             }
@@ -744,12 +750,12 @@ export default function ProductDetailPage() {
                                                         <tbody>
                                                         {(() => {
                                                             // Filter out attributes with empty values
-                                                            const validAttributes = product.attributes 
-                                                                ? Object.entries(product.attributes).filter(([key, value]) => 
+                                                            const validAttributes = product.attributes
+                                                                ? Object.entries(product.attributes).filter(([key, value]) =>
                                                                     key && value && value.toString().trim() !== ''
                                                                 )
                                                                 : [];
-                                                            
+
                                                             if (validAttributes.length === 0) {
                                                                 return (
                                                                     <tr>
@@ -759,7 +765,7 @@ export default function ProductDetailPage() {
                                                                     </tr>
                                                                 );
                                                             }
-                                                            
+
                                                             return validAttributes.map(([key, value]) => (
                                                                 <tr key={key}>
                                                                     <th scope="row" style={{ width: '30%' }}>
@@ -862,7 +868,26 @@ export default function ProductDetailPage() {
 
                                                                 {rv.imageIds && rv.imageIds.length > 0 && (
                                                                     <div className="ms-5 mt-2">
-                                                                        <ReviewImages imageIds={rv.imageIds} />
+                                                                        <ReviewImages
+                                                                            imageIds={rv.imageIds}
+                                                                            onImageClick={(index, urls) => {
+                                                                                setActiveLightboxImages(urls.map(u => ({ url: u, type: 'image' })));
+                                                                                setLightboxIndex(index);
+                                                                                setLightboxOpen(true);
+                                                                            }}
+                                                                        />
+                                                                    </div>
+                                                                )}
+
+                                                                {rv.reply && (
+                                                                    <div className="bg-light p-3 rounded mt-2 ms-5 border-start border-4 border-success">
+                                                                        <strong>{t('product.reviews.shopResponse')}:</strong>
+                                                                        <p className="mb-0 mt-1">{rv.reply}</p>
+                                                                        {rv.repliedAt && (
+                                                                            <small className="text-muted">
+                                                                                {new Date(rv.repliedAt).toLocaleString()}
+                                                                            </small>
+                                                                        )}
                                                                     </div>
                                                                 )}
                                                             </div>
@@ -881,8 +906,9 @@ export default function ProductDetailPage() {
 
 
             {/* Lightbox Modal */}
+            {/* Lightbox Modal */}
             {
-                lightboxOpen && imageUrls.length > 0 && (
+                lightboxOpen && activeLightboxImages.length > 0 && (
                     <div
                         style={{
                             position: 'fixed',
@@ -940,9 +966,9 @@ export default function ProductDetailPage() {
                             }}
                             onClick={(e) => e.stopPropagation()}
                         >
-                            {imageUrls[lightboxIndex]?.type === 'video' ? (
+                            {activeLightboxImages[lightboxIndex]?.type === 'video' ? (
                                 <video
-                                    src={imageUrls[lightboxIndex].url}
+                                    src={activeLightboxImages[lightboxIndex].url}
                                     controls
                                     autoPlay
                                     style={{
@@ -953,7 +979,7 @@ export default function ProductDetailPage() {
                                 />
                             ) : (
                                 <img
-                                    src={imageUrls[lightboxIndex]?.url || imgFallback}
+                                    src={activeLightboxImages[lightboxIndex]?.url || imgFallback}
                                     onError={(e) => (e.currentTarget.src = imgFallback)}
                                     alt={product?.name}
                                     style={{
@@ -965,13 +991,13 @@ export default function ProductDetailPage() {
                             )}
 
                             {/* Navigation Arrows in Lightbox */}
-                            {imageUrls.length > 1 && (
+                            {activeLightboxImages.length > 1 && (
                                 <>
                                     <button
                                         type="button"
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            setLightboxIndex((prev) => (prev > 0 ? prev - 1 : imageUrls.length - 1));
+                                            setLightboxIndex((prev) => (prev > 0 ? prev - 1 : activeLightboxImages.length - 1));
                                         }}
                                         style={{
                                             position: 'absolute',
@@ -1000,7 +1026,7 @@ export default function ProductDetailPage() {
                                         type="button"
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            setLightboxIndex((prev) => (prev < imageUrls.length - 1 ? prev + 1 : 0));
+                                            setLightboxIndex((prev) => (prev < activeLightboxImages.length - 1 ? prev + 1 : 0));
                                         }}
                                         style={{
                                             position: 'absolute',
@@ -1029,7 +1055,7 @@ export default function ProductDetailPage() {
                             )}
 
                             {/* Image Counter */}
-                            {imageUrls.length > 1 && (
+                            {activeLightboxImages.length > 1 && (
                                 <div
                                     style={{
                                         position: 'absolute',
@@ -1043,7 +1069,7 @@ export default function ProductDetailPage() {
                                         fontSize: '14px'
                                     }}
                                 >
-                                    {lightboxIndex + 1} / {imageUrls.length}
+                                    {lightboxIndex + 1} / {activeLightboxImages.length}
                                 </div>
                             )}
                         </div>
@@ -1055,7 +1081,7 @@ export default function ProductDetailPage() {
 }
 
 // Helper component to load review images
-function ReviewImages({ imageIds }) {
+function ReviewImages({ imageIds, onImageClick }) {
     const [urls, setUrls] = useState([]);
 
     useEffect(() => {
@@ -1086,7 +1112,18 @@ function ReviewImages({ imageIds }) {
     return (
         <div className="d-flex gap-2 flex-wrap">
             {urls.map((url, i) => (
-                <div key={i} style={{ width: '70px', height: '70px', borderRadius: '4px', overflow: 'hidden', border: '1px solid #ddd' }}>
+                <div
+                    key={i}
+                    style={{
+                        width: '70px',
+                        height: '70px',
+                        borderRadius: '4px',
+                        overflow: 'hidden',
+                        border: '1px solid #ddd',
+                        cursor: 'pointer'
+                    }}
+                    onClick={() => onImageClick && onImageClick(i, urls)}
+                >
                     <img src={url} alt="Review" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
             ))}

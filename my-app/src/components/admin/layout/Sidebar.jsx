@@ -104,13 +104,25 @@ const Sidebar = () => {
                     <span>Voucher</span>
                 </Link>
             </li>
-            {/* Voucher */}
+
+            {/* Categories */}
+            <li className="nav-item-ezmart">
+                <Link
+                    className={`nav-link-ezmart ${isActive("/admin/categories") ? "active" : ""}`}
+                    to="/admin/categories"
+                >
+                    <i className="fas fa-tags"></i>
+                    <span>Categories</span>
+                </Link>
+            </li>
+
+            {/* Subscription */}
             <li className="nav-item-ezmart">
                 <Link
                     className={`nav-link-ezmart ${isActive("/admin/subscription") ? "active" : ""}`}
                     to="/admin/subscription"
                 >
-                    <i className="fas fa-ticket-alt"></i>
+                    <i className="fas fa-crown"></i>
                     <span>Subscription</span>
                 </Link>
             </li>

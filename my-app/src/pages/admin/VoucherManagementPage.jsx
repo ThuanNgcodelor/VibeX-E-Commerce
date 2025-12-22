@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import '../../assets/admin/css/VoucherManagementPage.css';
+import { adminVoucherApi } from '../../api/voucher';
+import Swal from 'sweetalert2';
 
 const VoucherManagementPage = () => {
     const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
@@ -8,6 +10,12 @@ const VoucherManagementPage = () => {
     const [filterStatus, setFilterStatus] = useState('all');
     const [showModal, setShowModal] = useState(false);
     const [editingVoucher, setEditingVoucher] = useState(null);
+
+    // API integration states
+    const [vouchers, setVouchers] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState('');
 
     const [formData, setFormData] = useState({
         code: '',
@@ -25,108 +33,44 @@ const VoucherManagementPage = () => {
         status: 'ACTIVE'
     });
 
-    // Hardcoded voucher data
-    const [vouchers, setVouchers] = useState([
-        {
-            id: '1',
-            code: 'SALE20',
-            name: 'Flash Sale 20%',
-            description: 'Giảm ngay 20% cho tất cả sản phẩm điện tử',
-            type: 'PLATFORM',
-            discountType: 'PERCENTAGE',
-            discountValue: 20,
-            maxDiscount: 100000,
-            minOrder: 500000,
-            totalQuantity: 100,
-            usedQuantity: 45,
-            startDate: '2024-12-01',
-            endDate: '2024-12-31',
-            status: 'ACTIVE',
-            image: '🎟️'
-        },
-        {
-            id: '2',
-            code: 'NEWUSER50',
-            name: 'Welcome New User',
-            description: 'Giảm 50,000đ cho đơn hàng đầu tiên',
-            type: 'PLATFORM',
-            discountType: 'FIXED',
-            discountValue: 50000,
-            minOrder: 200000,
-            totalQuantity: 999,
-            usedQuantity: 230,
-            startDate: '2024-11-01',
-            endDate: '2025-03-31',
-            status: 'ACTIVE',
-            image: '🎁'
-        },
-        {
-            id: '3',
-            code: 'FREESHIP',
-            name: 'Miễn Phí Vận Chuyển',
-            description: 'Free ship cho đơn từ 300k',
-            type: 'PLATFORM',
-            discountType: 'FIXED',
-            discountValue: 30000,
-            minOrder: 300000,
-            totalQuantity: 500,
-            usedQuantity: 350,
-            startDate: '2024-12-01',
-            endDate: '2024-12-25',
-            status: 'ACTIVE',
-            image: '🚚'
-        },
-        {
-            id: '4',
-            code: 'FASHION15',
-            name: 'Fashion Week Sale',
-            description: 'Giảm 15% cho danh mục thời trang',
-            type: 'CATEGORY',
-            discountType: 'PERCENTAGE',
-            discountValue: 15,
-            maxDiscount: 80000,
-            minOrder: 400000,
-            totalQuantity: 200,
-            usedQuantity: 125,
-            startDate: '2024-12-10',
-            endDate: '2024-12-20',
-            status: 'ACTIVE',
-            image: '👗'
-        },
-        {
-            id: '5',
-            code: 'TECH30',
-            name: 'Tech Deals',
-            description: 'Giảm 30% cho sản phẩm công nghệ',
-            type: 'CATEGORY',
-            discountType: 'PERCENTAGE',
-            discountValue: 30,
-            maxDiscount: 500000,
-            minOrder: 1000000,
-            totalQuantity: 50,
-            usedQuantity: 50,
-            startDate: '2024-11-15',
-            endDate: '2024-12-15',
-            status: 'EXPIRED',
-            image: '💻'
-        },
-        {
-            id: '6',
-            code: 'XMAS2024',
-            name: 'Christmas Special',
-            description: 'Khuyến mãi Giáng Sinh - Giảm đến 100k',
-            type: 'PLATFORM',
-            discountType: 'FIXED',
-            discountValue: 100000,
-            minOrder: 800000,
-            totalQuantity: 1000,
-            usedQuantity: 0,
-            startDate: '2024-12-20',
-            endDate: '2024-12-26',
-            status: 'SCHEDULED',
-            image: '🎄'
+    // Load vouchers from backend
+    const loadVouchers = async () => {
+        setLoading(true);
+        setError('');
+        try {
+            const data = await adminVoucherApi.getAll();
+            // Map backend fields to frontend format
+            const mapped = data.map(v => ({
+                id: v.id,
+                code: v.code,
+                name: v.title,  // Backend: title → Frontend: name
+                description: v.description,
+                type: 'PLATFORM',  // All are platform vouchers
+                discountType: v.discountType,
+                discountValue: v.discountType === 'PERCENTAGE' ? v.discountValue : v.discountValue,
+                maxDiscount: v.maxDiscountAmount,
+                minOrder: v.minOrderValue,
+                totalQuantity: v.totalQuantity,
+                usedQuantity: v.usedQuantity,
+                startDate: v.startAt?.split('T')[0],
+                endDate: v.endAt?.split('T')[0],
+                status: v.status,
+                image: '🎟️'  // Default icon
+            }));
+            setVouchers(mapped);
+        } catch (e) {
+            const errorMsg = e?.response?.data?.message || 'Failed to load vouchers';
+            setError(errorMsg);
+            Swal.fire('Error!', errorMsg, 'error');
+        } finally {
+            setLoading(false);
         }
-    ]);
+    };
+
+    // Load on component mount
+    useEffect(() => {
+        loadVouchers();
+    }, []);
 
     // Handle toggle voucher status
     const handleToggleStatus = (voucherId) => {
@@ -185,55 +129,88 @@ const VoucherManagementPage = () => {
     };
 
     // Handle Delete Voucher
-    const handleDelete = (voucherId) => {
-        if (window.confirm('Bạn có chắc chắn muốn xóa voucher này?')) {
-            setVouchers(prevVouchers => prevVouchers.filter(v => v.id !== voucherId));
+    const handleDelete = async (voucherId) => {
+        const result = await Swal.fire({
+            title: 'Are you sure?',
+            text: "You won't be able to revert this!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, delete it!'
+        });
+
+        if (result.isConfirmed) {
+            try {
+                await adminVoucherApi.remove(voucherId);
+                await loadVouchers();
+                Swal.fire('Deleted!', 'Voucher has been deleted', 'success');
+            } catch (e) {
+                const errorMsg = e?.response?.data?.message || 'Failed to delete voucher';
+                Swal.fire('Error!', errorMsg, 'error');
+            }
         }
     };
 
+    // Generate random voucher code XXXX-XXXX
+    const generateRandomCode = () => {
+        const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        const generateSegment = () => {
+            let segment = '';
+            for (let i = 0; i < 4; i++) {
+                segment += characters.charAt(Math.floor(Math.random() * characters.length));
+            }
+            return segment;
+        };
+        const randomCode = `${generateSegment()}-${generateSegment()}`;
+        setFormData({ ...formData, code: randomCode });
+    };
+
     // Handle Submit Form
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
+        setSaving(true);
+        setError('');
 
-        if (editingVoucher) {
-            // Update existing voucher
-            setVouchers(prevVouchers =>
-                prevVouchers.map(v =>
-                    v.id === editingVoucher.id
-                        ? {
-                            ...v,
-                            ...formData,
-                            discountValue: parseFloat(formData.discountValue),
-                            maxDiscount: formData.maxDiscount ? parseFloat(formData.maxDiscount) : null,
-                            minOrder: parseFloat(formData.minOrder),
-                            totalQuantity: parseInt(formData.totalQuantity)
-                        }
-                        : v
-                )
-            );
-        } else {
-            // Create new voucher
-            const newVoucher = {
-                id: String(vouchers.length + 1),
-                code: formData.code,
-                name: formData.name,
+        try {
+            // Build payload for backend
+            const payload = {
+                code: formData.code.toUpperCase(),
+                title: formData.name,  // Frontend: name → Backend: title
                 description: formData.description,
-                type: formData.type,
-                discountType: formData.discountType,
+                discountType: formData.discountType === 'PERCENTAGE' ? 'PERCENT' : 'FIXED_AMOUNT',
                 discountValue: parseFloat(formData.discountValue),
-                maxDiscount: formData.maxDiscount ? parseFloat(formData.maxDiscount) : null,
-                minOrder: parseFloat(formData.minOrder),
+                maxDiscountAmount: formData.maxDiscount ? parseFloat(formData.maxDiscount) : null,
+                minOrderValue: parseFloat(formData.minOrder),
                 totalQuantity: parseInt(formData.totalQuantity),
-                usedQuantity: 0,
-                startDate: formData.startDate,
-                endDate: formData.endDate,
-                status: formData.status,
-                image: '🎟️' // Default icon
+                startAt: formData.startDate ? `${formData.startDate}T00:00:00` : null,
+                endAt: formData.endDate ? `${formData.endDate}T23:59:59` : null
             };
-            setVouchers(prevVouchers => [...prevVouchers, newVoucher]);
-        }
 
-        setShowModal(false);
+            if (editingVoucher) {
+                // Update
+                payload.id = editingVoucher.id;
+                if (formData.status) {
+                    payload.status = formData.status;
+                }
+                await adminVoucherApi.update(payload);
+                Swal.fire('Success!', 'Voucher updated successfully', 'success');
+            } else {
+                // Create
+                await adminVoucherApi.create(payload);
+                Swal.fire('Success!', 'Voucher created successfully', 'success');
+            }
+
+            await loadVouchers();
+            setShowModal(false);
+            setEditingVoucher(null);
+        } catch (e) {
+            const errorMsg = e?.response?.data?.message || 'Failed to save voucher';
+            setError(errorMsg);
+            Swal.fire('Error!', errorMsg, 'error');
+        } finally {
+            setSaving(false);
+        }
     };
 
     // Filter vouchers
@@ -401,7 +378,12 @@ const VoucherManagementPage = () => {
                 </div>
 
                 <div className="card-body">
-                    {filteredVouchers.length === 0 ? (
+                    {loading ? (
+                        <div className="loading-state">
+                            <i className="fas fa-spinner fa-spin"></i>
+                            <p>Loading vouchers...</p>
+                        </div>
+                    ) : filteredVouchers.length === 0 ? (
                         <div className="no-data">
                             <i className="fas fa-inbox"></i>
                             <p>Không tìm thấy voucher</p>
@@ -596,14 +578,54 @@ const VoucherManagementPage = () => {
                                 <div className="form-grid">
                                     <div className="form-group">
                                         <label>Mã Voucher *</label>
-                                        <input
-                                            type="text"
-                                            className="form-input"
-                                            value={formData.code}
-                                            onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                                            placeholder="SALE20"
-                                            required
-                                        />
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                            <input
+                                                type="text"
+                                                className="form-input"
+                                                value={formData.code}
+                                                onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+                                                placeholder="SALE20 hoặc XXXX-XXXX"
+                                                required
+                                                disabled={editingVoucher !== null}
+                                                style={{
+                                                    flex: 1,
+                                                    cursor: editingVoucher ? 'not-allowed' : 'text',
+                                                    opacity: editingVoucher ? 0.7 : 1
+                                                }}
+                                            />
+                                            {!editingVoucher && (
+                                                <button
+                                                    type="button"
+                                                    className="btn-random-code"
+                                                    onClick={generateRandomCode}
+                                                    title="Tạo mã ngẫu nhiên"
+                                                    style={{
+                                                        padding: '8px 16px',
+                                                        backgroundColor: '#6c63ff',
+                                                        color: 'white',
+                                                        border: 'none',
+                                                        borderRadius: '6px',
+                                                        cursor: 'pointer',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '4px',
+                                                        fontSize: '14px',
+                                                        fontWeight: '500',
+                                                        transition: 'all 0.2s ease'
+                                                    }}
+                                                    onMouseEnter={(e) => e.target.style.backgroundColor = '#5848d6'}
+                                                    onMouseLeave={(e) => e.target.style.backgroundColor = '#6c63ff'}
+                                                >
+                                                    <i className="fas fa-dice"></i>
+                                                    Random
+                                                </button>
+                                            )}
+                                        </div>
+                                        {editingVoucher && (
+                                            <small style={{ color: '#666', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                                                Mã voucher không thể thay đổi sau khi tạo
+                                            </small>
+                                        )}
                                     </div>
 
                                     <div className="form-group">
@@ -627,21 +649,6 @@ const VoucherManagementPage = () => {
                                             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                             placeholder="Giảm ngay 20% cho tất cả sản phẩm..."
                                         />
-                                    </div>
-
-                                    <div className="form-group">
-                                        <label>Loại Voucher *</label>
-                                        <select
-                                            className="form-input"
-                                            value={formData.type}
-                                            onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                                            required
-                                        >
-                                            <option value="PLATFORM">Platform</option>
-                                            <option value="SHOP">Shop</option>
-                                            <option value="CATEGORY">Danh Mục</option>
-                                            <option value="PRODUCT">Sản Phẩm</option>
-                                        </select>
                                     </div>
 
                                     <div className="form-group">
@@ -753,8 +760,17 @@ const VoucherManagementPage = () => {
                                 <button type="button" className="btn-cancel" onClick={() => setShowModal(false)}>
                                     Hủy
                                 </button>
-                                <button type="submit" className="btn-save">
-                                    <i className="fas fa-save"></i> {editingVoucher ? 'Cập Nhật' : 'Tạo Mới'}
+                                <button type="submit" className="btn-save" disabled={saving}>
+                                    {saving ? (
+                                        <>
+                                            <i className="fas fa-spinner fa-spin"></i>
+                                            {editingVoucher ? 'Updating...' : 'Creating...'}
+                                        </>
+                                    ) : (
+                                        <>
+                                            <i className="fas fa-save"></i> {editingVoucher ? 'Cập Nhật' : 'Tạo Mới'}
+                                        </>
+                                    )}
                                 </button>
                             </div>
                         </form>

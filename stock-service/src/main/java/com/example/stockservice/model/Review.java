@@ -35,6 +35,11 @@ public class Review {
     @Column(name = "image_id")
     private List<String> imageIds;
 
+    @Column(columnDefinition = "TEXT")
+    private String reply;
+
+    private LocalDateTime repliedAt;
+
     private LocalDateTime createdAt;
 
     @PrePersist

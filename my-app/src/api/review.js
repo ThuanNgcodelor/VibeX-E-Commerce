@@ -20,3 +20,24 @@ export const createReview = async (data) => {
 export const fetchReviewsByProductId = (productId) => {
     return api.get(`/stock/reviews/product/${productId}`);
 };
+
+/**
+ * Fetch reviews by shop ID
+ * @param {string} shopId
+ * @returns {Promise}
+ */
+export const getReviewsByShopId = (shopId) => {
+    return api.get(`/stock/reviews/shop/${shopId}`);
+};
+
+/**
+ * Reply to a review
+ * @param {string} reviewId
+ * @param {string} reply
+ * @returns {Promise}
+ */
+export const replyToReview = (reviewId, reply) => {
+    return api.post(`/stock/reviews/${reviewId}/reply`, reply, {
+        headers: { 'Content-Type': 'text/plain' }
+    });
+};

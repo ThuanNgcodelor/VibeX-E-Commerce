@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import toast from "react-hot-toast";
+import { useTranslation } from "react-i18next";
 import Header from '../../components/client/Header.jsx';
 import { getShopOwnerByUserId, getFollowerCount, checkIsFollowing, followShop, unfollowShop } from '../../api/user';
 import { getShopProducts, getShopStats, fetchProductImageById } from '../../api/product';
@@ -16,6 +18,7 @@ export default function ShopDetailPage() {
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('products'); // Default to products for better UX
     const [imageUrls, setImageUrls] = useState({});
+    const { t } = useTranslation();
 
     useEffect(() => {
         const loadShopData = async () => {
@@ -100,7 +103,12 @@ export default function ShopDetailPage() {
                 setIsFollowing(true);
             }
         } catch (error) {
-            alert("Failed to update follow status. Please try again.");
+            if (error?.response?.status === 403 || error?.response?.status === 401) {
+                toast.error(t("auth.loginRequired"));
+                navigate("/login");
+            } else {
+                alert("Failed to update follow status. Please try again.");
+            }
         }
     };
 

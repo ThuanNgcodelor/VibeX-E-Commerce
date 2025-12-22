@@ -312,4 +312,50 @@ public class ShopLedgerServiceImpl implements ShopLedgerService {
     public List<PayoutBatch> getPayoutHistory(String shopOwnerId) {
         return payoutBatchRepository.findByShopOwnerIdOrderByCreatedAtDesc(shopOwnerId);
     }
+
+    @Override
+    @Transactional
+    public void deductSubscriptionFee(com.example.orderservice.dto.DeductSubscriptionRequestDTO request) {
+        log.info("Deducting subscription fee for shop {}: {}", request.getShopOwnerId(), request.getAmount());
+
+        // Auto-create ledger if not exists
+        ShopLedger ledger = shopLedgerRepository.findByShopOwnerId(request.getShopOwnerId())
+                .orElseGet(() -> {
+                    log.info("Creating new ledger for shop: {}", request.getShopOwnerId());
+                    return shopLedgerRepository.save(ShopLedger.builder()
+                            .shopOwnerId(request.getShopOwnerId())
+                            .balanceAvailable(BigDecimal.ZERO)
+                            .balancePending(BigDecimal.ZERO)
+                            .totalEarnings(BigDecimal.ZERO)
+                            .totalCommission(BigDecimal.ZERO)
+                            .totalPayouts(BigDecimal.ZERO)
+                            .build());
+                });
+
+        if (ledger.getBalanceAvailable().compareTo(request.getAmount()) < 0) {
+            throw new RuntimeException("Số dư ví không đủ. Cần: " + request.getAmount() + ", Hiện có: " + ledger.getBalanceAvailable());
+        }
+
+        BigDecimal balanceBefore = ledger.getBalanceAvailable();
+        BigDecimal balanceAfter = balanceBefore.subtract(request.getAmount());
+
+        // Update Ledger
+        ledger.setBalanceAvailable(balanceAfter);
+        shopLedgerRepository.save(ledger);
+
+        // Create Entry
+        ShopLedgerEntry entry = ShopLedgerEntry.builder()
+                .shopOwnerId(request.getShopOwnerId())
+                .entryType(LedgerEntryType.SUBSCRIPTION_PAYMENT)
+                .amountGross(BigDecimal.ZERO)
+                .amountNet(request.getAmount().negate())
+                .balanceBefore(balanceBefore)
+                .balanceAfter(balanceAfter)
+                .refTxn("SUB_" + request.getPlanId() + "_" + System.currentTimeMillis())
+                .description("Payment for subscription: " + request.getPlanName())
+                .build();
+
+        shopLedgerEntryRepository.save(entry);
+        log.info("Deducted subscription fee successfully. New balance: {}", balanceAfter);
+    }
 }

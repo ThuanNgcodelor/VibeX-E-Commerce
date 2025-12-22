@@ -43,6 +43,8 @@ import SubscriptionPlanManagementPage from "./pages/admin/SubscriptionPlanManage
 import BannerManagementPage from "./pages/admin/BannerManagementPage.jsx";
 import ShopOwnerManagementPage from "./pages/admin/ShopOwnerManagementPage.jsx";
 import RegisterShopOwner from "./pages/client/RegisterShopOwner.jsx";
+import ReviewManagementPage from "./pages/shop-owner/ReviewManagementPage.jsx";
+import CategoriesPage from "./pages/admin/categoeis/CategoriesPage.jsx";
 
 // Component to scroll to top on route change
 function ScrollToTop() {
@@ -52,6 +54,10 @@ function ScrollToTop() {
     window.scrollTo(0, 0);
   }, [pathname]);
 
+  return null;
+}
+
+function ShopOwnerVoucherManagementPage() {
   return null;
 }
 
@@ -89,12 +95,12 @@ export default function App() {
           {/* Admin routes */}
           {/* Admin routes */}
           <Route
-            path="/admin/*"
-            element={
-              <ProtectedRoute allowedRoles={["ROLE_ADMIN"]}>
-                <AdminLayout />
-              </ProtectedRoute>
-            }
+              path="/admin/*"
+              element={
+                <ProtectedRoute allowedRoles={["ROLE_ADMIN"]}>
+                  <AdminLayout />
+                </ProtectedRoute>
+              }
           >
             <Route index element={<AdminDashboard />} />
             <Route path="tables/datatables" element={<DataTablesPage />} />
@@ -106,6 +112,7 @@ export default function App() {
             <Route path="shop-owners" element={<ShopOwnerManagementPage />} />
             <Route path="banner" element={<BannerManagementPage />} />
             <Route path="voucher" element={<VoucherManagementPage />} />
+            <Route path="categories" element={<CategoriesPage />} />
             <Route path="subscription" element={<SubscriptionPlanManagementPage />} />
             <Route path="logout" element={<Logout />} />
           </Route>
@@ -119,12 +126,15 @@ export default function App() {
               </ProtectedRoute>
             }
           >
+              <Route path="live" element={<LiveStreamPage />} />
             <Route index element={<ShopOwnerDashboard />} />
             <Route path="products" element={<AllProductsPage />} />
             <Route path="products/add" element={<AddProductPage />} />
             <Route path="products/edit/:id" element={<AddProductPage />} />
             <Route path="orders/returns" element={<ReturnOrderPage />} />
             <Route path="orders/bulk-shipping" element={<BulkShippingPage />} />
+            <Route path="reviews" element={<ReviewManagementPage />} />
+            <Route path="vouchers" element={<ShopOwnerVoucherManagementPage />} />
 
             <Route path="analytics" element={<AnalyticsPage />} />
             <Route path="chat" element={<ChatPage />} />
@@ -132,7 +142,6 @@ export default function App() {
             <Route path="wallet" element={<WalletPage />} />
             <Route path="subscription" element={<SubscriptionPage />} />
             <Route path="settings" element={<SettingsPage />} />
-            <Route path="live" element={<LiveStreamPage />} />
             <Route path="logout" element={<Logout />} />
           </Route>
 

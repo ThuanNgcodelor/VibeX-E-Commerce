@@ -1,9 +1,13 @@
 package com.example.orderservice.controller;
 
+import com.example.orderservice.dto.CreateShopVoucherRequest;
 import com.example.orderservice.dto.VoucherValidateResponse;
 import com.example.orderservice.model.ShopVoucher;
+import com.example.orderservice.service.ShopVoucherService;
 import com.example.orderservice.service.VoucherService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,6 +20,24 @@ import java.util.List;
 public class VoucherController {
 
     private final VoucherService voucherService;
+    private final ShopVoucherService shopVoucherService;
+
+    @PostMapping
+    public ResponseEntity<ShopVoucher> createShopVoucher(@Valid @RequestBody CreateShopVoucherRequest request) {
+        ShopVoucher createdVoucher = shopVoucherService.createShopVoucher(request);
+        return new ResponseEntity<>(createdVoucher, HttpStatus.CREATED);
+    }
+
+    @GetMapping("/shops/{shopId}")
+    public ResponseEntity<List<ShopVoucher>> getShopVoucher(@PathVariable String shopId) {
+        return ResponseEntity.ok(shopVoucherService.getAllShopVouchers(shopId));
+    }
+
+    @PutMapping("/{voucherId}")
+    public ResponseEntity<ShopVoucher> updateShopVoucher(@PathVariable String voucherId,
+                                                         @Valid @RequestBody CreateShopVoucherRequest request) {
+        return ResponseEntity.ok(shopVoucherService.updateShopVoucher(voucherId, request));
+    }
 
     /**
      * Validate voucher và tính discount
@@ -49,6 +71,13 @@ public class VoucherController {
     ) {
         VoucherValidateResponse response = voucherService.getShopVoucherByCode(code, shopOwnerId);
         return ResponseEntity.ok(response);
+    }
+
+
+    @DeleteMapping("/{voucherId}")
+    public ResponseEntity<Void> deleteShopVoucher(@PathVariable String voucherId) {
+        shopVoucherService.deleteShopVoucher(voucherId);
+        return ResponseEntity.noContent().build();
     }
 }
 

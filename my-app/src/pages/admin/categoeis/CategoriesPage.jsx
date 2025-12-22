@@ -1,24 +1,23 @@
 import { useEffect, useMemo, useState } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
-import "bootstrap-icons/font/bootstrap-icons.css";
+import "../../../assets/admin/css/CategoryManagement.css";
 import categoryApi from "../../../api/categoryApi";
 import CategoryForm from "./CategoryForm";
-import CategorySearch from "./CategorySearch";
+import Swal from 'sweetalert2';
 
 export default function CategoriesPage() {
   const [categories, setCategories] = useState([]);
-  const [editingId, setEditingId] = useState(null);
-  const [formInitial, setFormInitial] = useState({ name: "", description: "" });
+  const [editingCategory, setEditingCategory] = useState(null);
   const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(5);
+  const [pageSize, setPageSize] = useState(10);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
   const [saving, setSaving] = useState(false);
   const [sortOrder, setSortOrder] = useState("asc");
-  const [dark, setDark] = useState(false); 
+  const [showModal, setShowModal] = useState(false);
 
-  // load
+  // Load categories
   const load = async () => {
     setLoading(true);
     setErr("");
@@ -27,46 +26,89 @@ export default function CategoriesPage() {
       setCategories(data ?? []);
     } catch (e) {
       setErr(e?.response?.data?.message || "Failed to load categories");
+      Swal.fire('Error!', 'Failed to load categories.', 'error');
     } finally {
       setLoading(false);
     }
   };
+
   useEffect(() => { load(); }, []);
 
-  // CRUD
-  const handleSubmit = async (form, id) => {
+  // CRUD operations
+  const handleSubmit = async (form, id, imageFile) => {
     setSaving(true);
     setErr("");
     try {
-      if (id) await categoryApi.update({ id, name: form.name, description: form.description });
-      else await categoryApi.create({ name: form.name, description: form.description });
+      const formData = new FormData();
+      const requestData = {
+        name: form.name,
+        description: form.description
+      };
+
+      if (id) {
+        requestData.id = id;
+      }
+
+      formData.append('request', new Blob([JSON.stringify(requestData)], { type: 'application/json' }));
+
+      if (imageFile) {
+        formData.append('image', imageFile);
+      }
+
+      if (id) {
+        await categoryApi.update(formData);
+        Swal.fire('Success!', 'Category updated successfully.', 'success');
+      } else {
+        await categoryApi.create(formData);
+        Swal.fire('Success!', 'Category created successfully.', 'success');
+      }
+
       await load();
-      setEditingId(null);
-      setFormInitial({ name: "", description: "" });
+      setShowModal(false);
+      setEditingCategory(null);
     } catch (e) {
       setErr(e?.response?.data?.message || "Save failed");
+      Swal.fire('Error!', 'Failed to save category.', 'error');
     } finally {
       setSaving(false);
     }
   };
 
   const handleEdit = (cat) => {
-    setEditingId(cat.id);
-    setFormInitial({ name: cat.name, description: cat.description ?? "" });
+    setEditingCategory(cat);
+    setShowModal(true);
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Delete this category?")) return;
-    setErr("");
-    try {
-      await categoryApi.remove(id);
-      await load();
-    } catch (e) {
-      setErr(e?.response?.data?.message || "Delete failed");
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: "You won't be able to revert this!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc3545',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Yes, delete it!'
+    });
+
+    if (result.isConfirmed) {
+      setErr("");
+      try {
+        await categoryApi.remove(id);
+        await load();
+        Swal.fire('Deleted!', 'Category has been deleted.', 'success');
+      } catch (e) {
+        setErr(e?.response?.data?.message || "Delete failed");
+        Swal.fire('Error!', 'Failed to delete category.', 'error');
+      }
     }
   };
 
-  // search + sort + pagination
+  const handleCreate = () => {
+    setEditingCategory(null);
+    setShowModal(true);
+  };
+
+  // Filter and sort
   const filtered = useMemo(() => {
     let result = categories;
     if (q.trim()) {
@@ -77,7 +119,6 @@ export default function CategoriesPage() {
           (c.description || "").toLowerCase().includes(k)
       );
     }
-    // sort theo tên
     result = [...result].sort((a, b) => {
       const na = (a.name || "").toLowerCase();
       const nb = (b.name || "").toLowerCase();
@@ -98,184 +139,227 @@ export default function CategoriesPage() {
 
   const goTo = (p) => setPage(Math.min(Math.max(1, p), totalPages));
 
+  const stats = {
+    total: categories.length,
+    filtered: filtered.length,
+    currentPage: pageItems.length
+  };
+
   return (
-    <div className={dark ? "bg-dark text-light min-vh-100" : "min-vh-100"}>
-      <div className="container my-4">
-        <div className="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3">
-          <h2 className={`m-0 ${dark ? "text-light" : "text-dark"}`}>
-            Categories
-          </h2>
+    <div className="category-management-page">
+      {/* Header */}
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Category Management</h1>
+          <p className="page-subtitle">Manage product categories and their details</p>
+        </div>
+        <button className="btn-create" onClick={handleCreate}>
+          <i className="fas fa-plus"></i> Create Category
+        </button>
+      </div>
 
-
-          <div className="d-flex align-items-center gap-3 flex-wrap">
-            <CategorySearch
-              value={q}
-              onChange={(val) => { setQ(val); setPage(1); }}
-              dark={dark}
-            />
-
-            {/* Sort */}
-            <div className="d-flex align-items-center gap-2">
-              <label className={`form-label m-0 ${dark ? "text-light" : "text-dark"}`}>
-                Sort
-              </label>
-              <select
-                className={`form-select form-select-sm ${dark ? "bg-dark text-light border-secondary" : ""
-                  }`}
-                style={{ width: 120 }}
-                value={sortOrder}
-                onChange={(e) => setSortOrder(e.target.value)}
-              >
-                <option value="asc">A → Z</option>
-                <option value="desc">Z → A</option>
-              </select>
-            </div>
-
-
-            {/* Toggle theme */}
-
-            <div className="form-check form-switch ms-3">
-              <input
-                className="form-check-input"
-                type="checkbox"
-                id="themeSwitch"
-                checked={dark}
-                onChange={(e) => setDark(e.target.checked)}
-              />
-              <label className="form-check-label ms-1" htmlFor="themeSwitch">
-                {dark ? "Dark" : "Light"}
-              </label>
-            </div>
-
+      {/* Stats Cards */}
+      <div className="stats-grid">
+        <div className="stat-card">
+          <div className="stat-icon stat-icon-total">
+            <i className="fas fa-grid-2"></i>
+          </div>
+          <div className="stat-info">
+            <span className="stat-label">Total Categories</span>
+            <h2 className="stat-value">{stats.total}</h2>
           </div>
         </div>
 
-        {err && <div className={`alert alert-danger ${dark ? "bg-danger-subtle text-dark" : ""}`}>{err}</div>}
-        {loading && <div className={`alert alert-info ${dark ? "bg-info-subtle text-dark" : ""}`}>Loading...</div>}
+        <div className="stat-card">
+          <div className="stat-icon stat-icon-active">
+            <i className="fas fa-check-circle"></i>
+          </div>
+          <div className="stat-info">
+            <span className="stat-label">Filtered Results</span>
+            <h2 className="stat-value">{stats.filtered}</h2>
+          </div>
+        </div>
 
-        <CategoryForm
-          initial={formInitial}
-          editingId={editingId}
-          onSubmit={handleSubmit}
-          onCancel={() => { setEditingId(null); setFormInitial({ name: "", description: "" }); }}
-          submitting={saving}
-          dark={dark}
-        />
-
-        <div className={`card shadow-sm ${dark ? "bg-dark text-light border-secondary" : ""}`}>
-          <div className="card-body p-2 p-md-3">
-            <div className="d-flex justify-content-between align-items-center mb-2 gap-2">
-              <div className={dark ? "text-light" : "text-muted"}>
-                Showing {pageItems.length} of {filtered.length} items
-              </div>
-
-
-              <div className="d-flex align-items-center gap-2">
-                <label className="form-label m-0">Per page</label>
-                <select
-                  className="form-select form-select-sm"
-                  style={{ width: 90 }}
-                  value={pageSize}
-                  onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
-                >
-                  {[5, 10, 20, 50].map((n) => <option key={n} value={n}>{n}</option>)}
-                </select>
-              </div>
-            </div>
-
-            <div className="table-responsive">
-              <table className={`table table-bordered table-hover align-middle mb-2 ${dark ? "table-dark border-secondary" : ""}`}>
-                <thead className={`text-center ${dark ? "" : "table-light"}`}>
-                  <tr>
-                    <th style={{ minWidth: 200 }}>Name</th>
-                    <th>Description</th>
-                    <th style={{ width: 200 }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pageItems.map((c) => (
-                    <tr key={c.id} className="text-center">
-                      <td className="text-start">{c.name}</td>
-                      <td className="text-start">{c.description}</td>
-                      <td>
-                        <div className="d-flex justify-content-center gap-2">
-                          {/* EDIT với icon */}
-                          <button
-                            onClick={() => handleEdit(c)}
-                            className="btn btn-sm btn-warning text-white"
-                            title="Edit"
-                          >
-                            <i className="bi bi-pencil-square me-1"></i>
-                            Edit
-                          </button>
-
-                          {/* DELETE với icon */}
-                          <button
-                            onClick={() => handleDelete(c.id)}
-                            className="btn btn-sm btn-danger"
-                            title="Delete"
-                          >
-                            <i className="bi bi-trash me-1"></i>
-                            Delete
-                          </button>
-                        </div>
-                      </td>
-
-                    </tr>
-                  ))}
-                  {pageItems.length === 0 && !loading && (
-                    <tr>
-                      <td colSpan="3" className="text-center p-4 text-muted">No categories available</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Pagination với icon */}
-            <nav aria-label="Pagination" className="d-flex justify-content-center">
-              <ul className="pagination mb-0">
-                <li className={`page-item ${page === 1 ? "disabled" : ""}`}>
-                  <button
-                    className={`page-link ${dark ? "bg-dark text-light border-secondary" : ""}`}
-                    onClick={() => goTo(page - 1)}
-                    title="Previous"
-                  >
-                    <i className="bi bi-chevron-left"></i>
-                  </button>
-                </li>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                  <li key={p} className={`page-item ${p === page ? "active" : ""}`}>
-                    <button
-                      className={`page-link ${dark
-                        ? p === page
-                          ? "bg-primary text-light border-primary"
-                          : "bg-dark text-light border-secondary"
-                        : ""
-                        }`}
-                      onClick={() => goTo(p)}
-                    >
-                      {p}
-                    </button>
-                  </li>
-                ))}
-                <li className={`page-item ${page === totalPages ? "disabled" : ""}`}>
-                  <button
-                    className={`page-link ${dark ? "bg-dark text-light border-secondary" : ""}`}
-                    onClick={() => goTo(page + 1)}
-                    title="Next"
-                  >
-                    <i className="bi bi-chevron-right"></i>
-                  </button>
-                </li>
-              </ul>
-            </nav>
-
-
-
+        <div className="stat-card">
+          <div className="stat-icon stat-icon-filtered">
+            <i className="fas fa-layer-group"></i>
+          </div>
+          <div className="stat-info">
+            <span className="stat-label">Current Page</span>
+            <h2 className="stat-value">{stats.currentPage}</h2>
           </div>
         </div>
       </div>
+
+      {/* Table Card */}
+      <div className="card categories-table-card">
+        <div className="card-header">
+          <h3 className="card-title">All Categories</h3>
+          <div className="header-actions">
+            {/* Search */}
+            <div className="search-box">
+              <i className="fas fa-search"></i>
+              <input
+                type="text"
+                placeholder="Search categories..."
+                value={q}
+                onChange={(e) => { setQ(e.target.value); setPage(1); }}
+                className="search-input"
+              />
+            </div>
+
+            {/* Filters */}
+            <select
+              className="filter-select"
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value)}
+            >
+              <option value="asc">A → Z</option>
+              <option value="desc">Z → A</option>
+            </select>
+
+            <select
+              className="filter-select"
+              value={pageSize}
+              onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
+            >
+              {[5, 10, 20, 50].map((n) => <option key={n} value={n}>{n} items</option>)}
+            </select>
+          </div>
+        </div>
+
+        <div className="card-body">
+          {loading ? (
+            <div className="loading-state">
+              <i className="fas fa-spinner fa-spin"></i>
+              <p>Loading categories...</p>
+            </div>
+          ) : (
+            <>
+              <div className="table-responsive">
+                <table className="categories-table">
+                  <thead>
+                    <tr>
+                      <th>Preview</th>
+                      <th>Name</th>
+                      <th>Description</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pageItems.map((c) => (
+                      <tr key={c.id}>
+                        <td>
+                          <div className="category-preview">
+                            {c.imageUrl ? (
+                              <img src={c.imageUrl} alt={c.name} />
+                            ) : (
+                              <div className="no-image">
+                                <i className="fas fa-image"></i>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td>
+                          <div className="category-name-cell">{c.name}</div>
+                        </td>
+                        <td>
+                          <span className="category-desc">{c.description || "—"}</span>
+                        </td>
+                        <td>
+                          <div className="action-buttons">
+                            <button
+                              onClick={() => handleEdit(c)}
+                              className="btn-action btn-edit"
+                              title="Edit Category"
+                            >
+                              <i className="fas fa-edit"></i>
+                            </button>
+                            <button
+                              onClick={() => handleDelete(c.id)}
+                              className="btn-action btn-delete"
+                              title="Delete Category"
+                            >
+                              <i className="fas fa-trash"></i>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {pageItems.length === 0 && !loading && (
+                      <tr>
+                        <td colSpan="4" className="no-data">
+                          <i className="fas fa-inbox"></i>
+                          <p>No categories found</p>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination */}
+              <nav aria-label="Pagination">
+                <ul className="pagination">
+                  <li className={`page-item ${page === 1 ? "disabled" : ""}`}>
+                    <button
+                      className="page-link"
+                      onClick={() => goTo(page - 1)}
+                      disabled={page === 1}
+                      title="Previous"
+                    >
+                      <i className="fas fa-chevron-left"></i>
+                    </button>
+                  </li>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                    <li key={p} className={`page-item ${p === page ? "active" : ""}`}>
+                      <button
+                        className="page-link"
+                        onClick={() => goTo(p)}
+                      >
+                        {p}
+                      </button>
+                    </li>
+                  ))}
+                  <li className={`page-item ${page === totalPages ? "disabled" : ""}`}>
+                    <button
+                      className="page-link"
+                      onClick={() => goTo(page + 1)}
+                      disabled={page === totalPages}
+                      title="Next"
+                    >
+                      <i className="fas fa-chevron-right"></i>
+                    </button>
+                  </li>
+                </ul>
+              </nav>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Create/Edit Modal */}
+      {showModal && (
+        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+          <div className="modal-container" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="modal-title">
+                {editingCategory ? 'Edit Category' : 'Create New Category'}
+              </h3>
+              <button className="modal-close" onClick={() => setShowModal(false)}>
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+
+            <CategoryForm
+              category={editingCategory}
+              onSubmit={handleSubmit}
+              onCancel={() => setShowModal(false)}
+              submitting={saving}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

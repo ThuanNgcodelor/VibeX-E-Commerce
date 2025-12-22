@@ -21,5 +21,7 @@ public class ReviewDto {
     private int rating;
     private String comment;
     private List<String> imageIds;
+    private String reply;
+    private LocalDateTime repliedAt;
     private LocalDateTime createdAt;
 }

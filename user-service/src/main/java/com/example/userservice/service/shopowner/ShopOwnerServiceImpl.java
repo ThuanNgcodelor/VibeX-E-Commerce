@@ -1,6 +1,7 @@
 package com.example.userservice.service.shopowner;
 
 import com.example.userservice.client.FileStorageClient;
+import com.example.userservice.exception.NotFoundException;
 import com.example.userservice.model.ShopOwner;
 import com.example.userservice.repository.ShopOwnerRepository;
 import com.example.userservice.request.UpdateShopOwnerRequest;
@@ -13,7 +14,6 @@ import org.springframework.web.multipart.MultipartFile;
 @Service("shopOwnerService")
 public class ShopOwnerServiceImpl implements ShopOwnerService {
     private final ShopOwnerRepository shopOwnerRepository;
-    private final ModelMapper modelMapper;
     private final FileStorageClient fileStorageClient;
     private final com.example.userservice.repository.ShopFollowRepository shopFollowRepository;
     private final com.example.userservice.client.StockServiceClient stockServiceClient;
@@ -82,7 +82,7 @@ public class ShopOwnerServiceImpl implements ShopOwnerService {
     @Override
     public ShopOwner getShopOwnerByUserId(String userId) {
         ShopOwner shopOwner = shopOwnerRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Shop owner not found with userId: " + userId));
+                .orElseThrow(() -> new NotFoundException("Shop owner not found with userId: " + userId));
 
         // Populate stats
         try {

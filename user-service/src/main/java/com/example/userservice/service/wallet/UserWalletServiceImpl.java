@@ -50,77 +50,81 @@ public class UserWalletServiceImpl implements UserWalletService {
     @Transactional
     public UserWallet addRefund(String userId, String orderId, String paymentId, BigDecimal amount, String reason) {
         UserWallet wallet = getOrCreateWallet(userId);
-        
+
         BigDecimal balanceBefore = wallet.getBalanceAvailable();
         BigDecimal balanceAfter = balanceBefore.add(amount);
-        
+
         // Update wallet
         wallet.setBalanceAvailable(balanceAfter);
         wallet.setTotalRefunds(wallet.getTotalRefunds().add(amount));
         wallet = walletRepository.save(wallet);
-        
+
         // Create entry
         String refTxn = "REFUND_" + orderId + "_" + userId + "_" + System.currentTimeMillis();
-        createEntry(userId, orderId, paymentId, WalletEntryType.REFUND, amount, 
+        createEntry(userId, orderId, paymentId, WalletEntryType.REFUND, amount,
                 "Refund from cancelled order: " + orderId + ". Reason: " + (reason != null ? reason : "N/A"));
-        
-        log.info("[WALLET] Added refund to wallet: userId={}, amount={}, balanceBefore={}, balanceAfter={}", 
+
+        log.info("[WALLET] Added refund to wallet: userId={}, amount={}, balanceBefore={}, balanceAfter={}",
                 userId, amount, balanceBefore, balanceAfter);
-        
+
         return wallet;
     }
 
     @Override
     @Transactional
-    public UserWallet withdraw(String userId, BigDecimal amount, String bankAccount, String bankName, String accountHolder) {
+    public UserWallet withdraw(String userId, BigDecimal amount, String bankAccount, String bankName,
+                               String accountHolder) {
         UserWallet wallet = getWallet(userId);
-        
+
         if (wallet.getBalanceAvailable().compareTo(amount) < 0) {
-            throw new RuntimeException("Insufficient balance. Available: " + wallet.getBalanceAvailable() + ", Requested: " + amount);
+            throw new RuntimeException(
+                    "Insufficient balance. Available: " + wallet.getBalanceAvailable() + ", Requested: " + amount);
         }
-        
+
         BigDecimal balanceBefore = wallet.getBalanceAvailable();
         BigDecimal balanceAfter = balanceBefore.subtract(amount);
-        
+
         // Update wallet
         wallet.setBalanceAvailable(balanceAfter);
         wallet.setTotalWithdrawals(wallet.getTotalWithdrawals().add(amount));
         wallet = walletRepository.save(wallet);
-        
+
         // Create entry
         String refTxn = "WITHDRAW_" + userId + "_" + System.currentTimeMillis();
-        createEntry(userId, null, null, WalletEntryType.WITHDRAWAL, amount, 
+        createEntry(userId, null, null, WalletEntryType.WITHDRAWAL, amount,
                 "Withdrawal to " + bankName + " - " + bankAccount);
-        
-        log.info("[WALLET] Withdrawal from wallet: userId={}, amount={}, balanceBefore={}, balanceAfter={}", 
+
+        log.info("[WALLET] Withdrawal from wallet: userId={}, amount={}, balanceBefore={}, balanceAfter={}",
                 userId, amount, balanceBefore, balanceAfter);
-        
+
         return wallet;
     }
 
     @Override
     @Transactional
-    public UserWalletEntry createEntry(String userId, String orderId, String paymentId, WalletEntryType entryType, 
+    public UserWalletEntry createEntry(String userId, String orderId, String paymentId, WalletEntryType entryType,
                                        BigDecimal amount, String description) {
         UserWallet wallet = getOrCreateWallet(userId);
-        
+
         BigDecimal balanceBefore = wallet.getBalanceAvailable();
         BigDecimal balanceAfter = balanceBefore;
-        
+
         // Calculate balance after based on entry type
         if (entryType == WalletEntryType.REFUND || entryType == WalletEntryType.DEPOSIT) {
             balanceAfter = balanceBefore.add(amount);
-        } else if (entryType == WalletEntryType.WITHDRAWAL || entryType == WalletEntryType.ADJUST) {
+        } else if (entryType == WalletEntryType.WITHDRAWAL || entryType == WalletEntryType.ADJUST
+                || entryType == WalletEntryType.SUBSCRIPTION_FEE) {
             balanceAfter = balanceBefore.subtract(amount);
         }
-        
-        String refTxn = entryType.name() + "_" + (orderId != null ? orderId : userId) + "_" + System.currentTimeMillis();
-        
+
+        String refTxn = entryType.name() + "_" + (orderId != null ? orderId : userId) + "_"
+                + System.currentTimeMillis();
+
         // Check if refTxn already exists
         if (entryRepository.existsByRefTxn(refTxn)) {
             refTxn = refTxn + "_" + UUID.randomUUID().toString().substring(0, 8);
         }
-        
+
         UserWalletEntry entry = UserWalletEntry.builder()
                 .userId(userId)
                 .orderId(orderId)
@@ -132,8 +136,33 @@ public class UserWalletServiceImpl implements UserWalletService {
                 .refTxn(refTxn)
                 .description(description)
                 .build();
-        
+
         return entryRepository.save(entry);
     }
-}
 
+    @Override
+    @Transactional
+    public UserWallet paySubscription(String userId, BigDecimal amount, String planName) {
+        UserWallet wallet = getOrCreateWallet(userId); // Ensure wallet exists
+
+        if (wallet.getBalanceAvailable().compareTo(amount) < 0) {
+            throw new RuntimeException("Insufficient balance to pay for subscription: " + planName);
+        }
+
+        BigDecimal balanceBefore = wallet.getBalanceAvailable();
+        BigDecimal balanceAfter = balanceBefore.subtract(amount);
+
+        // Update wallet
+        wallet.setBalanceAvailable(balanceAfter);
+        wallet = walletRepository.save(wallet);
+
+        // Create entry
+        createEntry(userId, null, null, WalletEntryType.SUBSCRIPTION_FEE, amount,
+                "Payment for subscription plan: " + planName);
+
+        log.info("[WALLET] Paid subscription: userId={}, amount={}, plan={}, balanceAfter={}",
+                userId, amount, planName, balanceAfter);
+
+        return wallet;
+    }
+}

@@ -24,9 +24,17 @@ public class ShopOwnerController {
 
     @GetMapping("/info")
     public ResponseEntity<ShopOwnerDto> getShopOwnerInfo(HttpServletRequest requestHttp) {
-        String userId = jwtUtil.ExtractUserId(requestHttp);
-        ShopOwner shopOwner = shopOwnerService.getShopOwnerByUserId(userId);
-        return ResponseEntity.ok(modelMapper.map(shopOwner, ShopOwnerDto.class));
+        try {
+            String userId = jwtUtil.ExtractUserId(requestHttp);
+            ShopOwner shopOwner = shopOwnerService.getShopOwnerByUserId(userId);
+            return ResponseEntity.ok(modelMapper.map(shopOwner, ShopOwnerDto.class));
+        } catch (Exception e) {
+            System.err.println("Error in getShopOwnerInfo: " + e.getMessage());
+            if (e.getMessage() != null && (e.getMessage().contains("missing") || e.getMessage().contains("invalid"))) {
+                return ResponseEntity.status(401).build();
+            }
+            throw e; // Let other exceptions (like NotFound) bubble up
+        }
     }
 
     @GetMapping("/{userId}")

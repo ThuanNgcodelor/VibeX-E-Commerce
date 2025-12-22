@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { getShopOwnerOrders, updateOrderStatusForShopOwner, returnOrder } from '../../api/order';
+import { getShopOwnerOrders, updateOrderStatusForShopOwner, returnOrder, getAllShopOwnerOrders } from '../../api/order';
 import { getUserById } from '../../api/user';
 import { useTranslation } from 'react-i18next';
 import '../../components/shop-owner/ShopOwnerLayout.css';
@@ -73,7 +73,7 @@ export default function ReturnOrderPage() {
                 ordersList = response;
                 setTotalPages(1);
             } else if (response && response.data && Array.isArray(response.data)) {
-// Response wrapped in data property
+                // Response wrapped in data property
                 ordersList = response.data;
                 setTotalPages(response.totalPages || 1);
             } else {
@@ -234,6 +234,92 @@ export default function ReturnOrderPage() {
         return statusFlow[cur];
     };
 
+    const handleExportExcel = async () => {
+        try {
+            setLoading(true);
+            // Strictly export only CANCELLED and RETURNED orders, regardless of current view filter
+            const filter = ['CANCELLED', 'RETURNED'];
+            const allOrders = await getAllShopOwnerOrders(filter);
+
+            if (!allOrders || allOrders.length === 0) {
+                alert(t('shopOwner.manageOrder.noOrdersToExport', 'Không có đơn hàng để xuất'));
+                setLoading(false);
+                return;
+            }
+
+            // Define headers
+            const headers = [
+                "Order ID",
+                "Customer Name",
+                "Product", // Simple aggregation
+                "Subtotal",
+                "Shipping Fee",
+                "Total",
+                "Date",
+                "Status",
+                "Cancel Reason",
+                "Return Reason"
+            ];
+
+            // Helper to escape CSV fields
+            const escapeCsv = (str) => {
+                if (str === null || str === undefined) return '';
+                return `"${String(str).replace(/"/g, '""')}"`;
+            };
+
+            const csvRows = [headers.join(',')];
+
+            for (const order of allOrders) {
+                const subtotal = order.totalPrice; // As per table logic, totalPrice seems to be subtotal? Or need verify. 
+                // Table: Subtotal = formatPrice(order.totalPrice)
+                // Table: Total = formatPrice((order.totalPrice || 0) + (order.shippingFee || 0))
+
+                const shipping = order.shippingFee || 0;
+                const total = (order.totalPrice || 0) + shipping;
+                const date = new Date(order.creationTimestamp).toLocaleDateString('vi-VN');
+                const customerName = usernames[order.userId] || `User: ${order.userId}`;
+
+                // Format Products string
+                const productStr = order.orderItems ? order.orderItems.map(item => {
+                    const name = item.productName || `Product ${item.productId}`;
+                    const size = item.sizeName ? ` (${item.sizeName})` : '';
+                    return `${name}${size} x${item.quantity || 1}`;
+                }).join('; ') : '';
+
+                const row = [
+                    escapeCsv(order.id),
+                    escapeCsv(customerName),
+                    escapeCsv(productStr),
+                    order.totalPrice,
+                    shipping,
+                    total,
+                    escapeCsv(date),
+                    escapeCsv(order.orderStatus),
+                    escapeCsv(order.cancelReason),
+                    escapeCsv(order.returnReason)
+                ];
+                csvRows.push(row.join(','));
+            }
+
+            const bom = '\uFEFF';
+            const csvString = bom + csvRows.join('\n');
+            const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `return_orders_export_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+        } catch (err) {
+            console.error('Export failed:', err);
+            alert(t('shopOwner.manageOrder.exportError', 'Xuất file thất bại: ') + err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     if (loading && orders.length === 0) {
         return (
             <div className="dashboard-container">
@@ -285,7 +371,7 @@ export default function ReturnOrderPage() {
                         <button className="btn btn-secondary-shop" onClick={loadOrders}>
                             <i className="fas fa-sync-alt"></i> {t('shopOwner.manageOrder.refresh')}
                         </button>
-                        <button className="btn btn-secondary-shop">
+                        <button className="btn btn-secondary-shop" onClick={handleExportExcel}>
                             <i className="fas fa-download"></i> {t('shopOwner.manageOrder.exportExcel')}
                         </button>
                     </div>
@@ -294,180 +380,180 @@ export default function ReturnOrderPage() {
                 <div className="table-responsive" style={{ overflowX: 'auto' }}>
                     <table className="table table-hover">
                         <thead>
-                        <tr>
-                            <th>No.</th>
-                            <th>{t('shopOwner.manageOrder.customer')}</th>
-                            <th>{t('shopOwner.analytics.product')}</th>
-                            <th>{t('shopOwner.manageOrder.subtotal')}</th>
-                            <th>{t('shopOwner.manageOrder.shipping')}</th>
-                            <th>{t('shopOwner.manageOrder.total')}</th>
-                            <th>{t('shopOwner.manageOrder.orderDate')}</th>
-                            <th>{t('common.status.title')}</th>
-                            <th>{t('shopOwner.manageOrder.actions')}</th>
-                        </tr>
+                            <tr>
+                                <th>No.</th>
+                                <th>{t('shopOwner.manageOrder.customer')}</th>
+                                <th>{t('shopOwner.analytics.product')}</th>
+                                <th>{t('shopOwner.manageOrder.subtotal')}</th>
+                                <th>{t('shopOwner.manageOrder.shipping')}</th>
+                                <th>{t('shopOwner.manageOrder.total')}</th>
+                                <th>{t('shopOwner.manageOrder.orderDate')}</th>
+                                <th>{t('common.status.title')}</th>
+                                <th>{t('shopOwner.manageOrder.actions')}</th>
+                            </tr>
                         </thead>
                         <tbody>
-                        {orders.length === 0 ? (
-                            <tr>
-                                <td colSpan="9" className="text-center py-4">
-                                    <p className="text-muted">{t('shopOwner.manageOrder.noOrders')}</p>
-                                </td>
-                            </tr>
-                        ) : (
-                            orders.map((order, index) => {
-                                const statusInfo = getStatusBadge(order.orderStatus);
-                                const nextStatus = getNextStatus(order.orderStatus);
-                                const isExpanded = expandedRows.has(order.id);
-                                const orderNumber = (currentPage - 1) * pageSize + index + 1;
+                            {orders.length === 0 ? (
+                                <tr>
+                                    <td colSpan="9" className="text-center py-4">
+                                        <p className="text-muted">{t('shopOwner.manageOrder.noOrders')}</p>
+                                    </td>
+                                </tr>
+                            ) : (
+                                orders.map((order, index) => {
+                                    const statusInfo = getStatusBadge(order.orderStatus);
+                                    const nextStatus = getNextStatus(order.orderStatus);
+                                    const isExpanded = expandedRows.has(order.id);
+                                    const orderNumber = (currentPage - 1) * pageSize + index + 1;
 
-                                return (
-                                    <React.Fragment key={order.id}>
-                                        <tr data-order-id={order.id}>
-                                            <td><strong>{orderNumber}</strong></td>
-                                            <td>{usernames[order.userId] || order.userId || 'N/A'}</td>
-                                            <td style={{ maxWidth: '300px' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span title={formatProducts(order.orderItems)}>
-                              {formatProducts(order.orderItems)}
-                            </span>
-                                                    {order.orderItems && order.orderItems.length > 0 && (
+                                    return (
+                                        <React.Fragment key={order.id}>
+                                            <tr data-order-id={order.id}>
+                                                <td><strong>{orderNumber}</strong></td>
+                                                <td>{usernames[order.userId] || order.userId || 'N/A'}</td>
+                                                <td style={{ maxWidth: '300px' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                        <span title={formatProducts(order.orderItems)}>
+                                                            {formatProducts(order.orderItems)}
+                                                        </span>
+                                                        {order.orderItems && order.orderItems.length > 0 && (
+                                                            <button
+                                                                className="btn btn-sm btn-link p-0"
+                                                                onClick={() => toggleRowExpand(order.id)}
+                                                                title={isExpanded ? "Hide details" : "Show details"}
+                                                            >
+                                                                <i className={`fas fa-chevron-${isExpanded ? 'up' : 'down'}`}></i>
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <strong style={{ color: '#555' }}>
+                                                        {formatPrice(order.totalPrice)}
+                                                    </strong>
+                                                </td>
+                                                <td>
+                                                    <span style={{ color: '#666', fontSize: '0.9rem' }}>
+                                                        {order.shippingFee ? formatPrice(order.shippingFee) : 'N/A'}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <strong style={{ color: '#ee4d2d' }}>
+                                                        {formatPrice((order.totalPrice || 0) + (order.shippingFee || 0))}
+                                                    </strong>
+                                                </td>
+                                                <td>{formatDate(order.creationTimestamp)}</td>
+                                                <td>
+                                                    <span className={`badge ${statusInfo.class}`}>
+                                                        {statusInfo.label}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                                                         <button
-                                                            className="btn btn-sm btn-link p-0"
-                                                            onClick={() => toggleRowExpand(order.id)}
-                                                            title={isExpanded ? "Hide details" : "Show details"}
+                                                            className="btn btn-sm btn-outline-primary"
+                                                            onClick={() => {
+                                                                toggleRowExpand(order.id);
+                                                            }}
+                                                            title="View details"
                                                         >
-                                                            <i className={`fas fa-chevron-${isExpanded ? 'up' : 'down'}`}></i>
+                                                            <i className="fas fa-eye"></i>
                                                         </button>
-                                                    )}
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <strong style={{ color: '#555' }}>
-                                                    {formatPrice(order.totalPrice)}
-                                                </strong>
-                                            </td>
-                                            <td>
-                          <span style={{ color: '#666', fontSize: '0.9rem' }}>
-                            {order.shippingFee ? formatPrice(order.shippingFee) : 'N/A'}
-                          </span>
-                                            </td>
-                                            <td>
-                                                <strong style={{ color: '#ee4d2d' }}>
-                                                    {formatPrice((order.totalPrice || 0) + (order.shippingFee || 0))}
-                                                </strong>
-                                            </td>
-                                            <td>{formatDate(order.creationTimestamp)}</td>
-                                            <td>
-                          <span className={`badge ${statusInfo.class}`}>
-                            {statusInfo.label}
-                          </span>
-                                            </td>
-                                            <td>
-                                                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                                                    <button
-                                                        className="btn btn-sm btn-outline-primary"
-                                                        onClick={() => {
-                                                            toggleRowExpand(order.id);
-                                                        }}
-                                                        title="View details"
-                                                    >
-                                                        <i className="fas fa-eye"></i>
-                                                    </button>
-                                                    {nextStatus && (
-                                                        <button
-                                                            className="btn btn-sm btn-outline-success"
-                                                            onClick={() => handleStatusUpdate(order.id, nextStatus)}
-                                                            title={`Update to ${getStatusLabel(nextStatus)}`}
-                                                        >
-                                                            <i className="fas fa-check"></i>
-                                                        </button>
-                                                    )}
-                                                    {order.orderStatus === 'DELIVERED' && (
-                                                        <button
-                                                            className="btn btn-sm btn-outline-warning"
-                                                            onClick={() => handleReturn(order.id)}
-                                                            title="Process Return"
-                                                        >
-                                                            <i className="fas fa-undo"></i>
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        {isExpanded && order.orderItems && order.orderItems.length > 0 && (
-                                            <tr>
-                                                <td colSpan="9" style={{ backgroundColor: '#f8f9fa', padding: '20px' }}>
-                                                    <div style={{ paddingLeft: '20px' }}>
-                                                        <h6 style={{ marginBottom: '15px', fontWeight: 'bold' }}>{t('shopOwner.returnOrder.productDetails')}:</h6>
-                                                        <div className="table-responsive">
-                                                            <table className="table table-sm table-bordered">
-                                                                <thead>
-                                                                <tr>
-                                                                    <th>{t('shopOwner.analytics.product')}</th>
-                                                                    <th>Size</th>
-                                                                    <th>{t('shopOwner.product.form.quantity')}</th>
-                                                                    <th>{t('shopOwner.product.form.price')}</th>
-                                                                    <th>{t('shopOwner.manageOrder.subtotal')}</th>
-                                                                </tr>
-                                                                </thead>
-                                                                <tbody>
-                                                                {order.orderItems.map((item, itemIndex) => (
-                                                                    <tr key={itemIndex}>
-                                                                        <td>{item.productName || `Product ${item.productId}`}</td>
-                                                                        <td>{item.sizeName || 'N/A'}</td>
-                                                                        <td>{item.quantity || 1}</td>
-                                                                        <td>{formatPrice(item.price || item.unitPrice || 0)}</td>
-                                                                        <td>{formatPrice((item.price || item.unitPrice || 0) * (item.quantity || 1))}</td>
-                                                                    </tr>
-                                                                ))}
-                                                                </tbody>
-                                                            </table>
-                                                        </div>
-                                                        <div className="mt-3 d-flex justify-content-end">
-                                                            <div style={{ minWidth: '300px' }}>
-                                                                <div className="d-flex justify-content-between mb-2">
-                                                                    <span>Subtotal:</span>
-                                                                    <strong>{formatPrice(order.totalPrice)}</strong>
-                                                                </div>
-                                                                {order.shippingFee && order.shippingFee > 0 && (
-                                                                    <div className="d-flex justify-content-between mb-2">
-                                                                        <span>Shipping Fee (GHN):</span>
-                                                                        <strong style={{ color: '#ee4d2d' }}>{formatPrice(order.shippingFee)}</strong>
-                                                                    </div>
-                                                                )}
-                                                                <div className="d-flex justify-content-between pt-2 border-top">
-                                                                    <strong>Total:</strong>
-                                                                    <strong style={{ color: '#ee4d2d', fontSize: '1.1rem' }}>
-                                                                        {formatPrice((order.totalPrice || 0) + (order.shippingFee || 0))}
-                                                                    </strong>
-                                                                </div>
-
-                                                                {(order.cancelReason || order.returnReason) && (
-                                                                    <div className="mt-3 p-3 bg-light rounded border border-warning">
-                                                                        {order.cancelReason && (
-                                                                            <div className="mb-2">
-                                                                                <strong className="text-danger">Cancel Reason:</strong>
-                                                                                <p className="mb-0 text-dark">{order.cancelReason}</p>
-                                                                            </div>
-                                                                        )}
-                                                                        {order.returnReason && (
-                                                                            <div>
-                                                                                <strong className="text-danger">Return Reason:</strong>
-                                                                                <p className="mb-0 text-dark">{order.returnReason}</p>
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        </div>
+                                                        {nextStatus && (
+                                                            <button
+                                                                className="btn btn-sm btn-outline-success"
+                                                                onClick={() => handleStatusUpdate(order.id, nextStatus)}
+                                                                title={`Update to ${getStatusLabel(nextStatus)}`}
+                                                            >
+                                                                <i className="fas fa-check"></i>
+                                                            </button>
+                                                        )}
+                                                        {order.orderStatus === 'DELIVERED' && (
+                                                            <button
+                                                                className="btn btn-sm btn-outline-warning"
+                                                                onClick={() => handleReturn(order.id)}
+                                                                title="Process Return"
+                                                            >
+                                                                <i className="fas fa-undo"></i>
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 </td>
                                             </tr>
-                                        )}
-                                    </React.Fragment>
-                                );
-                            })
-                        )}
+                                            {isExpanded && order.orderItems && order.orderItems.length > 0 && (
+                                                <tr>
+                                                    <td colSpan="9" style={{ backgroundColor: '#f8f9fa', padding: '20px' }}>
+                                                        <div style={{ paddingLeft: '20px' }}>
+                                                            <h6 style={{ marginBottom: '15px', fontWeight: 'bold' }}>{t('shopOwner.returnOrder.productDetails')}:</h6>
+                                                            <div className="table-responsive">
+                                                                <table className="table table-sm table-bordered">
+                                                                    <thead>
+                                                                        <tr>
+                                                                            <th>{t('shopOwner.analytics.product')}</th>
+                                                                            <th>Size</th>
+                                                                            <th>{t('shopOwner.product.form.quantity')}</th>
+                                                                            <th>{t('shopOwner.product.form.price')}</th>
+                                                                            <th>{t('shopOwner.manageOrder.subtotal')}</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                        {order.orderItems.map((item, itemIndex) => (
+                                                                            <tr key={itemIndex}>
+                                                                                <td>{item.productName || `Product ${item.productId}`}</td>
+                                                                                <td>{item.sizeName || 'N/A'}</td>
+                                                                                <td>{item.quantity || 1}</td>
+                                                                                <td>{formatPrice(item.price || item.unitPrice || 0)}</td>
+                                                                                <td>{formatPrice((item.price || item.unitPrice || 0) * (item.quantity || 1))}</td>
+                                                                            </tr>
+                                                                        ))}
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
+                                                            <div className="mt-3 d-flex justify-content-end">
+                                                                <div style={{ minWidth: '300px' }}>
+                                                                    <div className="d-flex justify-content-between mb-2">
+                                                                        <span>Subtotal:</span>
+                                                                        <strong>{formatPrice(order.totalPrice)}</strong>
+                                                                    </div>
+                                                                    {order.shippingFee && order.shippingFee > 0 && (
+                                                                        <div className="d-flex justify-content-between mb-2">
+                                                                            <span>Shipping Fee (GHN):</span>
+                                                                            <strong style={{ color: '#ee4d2d' }}>{formatPrice(order.shippingFee)}</strong>
+                                                                        </div>
+                                                                    )}
+                                                                    <div className="d-flex justify-content-between pt-2 border-top">
+                                                                        <strong>Total:</strong>
+                                                                        <strong style={{ color: '#ee4d2d', fontSize: '1.1rem' }}>
+                                                                            {formatPrice((order.totalPrice || 0) + (order.shippingFee || 0))}
+                                                                        </strong>
+                                                                    </div>
+
+                                                                    {(order.cancelReason || order.returnReason) && (
+                                                                        <div className="mt-3 p-3 bg-light rounded border border-warning">
+                                                                            {order.cancelReason && (
+                                                                                <div className="mb-2">
+                                                                                    <strong className="text-danger">Cancel Reason:</strong>
+                                                                                    <p className="mb-0 text-dark">{order.cancelReason}</p>
+                                                                                </div>
+                                                                            )}
+                                                                            {order.returnReason && (
+                                                                                <div>
+                                                                                    <strong className="text-danger">Return Reason:</strong>
+                                                                                    <p className="mb-0 text-dark">{order.returnReason}</p>
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </React.Fragment>
+                                    );
+                                })
+                            )}
                         </tbody>
                     </table>
                 </div>

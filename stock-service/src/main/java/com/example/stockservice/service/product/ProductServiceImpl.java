@@ -1,15 +1,14 @@
 package com.example.stockservice.service.product;
 
 import com.example.stockservice.client.FileStorageClient;
+import com.example.stockservice.service.category.CategoryService;
 import org.springframework.data.domain.Pageable;
 import com.example.stockservice.enums.ProductStatus;
 import com.example.stockservice.model.Product;
 import com.example.stockservice.repository.ProductRepository;
 import com.example.stockservice.request.product.ProductCreateRequest;
 import com.example.stockservice.request.product.ProductUpdateRequest;
-import com.example.stockservice.service.category.CategoryService;
 import lombok.RequiredArgsConstructor;
-import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -18,7 +17,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 import com.example.stockservice.model.Size;
 import com.example.stockservice.repository.SizeRepository;

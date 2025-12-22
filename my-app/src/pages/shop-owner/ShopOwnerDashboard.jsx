@@ -183,7 +183,7 @@ export default function ShopOwnerDashboard() {
 
 const TodoCard = ({ count, label, link, specialClass }) => (
   <Link to={link} className={`d-block text-decoration-none py-2 ${specialClass}`} style={{ color: 'inherit' }}>
-    <div className="count fw-bold" style={{ fontSize: '1.5rem', color: '#2673dd' }}>{count}</div>
+    <div className="count fw-bold" style={{ fontSize: '1.5rem', color: '#ee4d2d' }}>{count}</div>
     <div className="label text-muted small mt-1">
       {label}
     </div>

@@ -1,5 +1,7 @@
 package com.example.userservice.service.shopowner;
 
+import com.example.userservice.client.OrderServiceClient;
+import com.example.userservice.dto.DeductSubscriptionRequestDTO;
 import com.example.userservice.dto.ShopSubscriptionDTO;
 import com.example.userservice.model.ShopSubscription;
 import com.example.userservice.repository.ShopSubscriptionRepository;
@@ -15,6 +17,7 @@ public class ShopSubscriptionServiceImpl implements ShopSubscriptionService {
     private final ShopSubscriptionRepository shopSubscriptionRepository;
     private final com.example.userservice.repository.SubscriptionPlanRepository subscriptionPlanRepository;
     private final com.example.userservice.repository.SubscriptionPlanPricingRepository subscriptionPlanPricingRepository;
+    private final OrderServiceClient orderServiceClient;
 
     @Override
     public ShopSubscriptionDTO getActiveSubscription(String shopOwnerId) {
@@ -31,7 +34,7 @@ public class ShopSubscriptionServiceImpl implements ShopSubscriptionService {
     @Override
     @org.springframework.transaction.annotation.Transactional
     public ShopSubscriptionDTO subscribe(String shopOwnerId,
-            com.example.userservice.request.subscription.CreateShopSubscriptionRequest request) {
+                                         com.example.userservice.request.subscription.CreateShopSubscriptionRequest request) {
         // 1. Get Plan
         com.example.userservice.model.SubscriptionPlan plan = subscriptionPlanRepository.findById(request.getPlanId())
                 .orElseThrow(() -> new RuntimeException("Subscription Plan not found"));
@@ -45,7 +48,21 @@ public class ShopSubscriptionServiceImpl implements ShopSubscriptionService {
                 .findByPlanIdAndPlanDuration(plan.getId(), request.getDuration())
                 .orElseThrow(() -> new RuntimeException("Pricing not found for duration: " + request.getDuration()));
 
-        // 3. Deactivate current active subscription if exists
+        // 3. Process Payment via Order Service (Shop Ledger)
+        DeductSubscriptionRequestDTO deductRequest = DeductSubscriptionRequestDTO.builder()
+                .shopOwnerId(shopOwnerId)
+                .amount(pricing.getPrice())
+                .planName(plan.getName())
+                .planId(plan.getId())
+                .build();
+
+        try {
+            orderServiceClient.deductSubscriptionFee(deductRequest);
+        } catch (Exception e) {
+            throw new RuntimeException("Payment failed: " + e.getMessage());
+        }
+
+        // 4. Deactivate current active subscription if exists
         Optional<ShopSubscription> currentSubOpt = shopSubscriptionRepository
                 .findByShopOwnerIdAndIsActiveTrue(shopOwnerId);
         if (currentSubOpt.isPresent()) {
@@ -57,7 +74,7 @@ public class ShopSubscriptionServiceImpl implements ShopSubscriptionService {
             shopSubscriptionRepository.save(currentSub);
         }
 
-        // 4. Calculate Dates
+        // 5. Calculate Dates
         java.time.LocalDateTime startDate = java.time.LocalDateTime.now();
         java.time.LocalDateTime endDate;
         if (request.getDuration() == com.example.userservice.enums.PlanDuration.MONTHLY) {
@@ -66,7 +83,7 @@ public class ShopSubscriptionServiceImpl implements ShopSubscriptionService {
             endDate = startDate.plusYears(1);
         }
 
-        // 5. Create new Subscription (Snapshotting values)
+        // 6. Create new Subscription (Snapshotting values)
         ShopSubscription newSub = ShopSubscription.builder()
                 .shopOwnerId(shopOwnerId)
                 .plan(plan)
@@ -74,11 +91,12 @@ public class ShopSubscriptionServiceImpl implements ShopSubscriptionService {
                 .subscriptionType(plan.getSubscriptionType())
                 .planDuration(pricing.getPlanDuration())
                 .pricePaid(pricing.getPrice())
+                .price(pricing.getPrice()) // Set price field
                 .startDate(startDate)
                 .endDate(endDate)
                 .isActive(true)
                 .autoRenew(false) // Default false
-                .paymentStatus(com.example.userservice.enums.PaymentStatus.PAID) // Mocking immediate payment
+                .paymentStatus(com.example.userservice.enums.PaymentStatus.PAID) // Confirmed by wallet payment
                 // Snapshot Commission Rates
                 .commissionPaymentRate(plan.getCommissionPaymentRate())
                 .commissionFixedRate(plan.getCommissionFixedRate())
@@ -110,5 +128,21 @@ public class ShopSubscriptionServiceImpl implements ShopSubscriptionService {
                 .endDate(sub.getEndDate())
                 .isActive(sub.getIsActive())
                 .build();
+    }
+    @Override
+    @org.springframework.transaction.annotation.Transactional
+    public void cancelSubscription(String shopOwnerId) {
+        Optional<ShopSubscription> subOpt = shopSubscriptionRepository.findByShopOwnerIdAndIsActiveTrue(shopOwnerId);
+
+        if (subOpt.isPresent()) {
+            ShopSubscription sub = subOpt.get();
+            sub.setIsActive(false);
+            sub.setEndDate(java.time.LocalDateTime.now());
+            sub.setCancelledAt(java.time.LocalDateTime.now());
+            sub.setCancellationReason("Shop Owner cancelled via Dashboard");
+            shopSubscriptionRepository.save(sub);
+        } else {
+            throw new RuntimeException("No active subscription found to cancel");
+        }
     }
 }

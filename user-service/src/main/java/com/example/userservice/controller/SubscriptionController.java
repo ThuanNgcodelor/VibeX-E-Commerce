@@ -33,4 +33,11 @@ public class SubscriptionController {
             @org.springframework.web.bind.annotation.RequestBody @jakarta.validation.Valid com.example.userservice.request.subscription.CreateShopSubscriptionRequest request) {
         return ResponseEntity.ok(shopSubscriptionService.subscribe(shopOwnerId, request));
     }
+
+    @org.springframework.web.bind.annotation.PostMapping("/shop/{shopOwnerId}/cancel")
+    public ResponseEntity<Void> cancel(
+            @PathVariable String shopOwnerId) {
+        shopSubscriptionService.cancelSubscription(shopOwnerId);
+        return ResponseEntity.ok().build();
+    }
 }

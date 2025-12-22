@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { getShopOwnerOrders, updateOrderStatusForShopOwner } from '../../api/order';
+import { getShopOwnerOrders, updateOrderStatusForShopOwner, getAllShopOwnerOrders } from '../../api/order';
 import { getUserById } from '../../api/user';
 import { useTranslation } from 'react-i18next';
 import '../../components/shop-owner/ShopOwnerLayout.css';
@@ -211,7 +211,7 @@ export default function BulkShippingPage() {
         const normalized = normalizeStatus(status);
         const statusMap = {
             PENDING: 'Pending',
-            CONFIRMED: 'Confirmed',
+            PROCESSING: 'Processing',
             SHIPPED: 'Shipped',
             DELIVERED: 'Delivered',
             CANCELLED: 'Cancelled',
@@ -223,8 +223,8 @@ export default function BulkShippingPage() {
     const getNextStatus = (currentStatus) => {
         const cur = normalizeStatus(currentStatus);
         const statusFlow = {
-            PENDING: 'CONFIRMED',
-            CONFIRMED: 'SHIPPED',
+            PENDING: 'PROCESSING',
+            PROCESSING: 'SHIPPED',
             SHIPPED: 'DELIVERED'
         };
         return statusFlow[cur];
@@ -262,6 +262,93 @@ export default function BulkShippingPage() {
         setCurrentPage(1);
         setExpandedRow(null); // Close any expanded rows when filter changes
     }, [statusFilter]);
+
+    const handleExportExcel = async () => {
+        try {
+            setLoading(true);
+            // Fetch all orders matching current filter
+            // Note: statusFilter might be empty string, which is falsy.
+            const filter = statusFilter && statusFilter.trim() !== '' ? statusFilter : null;
+            const allOrders = await getAllShopOwnerOrders(filter);
+
+            if (!allOrders || allOrders.length === 0) {
+                alert(t('shopOwner.manageOrder.noOrdersToExport', 'Không có đơn hàng để xuất'));
+                setLoading(false);
+                return;
+            }
+
+            // We need usernames for these orders, but fetching them all might be slow.
+            // We will prioritize recipientName, then userId.
+
+            // Define headers
+            const headers = [
+                "Order ID",
+                "Customer Name",
+                "Recipient Name",
+                "Recipient Phone",
+                "Address",
+                "Subtotal",
+                "Shipping Fee",
+                "Voucher",
+                "Total",
+                "Date",
+                "Status"
+            ];
+
+            // Helper to escape CSV fields
+            const escapeCsv = (str) => {
+                if (str === null || str === undefined) return '';
+                return `"${String(str).replace(/"/g, '""')}"`;
+            };
+
+            const csvRows = [headers.join(',')];
+
+            for (const order of allOrders) {
+                const subtotal = order.orderItems ? order.orderItems.reduce((sum, item) => sum + (item.unitPrice || 0) * (item.quantity || 1), 0) : order.totalPrice;
+                const shipping = order.shippingFee || 0;
+                const voucher = order.voucherDiscount || 0;
+                const total = order.totalPrice || (subtotal + shipping - voucher);
+                const date = new Date(order.creationTimestamp).toLocaleDateString('vi-VN');
+
+                // Use cached username if available, else just userId or fetch?
+                // For speed, let's use what we have or placeholder.
+                const customerName = usernames[order.userId] || `User: ${order.userId}`;
+
+                const row = [
+                    escapeCsv(order.id),
+                    escapeCsv(customerName),
+                    escapeCsv(order.recipientName),
+                    escapeCsv(order.recipientPhone),
+                    escapeCsv(order.fullAddress || order.shippingAddress),
+                    subtotal,
+                    shipping,
+                    voucher,
+                    total,
+                    escapeCsv(date),
+                    escapeCsv(order.orderStatus)
+                ];
+                csvRows.push(row.join(','));
+            }
+
+            // BOM for Excel to read UTF-8 correctly
+            const bom = '\uFEFF';
+            const csvString = bom + csvRows.join('\n');
+            const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `orders_export_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+        } catch (err) {
+            console.error('Export failed:', err);
+            alert(t('shopOwner.manageOrder.exportError', 'Xuất file thất bại: ') + err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     if (loading && orders.length === 0) {
         return (
@@ -341,11 +428,8 @@ export default function BulkShippingPage() {
                         <button className="btn btn-secondary-shop" onClick={loadOrders}>
                             <i className="fas fa-sync-alt"></i> {t('shopOwner.manageOrder.refresh')}
                         </button>
-                        <button className="btn btn-primary-shop">
+                        <button className="btn btn-primary-shop" onClick={handleExportExcel}>
                             <i className="fas fa-download"></i> {t('shopOwner.manageOrder.exportExcel')}
-                        </button>
-                        <button className="btn btn-success">
-                            <i className="fas fa-truck"></i> {t('shopOwner.manageOrder.createBulkLabels')}
                         </button>
                     </div>
                 </div>
@@ -398,7 +482,8 @@ export default function BulkShippingPage() {
                                     };
                                     const subtotal = calculateSubtotal(order);
                                     const shippingFee = order.shippingFee || 0;
-                                    const total = subtotal + shippingFee;
+                                    const voucherDiscount = order.voucherDiscount || 0;
+                                    const total = order.totalPrice || (subtotal + shippingFee - voucherDiscount);
                                     return (
                                         <React.Fragment key={order.id}>
                                             <tr data-order-id={order.id}>
@@ -458,106 +543,139 @@ export default function BulkShippingPage() {
                                             </tr>
                                             {isExpanded && order.orderItems && order.orderItems.length > 0 && (
                                                 <tr>
-                                                    <td colSpan="10" style={{ padding: '20px', background: '#f8f9fa' }}>
-                                                        <div className="order-details">
-                                                            <h5 className="mb-3">
-                                                                <i className="fas fa-info-circle text-primary"></i> {t('shopOwner.manageOrder.orderDetails')} - {order.id}
-                                                            </h5>
-
-                                                            <div className="row mb-3">
-                                                                <div className="col-md-6">
-                                                                    <div className="info-box">
-                                                                        <label><i className="fas fa-user"></i> {t('shopOwner.manageOrder.customer')}:</label>
-                                                                        <div>{usernames[order.userId] || order.userId || 'N/A'}</div>
+                                                    <td colSpan="10" className="p-0 border-bottom">
+                                                        <div className="bg-light p-4">
+                                                            <div className="bg-white rounded shadow-sm p-4 border" style={{ borderLeft: '4px solid #ee4d2d' }}>
+                                                                <div className="d-flex justify-content-between align-items-start mb-4 border-bottom pb-3">
+                                                                    <div>
+                                                                        <h5 className="fw-bold text-dark mb-1">
+                                                                            {t('shopOwner.manageOrder.orderDetails')} #{order.id.substring(0, 8)}...
+                                                                        </h5>
+                                                                        <span className="text-muted small">
+                                                                            {t('common.status.title')}: <span className={`badge ${statusInfo.class}`}>{statusInfo.label}</span>
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="text-end">
+                                                                        <div className="text-muted small mb-1">{t('shopOwner.manageOrder.orderDate')}</div>
+                                                                        <div className="fw-bold text-dark">{formatDate(order.creationTimestamp)}</div>
                                                                     </div>
                                                                 </div>
-                                                                <div className="col-md-6">
-                                                                    <div className="info-box">
-                                                                        <label><i className="fas fa-phone"></i> {t('shopOwner.manageOrder.phone')}:</label>
-                                                                        <div>{order.recipientPhone || 'N/A'}</div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
 
-                                                            <div className="row mb-3">
-                                                                <div className="col-md-12">
-                                                                    <div className="info-box">
-                                                                        <label><i className="fas fa-map-marker-alt"></i> {t('shopOwner.manageOrder.address')}:</label>
-                                                                        <div>{order.fullAddress || order.shippingAddress || 'N/A'}</div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-
-                                                            <div className="item-details mt-3">
-                                                                <h6 className="mb-3">
-                                                                    <i className="fas fa-box-open"></i> {t('shopOwner.manageOrder.productsInOrder')}
-                                                                </h6>
-                                                                <div className="table-responsive">
-                                                                    <table className="table table-sm table-bordered">
-                                                                        <thead className="table-light">
-                                                                            <tr>
-                                                                                <th>#</th>
-                                                                                <th>{t('shopOwner.analytics.product')}</th>
-                                                                                <th>{t('shopOwner.product.form.quantity')}</th>
-                                                                                <th>Size</th>
-                                                                                <th>{t('shopOwner.product.form.price')}</th>
-                                                                                <th>{t('shopOwner.manageOrder.subtotal')}</th>
-                                                                            </tr>
-                                                                        </thead>
-                                                                        <tbody>
-                                                                            {order.orderItems.map((item, itemIndex) => (
-                                                                                <tr key={itemIndex}>
-                                                                                    <td>{itemIndex + 1}</td>
-                                                                                    <td>{item.productName || `Product ${item.productId}`}</td>
-                                                                                    <td>{item.quantity || 1}</td>
-                                                                                    <td>{item.sizeName || 'N/A'}</td>
-                                                                                    <td>{formatPrice(item.price || item.unitPrice || 0)}</td>
-                                                                                    <td><strong>{formatPrice((item.price || item.unitPrice || 0) * (item.quantity || 1))}</strong></td>
-                                                                                </tr>
-                                                                            ))}
-                                                                        </tbody>
-                                                                    </table>
-                                                                </div>
-                                                            </div>
-
-                                                            <div className="row mt-3">
-                                                                <div className="col-md-6 offset-md-6">
-                                                                    <div className="price-summary">
-                                                                        <div className="d-flex justify-content-between mb-2">
-                                                                            <span>Subtotal:</span>
-                                                                            <strong>{formatPrice(order.totalPrice)}</strong>
+                                                                <div className="row g-4 mb-4">
+                                                                    <div className="col-md-4">
+                                                                        <div className="p-3 bg-light rounded h-100">
+                                                                            <h6 className="text-muted text-uppercase small fw-bold mb-3 border-bottom pb-2">
+                                                                                <i className="fas fa-user mb-1 me-2"></i>{t('shopOwner.manageOrder.customer')}
+                                                                            </h6>
+                                                                            <div className="fw-bold text-dark mb-1">{usernames[order.userId] || 'N/A'}</div>
+                                                                            <div className="text-muted small">{t('shopOwner.manageOrder.customer')} ID: {order.userId}</div>
                                                                         </div>
-                                                                        {order.shippingFee && order.shippingFee > 0 && (
-                                                                            <div className="d-flex justify-content-between mb-2">
-                                                                                <span>Shipping Fee (GHN):</span>
-                                                                                <strong style={{ color: '#ee4d2d' }}>{formatPrice(order.shippingFee)}</strong>
+                                                                    </div>
+                                                                    <div className="col-md-4">
+                                                                        <div className="p-3 bg-light rounded h-100">
+                                                                            <h6 className="text-muted text-uppercase small fw-bold mb-3 border-bottom pb-2">
+                                                                                <i className="fas fa-truck mb-1 me-2"></i>{t('shopOwner.manageOrder.deliveryInfo')}
+                                                                            </h6>
+                                                                            <div className="mb-2">
+                                                                                <span className="text-muted small d-block">{t('shopOwner.manageOrder.recipient')}:</span>
+                                                                                <span className="fw-medium text-dark">{order.recipientName || usernames[order.userId] || 'N/A'}</span>
                                                                             </div>
-                                                                        )}
-                                                                        <div className="d-flex justify-content-between pt-2 border-top total-amount">
-                                                                            <strong>Total:</strong>
-                                                                            <strong style={{ color: '#ee4d2d', fontSize: '18px' }}>
-                                                                                {formatPrice((order.totalPrice || 0) + (order.shippingFee || 0))}
-                                                                            </strong>
+                                                                            <div className="mb-2">
+                                                                                <span className="text-muted small d-block">{t('shopOwner.manageOrder.phone')}:</span>
+                                                                                <span className="fw-medium text-dark">{order.recipientPhone || 'N/A'}</span>
+                                                                            </div>
+                                                                            <div>
+                                                                                <span className="text-muted small d-block">{t('shopOwner.manageOrder.address')}:</span>
+                                                                                <span className="fw-medium text-dark" style={{ lineHeight: '1.4' }}>
+                                                                                    {order.fullAddress || order.shippingAddress || 'N/A'}
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="col-md-4">
+                                                                        <div className="p-3 bg-light rounded h-100">
+                                                                            <h6 className="text-muted text-uppercase small fw-bold mb-3 border-bottom pb-2">
+                                                                                <i className="fas fa-receipt mb-1 me-2"></i>{t('shopOwner.manageOrder.paymentInfo')}
+                                                                            </h6>
+                                                                            <div className="d-flex justify-content-between mb-2">
+                                                                                <span className="text-muted small">{t('shopOwner.manageOrder.subtotal')}:</span>
+                                                                                <span className="fw-medium">{formatPrice(subtotal)}</span>
+                                                                            </div>
+                                                                            <div className="d-flex justify-content-between mb-2">
+                                                                                <span className="text-muted small">{t('shopOwner.manageOrder.shippingFee')}:</span>
+                                                                                <span className="fw-medium">{formatPrice(shippingFee)}</span>
+                                                                            </div>
+                                                                            {voucherDiscount > 0 && (
+                                                                                <div className="d-flex justify-content-between mb-2">
+                                                                                    <span className="text-muted small">{t('shopOwner.manageOrder.voucher')}:</span>
+                                                                                    <span className="fw-medium text-success">-{formatPrice(voucherDiscount)}</span>
+                                                                                </div>
+                                                                            )}
+                                                                            <div className="d-flex justify-content-between pt-2 border-top mt-2">
+                                                                                <span className="fw-bold text-dark">{t('shopOwner.manageOrder.total')}:</span>
+                                                                                <span className="fw-bold fs-5" style={{ color: '#ee4d2d' }}>
+                                                                                    {formatPrice(total)}
+                                                                                </span>
+                                                                            </div>
                                                                         </div>
                                                                     </div>
                                                                 </div>
-                                                            </div>
 
-                                                            <div className="mt-3">
-                                                                <button className="btn btn-primary">
-                                                                    <i className="fas fa-print"></i> {t('shopOwner.manageOrder.printOrder')}
-                                                                </button>
-                                                                <button className="btn btn-success ms-2">
-                                                                    <i className="fas fa-truck"></i> {t('shopOwner.manageOrder.createLabel')}
-                                                                </button>
-                                                                {nextStatus && (
-                                                                    <button
-                                                                        className="btn btn-outline-success ms-2"
-                                                                        onClick={() => handleStatusUpdate(order.id, nextStatus)}
-                                                                    >
-                                                                        <i className="fas fa-check"></i> {t('shopOwner.manageOrder.updateStatus')}
+                                                                <div className="mb-4">
+                                                                    <h6 className="text-muted text-uppercase small fw-bold mb-3">
+                                                                        <i className="fas fa-box-open me-2"></i>{t('shopOwner.manageOrder.productsInOrder')}
+                                                                    </h6>
+                                                                    <div className="table-responsive border rounded">
+                                                                        <table className="table table-hover mb-0 align-middle">
+                                                                            <thead className="bg-light">
+                                                                                <tr>
+                                                                                    <th className="ps-3 py-3 border-0" style={{ width: '50px' }}>#</th>
+                                                                                    <th className="py-3 border-0">{t('shopOwner.analytics.product')}</th>
+                                                                                    <th className="py-3 border-0 text-center">{t('shopOwner.product.form.quantity')}</th>
+                                                                                    <th className="py-3 border-0 text-center">{t('shopOwner.product.form.sizeName')}</th>
+                                                                                    <th className="py-3 border-0 text-end">{t('shopOwner.product.form.price')}</th>
+                                                                                    <th className="pe-3 py-3 border-0 text-end">{t('shopOwner.manageOrder.subtotal')}</th>
+                                                                                </tr>
+                                                                            </thead>
+                                                                            <tbody>
+                                                                                {order.orderItems.map((item, itemIndex) => (
+                                                                                    <tr key={itemIndex}>
+                                                                                        <td className="ps-3 text-muted small">{itemIndex + 1}</td>
+                                                                                        <td>
+                                                                                            <div className="d-flex align-items-center">
+                                                                                                <div className="bg-light rounded d-flex align-items-center justify-content-center me-3" style={{ width: '40px', height: '40px' }}>
+                                                                                                    <i className="fas fa-image text-secondary opacity-50"></i>
+                                                                                                </div>
+                                                                                                <div>
+                                                                                                    <div className="fw-medium text-dark">{item.productName || `Product ${item.productId}`}</div>
+                                                                                                    <small className="text-muted">{t('shopOwner.manageOrder.id')}: {item.productId}</small>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        </td>
+                                                                                        <td className="text-center">{item.quantity}</td>
+                                                                                        <td className="text-center"><span className="badge bg-light text-dark border">{item.sizeName || 'N/A'}</span></td>
+                                                                                        <td className="text-end text-muted">{formatPrice(item.price || item.unitPrice || 0)}</td>
+                                                                                        <td className="pe-3 text-end fw-medium">{formatPrice((item.price || item.unitPrice || 0) * (item.quantity))}</td>
+                                                                                    </tr>
+                                                                                ))}
+                                                                            </tbody>
+                                                                        </table>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div className="d-flex justify-content-end gap-2 pt-3 border-top">
+                                                                    <button className="btn btn-light border text-muted">
+                                                                        <i className="fas fa-print me-2"></i>{t('shopOwner.manageOrder.printOrder')}
                                                                     </button>
-                                                                )}
+                                                                    {nextStatus && (
+                                                                        <button
+                                                                            className="btn btn-primary-shop text-white"
+                                                                            onClick={() => handleStatusUpdate(order.id, nextStatus)}
+                                                                        >
+                                                                            {t('shopOwner.manageOrder.updateStatus')} <i className="fas fa-arrow-right ms-2"></i>
+                                                                        </button>
+                                                                    )}
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </td>
@@ -575,7 +693,7 @@ export default function BulkShippingPage() {
                 {totalPages > 1 && (
                     <div className="pagination-container">
                         <div className="pagination-info">
-                            Page {currentPage} / {totalPages}
+                            {t('shopOwner.returnOrder.pageInfo', { current: currentPage, total: totalPages })}
                         </div>
                         <nav aria-label="Page navigation">
                             <ul className="pagination">

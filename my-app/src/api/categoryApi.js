@@ -22,17 +22,33 @@ const categoryApi = {
 
     /**
      * Tạo danh mục mới
-     * @param {Object} data - Dữ liệu danh mục cần tạo
+     * @param {FormData} formData - FormData chứa request và image
      * @returns {Promise} - Promise trả về danh mục đã tạo
      */
-    create: (data) => api.post(`/create`, data).then(r => r.data),
+    create: (formData) => api.post(`/create`, formData, {
+        transformRequest: [(payload, headers) => {
+            // Remove Content-Type to let browser set it with boundary
+            delete headers.common?.["Content-Type"];
+            delete headers.post?.["Content-Type"];
+            delete headers["Content-Type"];
+            return payload;
+        }],
+    }).then(r => r.data),
 
     /**
      * Cập nhật danh mục
-     * @param {Object} data - Dữ liệu danh mục cần cập nhật
+     * @param {FormData} formData - FormData chứa request và image
      * @returns {Promise} - Promise trả về danh mục đã cập nhật
      */
-    update: (data) => api.put(`/update`, data).then(r => r.data),
+    update: (formData) => api.put(`/update`, formData, {
+        transformRequest: [(payload, headers) => {
+            // Remove Content-Type to let browser set it with boundary
+            delete headers.common?.["Content-Type"];
+            delete headers.put?.["Content-Type"];
+            delete headers["Content-Type"];
+            return payload;
+        }],
+    }).then(r => r.data),
 
     /**
      * Xóa danh mục
