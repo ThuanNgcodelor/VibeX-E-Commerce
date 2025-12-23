@@ -18,7 +18,8 @@ public class FeignConfig {
         return requestTemplate -> {
             requestTemplate.header("X-Internal-Call", "true");
 
-            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder
+                    .getRequestAttributes();
             if (attributes != null) {
                 HttpServletRequest request = attributes.getRequest();
                 String authorization = request.getHeader("Authorization");
@@ -28,9 +29,9 @@ public class FeignConfig {
             }
         };
     }
-    
-     @Bean
-     public ErrorDecoder errorDecoder() {
-         return new CustomErrorDecoder();
-     }
+
+    @Bean
+    public ErrorDecoder errorDecoder() {
+        return new CustomErrorDecoder();
+    }
 }

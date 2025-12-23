@@ -80,7 +80,7 @@ public class OrderServiceImpl implements OrderService {
 
         // 2. Today's Revenue (Only DELIVERED)
         Double todayRevenue = orderRepository.sumSalesByProductIdsAndDateRangeAndStatus(productIds, startOfToday,
-                endOfToday, OrderStatus.DELIVERED);
+                endOfToday, OrderStatus.COMPLETED);
         if (todayRevenue == null)
             todayRevenue = 0.0;
 
@@ -96,7 +96,7 @@ public class OrderServiceImpl implements OrderService {
         LocalDateTime endOfYesterday = endOfToday.minusDays(1);
         Double yesterdayRevenue = orderRepository.sumSalesByProductIdsAndDateRangeAndStatus(productIds,
                 startOfYesterday,
-                endOfYesterday, OrderStatus.DELIVERED);
+                endOfYesterday, OrderStatus.COMPLETED);
         if (yesterdayRevenue == null)
             yesterdayRevenue = 0.0;
 
@@ -117,7 +117,7 @@ public class OrderServiceImpl implements OrderService {
             LocalDateTime start = now.minusDays(i).toLocalDate().atStartOfDay();
             LocalDateTime end = now.minusDays(i).toLocalDate().atTime(java.time.LocalTime.MAX);
             Double dailyRevenue = orderRepository.sumSalesByProductIdsAndDateRangeAndStatus(productIds, start, end,
-                    OrderStatus.DELIVERED);
+                    OrderStatus.COMPLETED);
 
             labels.add(start.format(formatter));
             data.add(dailyRevenue != null ? dailyRevenue : 0.0);
@@ -163,7 +163,7 @@ public class OrderServiceImpl implements OrderService {
             stats.put("pending", 0);
             stats.put("processing", 0);
             stats.put("shipped", 0);
-            stats.put("delivered", 0);
+            stats.put("completed", 0);
             stats.put("cancelled", 0);
             stats.put("returned", 0);
             stats.put("salesToday", 0);
@@ -174,7 +174,7 @@ public class OrderServiceImpl implements OrderService {
         long pending = orderRepository.countByProductIdsAndStatus(productIds, OrderStatus.PENDING);
         long processing = orderRepository.countByProductIdsAndStatus(productIds, OrderStatus.PROCESSING);
         long shipped = orderRepository.countByProductIdsAndStatus(productIds, OrderStatus.SHIPPED);
-        long delivered = orderRepository.countByProductIdsAndStatus(productIds, OrderStatus.DELIVERED);
+        long completed = orderRepository.countByProductIdsAndStatus(productIds, OrderStatus.COMPLETED);
         long cancelled = orderRepository.countByProductIdsAndStatus(productIds, OrderStatus.CANCELLED);
         long returned = orderRepository.countByProductIdsAndStatus(productIds, OrderStatus.RETURNED);
 
@@ -182,18 +182,18 @@ public class OrderServiceImpl implements OrderService {
         LocalDateTime startOfDay = java.time.LocalDate.now().atStartOfDay();
         LocalDateTime endOfDay = java.time.LocalDate.now().atTime(java.time.LocalTime.MAX);
         Double salesToday = orderRepository.sumSalesByProductIdsAndDateRangeAndStatus(productIds, startOfDay, endOfDay,
-                OrderStatus.DELIVERED);
+                OrderStatus.COMPLETED);
 
         stats.put("pending", pending);
         stats.put("processing", processing);
         stats.put("shipped", shipped);
-        stats.put("delivered", delivered);
+        stats.put("completed", completed);
         stats.put("cancelled", cancelled);
         stats.put("returned", returned);
 
         // Mappings for old Dashboard compatibility (if needed) or simple groupings
         stats.put("waitingForPickup", pending + processing);
-        stats.put("processed", shipped + delivered);
+        stats.put("processed", shipped + completed);
 
         stats.put("salesToday", salesToday != null ? salesToday : 0.0);
 
