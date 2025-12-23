@@ -69,6 +69,15 @@ const RegisterShopOwner = () => {
     const [frontPreview, setFrontPreview] = useState(null);
     const [backPreview, setBackPreview] = useState(null);
 
+    // ✅ CAPTCHA & Security
+    const [isAgreed, setIsAgreed] = useState(false);
+    const [showCaptchaModal, setShowCaptchaModal] = useState(false);
+    const [generatedCaptcha, setGeneratedCaptcha] = useState('');
+    const [captchaInput, setCaptchaInput] = useState('');
+    const [isVerified, setIsVerified] = useState(false);
+    const [captchaError, setCaptchaError] = useState('');
+    const [fieldErrors, setFieldErrors] = useState({});
+
     const steps = [
         t('roleRequest.steps.shopInfo'),
         t('roleRequest.steps.taxInfo'),
@@ -98,16 +107,84 @@ const RegisterShopOwner = () => {
 
     const findLoose = (list, targetName, getName) => {
         if (!targetName) return null;
-        const t = stripAdminPrefix(targetName);
+        const normTarget = stripAdminPrefix(targetName);
+        return list.find(item => stripAdminPrefix(getName(item)) === normTarget);
+    };
 
-        let hit = list.find(x => stripAdminPrefix(getName(x)) === t);
-        if (hit) return hit;
+    // ====== Security & CAPTCHA ======
+    const generateCaptcha = () => {
+        const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        let result = '';
+        for (let i = 0; i < 6; i++) {
+            result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        setGeneratedCaptcha(result);
+        setCaptchaInput('');
+        setCaptchaError('');
+    };
 
-        hit = list.find(x => stripAdminPrefix(getName(x)).includes(t));
-        if (hit) return hit;
+    const handleAgreementClick = (e) => {
+        if (isVerified) {
+            setIsAgreed(!isAgreed);
+        } else {
+            e.preventDefault();
+            generateCaptcha();
+            setShowCaptchaModal(true);
+        }
+    };
 
-        hit = list.find(x => t.includes(stripAdminPrefix(getName(x))));
-        return hit || null;
+    const verifyCaptcha = () => {
+        if (captchaInput.toUpperCase() === generatedCaptcha) {
+            setIsVerified(true);
+            setIsAgreed(true);
+            setShowCaptchaModal(false);
+        } else {
+            setCaptchaError(t('roleRequest.captcha.error') || 'Mã xác thực không đúng. Vui lòng nhập lại.');
+        }
+    };
+
+    // ====== Validation ======
+    const validateStep = (step) => {
+        let errors = {};
+        if (step === 1) {
+            if (!shopInfo.shopName.trim()) errors.shopName = t('roleRequest.validation.shopName');
+            if (!shopInfo.ownerName.trim()) errors.ownerName = t('roleRequest.validation.ownerName');
+            if (!address) errors.address = t('roleRequest.validation.address');
+
+            // Email validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!shopInfo.email.trim()) {
+                errors.email = t('roleRequest.validation.email');
+            } else if (!emailRegex.test(shopInfo.email.trim())) {
+                errors.email = t('roleRequest.validation.invalidEmail');
+            }
+
+            // Phone validation
+            const phoneStr = shopInfo.phone.trim();
+            if (!phoneStr) {
+                errors.phone = t('roleRequest.validation.phone');
+            } else if (!phoneStr.startsWith('0') || phoneStr.length !== 10 || !/^\d+$/.test(phoneStr)) {
+                errors.phone = t('roleRequest.validation.invalidPhone');
+            }
+
+            if (!shopInfo.reason.trim()) errors.reason = t('roleRequest.validation.reason');
+        }
+        if (step === 2) {
+            if (!taxInfo.email.trim()) errors.taxEmail = t('roleRequest.validation.taxEmail') || 'Vui lòng nhập email kinh doanh';
+            if (!taxInfo.taxCode.trim()) errors.taxCode = t('roleRequest.validation.taxCode') || 'Vui lòng nhập mã số thuế';
+        }
+        if (step === 3) {
+            if (!idInfo.idNumber.trim()) errors.idNumber = t('roleRequest.validation.idNumber');
+            else if (idInfo.idNumber.trim().length < 9) errors.idNumber = 'Số định danh không hợp lệ';
+
+            if (!idInfo.fullName.trim()) errors.fullName = t('roleRequest.validation.fullName');
+            if (!frontFile) errors.frontImage = t('roleRequest.validation.frontImage');
+            if (!backFile) errors.backImage = t('roleRequest.validation.backImage');
+            if (!isAgreed) errors.agreement = t('roleRequest.validation.agreement');
+        }
+
+        setFieldErrors(errors);
+        return Object.keys(errors).length === 0;
     };
 
     const Stepper = () => (
@@ -182,16 +259,26 @@ const RegisterShopOwner = () => {
     const handleShopChange = (e) => {
         const { name, value } = e.target;
         setShopInfo(prev => ({ ...prev, [name]: value }));
+        if (fieldErrors[name]) {
+            setFieldErrors(prev => ({ ...prev, [name]: null }));
+        }
     };
 
     const handleTaxChange = (e) => {
         const { name, value } = e.target;
         setTaxInfo(prev => ({ ...prev, [name]: value }));
+        const errorKey = name === 'email' ? 'taxEmail' : name;
+        if (fieldErrors[errorKey]) {
+            setFieldErrors(prev => ({ ...prev, [errorKey]: null }));
+        }
     };
 
     const handleIdChange = (e) => {
         const { name, value } = e.target;
         setIdInfo(prev => ({ ...prev, [name]: value }));
+        if (fieldErrors[name]) {
+            setFieldErrors(prev => ({ ...prev, [name]: null }));
+        }
     };
 
     const handleFileChange = (e, type) => {
@@ -456,51 +543,54 @@ const RegisterShopOwner = () => {
                     {/* STEP 1 */}
                     {currentStep === 1 && (
                         <div className="form-container animate-fade-in">
-                            <FormGroup label={t('roleRequest.step1.shopName')} required count={`${shopInfo.shopName.length}/30`}>
+                            <FormGroup label={t('roleRequest.step1.shopName')} required count={`${shopInfo.shopName.length}/30`} error={fieldErrors.shopName}>
                                 <input
                                     type="text"
                                     name="shopName"
                                     value={shopInfo.shopName}
                                     onChange={handleShopChange}
                                     placeholder="VD: Vibe"
-                                    className="shopee-input"
+                                    className={`shopee-input ${fieldErrors.shopName ? 'input-error' : ''}`}
+                                    required
                                     maxLength={30}
                                 />
                             </FormGroup>
-                            <FormGroup label={t('roleRequest.step1.ownerName')} required count={`${shopInfo.ownerName.length}/30`}>
+                            <FormGroup label={t('roleRequest.step1.ownerName')} required count={`${shopInfo.ownerName.length}/30`} error={fieldErrors.ownerName}>
                                 <input
                                     type="text"
                                     name="ownerName"
                                     value={shopInfo.ownerName}
                                     onChange={handleShopChange}
                                     placeholder="VD: Nguyen Van A"
-                                    className="shopee-input"
+                                    className={`shopee-input ${fieldErrors.ownerName ? 'input-error' : ''}`}
+                                    required
                                     maxLength={30}
                                 />
                             </FormGroup>
 
-                            <FormGroup label={t('roleRequest.step1.pickupAddress')} required>
+                            <FormGroup label={t('roleRequest.step1.pickupAddress')} required error={fieldErrors.address}>
                                 {address ? (
-                                    <div className="address-display" onClick={() => setShowAddressModal(true)}>
+                                    <div className={`address-display ${fieldErrors.address ? 'input-error' : ''}`} onClick={() => setShowAddressModal(true)}>
                                         {address} <span className="edit-link">{t('roleRequest.step1.edit')}</span>
                                     </div>
                                 ) : (
-                                    <button onClick={() => setShowAddressModal(true)} className="btn-outline">{t('roleRequest.step1.add')}</button>
+                                    <button onClick={() => setShowAddressModal(true)} className={`btn-outline ${fieldErrors.address ? 'input-error' : ''}`}>{t('roleRequest.step1.add')}</button>
                                 )}
                             </FormGroup>
 
-                            <FormGroup label="Email" required>
+                            <FormGroup label="Email" required error={fieldErrors.email}>
                                 <input
                                     type="email"
                                     name="email"
                                     value={shopInfo.email}
                                     onChange={handleShopChange}
                                     placeholder="vd@gmail.com"
-                                    className="shopee-input"
+                                    className={`shopee-input ${fieldErrors.email ? 'input-error' : ''}`}
+                                    required
                                 />
                             </FormGroup>
 
-                            <FormGroup label={t('roleRequest.step1.phone')} required>
+                            <FormGroup label={t('roleRequest.step1.phone')} required error={fieldErrors.phone}>
                                 <div className="input-group">
                                     <input
                                         type="text"
@@ -508,22 +598,23 @@ const RegisterShopOwner = () => {
                                         value={shopInfo.phone}
                                         onChange={handleShopChange}
                                         placeholder="0987654321"
-                                        className="shopee-input"
+                                        className={`shopee-input ${fieldErrors.phone ? 'input-error' : ''}`}
+                                        required
                                     />
                                 </div>
                             </FormGroup>
 
-                            <FormGroup label={t('roleRequest.step1.reason')} required>
+                            <FormGroup label={t('roleRequest.step1.reason')} required error={fieldErrors.reason}>
                                 <input
                                     type="text"
                                     name="reason"
                                     value={shopInfo.reason}
                                     onChange={handleShopChange}
                                     placeholder=""
-                                    className="shopee-input"
+                                    className={`shopee-input ${fieldErrors.reason ? 'input-error' : ''}`}
+                                    required
                                 />
                             </FormGroup>
-
                         </div>
                     )}
 
@@ -542,34 +633,34 @@ const RegisterShopOwner = () => {
                                 </div>
                             </FormGroup>
 
-                            <FormGroup label={t('roleRequest.step2.businessAddress')} required>
+                            <FormGroup label={t('roleRequest.step2.businessAddress')} required error={fieldErrors.address}>
                                 {address ? (
-                                    <div className="address-display" onClick={() => setShowAddressModal(true)}>
+                                    <div className={`address-display ${fieldErrors.address ? 'input-error' : ''}`} onClick={() => setShowAddressModal(true)}>
                                         {address} <span className="edit-link">{t('roleRequest.step1.edit')}</span>
                                     </div>
                                 ) : (
-                                    <button onClick={() => setShowAddressModal(true)} className="btn-outline">{t('roleRequest.step1.add')}</button>
+                                    <button onClick={() => setShowAddressModal(true)} className={`btn-outline ${fieldErrors.address ? 'input-error' : ''}`}>{t('roleRequest.step1.add')}</button>
                                 )}
                             </FormGroup>
 
-                            <FormGroup label="Email" count={`${taxInfo.email.length}/100`}>
+                            <FormGroup label="Email" count={`${taxInfo.email.length}/100`} error={fieldErrors.taxEmail}>
                                 <input
                                     type="email"
                                     name="email"
                                     value={taxInfo.email}
                                     onChange={handleTaxChange}
-                                    className="shopee-input"
+                                    className={`shopee-input ${fieldErrors.taxEmail ? 'input-error' : ''}`}
                                 />
                             </FormGroup>
 
-                            <FormGroup label={t('roleRequest.step2.taxCode')} count={`${taxInfo.taxCode.length}/14`}>
+                            <FormGroup label={t('roleRequest.step2.taxCode')} count={`${taxInfo.taxCode.length}/14`} error={fieldErrors.taxCode}>
                                 <input
                                     type="text"
                                     name="taxCode"
                                     value={taxInfo.taxCode}
                                     onChange={handleTaxChange}
                                     placeholder={t('roleRequest.modal.enterValue')}
-                                    className="shopee-input"
+                                    className={`shopee-input ${fieldErrors.taxCode ? 'input-error' : ''}`}
                                 />
                             </FormGroup>
                         </div>
@@ -590,30 +681,32 @@ const RegisterShopOwner = () => {
                                 </div>
                             </FormGroup>
 
-                            <FormGroup label={t('roleRequest.step3.idNumber')} required count={`${idInfo.idNumber.length}/12`}>
+                            <FormGroup label={t('roleRequest.step3.idNumber')} required count={`${idInfo.idNumber.length}/12`} error={fieldErrors.idNumber}>
                                 <input
                                     type="text"
                                     name="idNumber"
                                     value={idInfo.idNumber}
                                     onChange={handleIdChange}
                                     placeholder={t('roleRequest.modal.enterValue')}
-                                    className="shopee-input"
+                                    className={`shopee-input ${fieldErrors.idNumber ? 'input-error' : ''}`}
+                                    required
                                 />
                             </FormGroup>
 
-                            <FormGroup label={t('roleRequest.step3.fullName')} required count={`${idInfo.fullName.length}/100`}>
+                            <FormGroup label={t('roleRequest.step3.fullName')} required count={`${idInfo.fullName.length}/100`} error={fieldErrors.fullName}>
                                 <input
                                     type="text"
                                     name="fullName"
                                     value={idInfo.fullName}
                                     onChange={handleIdChange}
                                     placeholder={t('roleRequest.modal.enterValue')}
-                                    className="shopee-input"
+                                    className={`shopee-input ${fieldErrors.fullName ? 'input-error' : ''}`}
+                                    required
                                 />
                                 <div className="sub-label">{t('roleRequest.step3.fullNameHint')}</div>
                             </FormGroup>
 
-                            <FormGroup label={t('roleRequest.step3.frontImage')} required>
+                            <FormGroup label={t('roleRequest.step3.frontImage')} required error={fieldErrors.frontImage}>
                                 <div className="id-image-upload">
                                     <input
                                         type="file"
@@ -622,7 +715,7 @@ const RegisterShopOwner = () => {
                                         style={{ display: 'none' }}
                                         id="front-image-input"
                                     />
-                                    <label htmlFor="front-image-input" className="image-upload-box">
+                                    <label htmlFor="front-image-input" className={`image-upload-box ${fieldErrors.frontImage ? 'input-error' : ''}`}>
                                         {frontPreview ? (
                                             <img src={frontPreview} alt="Front" className="image-preview" />
                                         ) : (
@@ -635,7 +728,7 @@ const RegisterShopOwner = () => {
                                 </div>
                             </FormGroup>
 
-                            <FormGroup label={t('roleRequest.step3.backImage')} required>
+                            <FormGroup label={t('roleRequest.step3.backImage')} required error={fieldErrors.backImage}>
                                 <div className="id-image-upload">
                                     <input
                                         type="file"
@@ -644,7 +737,7 @@ const RegisterShopOwner = () => {
                                         style={{ display: 'none' }}
                                         id="back-image-input"
                                     />
-                                    <label htmlFor="back-image-input" className="image-upload-box">
+                                    <label htmlFor="back-image-input" className={`image-upload-box ${fieldErrors.backImage ? 'input-error' : ''}`}>
                                         {backPreview ? (
                                             <img src={backPreview} alt="Back" className="image-preview" />
                                         ) : (
@@ -663,10 +756,17 @@ const RegisterShopOwner = () => {
                                 </p>
                             </div>
 
-                            <div className="agreement-section">
-                                <input type="checkbox" id="agree" className="shopee-checkbox" />
-                                <label htmlFor="agree">{t('roleRequest.step3.agreement')}</label>
+                            <div className="agreement-section" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }} onClick={handleAgreementClick}>
+                                <input
+                                    type="checkbox"
+                                    id="agree"
+                                    className={`shopee-checkbox ${fieldErrors.agreement ? 'input-error' : ''}`}
+                                    checked={isAgreed}
+                                    readOnly
+                                />
+                                <label htmlFor="agree" style={{ cursor: 'pointer', color: fieldErrors.agreement ? '#ee4d2d' : 'inherit' }}>{t('roleRequest.step3.agreement')}</label>
                             </div>
+                            {fieldErrors.agreement && <div className="validation-error-text" style={{ marginLeft: '24px' }}>{fieldErrors.agreement}</div>}
                         </div>
                     )}
 
@@ -691,6 +791,12 @@ const RegisterShopOwner = () => {
                                 <button className="btn-ghost px-10">{t('roleRequest.buttons.save')}</button>
                                 <button
                                     onClick={async () => {
+                                        // Validation trước khi chuyển bước
+                                        const isValid = validateStep(currentStep);
+                                        if (!isValid) {
+                                            return;
+                                        }
+
                                         // ✅ Bước cuối submit data
                                         if (currentStep === 3) {
                                             // ✅ Check authentication trước khi submit
@@ -701,30 +807,9 @@ const RegisterShopOwner = () => {
                                                 return;
                                             }
 
-                                            // Validation cơ bản
-                                            if (!shopInfo.shopName || !shopInfo.ownerName || !shopInfo.phone) {
-                                                alert("Vui lòng điền đầy đủ thông tin shop.");
-                                                return;
-                                            }
-                                            if (!address) {
-                                                alert("Vui lòng chọn địa chỉ lấy hàng.");
-                                                return;
-                                            }
-                                            if (!idInfo.idNumber || !idInfo.fullName) {
-                                                alert("Vui lòng điền đầy đủ thông tin định danh.");
-                                                return;
-                                            }
-
-                                            // SUBMIT LOGIC - Cấu trúc đúng theo FullShopRegistrationRequest
+                                            // SUBMIT LOGIC
                                             try {
-                                                // Build businessAddress from shop address (Step 1)
                                                 const businessAddress = `${detailAddress.trim()}, ${wardName}, ${districtName}, ${provinceName}`.trim();
-
-                                                // Validate all required fields before sending
-                                                if (!provinceId || !districtId || !wardCode || !detailAddress.trim()) {
-                                                    alert("Dữ liệu địa chỉ không đầy đủ. Vui lòng chọn lại địa chỉ.");
-                                                    return;
-                                                }
 
                                                 const fullPayload = {
                                                     roleRequest: {
@@ -769,36 +854,11 @@ const RegisterShopOwner = () => {
                                                 setCurrentStep(4);
                                             } catch (error) {
                                                 console.error("❌ Submit failed:", error);
-                                                console.error("❌ Error response:", error.response);
-                                                console.error("❌ Error data:", error.response?.data);
-
-                                                // Extract detailed error message
-                                                let errorMsg = "Đã xảy ra lỗi";
-
-                                                if (error.response?.data) {
-                                                    const errData = error.response.data;
-
-                                                    // Check for validation errors
-                                                    if (errData.errors && Array.isArray(errData.errors)) {
-                                                        errorMsg = errData.errors.map(e => `${e.field}: ${e.message}`).join('\n');
-                                                    }
-                                                    // Check for single error message
-                                                    else if (errData.message) {
-                                                        errorMsg = errData.message;
-                                                    }
-                                                    // Check for error field
-                                                    else if (errData.error) {
-                                                        errorMsg = errData.error;
-                                                    }
-                                                    // Fallback to stringified data
-                                                    else {
-                                                        errorMsg = JSON.stringify(errData);
-                                                    }
-                                                } else if (error.message) {
-                                                    errorMsg = error.message;
+                                                let errorMsg = "Đã xảy ra lỗi khi gửi yêu cầu. Vui lòng thử lại sau.";
+                                                if (error.response?.data?.message) {
+                                                    errorMsg = error.response.data.message;
                                                 }
-
-                                                alert(`❌ Đăng ký thất bại:\n\n${errorMsg}\n\nVui lòng kiểm tra console để xem chi tiết.`);
+                                                alert(`❌ Đăng ký thất bại:\n\n${errorMsg}`);
                                             }
                                         } else {
                                             // Chuyển sang bước tiếp theo
@@ -903,18 +963,85 @@ const RegisterShopOwner = () => {
                     </div>
                 </div>
             )}
+            {/* ===== MODAL CAPTCHA ===== */}
+            {showCaptchaModal && (
+                <div className="shopee-modal-overlay">
+                    <div className="shopee-modal-container animate-scale-up" style={{ maxWidth: '400px' }}>
+                        <div className="shopee-modal-header">
+                            <span className="modal-title">{t('roleRequest.captcha.title')}</span>
+                            <span className="modal-close-icon" onClick={() => setShowCaptchaModal(false)}>&times;</span>
+                        </div>
+                        <div className="shopee-modal-body" style={{ textAlign: 'center', padding: '30px' }}>
+                            <p style={{ marginBottom: '20px', color: '#666' }}>{t('roleRequest.captcha.message')}</p>
+
+                            <div className="captcha-code-box">
+                                {generatedCaptcha}
+                                <button
+                                    type="button"
+                                    className="btn-refresh-captcha-new"
+                                    onClick={generateCaptcha}
+                                    title={t('roleRequest.captcha.refresh')}
+                                >
+                                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                                        <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                                    </svg>
+                                    <span>{t('roleRequest.captcha.refresh')}</span>
+                                </button>
+                            </div>
+
+                            <input
+                                type="text"
+                                className={`shopee-input captcha-input-large ${captchaError ? 'error-shake input-error' : ''}`}
+                                value={captchaInput}
+                                onChange={(e) => {
+                                    setCaptchaInput(e.target.value.toUpperCase());
+                                    setCaptchaError('');
+                                }}
+                                placeholder={t('roleRequest.captcha.placeholder')}
+                                maxLength={6}
+                            />
+
+                            {captchaError && (
+                                <div className="validation-error-text" style={{ marginTop: '10px' }}>
+                                    {captchaError}
+                                </div>
+                            )}
+
+                            <div style={{ display: 'flex', gap: '12px', marginTop: '30px' }}>
+                                <button
+                                    className="btn-ghost"
+                                    style={{ flex: 1 }}
+                                    onClick={() => setShowCaptchaModal(false)}
+                                >
+                                    {t('common.cancel')}
+                                </button>
+                                <button
+                                    className="btn-primary"
+                                    style={{ flex: 1 }}
+                                    onClick={verifyCaptcha}
+                                >
+                                    {t('roleRequest.captcha.verify')}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
 
-const FormGroup = ({ label, children, required, count }) => (
-    <div style={{ display: 'flex', marginBottom: '24px' }}>
-        <div style={{ width: '180px', textAlign: 'right', paddingRight: '20px', paddingTop: '10px', fontSize: '14px', color: '#555' }}>
-            {required && <span style={{ color: '#ee4d2d', marginRight: '4px' }}>*</span>}{label}
-        </div>
-        <div style={{ flex: 1, position: 'relative' }}>
-            {children}
-            {count && <span style={{ position: 'absolute', right: '12px', top: '10px', fontSize: '12px', color: '#ccc' }}>{count}</span>}
+const FormGroup = ({ label, children, required, count, error }) => (
+    <div style={{ display: 'flex', marginBottom: '24px', flexDirection: 'column' }}>
+        <div style={{ display: 'flex' }}>
+            <div style={{ width: '180px', textAlign: 'right', paddingRight: '20px', paddingTop: '10px', fontSize: '14px', color: '#555' }}>
+                {required && <span style={{ color: '#ee4d2d', marginRight: '4px' }}>*</span>}{label}
+            </div>
+            <div style={{ flex: 1, position: 'relative' }}>
+                {children}
+                {count && <span style={{ position: 'absolute', right: '12px', top: '10px', fontSize: '12px', color: '#ccc' }}>{count}</span>}
+                {error && <span className="validation-error-text">{error}</span>}
+            </div>
         </div>
     </div>
 );
