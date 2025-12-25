@@ -91,6 +91,12 @@ const Sidebar = () => {
                     >
                         Banner
                     </Link>
+                    <Link
+                        className={`dropdown-item-ezmart ${isActive("/admin/ads") ? "active" : ""}`}
+                        to="/admin/ads"
+                    >
+                        Advertisement
+                    </Link>
                 </div>
             </li>
 
@@ -102,6 +108,17 @@ const Sidebar = () => {
                 >
                     <i className="fas fa-ticket-alt"></i>
                     <span>Voucher</span>
+                </Link>
+            </li>
+
+            {/* Coin Management */}
+            <li className="nav-item-ezmart">
+                <Link
+                    className={`nav-link-ezmart ${isActive("/admin/coins") ? "active" : ""}`}
+                    to="/admin/coins"
+                >
+                    <i className="fas fa-coins"></i>
+                    <span>Coin Management</span>
                 </Link>
             </li>
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getActiveBanners, trackBannerClick } from '../../api/banner';
+import adAPI from '../../api/ads/adAPI';
 import { fetchImageById } from '../../api/image';
 
 export default function ShopeeBanner() {
@@ -60,76 +61,13 @@ export default function ShopeeBanner() {
     // Fetch banners from API
     useEffect(() => {
         fetchBanners();
-        
+
         // Cleanup blob URLs on unmount
         return () => {
             createdUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
             createdUrlsRef.current = [];
         };
     }, []);
-
-    const fetchBanners = async () => {
-        try {
-            const data = await getActiveBanners();
-            // Only use database banners if at least one position has banners
-            if (data && (data.LEFT_MAIN?.length > 0 || data.RIGHT_TOP?.length > 0 || data.RIGHT_BOTTOM?.length > 0)) {
-                console.log('Loaded banners from database:', data);
-                setBanners(data);
-                // Load images for all banners
-                await loadBannerImages(data);
-            } else {
-                console.log('No active banners in database, using defaults');
-            }
-        } catch (error) {
-            console.error('Failed to fetch banners, using defaults:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const loadBannerImages = async (bannersData) => {
-        // Collect all banners from all positions
-        const allBanners = [
-            ...(bannersData.LEFT_MAIN || []),
-            ...(bannersData.RIGHT_TOP || []),
-            ...(bannersData.RIGHT_BOTTOM || [])
-        ];
-
-        const imagePromises = allBanners.map(async (banner) => {
-            // Priority: imageId > imageUrl
-            if (banner.imageId) {
-                try {
-                    const response = await fetchImageById(banner.imageId);
-                    const blob = new Blob([response.data], {
-                        type: response.headers['content-type'] || 'image/jpeg'
-                    });
-                    const url = URL.createObjectURL(blob);
-                    createdUrlsRef.current.push(url);
-                    return { bannerId: banner.id, url };
-                } catch (error) {
-                    console.error(`Error loading image for banner ${banner.id}:`, error);
-                    // Fallback to imageUrl if fetch fails
-                    if (banner.imageUrl) {
-                        return { bannerId: banner.id, url: buildImageUrl(banner.imageUrl) };
-                    }
-                    return { bannerId: banner.id, url: null };
-                }
-            } else if (banner.imageUrl) {
-                // Use imageUrl as fallback
-                return { bannerId: banner.id, url: buildImageUrl(banner.imageUrl) };
-            }
-            return { bannerId: banner.id, url: null };
-        });
-
-        const results = await Promise.all(imagePromises);
-        const urlMap = {};
-        results.forEach(({ bannerId, url }) => {
-            if (url) {
-                urlMap[bannerId] = url;
-            }
-        });
-        setBannerImageUrls(prev => ({ ...prev, ...urlMap }));
-    };
 
     // Helper to build full image URL from relative path or return full URL as-is
     const buildImageUrl = (imageUrl) => {
@@ -139,12 +77,61 @@ export default function ShopeeBanner() {
             return imageUrl;
         }
         // If relative path, build full URL using API base URL
-        const API_BASE_URL = import.meta.env.MODE === 'production' 
-            ? '/api' 
+        const API_BASE_URL = import.meta.env.MODE === 'production'
+            ? '/api'
             : (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080');
         // Remove leading slash if present to avoid double slashes
         const path = imageUrl.startsWith('/') ? imageUrl.substring(1) : imageUrl;
         return `${API_BASE_URL}/${path}`;
+    };
+
+    const fetchBanners = async () => {
+        try {
+            // Fetch both System Banners and Advertisements
+            const [bannerData, adData] = await Promise.all([
+                getActiveBanners().catch(err => null),
+                adAPI.getActiveAds('HEADER').catch(err => [])
+            ]);
+
+            // Transform Ads to Banner format
+            const adBanners = (adData || []).map(ad => ({
+                id: `ad-${ad.id}`,
+                title: ad.title,
+                description: ad.description,
+                imageUrl: ad.imageUrl, // Ad usually has full URL or file-storage path
+                linkUrl: ad.targetUrl,
+                openInNewTab: true,
+                bg: '#f0f0f0',
+                textColor: 'black',
+                isAd: true
+            }));
+
+            let finalData = bannerData || {};
+
+            // If no database banners, use DEFAULTS as base
+            if (!bannerData || !bannerData.LEFT_MAIN || bannerData.LEFT_MAIN.length === 0) {
+                finalData = JSON.parse(JSON.stringify(defaultBanners)); // Deep copy defaults
+            }
+
+            // Mix ads into LEFT_MAIN
+            const existingMain = finalData.LEFT_MAIN || [];
+
+            // Merge: Ads first, then existing banners
+            finalData.LEFT_MAIN = [...adBanners, ...existingMain];
+
+            // If we have data (either banners or ads), use it
+            if (finalData.LEFT_MAIN.length > 0 || finalData.RIGHT_TOP?.length > 0 || finalData.RIGHT_BOTTOM?.length > 0) {
+                console.log('Loaded mixed banners:', finalData);
+                setBanners(finalData);
+                await loadBannerImages(finalData);
+            } else {
+                console.log('No active banners/ads, using defaults');
+            }
+        } catch (error) {
+            console.error('Failed to fetch banners/ads:', error);
+        } finally {
+            setLoading(false);
+        }
     };
 
     // Use database banners if available, otherwise use defaults
@@ -153,33 +140,36 @@ export default function ShopeeBanner() {
     const rightTopBanner = displayBanners.RIGHT_TOP?.[0];
     const rightBottomBanner = displayBanners.RIGHT_BOTTOM?.[0];
 
+    const [autoPlay, setAutoPlay] = useState(true);
+
     // Auto-rotate carousel for main banners
     useEffect(() => {
-        if (mainBanners.length > 1) {
+        if (mainBanners.length > 1 && autoPlay) {
             const interval = setInterval(() => {
                 setCurrentIndex((prev) => (prev + 1) % mainBanners.length);
             }, 4000);
             return () => clearInterval(interval);
         }
-    }, [mainBanners.length]);
+    }, [mainBanners.length, autoPlay]);
 
-    const handleBannerClick = async (banner) => {
-        if (!banner || banner.id?.startsWith('default-')) return; // Don't track default banners
+    const handleBannerClick = (banner) => {
+        if (!banner) return;
 
-        try {
-            // Track click for analytics
-            await trackBannerClick(banner.id);
+        // Track click for analytics (fire and forget, don't await)
+        if (!banner.id?.startsWith('default-')) {
+            trackBannerClick(banner.id).catch(err =>
+                console.error('Failed to track banner click:', err)
+            );
+        }
 
-            // Navigate if banner has a link
-            if (banner.linkUrl) {
-                if (banner.openInNewTab) {
-                    window.open(banner.linkUrl, '_blank', 'noopener,noreferrer');
-                } else {
-                    window.location.href = banner.linkUrl;
-                }
+        // Navigate immediately if banner has a link
+        if (banner.linkUrl) {
+            console.log('Navigating to:', banner.linkUrl);
+            if (banner.openInNewTab) {
+                window.open(banner.linkUrl, '_blank', 'noopener,noreferrer');
+            } else {
+                window.location.href = banner.linkUrl;
             }
-        } catch (error) {
-            console.error('Failed to track banner click:', error);
         }
     };
 
@@ -309,8 +299,77 @@ export default function ShopeeBanner() {
                 <div className="row g-3">
                     {/* Main Banner Carousel */}
                     <div className="col-12 col-lg-8">
-                        <div style={{ position: 'relative' }}>
+                        <div style={{ position: 'relative' }}
+                            onMouseEnter={() => setAutoPlay(false)}
+                            onMouseLeave={() => setAutoPlay(true)}>
+
                             {mainBanners.length > 0 && renderBanner(mainBanners[currentIndex], true)}
+
+                            {/* Arrow Navigation */}
+                            {mainBanners.length > 1 && (
+                                <>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setCurrentIndex(prev => (prev - 1 + mainBanners.length) % mainBanners.length);
+                                        }}
+                                        style={{
+                                            position: 'absolute',
+                                            top: '50%',
+                                            left: '0',
+                                            transform: 'translateY(-50%)',
+                                            background: 'rgba(0,0,0,0.18)',
+                                            border: 'none',
+                                            width: '32px',
+                                            height: '60px',
+                                            color: 'white',
+                                            fontSize: '24px',
+                                            cursor: 'pointer',
+                                            zIndex: 2,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            transition: 'background 0.3s'
+                                        }}
+                                        className="banner-arrow"
+                                        onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.32)'}
+                                        onMouseOut={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.18)'}
+                                    >
+                                        &#10094;
+                                    </button>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setCurrentIndex(prev => (prev + 1) % mainBanners.length);
+                                        }}
+                                        style={{
+                                            position: 'absolute',
+                                            top: '50%',
+                                            right: '0',
+                                            transform: 'translateY(-50%)',
+                                            background: 'rgba(0,0,0,0.18)',
+                                            border: 'none',
+                                            width: '32px',
+                                            height: '60px',
+                                            color: 'white',
+                                            fontSize: '24px',
+                                            cursor: 'pointer',
+                                            zIndex: 2,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            transition: 'background 0.3s'
+                                        }}
+                                        className="banner-arrow"
+                                        onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.32)'}
+                                        onMouseOut={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.18)'}
+                                    >
+                                        &#10095;
+                                    </button>
+                                </>
+                            )}
+                            {/* Correct Right Arrow Content in JSX instead of CSS content hack which is messy for inline */}
+                            {/* Actually simpler to just put the char in JSX above, waiting for correction in next step if needed, but I'll fix it inline below */}
 
                             {/* Navigation Dots */}
                             {mainBanners.length > 1 && (

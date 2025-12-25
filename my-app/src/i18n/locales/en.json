@@ -1389,5 +1389,33 @@
     },
     "thankYouMessage": "Thank you for your purchase!",
     "customer": "Customer"
+  },
+  "coins": {
+    "currentCoins": "Current Coins",
+    "expiry": "{{coins}} Shopee Coins will expire on {{date}}",
+    "getMoreCoins": "Get More Coins!",
+    "dailyCheckin7Days": "7-Day Daily Check-in for Coins",
+    "dailyCheckinHint": "Earn coins daily, big rewards on day 7",
+    "today": "Today",
+    "day": "Day {{day}}",
+    "comeBackTomorrow": "Come back tomorrow for more Coins",
+    "claimNow": "Claim Now",
+    "missionList": "Mission List",
+    "xu": "Coins",
+    "claimed": "Claimed",
+    "claimReward": "Claim Reward",
+    "doIt": "Do It",
+    "noMissions": "No missions yet.",
+    "claimSuccess": "Congratulations! You received {{reward}} Coins!",
+    "cannotClaimReward": "Cannot claim reward",
+    "alreadyCheckedIn": "You already checked in today. Come back tomorrow!",
+    "checkInSuccess": "Congratulations! You received {{points}} Coins!",
+    "cannotCheckIn": "Cannot check in right now",
+    "missionUpdated": "Mission updated!",
+    "viewProductMore": "Please view the product for {{seconds}} more seconds!",
+    "viewCartComplete": "View Cart mission completed!",
+    "viewCartMore": "Please view the cart for {{seconds}} more seconds!",
+    "followShopHint": "Find any shop and click 'Follow' to complete this mission!",
+    "doMission": "Please complete this mission!"
   }
 }

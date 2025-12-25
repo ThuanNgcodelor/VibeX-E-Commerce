@@ -1,0 +1,105 @@
+.daily-checkin-container {
+    background: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.checkin-grid {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.checkin-day-box {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: #f8f8f8;
+    border-radius: 8px;
+    padding: 10px 5px;
+    position: relative;
+    border: 1px solid transparent;
+}
+
+.checkin-day-box.active {
+    background: #fff5f0;
+    border: 1px solid #ee4d2d;
+}
+
+.checkin-day-box.checked {
+    opacity: 0.8;
+}
+
+.bonus-tag {
+    background: #ee4d2d;
+    color: white;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.coin-icon-circle {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #ffc107;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin: 5px 0;
+}
+
+.checked-icon-circle {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid #ee4d2d;
+    color: #ee4d2d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 5px 0;
+}
+
+.day-label {
+    font-size: 12px;
+    color: #888;
+    margin-top: 5px;
+}
+
+.day-label.today {
+    color: #ee4d2d;
+    font-weight: bold;
+}
+
+.checkin-btn-large {
+    background: #ee4d2d;
+    color: white;
+    border: none;
+    width: 100%;
+    padding: 12px;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.checkin-btn-large:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+.checkin-btn-large:hover:not(:disabled) {
+    background: #d73211;
+}

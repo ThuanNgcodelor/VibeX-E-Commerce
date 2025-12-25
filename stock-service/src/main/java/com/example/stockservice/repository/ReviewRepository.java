@@ -24,4 +24,7 @@ public interface ReviewRepository extends JpaRepository<Review, String> {
 
     @Query("SELECT r FROM reviews r WHERE r.productId IN (SELECT p.id FROM products p WHERE p.userId = :shopId) ORDER BY r.createdAt DESC")
     List<Review> findByShopId(@Param("shopId") String shopId);
+
+    boolean existsByUserIdAndCreatedAtBetween(String userId, java.time.LocalDateTime start,
+                                              java.time.LocalDateTime end);
 }

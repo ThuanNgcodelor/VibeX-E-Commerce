@@ -1387,5 +1387,33 @@
     },
     "thankYouMessage": "Cảm ơn bạn đã mua sắm!",
     "customer": "Khách hàng"
+  },
+  "coins": {
+    "currentCoins": "Xu đang có",
+    "expiry": "{{coins}} Shopee Xu sẽ hết hạn vào {{date}}",
+    "getMoreCoins": "Nhận thêm Xu!",
+    "dailyCheckin7Days": "Điểm danh 7 ngày nhận Xu",
+    "dailyCheckinHint": "Nhận xu mỗi ngày, ngày 7 nhận quà lớn",
+    "today": "Hôm nay",
+    "day": "Ngày {{day}}",
+    "comeBackTomorrow": "Quay lại ngày mai để nhận Xu",
+    "claimNow": "Nhận ngay",
+    "missionList": "Danh sách nhiệm vụ",
+    "xu": "Xu",
+    "claimed": "Đã nhận",
+    "claimReward": "Nhận thưởng",
+    "doIt": "Thực hiện",
+    "noMissions": "Chưa có nhiệm vụ nào.",
+    "claimSuccess": "Chúc mừng! Bạn đã nhận được {{reward}} Xu!",
+    "cannotClaimReward": "Không thể nhận thưởng",
+    "alreadyCheckedIn": "Bạn đã nhận Xu hôm nay rồi. Quay lại ngày mai!",
+    "checkInSuccess": "Chúc mừng! Bạn nhận được {{points}} Xu!",
+    "cannotCheckIn": "Không thể nhận Xu ngay bây giờ",
+    "missionUpdated": "Đã cập nhật nhiệm vụ!",
+    "viewProductMore": "Hãy xem sản phẩm thêm {{seconds}}s nữa!",
+    "viewCartComplete": "Đã hoàn thành nhiệm vụ Xem Giỏ Hàng!",
+    "viewCartMore": "Hãy xem giỏ hàng thêm {{seconds}}s nữa!",
+    "followShopHint": "Hãy tìm một shop bất kỳ và nhấn 'Theo dõi' (Follow) để hoàn thành nhiệm vụ này!",
+    "doMission": "Hãy thực hiện nhiệm vụ này!"
   }
 }

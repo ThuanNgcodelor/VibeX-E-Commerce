@@ -16,10 +16,11 @@ public class ReviewController {
     private final ReviewService reviewService;
 
     @PostMapping
-    public ResponseEntity<ReviewDto> createReview(@RequestBody ReviewRequest request) {
-        return ResponseEntity.ok(reviewService.createReview(request));
+    public ResponseEntity<ReviewDto> createReview(
+            @RequestHeader("Authorization") String token,
+            @RequestBody ReviewRequest request) {
+        return ResponseEntity.ok(reviewService.createReview(token, request));
     }
-
     @GetMapping("/product/{productId}")
     public ResponseEntity<List<ReviewDto>> getReviewsByProductId(@PathVariable String productId) {
         return ResponseEntity.ok(reviewService.getReviewsByProductId(productId));
@@ -41,5 +42,10 @@ public class ReviewController {
     @PostMapping("/{reviewId}/reply")
     public ResponseEntity<ReviewDto> replyReview(@PathVariable String reviewId, @RequestBody String reply) {
         return ResponseEntity.ok(reviewService.replyToReview(reviewId, reply));
+    }
+
+    @GetMapping("/check-today/{userId}")
+    public ResponseEntity<Boolean> hasUserReviewedToday(@PathVariable String userId) {
+        return ResponseEntity.ok(reviewService.hasUserReviewedToday(userId));
     }
 }

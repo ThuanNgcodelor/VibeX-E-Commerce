@@ -72,11 +72,34 @@ const RegisterShopOwner = () => {
     // ✅ CAPTCHA & Security
     const [isAgreed, setIsAgreed] = useState(false);
     const [showCaptchaModal, setShowCaptchaModal] = useState(false);
+
+    // CAPTCHA Types
+    const CAPTCHA_TYPES = {
+        TEXT: 'text',      // Nhập mã chữ cái số
+        MATH: 'math',      // Giải phép tính
+        IMAGE: 'image',    // Click hình ảnh
+        SLIDER: 'slider'   // Kéo slider
+    };
+    const [captchaType, setCaptchaType] = useState(CAPTCHA_TYPES.TEXT);
+
+    // Common CAPTCHA state
     const [generatedCaptcha, setGeneratedCaptcha] = useState('');
     const [captchaInput, setCaptchaInput] = useState('');
     const [isVerified, setIsVerified] = useState(false);
     const [captchaError, setCaptchaError] = useState('');
     const [fieldErrors, setFieldErrors] = useState({});
+
+    // Math CAPTCHA state
+    const [mathProblem, setMathProblem] = useState({ num1: 0, num2: 0, operator: '+', answer: 0 });
+    const [mathInput, setMathInput] = useState('');
+
+    // Image CAPTCHA state
+    const [imageAnswer, setImageAnswer] = useState(null);
+    const [selectedImage, setSelectedImage] = useState(null);
+
+    // Slider CAPTCHA state
+    const [sliderValue, setSliderValue] = useState(0);
+    const [sliderTarget, setSliderTarget] = useState(0);
 
     const steps = [
         t('roleRequest.steps.shopInfo'),
@@ -123,64 +146,189 @@ const RegisterShopOwner = () => {
         setCaptchaError('');
     };
 
+    // ====== MATH CAPTCHA ======
+    const generateMathCaptcha = () => {
+        const operators = ['+', '-', '*'];
+        const num1 = Math.floor(Math.random() * 20) + 1;
+        const num2 = Math.floor(Math.random() * 20) + 1;
+        const operator = operators[Math.floor(Math.random() * operators.length)];
+
+        let answer = 0;
+        if (operator === '+') answer = num1 + num2;
+        else if (operator === '-') answer = num1 - num2;
+        else answer = num1 * num2;
+
+        setMathProblem({ num1, num2, operator, answer });
+        setMathInput('');
+        setCaptchaError('');
+    };
+
+    // ====== IMAGE CAPTCHA ======
+    const generateImageCaptcha = () => {
+        // Tạo 4 hình ảnh, 1 đúng
+        const images = [
+            { id: 1, emoji: '🎁', correct: false },
+            { id: 2, emoji: '⭐', correct: true },
+            { id: 3, emoji: '🎈', correct: false },
+            { id: 4, emoji: '🎯', correct: false }
+        ];
+        setImageAnswer(images);
+        setSelectedImage(null);
+        setCaptchaError('');
+    };
+
+    // ====== SLIDER CAPTCHA ======
+    const generateSliderCaptcha = () => {
+        const target = Math.floor(Math.random() * 100);
+        setSliderTarget(target);
+        setSliderValue(0);
+        setCaptchaError('');
+    };
+
     const handleAgreementClick = (e) => {
         if (isVerified) {
             setIsAgreed(!isAgreed);
         } else {
             e.preventDefault();
-            generateCaptcha();
+            // Chọn loại CAPTCHA ngẫu nhiên
+            const types = Object.values(CAPTCHA_TYPES);
+            const randomType = types[Math.floor(Math.random() * types.length)];
+            setCaptchaType(randomType);
+
+            if (randomType === CAPTCHA_TYPES.TEXT) generateCaptcha();
+            else if (randomType === CAPTCHA_TYPES.MATH) generateMathCaptcha();
+            else if (randomType === CAPTCHA_TYPES.IMAGE) generateImageCaptcha();
+            else if (randomType === CAPTCHA_TYPES.SLIDER) generateSliderCaptcha();
+
             setShowCaptchaModal(true);
         }
     };
 
     const verifyCaptcha = () => {
-        if (captchaInput.toUpperCase() === generatedCaptcha) {
+        let isValid = false;
+
+        if (captchaType === CAPTCHA_TYPES.TEXT) {
+            isValid = captchaInput.toUpperCase() === generatedCaptcha;
+            if (!isValid) setCaptchaError('Mã xác thực không đúng. Vui lòng nhập lại.');
+        }
+        else if (captchaType === CAPTCHA_TYPES.MATH) {
+            isValid = parseInt(mathInput) === mathProblem.answer;
+            if (!isValid) setCaptchaError('Kết quả tính toán không đúng. Vui lòng thử lại.');
+        }
+        else if (captchaType === CAPTCHA_TYPES.IMAGE) {
+            isValid = imageAnswer && selectedImage === 2; // id 2 là đúng
+            if (!isValid) setCaptchaError('Vui lòng chọn hình ảnh đúng.');
+        }
+        else if (captchaType === CAPTCHA_TYPES.SLIDER) {
+            isValid = Math.abs(sliderValue - sliderTarget) <= 3; // Sai lệch <= 3
+            if (!isValid) setCaptchaError(`Kéo slider đến ${sliderTarget}. Hiện tại: ${sliderValue}`);
+        }
+
+        if (isValid) {
             setIsVerified(true);
             setIsAgreed(true);
             setShowCaptchaModal(false);
-        } else {
-            setCaptchaError(t('roleRequest.captcha.error') || 'Mã xác thực không đúng. Vui lòng nhập lại.');
         }
+    };
+
+    // ====== VALIDATION HELPERS ======
+    const isEmpty = (value) => !value || String(value).trim().length === 0;
+
+    const isValidEmail = (email) => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(String(email).trim());
+    };
+
+    const isValidPhone = (phone) => {
+        const phoneStr = String(phone).trim();
+        return phoneStr.startsWith('0') && phoneStr.length === 10 && /^\d+$/.test(phoneStr);
+    };
+
+    const isValidIdNumber = (idNumber) => {
+        return String(idNumber).trim().length >= 9;
     };
 
     // ====== Validation ======
     const validateStep = (step) => {
         let errors = {};
+
         if (step === 1) {
-            if (!shopInfo.shopName.trim()) errors.shopName = t('roleRequest.validation.shopName');
-            if (!shopInfo.ownerName.trim()) errors.ownerName = t('roleRequest.validation.ownerName');
-            if (!address) errors.address = t('roleRequest.validation.address');
-
-            // Email validation
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!shopInfo.email.trim()) {
-                errors.email = t('roleRequest.validation.email');
-            } else if (!emailRegex.test(shopInfo.email.trim())) {
-                errors.email = t('roleRequest.validation.invalidEmail');
+            // Tên shop
+            if (isEmpty(shopInfo.shopName)) {
+                errors.shopName = 'Bạn phải nhập tên shop';
             }
 
-            // Phone validation
-            const phoneStr = shopInfo.phone.trim();
-            if (!phoneStr) {
-                errors.phone = t('roleRequest.validation.phone');
-            } else if (!phoneStr.startsWith('0') || phoneStr.length !== 10 || !/^\d+$/.test(phoneStr)) {
-                errors.phone = t('roleRequest.validation.invalidPhone');
+            // Tên chủ hàng
+            if (isEmpty(shopInfo.ownerName)) {
+                errors.ownerName = 'Bạn phải nhập tên chủ cửa hàng';
             }
 
-            if (!shopInfo.reason.trim()) errors.reason = t('roleRequest.validation.reason');
+            // Địa chỉ nhận hàng
+            if (isEmpty(address)) {
+                errors.address = 'Bạn phải chọn địa chỉ nhận hàng';
+            }
+
+            // Email
+            if (isEmpty(shopInfo.email)) {
+                errors.email = 'Bạn phải nhập email';
+            } else if (!isValidEmail(shopInfo.email)) {
+                errors.email = 'Email không hợp lệ, vui lòng kiểm tra lại';
+            }
+
+            // Số điện thoại
+            if (isEmpty(shopInfo.phone)) {
+                errors.phone = 'Bạn phải nhập số điện thoại';
+            } else if (!isValidPhone(shopInfo.phone)) {
+                errors.phone = 'Số điện thoại phải bắt đầu bằng 0 và có đúng 10 chữ số';
+            }
+
+            // Lý do đăng ký
+            if (isEmpty(shopInfo.reason)) {
+                errors.reason = 'Bạn phải nhập lý do muốn đăng ký bán hàng';
+            }
         }
+
         if (step === 2) {
-            if (!taxInfo.email.trim()) errors.taxEmail = t('roleRequest.validation.taxEmail') || 'Vui lòng nhập email kinh doanh';
-            if (!taxInfo.taxCode.trim()) errors.taxCode = t('roleRequest.validation.taxCode') || 'Vui lòng nhập mã số thuế';
-        }
-        if (step === 3) {
-            if (!idInfo.idNumber.trim()) errors.idNumber = t('roleRequest.validation.idNumber');
-            else if (idInfo.idNumber.trim().length < 9) errors.idNumber = 'Số định danh không hợp lệ';
+            // Email kinh doanh
+            if (isEmpty(taxInfo.email)) {
+                errors.taxEmail = 'Bạn phải nhập email kinh doanh';
+            } else if (!isValidEmail(taxInfo.email)) {
+                errors.taxEmail = 'Email kinh doanh không hợp lệ';
+            }
 
-            if (!idInfo.fullName.trim()) errors.fullName = t('roleRequest.validation.fullName');
-            if (!frontFile) errors.frontImage = t('roleRequest.validation.frontImage');
-            if (!backFile) errors.backImage = t('roleRequest.validation.backImage');
-            if (!isAgreed) errors.agreement = t('roleRequest.validation.agreement');
+            // Mã số thuế
+            if (isEmpty(taxInfo.taxCode)) {
+                errors.taxCode = 'Bạn phải nhập mã số thuế';
+            }
+        }
+
+        if (step === 3) {
+            // Số định danh
+            if (isEmpty(idInfo.idNumber)) {
+                errors.idNumber = 'Bạn phải nhập số định danh';
+            } else if (!isValidIdNumber(idInfo.idNumber)) {
+                errors.idNumber = 'Số định danh phải có ít nhất 9 chữ số';
+            }
+
+            // Họ tên
+            if (isEmpty(idInfo.fullName)) {
+                errors.fullName = 'Bạn phải nhập họ và tên đầy đủ';
+            }
+
+            // Ảnh mặt trước
+            if (!frontFile) {
+                errors.frontImage = 'Bạn phải tải lên ảnh mặt trước của định danh';
+            }
+
+            // Ảnh mặt sau
+            if (!backFile) {
+                errors.backImage = 'Bạn phải tải lên ảnh mặt sau của định danh';
+            }
+
+            // Xác nhận thỏa thuận
+            if (!isAgreed) {
+                errors.agreement = 'Bạn phải xác nhận đã đọc và đồng ý với các điều khoản';
+            }
         }
 
         setFieldErrors(errors);
@@ -963,64 +1111,243 @@ const RegisterShopOwner = () => {
                     </div>
                 </div>
             )}
-            {/* ===== MODAL CAPTCHA ===== */}
+            {/* ===== MODAL CAPTCHA (MULTI-TYPE) ===== */}
             {showCaptchaModal && (
                 <div className="shopee-modal-overlay">
-                    <div className="shopee-modal-container animate-scale-up" style={{ maxWidth: '400px' }}>
-                        <div className="shopee-modal-header">
-                            <span className="modal-title">{t('roleRequest.captcha.title')}</span>
+                    <div className="shopee-modal-container animate-scale-up" style={{ maxWidth: '480px' }}>
+                        <div className="shopee-modal-header" style={{ paddingBottom: '20px' }}>
+                            <span className="modal-title" style={{ fontSize: '18px', fontWeight: '600', color: '#222' }}>Xác Nhận Là Người Dùng</span>
                             <span className="modal-close-icon" onClick={() => setShowCaptchaModal(false)}>&times;</span>
                         </div>
-                        <div className="shopee-modal-body" style={{ textAlign: 'center', padding: '30px' }}>
-                            <p style={{ marginBottom: '20px', color: '#666' }}>{t('roleRequest.captcha.message')}</p>
+                        <div className="shopee-modal-body" style={{ padding: '0 30px 30px 30px' }}>
 
-                            <div className="captcha-code-box">
-                                {generatedCaptcha}
-                                <button
-                                    type="button"
-                                    className="btn-refresh-captcha-new"
-                                    onClick={generateCaptcha}
-                                    title={t('roleRequest.captcha.refresh')}
-                                >
-                                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-                                        <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
-                                    </svg>
-                                    <span>{t('roleRequest.captcha.refresh')}</span>
-                                </button>
-                            </div>
-
-                            <input
-                                type="text"
-                                className={`shopee-input captcha-input-large ${captchaError ? 'error-shake input-error' : ''}`}
-                                value={captchaInput}
-                                onChange={(e) => {
-                                    setCaptchaInput(e.target.value.toUpperCase());
-                                    setCaptchaError('');
-                                }}
-                                placeholder={t('roleRequest.captcha.placeholder')}
-                                maxLength={6}
-                            />
-
-                            {captchaError && (
-                                <div className="validation-error-text" style={{ marginTop: '10px' }}>
-                                    {captchaError}
+                            {/* ===== TEXT CAPTCHA ===== */}
+                            {captchaType === CAPTCHA_TYPES.TEXT && (
+                                <div style={{ textAlign: 'center' }}>
+                                    <p style={{ marginBottom: '24px', color: '#666', fontSize: '14px' }}>
+                                        🔤 Vui lòng nhập mã xác thực bên dưới
+                                    </p>
+                                    <div className="captcha-code-box" style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        gap: '12px',
+                                        marginBottom: '24px',
+                                        padding: '16px',
+                                        background: '#f5f5f5',
+                                        borderRadius: '4px'
+                                    }}>
+                                        <div style={{
+                                            fontSize: '36px',
+                                            fontWeight: 'bold',
+                                            color: '#ee4d2d',
+                                            letterSpacing: '10px',
+                                            fontFamily: 'monospace'
+                                        }}>
+                                            {generatedCaptcha}
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={generateCaptcha}
+                                            title="Tải lại mã"
+                                            style={{
+                                                padding: '8px 12px',
+                                                background: 'white',
+                                                border: '1px solid #ddd',
+                                                borderRadius: '4px',
+                                                cursor: 'pointer',
+                                                fontSize: '12px'
+                                            }}
+                                        >
+                                            🔄 Làm mới
+                                        </button>
+                                    </div>
+                                    <input
+                                        type="text"
+                                        value={captchaInput}
+                                        onChange={(e) => {
+                                            setCaptchaInput(e.target.value.toUpperCase());
+                                            setCaptchaError('');
+                                        }}
+                                        placeholder="Nhập 6 ký tự"
+                                        maxLength={6}
+                                        style={{
+                                            fontSize: '18px',
+                                            textAlign: 'center',
+                                            letterSpacing: '6px',
+                                            padding: '12px',
+                                            marginBottom: '16px',
+                                            width: '100%',
+                                            border: captchaError ? '2px solid #ee4d2d' : '1px solid #ddd',
+                                            borderRadius: '4px',
+                                            boxSizing: 'border-box'
+                                        }}
+                                    />
                                 </div>
                             )}
 
-                            <div style={{ display: 'flex', gap: '12px', marginTop: '30px' }}>
+                            {/* ===== MATH CAPTCHA ===== */}
+                            {captchaType === CAPTCHA_TYPES.MATH && (
+                                <div style={{ textAlign: 'center' }}>
+                                    <p style={{ marginBottom: '24px', color: '#666', fontSize: '14px' }}>
+                                        🧮 Giải phép tính dưới đây
+                                    </p>
+                                    <div style={{
+                                        marginBottom: '24px',
+                                        padding: '24px',
+                                        background: '#f5f5f5',
+                                        borderRadius: '8px',
+                                        fontSize: '28px',
+                                        fontWeight: 'bold',
+                                        color: '#333'
+                                    }}>
+                                        {mathProblem.num1} {mathProblem.operator} {mathProblem.num2} = ?
+                                    </div>
+                                    <input
+                                        type="number"
+                                        value={mathInput}
+                                        onChange={(e) => {
+                                            setMathInput(e.target.value);
+                                            setCaptchaError('');
+                                        }}
+                                        placeholder="Nhập đáp án"
+                                        style={{
+                                            fontSize: '18px',
+                                            textAlign: 'center',
+                                            padding: '12px',
+                                            marginBottom: '16px',
+                                            width: '100%',
+                                            border: captchaError ? '2px solid #ee4d2d' : '1px solid #ddd',
+                                            borderRadius: '4px',
+                                            boxSizing: 'border-box'
+                                        }}
+                                    />
+                                </div>
+                            )}
+
+                            {/* ===== IMAGE CAPTCHA ===== */}
+                            {captchaType === CAPTCHA_TYPES.IMAGE && (
+                                <div style={{ textAlign: 'center' }}>
+                                    <p style={{ marginBottom: '24px', color: '#666', fontSize: '14px' }}>
+                                        🖼️ Hãy chọn hình ảnh có ngôi sao ⭐
+                                    </p>
+                                    <div style={{
+                                        display: 'grid',
+                                        gridTemplateColumns: '1fr 1fr',
+                                        gap: '12px',
+                                        marginBottom: '16px'
+                                    }}>
+                                        {imageAnswer && imageAnswer.map(img => (
+                                            <button
+                                                key={img.id}
+                                                onClick={() => {
+                                                    setSelectedImage(img.id);
+                                                    setCaptchaError('');
+                                                }}
+                                                style={{
+                                                    padding: '20px',
+                                                    fontSize: '48px',
+                                                    background: selectedImage === img.id ? '#ee4d2d' : '#f5f5f5',
+                                                    border: selectedImage === img.id ? '3px solid #ee4d2d' : '2px solid #ddd',
+                                                    borderRadius: '8px',
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.3s ease'
+                                                }}
+                                            >
+                                                {img.emoji}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* ===== SLIDER CAPTCHA ===== */}
+                            {captchaType === CAPTCHA_TYPES.SLIDER && (
+                                <div style={{ textAlign: 'center' }}>
+                                    <p style={{ marginBottom: '24px', color: '#666', fontSize: '14px' }}>
+                                        🎚️ Kéo slider đến vị trí {sliderTarget}
+                                    </p>
+                                    <div style={{
+                                        marginBottom: '24px',
+                                        padding: '20px',
+                                        background: '#f5f5f5',
+                                        borderRadius: '8px'
+                                    }}>
+                                        <input
+                                            type="range"
+                                            min="0"
+                                            max="100"
+                                            value={sliderValue}
+                                            onChange={(e) => {
+                                                setSliderValue(parseInt(e.target.value));
+                                                setCaptchaError('');
+                                            }}
+                                            style={{
+                                                width: '100%',
+                                                height: '8px',
+                                                cursor: 'pointer'
+                                            }}
+                                        />
+                                        <div style={{ marginTop: '16px', fontSize: '24px', fontWeight: 'bold', color: '#ee4d2d' }}>
+                                            {sliderValue}
+                                        </div>
+                                        <div style={{ fontSize: '12px', color: '#999', marginTop: '8px' }}>
+                                            Mục tiêu: {sliderTarget}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* ERROR MESSAGE */}
+                            {captchaError && (
+                                <div style={{
+                                    marginBottom: '20px',
+                                    padding: '12px',
+                                    background: '#fff1f0',
+                                    color: '#ee4d2d',
+                                    fontSize: '13px',
+                                    fontWeight: '500',
+                                    borderRadius: '4px'
+                                }}>
+                                    ❌ {captchaError}
+                                </div>
+                            )}
+
+                            {/* ACTION BUTTONS */}
+                            <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
                                 <button
-                                    className="btn-ghost"
-                                    style={{ flex: 1 }}
+                                    style={{
+                                        flex: 1,
+                                        padding: '12px',
+                                        fontSize: '14px',
+                                        fontWeight: '500',
+                                        border: '1px solid #ddd',
+                                        borderRadius: '4px',
+                                        background: 'white',
+                                        color: '#333',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.3s ease'
+                                    }}
                                     onClick={() => setShowCaptchaModal(false)}
                                 >
-                                    {t('common.cancel')}
+                                    Hủy
                                 </button>
                                 <button
-                                    className="btn-primary"
-                                    style={{ flex: 1 }}
+                                    style={{
+                                        flex: 1,
+                                        padding: '12px',
+                                        fontSize: '14px',
+                                        fontWeight: '600',
+                                        background: '#ee4d2d',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '4px',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.3s ease'
+                                    }}
                                     onClick={verifyCaptcha}
                                 >
-                                    {t('roleRequest.captcha.verify')}
+                                    Xác Nhận
                                 </button>
                             </div>
                         </div>

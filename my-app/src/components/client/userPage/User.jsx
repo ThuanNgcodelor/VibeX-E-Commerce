@@ -1,15 +1,17 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { getUserRole, isAuthenticated, logout } from "../../../api/auth.js";
+import { getUserRole, isAuthenticated } from "../../../api/auth.js";
 import { getUser } from "../../../api/user.js";
 import Address from "./Address.jsx";
 import AccountInfo from "./AccountInfo.jsx";
 import RoleRequestForm from "./RoleRequestForm.jsx";
 import OrderList from "./OrderList.jsx";
 import NotificationPage from "./NotificationPage.jsx";
+import CoinPage from "./CoinPage.jsx";
 import Loading from "../Loading.jsx";
 import { fetchImageById } from "../../../api/image.js";
+import AdDisplay from "../ads/AdDisplay";
 
 export default function User() {
     const { t } = useTranslation();
@@ -63,6 +65,7 @@ export default function User() {
         };
 
         fetchUserInfo();
+
         return () => {
             if (avatarRef.current) {
                 URL.revokeObjectURL(avatarRef.current);
@@ -126,7 +129,9 @@ export default function User() {
 
     return (
         <div style={{ background: '#F5F5F5', minHeight: '100vh', padding: '20px 0', width: '100%' }}>
+
             <div className="container" style={{ maxWidth: '1200px' }}>
+
                 <div className="row g-3">
                     {/* Left Sidebar - Shopee Style */}
                     <div className="col-12 col-lg-3">
@@ -285,7 +290,6 @@ export default function User() {
                                 </button>
 
 
-
                                 <button
                                     onClick={() => handleTabClick("vouchers")}
                                     style={{
@@ -365,11 +369,11 @@ export default function User() {
                                 )}
 
                                 {/* Role Request Tab */}
-                                {/* {activeTab === "role-request" && (
+                                {activeTab === "role-request" && (
                                     <div className="p-4">
                                         <RoleRequestForm />
                                     </div>
-                                )} */}
+                                )}
 
                                 {/* Notifications Tab */}
                                 {activeTab === "notifications" && (
@@ -390,18 +394,13 @@ export default function User() {
 
                                 {/* Coins Tab */}
                                 {activeTab === "coins" && (
-                                    <div className="p-4">
-                                        <div className="text-center py-5">
-                                            <i className="fa fa-coins" style={{ fontSize: '48px', color: '#ffc107', marginBottom: '16px' }}></i>
-                                            <p style={{ color: '#999', fontSize: '14px' }}>{t('user.noShopeeCoins')}</p>
-                                        </div>
-                                    </div>
+                                    <CoinPage />
                                 )}
                             </div>
                         )}
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     );
 }

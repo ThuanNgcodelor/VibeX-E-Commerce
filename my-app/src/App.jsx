@@ -48,6 +48,8 @@ import CategoriesPage from "./pages/admin/categoeis/CategoriesPage.jsx";
 import ChatBotWidget from "./components/client/ChatBotWidget.jsx";
 
 import ShopVoucherPage from "./pages/shop-owner/VoucherManagementPage.jsx";
+import CoinManagement from "./components/admin/coins/CoinManagement.jsx";
+import AdManagement from "./components/admin/ads/AdManagement.jsx";
 
 // Component to scroll to top on route change
 function ScrollToTop() {
@@ -85,6 +87,10 @@ function GlobalChatWidget() {
 }
 
 function ShopOwnerVoucherManagementPage() {
+  return null;
+}
+
+function ShopAdRequest() {
   return null;
 }
 
@@ -142,6 +148,8 @@ export default function App() {
             <Route path="voucher" element={<VoucherManagementPage />} />
             <Route path="categories" element={<CategoriesPage />} />
             <Route path="subscription" element={<SubscriptionPlanManagementPage />} />
+            <Route path="ads" element={<AdManagement />} />
+            <Route path="coins" element={<CoinManagement />} />
             <Route path="logout" element={<Logout />} />
           </Route>
 
@@ -164,7 +172,7 @@ export default function App() {
             <Route path="reviews" element={<ReviewManagementPage />} />
             <Route path="reviews" element={<ReviewManagementPage />} />
             <Route path="vouchers" element={<ShopVoucherPage />} />
-
+            <Route path="ads" element={<ShopAdRequest />} />
             <Route path="analytics" element={<AnalyticsPage />} />
             <Route path="chat" element={<ChatPage />} />
             <Route path="notifications" element={<NotificationPage />} />

@@ -39,6 +39,10 @@ public class ProductServiceImpl implements ProductService {
     private final FileStorageClient fileStorageClient;
     private final SizeRepository sizeRepository;
     private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
+    private final org.springframework.kafka.core.KafkaTemplate<String, com.example.stockservice.event.ProductUpdateKafkaEvent> kafkaTemplate;
+
+    @org.springframework.beans.factory.annotation.Value("${kafka.topic.product-updates}")
+    private String productUpdatesTopic;
 
     @Override
     public void decreaseStockBySize(String sizeId, int quantity) {
@@ -249,7 +253,18 @@ public class ProductServiceImpl implements ProductService {
             }
         }
 
-        return productRepository.save(toUpdate);
+        Product updatedProduct = productRepository.save(toUpdate);
+        
+        // Publish event to Kafka
+        try {
+            kafkaTemplate.send(productUpdatesTopic, new com.example.stockservice.event.ProductUpdateKafkaEvent(updatedProduct.getId()));
+        } catch (Exception e) {
+            // Log error but don't fail the transaction
+            // log.error("Failed to send Kafka event", e);
+            System.err.println("Failed to send Kafka event: " + e.getMessage());
+        }
+        
+        return updatedProduct;
     }
 
     @Override

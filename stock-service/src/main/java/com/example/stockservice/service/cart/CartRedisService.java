@@ -222,6 +222,7 @@ public class CartRedisService {
 
         cart.calculateTotalAmount();
         saveCart(userId, cart); // Lưu giỏ hàng cập nhật vào Redis
+        addProductToUserIndex(productId, userId);
         return cartItem;
     }
 
@@ -290,6 +291,11 @@ public class CartRedisService {
 
         cart.calculateTotalAmount();
         saveCart(userId, cart);
+        
+        // Live items might not need sync if price is fixed for session, but adding just in case or skip
+        // For now, let's track them too so availability updates propagate
+        addProductToUserIndex(productId, userId);
+        
         log.info("Added live item to cart: userId={}, productId={}, liveRoomId={}, livePrice={}", 
                 userId, productId, liveRoomId, livePrice);
         return cartItem;
@@ -369,6 +375,17 @@ public class CartRedisService {
         log.info("[REDIS] Updated cart totalAmount: {}", cart.getTotalAmount());
         saveCart(userId, cart);
         
+        if (removed != null) {
+            // Only remove from index if user has no other items of this product (e.g. different size)
+            // Ideally we check if cart has any other items with same productId
+            boolean hasSameProduct = cart.getItems().values().stream()
+                .anyMatch(i -> i.getProductId().equals(productId));
+                
+            if (!hasSameProduct) {
+                removeProductFromUserIndex(productId, userId);
+            }
+        }
+        
         log.info("[REDIS] Cart saved to Redis after removal");
     }
     
@@ -407,6 +424,8 @@ public class CartRedisService {
 
         for (String productId : productIds) {
             cart.getItems().entrySet().removeIf(entry -> entry.getValue().getProductId().equals(productId));
+            // In batch remove, we can probably safely remove from index
+            removeProductFromUserIndex(productId, userId);
         }
         cart.calculateTotalAmount();
         saveCart(userId, cart);
@@ -419,5 +438,46 @@ public class CartRedisService {
 
     public void deleteCartByCartId(String cartId) {
         redisTemplate.delete(cartId);
+    }
+    
+    // Reverse Index Key for Product -> Carts
+    private String getProductCartKey(String productId) {
+        return "product:cart_ids:" + productId;
+    }
+    
+    // Refresh all carts that contain a specific product
+    public void refreshCartsContainingProduct(String productId) {
+        String productKey = getProductCartKey(productId);
+        
+        // Use sets member to find all userIds
+        java.util.Set<Object> userIds = redisTemplate.opsForSet().members(productKey);
+        
+        if (userIds != null && !userIds.isEmpty()) {
+            log.info("Refreshing carts for product {}. User count: {}", productId, userIds.size());
+            for (Object userIdObj : userIds) {
+                String userId = (String) userIdObj;
+                try {
+                    getCartWithRefresh(userId);
+                } catch (Exception e) {
+                    log.error("Failed to refresh cart for user {}", userId, e);
+                }
+            }
+        }
+    }
+    
+    private void addProductToUserIndex(String productId, String userId) {
+        try {
+            redisTemplate.opsForSet().add(getProductCartKey(productId), userId);
+        } catch (Exception e) {
+            log.error("Failed to add to index: productId={} userId={}", productId, userId, e);
+        }
+    }
+    
+    private void removeProductFromUserIndex(String productId, String userId) {
+        try {
+            redisTemplate.opsForSet().remove(getProductCartKey(productId), userId);
+        } catch (Exception e) {
+            log.error("Failed to remove from index: productId={} userId={}", productId, userId, e);
+        }
     }
 }

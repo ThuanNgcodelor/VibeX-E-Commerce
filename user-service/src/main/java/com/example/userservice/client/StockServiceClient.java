@@ -19,4 +19,8 @@ public interface StockServiceClient {
 
     @GetMapping(value = "/reviews/count/shop/{shopId}", headers = "X-Internal-Call=true")
     ResponseEntity<Long> getShopReviewCount(@PathVariable String shopId);
+
+    @GetMapping("/reviews/check-today/{userId}")
+    ResponseEntity<Boolean> hasUserReviewedToday(@PathVariable String userId);
+
 }

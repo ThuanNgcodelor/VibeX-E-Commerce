@@ -1,11 +1,13 @@
 package com.example.stockservice.service;
 
+import com.example.stockservice.client.ShopCoinClient;
 import com.example.stockservice.dto.ReviewDto;
 import com.example.stockservice.model.Review;
 import com.example.stockservice.repository.ReviewRepository;
 import com.example.stockservice.request.ReviewRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -15,8 +17,10 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ReviewService {
     private final ReviewRepository reviewRepository;
+    private final ShopCoinClient shopCoinClient;
 
-    public ReviewDto createReview(ReviewRequest request) {
+
+    public ReviewDto createReview(String token, ReviewRequest request) {
         Review review = Review.builder()
                 .userId(request.getUserId())
                 .username(request.getUsername())
@@ -28,6 +32,13 @@ public class ReviewService {
                 .build();
 
         Review saved = reviewRepository.save(review);
+
+        try {
+            shopCoinClient.completeReviewMission(token, request.getUserId());
+        } catch (Exception e) {
+            System.err.println("Failed to award ShopCoins for review: " + e.getMessage());
+        }
+
         return mapToDto(saved);
     }
 
@@ -75,5 +86,17 @@ public class ReviewService {
                 .repliedAt(review.getRepliedAt())
                 .createdAt(review.getCreatedAt())
                 .build();
+    }
+
+    @Transactional(readOnly = true)
+    public boolean hasUserReviewedToday(String userId) {
+        // Implement logic to check if user has a review with createdDate == Today
+        // Assuming BaseEntity has createdDate or using a custom query
+        // Let's use custom query in Repository or filter here if list is small (not
+        // ideal).
+        // Better: countByUserIdAndCreatedDateBetween
+        java.time.LocalDateTime startOfDay = java.time.LocalDate.now().atStartOfDay();
+        java.time.LocalDateTime endOfDay = java.time.LocalDate.now().atTime(java.time.LocalTime.MAX);
+        return reviewRepository.existsByUserIdAndCreatedAtBetween(userId, startOfDay, endOfDay);
     }
 }
