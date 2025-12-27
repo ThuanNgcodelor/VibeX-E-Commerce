@@ -22,4 +22,10 @@ public class AnalyticsDto {
     private List<Double> chartData; // [1000, 2000, ...]
 
     private List<TopProductDto> topProducts;
+
+    // Advanced Stats
+    private java.util.Map<String, Long> ordersByStatus; // PENDING: 5, COMPLETED: 10...
+    private Long totalCancelled;
+    private Long totalReturned;
+    private Double averageOrderValue;
 }

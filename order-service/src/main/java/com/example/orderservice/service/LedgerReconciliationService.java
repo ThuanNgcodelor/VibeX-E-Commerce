@@ -20,7 +20,8 @@ public class LedgerReconciliationService {
     private final ShopLedgerService shopLedgerService;
 
     /**
-     * Periodically check for DELIVERED orders that might have been missed by the event triggers
+     * Periodically check for COMPLETED orders that might have been missed by the
+     * event triggers
      * (e.g. direct DB updates or failures).
      * Runs every 60 seconds.
      */
@@ -29,16 +30,20 @@ public class LedgerReconciliationService {
     public void reconcileMissedEarnings() {
         log.info("[Ledger Reconciliation] Starting reconciliation scan...");
         try {
-            // Find recent delivered orders (e.g. last 24 hours to avoid scanning everything forever)
+            // Find recent delivered orders (e.g. last 24 hours to avoid scanning everything
+            // forever)
             // Or simple approach: Find ALL Delivered orders? (might be heavy)
             // Better: Find Delivered orders updated in last 5 minutes?
-            // Since the user says "I update straight in DB", updatedAt SHOULD change if they use SQL correctly,
+            // Since the user says "I update straight in DB", updatedAt SHOULD change if
+            // they use SQL correctly,
             // but if they don't update timestamp, we might miss it.
-            // For safety in this specific "test" scenario, let's scan ALL DELIVERED orders (assuming volume is low).
+            // For safety in this specific "test" scenario, let's scan ALL DELIVERED orders
+            // (assuming volume is low).
             // In production, we should page this or filter by "not in shop_ledger_entry".
-            
-            List<Order> deliveredOrders = orderRepository.findByOrderStatus(OrderStatus.DELIVERED);
-            log.info("[Ledger Reconciliation] Found {} DELIVERED orders.", deliveredOrders.size());
+
+            // Scan for COMPLETED orders that might have missed the wallet update trigger
+            List<Order> deliveredOrders = orderRepository.findByOrderStatus(OrderStatus.COMPLETED);
+            log.info("[Ledger Reconciliation] Found {} COMPLETED orders.", deliveredOrders.size());
 
             for (Order order : deliveredOrders) {
                 try {

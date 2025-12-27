@@ -552,9 +552,27 @@ public class OrderController {
     }
 
     @GetMapping("/shop-owner/analytics")
-    public ResponseEntity<com.example.orderservice.dto.AnalyticsDto> getAnalytics(HttpServletRequest request) {
+    public ResponseEntity<com.example.orderservice.dto.AnalyticsDto> getAnalytics(
+            HttpServletRequest request,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate startDate,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate endDate) {
         String shopOwnerId = jwtUtil.ExtractUserId(request);
-        return ResponseEntity.ok(orderService.getAnalytics(shopOwnerId));
+        return ResponseEntity.ok(orderService.getAnalytics(shopOwnerId, startDate, endDate));
+    }
+
+    @GetMapping("/shop-owner/analytics/export")
+    public ResponseEntity<byte[]> exportAnalytics(
+            HttpServletRequest request,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate startDate,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate endDate) {
+        String shopOwnerId = jwtUtil.ExtractUserId(request);
+        byte[] csvData = orderService.exportAnalytics(shopOwnerId, startDate, endDate);
+
+        return ResponseEntity.ok()
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=sales_report.csv")
+                .header(org.springframework.http.HttpHeaders.CONTENT_TYPE, "text/csv")
+                .body(csvData);
     }
 
     @PutMapping("/shop-owner/orders/{orderId}/status")

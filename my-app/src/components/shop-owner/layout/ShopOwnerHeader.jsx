@@ -47,11 +47,11 @@ const ShopOwnerHeader = ({ onMenuClick }) => {
   const handleLogout = () => {
     logout();
     navigate('/');
-    window.location.reload(); 
+    window.location.reload();
   };
 
   const displayName = shopOwnerInfo?.shopName || shopOwnerInfo?.ownerName || t('shopOwner.header.sellerCenter');
-  const shopImage = shopOwnerInfo?.imageUrl 
+  const shopImage = shopOwnerInfo?.imageUrl
     ? `/v1/file-storage/get/${shopOwnerInfo.imageUrl}`
     : '/src/assets/admin/img/boy.png';
 
@@ -66,6 +66,9 @@ const ShopOwnerHeader = ({ onMenuClick }) => {
         </Link>
       </div>
       <div className="header-right">
+        <Link to="/" className="header-icon-btn" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title={t('shopOwner.header.home')}>
+          <i className="fas fa-home"></i>
+        </Link>
         <LanguageSwitcher />
         <button className="header-icon-btn" title={t('shopOwner.header.apps')}>
           <i className="fas fa-th"></i>
@@ -74,14 +77,14 @@ const ShopOwnerHeader = ({ onMenuClick }) => {
           <i className="far fa-bookmark"></i>
         </button>
         <div className="user-dropdown" ref={dropdownRef}>
-          <button 
+          <button
             className="header-icon-btn user-btn"
             onClick={() => setDropdownOpen(!dropdownOpen)}
           >
             <div className="user-avatar-wrapper">
-              <img 
-                src={shopImage} 
-                alt="User" 
+              <img
+                src={shopImage}
+                alt="User"
                 className="user-avatar"
                 onError={(e) => {
                   e.target.style.display = 'none';
@@ -99,9 +102,9 @@ const ShopOwnerHeader = ({ onMenuClick }) => {
             <div className="user-dropdown-menu">
               <div className="dropdown-header">
                 <div className="dropdown-avatar-wrapper">
-                  <img 
-                    src={shopImage} 
-                    alt="User" 
+                  <img
+                    src={shopImage}
+                    alt="User"
                     className="dropdown-avatar"
                     onError={(e) => {
                       e.target.style.display = 'none';
@@ -120,8 +123,8 @@ const ShopOwnerHeader = ({ onMenuClick }) => {
                 </div>
               </div>
               <div className="dropdown-divider"></div>
-              <Link 
-                to="/shop-owner/settings" 
+              <Link
+                to="/shop-owner/settings"
                 className="dropdown-item"
                 onClick={() => setDropdownOpen(false)}
               >
@@ -129,7 +132,7 @@ const ShopOwnerHeader = ({ onMenuClick }) => {
                 <span>{t('shopOwner.header.settings')}</span>
               </Link>
               <div className="dropdown-divider"></div>
-              <button 
+              <button
                 className="dropdown-item logout-item"
                 onClick={handleLogout}
               >

@@ -55,98 +55,179 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public AnalyticsDto getAnalytics(String shopOwnerId) {
+    public AnalyticsDto getAnalytics(String shopOwnerId, java.time.LocalDate startDate, java.time.LocalDate endDate) {
         // 1. Get product IDs
         List<String> productIds = stockServiceClient.getProductIdsByShopOwner(shopOwnerId).getBody();
         if (productIds == null || productIds.isEmpty()) {
-            return com.example.orderservice.dto.AnalyticsDto.builder()
+            return AnalyticsDto.builder()
                     .todayRevenue(0.0)
                     .todayOrders(0L)
                     .todayProducts(0L)
                     .growth("+0%")
-                    .chartLabels(new ArrayList<>())
-                    .chartData(new ArrayList<>())
-                    .topProducts(new ArrayList<>())
+                    .chartLabels(new java.util.ArrayList<>())
+                    .chartData(new java.util.ArrayList<>())
+                    .topProducts(new java.util.ArrayList<>())
+                    .ordersByStatus(new java.util.HashMap<>())
+                    .totalCancelled(0L)
+                    .totalReturned(0L)
+                    .averageOrderValue(0.0)
                     .build();
         }
 
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime startOfToday = now.toLocalDate().atStartOfDay();
-        LocalDateTime endOfToday = now.toLocalDate().atTime(java.time.LocalTime.MAX);
+        // Default to last 7 days if dates are null
+        if (startDate == null)
+            startDate = java.time.LocalDate.now().minusDays(6);
+        if (endDate == null)
+            endDate = java.time.LocalDate.now();
 
-        // 2. Today's Revenue (Only DELIVERED)
-        Double todayRevenue = orderRepository.sumSalesByProductIdsAndDateRangeAndStatus(productIds, startOfToday,
-                endOfToday, OrderStatus.COMPLETED);
-        if (todayRevenue == null)
-            todayRevenue = 0.0;
+        LocalDateTime startDateTime = startDate.atStartOfDay();
+        LocalDateTime endDateTime = endDate.atTime(java.time.LocalTime.MAX);
 
-        // Today's Orders (All except cancelled/returned)
-        List<OrderStatus> excluded = List.of(OrderStatus.CANCELLED, OrderStatus.RETURNED);
-        Long todayOrders = orderRepository.countByProductIdsAndCreatedAtBetween(productIds, startOfToday,
-                endOfToday, excluded);
-        if (todayOrders == null)
-            todayOrders = 0L;
+        // 2. Revenue (Only DELIVERED/COMPLETED within range)
+        Double totalRevenue = orderRepository.sumSalesByProductIdsAndDateRangeAndStatus(productIds, startDateTime,
+                endDateTime, OrderStatus.COMPLETED);
+        if (totalRevenue == null)
+            totalRevenue = 0.0;
 
-        // 3. Yesterday's Revenue for Growth
-        LocalDateTime startOfYesterday = startOfToday.minusDays(1);
-        LocalDateTime endOfYesterday = endOfToday.minusDays(1);
-        Double yesterdayRevenue = orderRepository.sumSalesByProductIdsAndDateRangeAndStatus(productIds,
-                startOfYesterday,
-                endOfYesterday, OrderStatus.COMPLETED);
-        if (yesterdayRevenue == null)
-            yesterdayRevenue = 0.0;
+        // 3. Orders within range (All except cancelled/returned for "Valid Orders"
+        // count, or logic depends on needs)
+        // Let's stick to "Valid Orders" being everything properly placed
+        List<OrderStatus> excluded = List.of();
+        Long totalOrders = orderRepository.countByProductIdsAndCreatedAtBetween(productIds, startDateTime,
+                endDateTime, excluded);
+        if (totalOrders == null)
+            totalOrders = 0L;
+
+        // 4. Growth (Compare with previous period of same length)
+        long daysDiff = java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate) + 1;
+        LocalDateTime startPrev = startDateTime.minusDays(daysDiff);
+        LocalDateTime endPrev = startDateTime.minusNanos(1); // End of previous period
+
+        Double prevRevenue = orderRepository.sumSalesByProductIdsAndDateRangeAndStatus(productIds,
+                startPrev,
+                endPrev, OrderStatus.COMPLETED);
+        if (prevRevenue == null)
+            prevRevenue = 0.0;
 
         String growth;
-        if (yesterdayRevenue == 0) {
-            growth = todayRevenue > 0 ? "+100%" : "0%";
+        if (prevRevenue == 0) {
+            growth = totalRevenue > 0 ? "+100%" : "0%";
         } else {
-            double percent = ((todayRevenue - yesterdayRevenue) / yesterdayRevenue) * 100;
+            double percent = ((totalRevenue - prevRevenue) / prevRevenue) * 100;
             growth = (percent >= 0 ? "+" : "") + String.format("%.1f", percent) + "%";
         }
 
-        // 4. Revenue Chart (Last 7 Days)
-        List<String> labels = new ArrayList<>();
-        List<Double> data = new ArrayList<>();
+        // 5. Chart Data (Daily breakdown within range)
+        List<String> labels = new java.util.ArrayList<>();
+        List<Double> data = new java.util.ArrayList<>();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM");
 
-        for (int i = 6; i >= 0; i--) {
-            LocalDateTime start = now.minusDays(i).toLocalDate().atStartOfDay();
-            LocalDateTime end = now.minusDays(i).toLocalDate().atTime(java.time.LocalTime.MAX);
-            Double dailyRevenue = orderRepository.sumSalesByProductIdsAndDateRangeAndStatus(productIds, start, end,
+        // Loop from startDate to endDate
+        java.time.LocalDate current = startDate;
+        while (!current.isAfter(endDate)) {
+            LocalDateTime dayStart = current.atStartOfDay();
+            LocalDateTime dayEnd = current.atTime(java.time.LocalTime.MAX);
+            Double dailyRevenue = orderRepository.sumSalesByProductIdsAndDateRangeAndStatus(productIds, dayStart,
+                    dayEnd,
                     OrderStatus.COMPLETED);
 
-            labels.add(start.format(formatter));
+            labels.add(current.format(formatter));
             data.add(dailyRevenue != null ? dailyRevenue : 0.0);
+
+            current = current.plusDays(1);
         }
 
-        // 5. Top Products (Limit 5)
+        // 6. Top Products
         Pageable pageable = PageRequest.of(0, 5);
         List<com.example.orderservice.dto.TopProductDto> topProducts = orderRepository
-                .findTopSellingProducts(productIds, excluded, pageable);
+                .findTopSellingProducts(productIds, List.of(OrderStatus.CANCELLED, OrderStatus.RETURNED), pageable);
 
-        // Populate product names for top products
         for (com.example.orderservice.dto.TopProductDto top : topProducts) {
             try {
-                ProductDto p = stockServiceClient.getProductById(top.getProductId()).getBody();
+                // Fetch product details logic... (simplified for brevity)
+                com.example.orderservice.dto.ProductDto p = stockServiceClient.getProductById(top.getProductId())
+                        .getBody();
                 if (p != null) {
                     top.setProductName(p.getName());
                 } else {
                     top.setProductName("Unknown Product");
                 }
             } catch (Exception e) {
-                top.setProductName("Product #" + top.getProductId());
+                top.setProductName("ID: " + top.getProductId());
             }
         }
 
+        // 7. Advanced Stats
+        // Orders by Status
+        java.util.Map<String, Long> ordersByStatus = new java.util.HashMap<>();
+        for (OrderStatus status : OrderStatus.values()) {
+            Long count = orderRepository.countByProductIdsAndDateRangeAndStatus(productIds, startDateTime, endDateTime,
+                    status);
+            if (count > 0) {
+                ordersByStatus.put(status.name(), count);
+            }
+        }
+
+        Long cancelledCount = ordersByStatus.getOrDefault("CANCELLED", 0L);
+        Long returnedCount = ordersByStatus.getOrDefault("RETURNED", 0L);
+
+        // Avg Order Value (Revenue / Completed Orders count)
+        Long completedCount = ordersByStatus.getOrDefault("COMPLETED", 0L);
+        Double avgOrderValue = completedCount > 0 ? (totalRevenue / completedCount) : 0.0;
+
         return AnalyticsDto.builder()
-                .todayRevenue(todayRevenue)
-                .todayOrders(todayOrders)
+                .todayRevenue(totalRevenue)
+                .todayOrders(totalOrders)
                 .todayProducts((long) productIds.size())
                 .growth(growth)
                 .chartLabels(labels)
                 .chartData(data)
                 .topProducts(topProducts)
+                .ordersByStatus(ordersByStatus)
+                .totalCancelled(cancelledCount)
+                .totalReturned(returnedCount)
+                .averageOrderValue(avgOrderValue)
                 .build();
+    }
+
+    @Override
+    public byte[] exportAnalytics(String shopOwnerId, java.time.LocalDate startDate, java.time.LocalDate endDate) {
+        AnalyticsDto analytics = getAnalytics(shopOwnerId, startDate, endDate);
+
+        StringBuilder csv = new StringBuilder();
+        csv.append("Sales Report\n");
+        csv.append("Period,").append(startDate != null ? startDate : "Last 7 days").append(" - ")
+                .append(endDate != null ? endDate : "Today").append("\n\n");
+
+        csv.append("Summary\n");
+        csv.append("Total Revenue,").append(String.format("%.0f", analytics.getTodayRevenue())).append("\n");
+        csv.append("Total Orders,").append(analytics.getTodayOrders()).append("\n");
+        csv.append("Avg Order Value,").append(String.format("%.0f", analytics.getAverageOrderValue())).append("\n");
+        csv.append("Cancelled Orders,").append(analytics.getTotalCancelled()).append("\n");
+        csv.append("Returned Orders,").append(analytics.getTotalReturned()).append("\n\n");
+
+        csv.append("Daily Revenue\n");
+        csv.append("Date,Revenue\n");
+        if (analytics.getChartLabels() != null) {
+            for (int i = 0; i < analytics.getChartLabels().size(); i++) {
+                csv.append(analytics.getChartLabels().get(i)).append(",")
+                        .append(String.format("%.0f", analytics.getChartData().get(i))).append("\n");
+            }
+        }
+        csv.append("\n");
+
+        csv.append("Product Performance (Top 5)\n");
+        csv.append("Product Name,Sold,Revenue\n");
+        if (analytics.getTopProducts() != null) {
+            for (com.example.orderservice.dto.TopProductDto p : analytics.getTopProducts()) {
+                csv.append("\"").append(p.getProductName().replace("\"", "\"\"")).append("\",")
+                        .append(p.getSold()).append(",")
+                        .append(String.format("%.0f", p.getRevenue())).append("\n"); // assuming total field matches
+                                                                                     // matches
+            }
+        }
+
+        return csv.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
     }
 
     @Override
@@ -580,22 +661,22 @@ public class OrderServiceImpl implements OrderService {
      */
     private Map<String, List<SelectedItemDto>> groupItemsByShopOwner(List<SelectedItemDto> selectedItems) {
         Map<String, List<SelectedItemDto>> itemsByShop = new LinkedHashMap<>();
-        
+
         for (SelectedItemDto item : selectedItems) {
             try {
                 ProductDto product = stockServiceClient.getProductById(item.getProductId()).getBody();
-                String shopOwnerId = (product != null && product.getUserId() != null) 
-                    ? product.getUserId() 
-                    : "unknown";
+                String shopOwnerId = (product != null && product.getUserId() != null)
+                        ? product.getUserId()
+                        : "unknown";
                 itemsByShop.computeIfAbsent(shopOwnerId, k -> new ArrayList<>()).add(item);
             } catch (Exception e) {
-                log.error("[GROUP-BY-SHOP] Failed to get shop owner for product {}: {}", 
-                    item.getProductId(), e.getMessage());
+                log.error("[GROUP-BY-SHOP] Failed to get shop owner for product {}: {}",
+                        item.getProductId(), e.getMessage());
                 // Put in "unknown" group if we can't determine shop
                 itemsByShop.computeIfAbsent("unknown", k -> new ArrayList<>()).add(item);
             }
         }
-        
+
         log.info("[GROUP-BY-SHOP] Grouped {} items into {} shops", selectedItems.size(), itemsByShop.size());
         return itemsByShop;
     }
@@ -636,23 +717,22 @@ public class OrderServiceImpl implements OrderService {
     private void notifyOrderPlaced(Order order) {
         // Since 1 user = 1 shop, set both userId and shopId to order.getUserId()
         // This is a notification for the user (who placed the order), not shop owner
-        
+
         // Format order ID to show only first 8 characters for better readability
-        String shortOrderId = order.getId().length() > 8 
-            ? order.getId().substring(0, 8).toUpperCase() 
-            : order.getId().toUpperCase();
-        
+        String shortOrderId = order.getId().length() > 8
+                ? order.getId().substring(0, 8).toUpperCase()
+                : order.getId().toUpperCase();
+
         // Calculate total items from order
-        int totalItems = order.getOrderItems() != null 
-            ? order.getOrderItems().stream().mapToInt(OrderItem::getQuantity).sum() 
-            : 0;
-        
+        int totalItems = order.getOrderItems() != null
+                ? order.getOrderItems().stream().mapToInt(OrderItem::getQuantity).sum()
+                : 0;
+
         // Format user-friendly message
         String message = String.format(
-            "Đơn hàng #%s đã được đặt thành công! %d sản phẩm với tổng giá trị %.0f₫",
-            shortOrderId, totalItems, order.getTotalPrice()
-        );
-        
+                "Đơn hàng #%s đã được đặt thành công! %d sản phẩm với tổng giá trị %.0f₫",
+                shortOrderId, totalItems, order.getTotalPrice());
+
         SendNotificationRequest noti = SendNotificationRequest.builder()
                 .userId(order.getUserId())
                 .shopId(order.getUserId())
@@ -1185,7 +1265,8 @@ public class OrderServiceImpl implements OrderService {
                 notifyOrderPlaced(order);
                 notifyShopOwners(order);
             } catch (Exception e) {
-                log.error("[PAYMENT-ORDER] send notification failed for order {}: {}", order.getId(), e.getMessage(), e);
+                log.error("[PAYMENT-ORDER] send notification failed for order {}: {}", order.getId(), e.getMessage(),
+                        e);
             }
 
             createdOrders.add(order);
@@ -1308,7 +1389,8 @@ public class OrderServiceImpl implements OrderService {
             if (shouldApplyVoucher) {
                 order.setVoucherId(msg.getVoucherId());
                 order.setVoucherDiscount(
-                        msg.getVoucherDiscount() != null ? BigDecimal.valueOf(msg.getVoucherDiscount()) : BigDecimal.ZERO);
+                        msg.getVoucherDiscount() != null ? BigDecimal.valueOf(msg.getVoucherDiscount())
+                                : BigDecimal.ZERO);
                 log.info("[CONSUMER] Applying voucher {} to order for shop {}", msg.getVoucherId(), shopOwnerId);
             }
 
@@ -1356,11 +1438,12 @@ public class OrderServiceImpl implements OrderService {
                     log.info("[CONSUMER] Order {} not CONFIRMED yet - skipping GHN creation", order.getId());
                 }
             } catch (Exception e) {
-                log.error("[CONSUMER] Failed to create GHN shipping order for {}: {}", order.getId(), e.getMessage(), e);
+                log.error("[CONSUMER] Failed to create GHN shipping order for {}: {}", order.getId(), e.getMessage(),
+                        e);
             }
 
             createdOrders.add(order);
-        } 
+        }
 
         // 3) Cleanup cart - remove ALL items that were added to orders
         try {
@@ -1658,7 +1741,7 @@ public class OrderServiceImpl implements OrderService {
                 log.info("[GHN] Order {} status updated: {} -> {}", sh.getOrderId(), currentStatus, newStatus);
 
                 // Schedule auto-complete if delivered
-                if (newStatus == OrderStatus.DELIVERED) {
+                if (newStatus == OrderStatus.COMPLETED) {
                     scheduleAutoComplete(order.getId(), 60);
                 }
             }

@@ -196,7 +196,8 @@
       "tab": "Specifications"
     },
     "reviews": {
-      "tab": "Reviews"
+      "tab": "Reviews",
+      "shopResponse": "Shop Response"
     }
   },
   "auth": {
@@ -425,6 +426,7 @@
     "noProducts": "No products",
     "reasonOptional": "Reason (optional)",
     "cancelOrder": "Cancel Order",
+    "writeReview": "Write Review",
     "rateProduct": "Rate Product",
     "viewDetails": "View Details",
     "hideDetails": "Hide details",
@@ -796,11 +798,33 @@
       "vouchers": "Vouchers",
       "salesAnalytics": "Sales Analytics",
       "customerMessages": "Customer Messages",
+      "reviews": "Reviews",
       "notifications": "Notifications",
       "finance": "Finance",
       "wallet": "Wallet",
       "subscription": "Subscription",
       "settings": "Settings"
+    },
+    "reviews": {
+      "title": "Review Management",
+      "totalReviews": "Total Reviews",
+      "avgRating": "Average Rating",
+      "responseRate": "Response Rate",
+      "noReviews": "No reviews found",
+      "reply": "Reply",
+      "writeReply": "Write a reply...",
+      "submit": "Submit",
+      "cancel": "Cancel",
+      "shopReplied": "Shop Replied",
+      "successReply": "Replied successfully",
+      "failedReply": "Failed to reply",
+      "failedLoad": "Failed to load reviews",
+      "toReply": "To Reply",
+      "replied": "Replied",
+      "allRatings": "All Ratings",
+      "stars": "{{count}} Stars",
+      "unknownProduct": "Unknown Product",
+      "anonymous": "Anonymous"
     },
     "vouchers": {
       "title": "Shop Vouchers",
@@ -851,13 +875,23 @@
       "todayOrders": "Today's Orders",
       "productsOnSale": "Products on Sale",
       "avgRating": "Average Rating",
-      "revenueChartTitle": "Revenue Chart - Last 7 Days",
-      "revenueLabel": "Revenue (VNĐ)",
-      "topProductsTitle": "Best Selling Products",
+      "revenue": "Revenue",
+      "orders": "Orders",
+      "avgOrderValue": "Avg Order Value",
+      "rating": "Rating",
+      "orderStatus": "Order Status",
+      "cancelled": "Cancelled",
+      "returned": "Returned",
+      "filter": "Filter",
+      "export": "Export Report",
+      "reportDownloaded": "Report downloaded",
+      "exportFailed": "Failed to export report",
+      "revenueChartTitle": "Revenue Chart",
+      "revenueLabel": "Revenue (VND)",
+      "topProductsTitle": "Top Selling Products",
       "product": "Product",
       "sold": "Sold",
-      "revenue": "Revenue",
-      "noData": "No sales data available"
+      "noData": "No sales data found"
     },
     "dashboard": {
       "title": "Seller Centre",

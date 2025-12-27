@@ -882,18 +882,10 @@ export default function OrderList() {
                                                         )}
                                                         <button
                                                             className="btn"
-                                                            style={ratingButtonOutline}
-                                                            onClick={() => openRatingModal(order.orderItems?.[0] || {}, 'quick')}
-                                                        >
-                                                            Quick Rate
-                                                        </button>
-
-                                                        <button
-                                                            className="btn"
                                                             style={ratingButtonPrimary}
                                                             onClick={() => openRatingModal(order.orderItems?.[0] || {}, 'full')}
                                                         >
-                                                            Write Review
+                                                            {t('orders.writeReview')}
                                                         </button>
                                                     </>
                                                 )}

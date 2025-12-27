@@ -176,7 +176,6 @@ export default function App() {
             <Route path="orders/returns" element={<ReturnOrderPage />} />
             <Route path="orders/bulk-shipping" element={<BulkShippingPage />} />
             <Route path="reviews" element={<ReviewManagementPage />} />
-            <Route path="reviews" element={<ReviewManagementPage />} />
             <Route path="vouchers" element={<ShopVoucherPage />} />
             <Route path="ads" element={<ShopAdRequest />} />
             <Route path="analytics" element={<AnalyticsPage />} />

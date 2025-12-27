@@ -33,9 +33,9 @@ export default function LanguageSwitcher() {
     <div className="position-relative" ref={dropdownRef}>
       <div
         className="d-flex align-items-center gap-2"
-        style={{ 
-          color: 'white', 
-          opacity: 0.9, 
+        style={{
+          color: '#555555',
+          opacity: 0.9,
           cursor: 'pointer',
           userSelect: 'none'
         }}
@@ -87,7 +87,7 @@ export default function LanguageSwitcher() {
               }}
             >
               <span>{lang.flag}</span>
-              <span style={{ 
+              <span style={{
                 color: i18n.language === lang.code ? '#ee4d2d' : '#222',
                 fontWeight: i18n.language === lang.code ? 600 : 400
               }}>

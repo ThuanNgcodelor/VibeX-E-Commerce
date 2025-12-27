@@ -170,6 +170,14 @@ const ShopOwnerSidebar = ({ isOpen, onClose }) => {
                                 <i className="fas fa-plus-circle"></i>
                                 <span>{t('shopOwner.sidebar.addProduct')}</span>
                             </Link>
+                            <Link
+                                className={`sidebar-item ${isActive('/shop-owner/reviews') ? 'active' : ''}`}
+                                to="/shop-owner/reviews"
+                                onClick={handleLinkClick}
+                            >
+                                <i className="fas fa-star"></i>
+                                <span>{t('shopOwner.sidebar.reviews')}</span>
+                            </Link>
                         </div>
                     )}
                 </div>

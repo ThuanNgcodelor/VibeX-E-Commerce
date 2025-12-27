@@ -1,0 +1,354 @@
+/* ShopOwnerReview.css */
+
+.review-management-container {
+    background-color: #f8f9fa;
+    min-height: calc(100vh - 60px);
+    padding-bottom: 2rem;
+}
+
+/* Dashboard Stats Cards */
+.review-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+    display: flex;
+    align-items: center;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+.stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    margin-right: 1.2rem;
+}
+
+.stat-icon.blue { background-color: #e3f2fd; color: #1976d2; }
+.stat-icon.orange { background-color: #fff3e0; color: #f57c00; }
+.stat-icon.green { background-color: #e8f5e9; color: #388e3c; }
+
+.stat-content h3 {
+    margin: 0;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #2c3e50;
+    line-height: 1.2;
+}
+
+.stat-content p {
+    margin: 0;
+    color: #7f8c8d;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+/* Filter Section */
+.review-filters-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1rem 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+    border: 1px solid #eee;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+
+.filter-tabs {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.filter-tab {
+    padding: 0.6rem 1.2rem;
+    border-radius: 20px;
+    border: none;
+    background: transparent;
+    color: #666;
+    font-weight: 500;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.filter-tab:hover {
+    background-color: #f1f3f5;
+    color: #333;
+}
+
+.filter-tab.active {
+    background-color: #e3f2fd;
+    color: #1976d2;
+    font-weight: 600;
+}
+
+.filter-dropdown select {
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    outline: none;
+    color: #444;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.filter-dropdown select:focus {
+    border-color: #1976d2;
+}
+
+/* Detail Review Card */
+.review-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.review-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+    border: 1px solid #f0f0f0;
+    overflow: hidden;
+    transition: box-shadow 0.2s;
+}
+
+.review-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.review-header {
+    padding: 1.2rem 1.5rem;
+    border-bottom: 1px solid #f8f9fa;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.user-info {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.user-avatar {
+    width: 45px;
+    height: 45px;
+    background-color: #ddd;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.user-meta h5 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #333;
+}
+
+.user-meta small {
+    color: #999;
+    font-size: 0.85rem;
+}
+
+.product-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    background-color: #f8f9fa;
+    padding: 0.4rem 0.8rem;
+    border-radius: 8px;
+    border: 1px solid #efefef;
+    max-width: 300px;
+}
+
+.product-thumb-small {
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    object-fit: cover;
+}
+
+.product-name-link {
+    font-size: 0.85rem;
+    color: #555;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-decoration: none;
+}
+
+.product-name-link:hover {
+    color: #ee4d2d;
+}
+
+/* Review Content */
+.review-body {
+    padding: 1.2rem 1.5rem;
+}
+
+.rating-stars {
+    color: #ffc107;
+    font-size: 1rem;
+    margin-bottom: 0.8rem;
+}
+
+.review-text {
+    color: #444;
+    line-height: 1.6;
+    font-size: 0.95rem;
+    margin-bottom: 1rem;
+}
+
+.review-images {
+    display: flex;
+    gap: 0.8rem;
+    margin-top: 1rem;
+}
+
+.review-img-wrapper {
+    width: 70px;
+    height: 70px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #eee;
+    cursor: pointer;
+}
+
+.review-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.2s;
+}
+
+.review-img:hover {
+    transform: scale(1.1);
+}
+
+/* Reply Section */
+.review-footer {
+    padding: 1rem 1.5rem;
+    background-color: #fafbfc;
+    border-top: 1px solid #f0f0f0;
+}
+
+.reply-container {
+    background-color: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 1.2rem;
+    position: relative;
+    margin-top: 0.5rem;
+}
+
+.reply-container::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    left: 20px;
+    width: 12px;
+    height: 12px;
+    background: white;
+    border-top: 1px solid #e0e0e0;
+    border-left: 1px solid #e0e0e0;
+    transform: rotate(45deg);
+}
+
+.reply-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+    font-size: 0.85rem;
+    color: #ee4d2d;
+    font-weight: 600;
+}
+
+.reply-date {
+    color: #999;
+    font-weight: 400;
+}
+
+.reply-text {
+    color: #555;
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+/* Reply Input */
+.reply-input-wrapper textarea {
+    resize: none;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    padding: 0.8rem;
+    transition: border-color 0.2s;
+}
+
+.reply-input-wrapper textarea:focus {
+    border-color: #ee4d2d;
+    box-shadow: 0 0 0 2px rgba(238, 77, 45, 0.1);
+}
+
+.reply-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.8rem;
+    margin-top: 0.8rem;
+}
+
+.btn-submit-reply {
+    background-color: #ee4d2d;
+    color: white;
+    border: none;
+    padding: 0.5rem 1.2rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: background 0.2s;
+}
+
+.btn-submit-reply:hover {
+    background-color: #d73211;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+}
+
+.empty-state i {
+    font-size: 4rem;
+    color: #e0e0e0;
+    margin-bottom: 1rem;
+    display: block;
+}
+
+.empty-state p {
+    color: #888;
+    font-size: 1.1rem;
+}

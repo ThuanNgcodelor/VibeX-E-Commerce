@@ -257,12 +257,32 @@ export const calculateShippingFee = async (addressId, selectedItems) => {
  * Lấy dữ liệu phân tích bán hàng cho shop owner
  * @returns {Promise<Object>} - Promise trả về dữ liệu analytics
  */
-export const getSalesAnalytics = async () => {
+export const getSalesAnalytics = async (startDate, endDate) => {
     try {
-        const response = await api.get("/shop-owner/analytics");
+        const params = {};
+        if (startDate) params.startDate = startDate;
+        if (endDate) params.endDate = endDate;
+
+        const response = await api.get("/shop-owner/analytics", { params });
         return response.data;
     } catch {
         throw new Error("Failed to fetch sales analytics");
+    }
+};
+
+export const exportSalesReport = async (startDate, endDate) => {
+    try {
+        const params = {};
+        if (startDate) params.startDate = startDate;
+        if (endDate) params.endDate = endDate;
+
+        const response = await api.get("/shop-owner/analytics/export", {
+            params,
+            responseType: 'blob'
+        });
+        return response.data;
+    } catch {
+        throw new Error("Failed to export sales report");
     }
 };
 

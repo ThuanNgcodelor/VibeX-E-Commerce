@@ -194,7 +194,8 @@
       "tab": "Thông số kỹ thuật"
     },
     "reviews": {
-      "tab": "Đánh giá"
+      "tab": "Đánh giá",
+      "shopResponse": "Phản hồi của Người Bán"
     }
   },
   "auth": {
@@ -423,6 +424,7 @@
     "noProducts": "Không có sản phẩm",
     "reasonOptional": "Lý do (tùy chọn)",
     "cancelOrder": "Hủy đơn hàng",
+    "writeReview": "Viết đánh giá",
     "rateProduct": "Đánh giá sản phẩm",
     "viewDetails": "Xem chi tiết",
     "hideDetails": "Ẩn chi tiết",
@@ -788,12 +790,22 @@
       "todayOrders": "Đơn hàng hôm nay",
       "productsOnSale": "Sản phẩm đang bán",
       "avgRating": "Đánh giá trung bình",
-      "revenueChartTitle": "Biểu đồ doanh thu - 7 ngày qua",
+      "revenue": "Doanh thu",
+      "orders": "Đơn hàng",
+      "avgOrderValue": "Giá trị đơn TB",
+      "rating": "Đánh giá",
+      "orderStatus": "Trạng thái đơn hàng",
+      "cancelled": "Đã hủy",
+      "returned": "Đã trả",
+      "filter": "Lọc",
+      "export": "Xuất báo cáo",
+      "reportDownloaded": "Đã tải báo cáo",
+      "exportFailed": "Xuất báo cáo thất bại",
+      "revenueChartTitle": "Biểu đồ doanh thu",
       "revenueLabel": "Doanh thu (VNĐ)",
       "topProductsTitle": "Sản phẩm bán chạy nhất",
       "product": "Sản phẩm",
       "sold": "Đã bán",
-      "revenue": "Doanh thu",
       "noData": "Không có dữ liệu bán hàng"
     },
     "manageOrder": {
@@ -854,11 +866,33 @@
       "vouchers": "Mã Giảm Giá",
       "salesAnalytics": "Phân Tích Bán Hàng",
       "customerMessages": "Tin Nhắn Khách Hàng",
+      "reviews": "Đánh giá",
       "notifications": "Thông Báo",
       "finance": "Tài Chính",
       "wallet": "Ví Shop",
       "subscription": "Gói Dịch Vụ",
       "settings": "Cài Đặt"
+    },
+    "reviews": {
+      "title": "Quản lý đánh giá",
+      "totalReviews": "Tổng đánh giá",
+      "avgRating": "Đánh giá trung bình",
+      "responseRate": "Tỷ lệ phản hồi",
+      "noReviews": "Không tìm thấy đánh giá nào",
+      "reply": "Trả lời",
+      "writeReply": "Viết câu trả lời...",
+      "submit": "Gửi",
+      "cancel": "Hủy",
+      "shopReplied": "Shop đã trả lời",
+      "successReply": "Trả lời thành công",
+      "failedReply": "Trả lời thất bại",
+      "failedLoad": "Tải đánh giá thất bại",
+      "toReply": "Chưa trả lời",
+      "replied": "Đã trả lời",
+      "allRatings": "Tất cả đánh giá",
+      "stars": "{{count}} sao",
+      "unknownProduct": "Sản phẩm không xác định",
+      "anonymous": "Ẩn danh"
     },
     "vouchers": {
       "title": "Mã Giảm Giá Của Shop",
