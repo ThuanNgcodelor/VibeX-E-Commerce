@@ -27,7 +27,6 @@
     "updating": "Đang cập nhật...",
     "complete": "Hoàn thành",
     "seconds": "giây",
-    "processing": "Đang xử lý...",
     "status": {
       "title": "Trạng thái",
       "pending": "Đang chờ",
@@ -1415,5 +1414,22 @@
     "viewCartMore": "Hãy xem giỏ hàng thêm {{seconds}}s nữa!",
     "followShopHint": "Hãy tìm một shop bất kỳ và nhấn 'Theo dõi' (Follow) để hoàn thành nhiệm vụ này!",
     "doMission": "Hãy thực hiện nhiệm vụ này!"
+  },
+  "aiChat": {
+    "title": "Trợ lý AI",
+    "name": "VIBE AI",
+    "status": "Trợ lý mua sắm",
+    "welcomeTitle": "Xin chào! Tôi là VIBE AI",
+    "welcomeDesc": "Tôi có thể giúp bạn tìm sản phẩm, tra cứu giá cả và trả lời các câu hỏi.",
+    "placeholder": "Nhập câu hỏi của bạn...",
+    "clearHistory": "Xóa lịch sử",
+    "close": "Đóng",
+    "errorMessage": "Xin lỗi, không thể kết nối với AI. Vui lòng thử lại sau.",
+    "suggestions": {
+      "findProducts": "Tìm sản phẩm ...",
+      "saleProducts": "Sản phẩm đang giảm giá",
+      "productPrice": "Giá sản phẩm ...",
+      "today": "Hôm nay thứ mấy?"
+    }
   }
 }

@@ -46,6 +46,7 @@ import RegisterShopOwner from "./pages/client/RegisterShopOwner.jsx";
 import ReviewManagementPage from "./pages/shop-owner/ReviewManagementPage.jsx";
 import CategoriesPage from "./pages/admin/categoeis/CategoriesPage.jsx";
 import ChatBotWidget from "./components/client/ChatBotWidget.jsx";
+import AIChatWidget from "./components/client/AIChatWidget.jsx";
 
 import ShopVoucherPage from "./pages/shop-owner/VoucherManagementPage.jsx";
 import CoinManagement from "./components/admin/coins/CoinManagement.jsx";
@@ -83,7 +84,12 @@ function GlobalChatWidget() {
     return null;
   }
 
-  return <ChatBotWidget />;
+  return (
+    <>
+      <ChatBotWidget />
+      <AIChatWidget />
+    </>
+  );
 }
 
 function ShopOwnerVoucherManagementPage() {

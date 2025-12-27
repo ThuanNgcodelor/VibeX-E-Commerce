@@ -26,19 +26,6 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-//                        .requestMatchers(
-//                                "/v1/stock/category/create",
-//                                "v1/stock/category/update",
-//                                "v1/stock/product/create").hasRole("ADMIN")
-//                        .requestMatchers(
-//                                "/v1/stock/product/list/**",
-//                                "/v1/stock/product/search/**",
-//                                "/v1/stock/product/getProductById/**",
-//                                "/v1/stock/cart/item/add",
-//                                "/v1/stock/cart/item/update",
-//                                "/v1/stock/cart/item/remove/{productId}",
-//                                "/v1/stock/cart/user").permitAll()
-
                         .anyRequest().permitAll()
                 )
                 .sessionManagement(session -> session
@@ -48,8 +35,6 @@ public class SecurityConfig {
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
-
-
 
     @Bean
     public WebMvcConfigurer corsConfigurer() {

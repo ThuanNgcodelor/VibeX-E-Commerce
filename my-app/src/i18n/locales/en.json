@@ -27,7 +27,6 @@
     "updating": "Updating...",
     "complete": "Complete",
     "seconds": "seconds",
-    "processing": "Processing...",
     "status": {
       "title": "Status",
       "pending": "Pending",
@@ -1417,5 +1416,22 @@
     "viewCartMore": "Please view the cart for {{seconds}} more seconds!",
     "followShopHint": "Find any shop and click 'Follow' to complete this mission!",
     "doMission": "Please complete this mission!"
+  },
+  "aiChat": {
+    "title": "AI Assistant",
+    "name": "VIBE AI",
+    "status": "Shopping Assistant",
+    "welcomeTitle": "Hello! I'm VIBE AI",
+    "welcomeDesc": "I can help you find products, check prices and answer your questions.",
+    "placeholder": "Type your question...",
+    "clearHistory": "Clear History",
+    "close": "Close",
+    "errorMessage": "Sorry, cannot connect to AI. Please try again later.",
+    "suggestions": {
+      "findProducts": "Find ... products",
+      "saleProducts": "Products on sale",
+      "productPrice": "... product price",
+      "today": "What day is today?"
+    }
   }
 }
