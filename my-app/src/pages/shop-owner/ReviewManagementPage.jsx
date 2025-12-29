@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getReviewsByShopId, replyToReview } from '../../api/review.js';
 import { getShopOwnerInfo } from '../../api/user.js';
+import { generateReviewReply } from '../../api/shopAssistant.js'; // AI API
 import { fetchProductById } from '../../api/product.js'; // Import API fetch product
 import { toast } from 'react-hot-toast';
 import { format } from 'date-fns';
@@ -96,6 +97,32 @@ export default function ReviewManagementPage() {
             loadReviews(shopId);
         } catch (error) {
             toast.error(t('shopOwner.reviews.failedReply'));
+        }
+    };
+
+    // AI Suggestion Logic
+    const [suggestingId, setSuggestingId] = useState(null);
+
+    const handleSuggestReply = async (review) => {
+        setSuggestingId(review.id);
+        try {
+            const requestData = {
+                reviewComment: review.comment,
+                rating: review.rating,
+                customerName: review.username || 'Customer',
+                language: 'vi'
+            };
+
+            const response = await generateReviewReply(requestData);
+            if (response && response.result) {
+                setReplyText(response.result); // Fill textarea
+                setReplyingId(review.id); // Ensure reply box is open
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error('AI Failed to suggest reply');
+        } finally {
+            setSuggestingId(null);
         }
     };
 
@@ -304,6 +331,20 @@ export default function ReviewManagementPage() {
                                                             placeholder={t('shopOwner.reviews.writeReply')}
                                                             autoFocus
                                                         ></textarea>
+                                                        <div className="d-flex justify-content-end mt-1">
+                                                            <button
+                                                                className="btn btn-sm btn-link text-decoration-none"
+                                                                onClick={() => handleSuggestReply(review)}
+                                                                disabled={suggestingId === review.id}
+                                                                style={{ fontSize: '0.85rem' }}
+                                                            >
+                                                                {suggestingId === review.id ? (
+                                                                    <span><i className="fas fa-spinner fa-spin"></i> Thinking...</span>
+                                                                ) : (
+                                                                    <span><i className="fas fa-magic"></i> AI Suggest</span>
+                                                                )}
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                     <div className="reply-actions">
                                                         <button

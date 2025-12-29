@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { addProduct, getProductById, updateProduct } from '../../api/shopOwner';
 import categoryApi from '../../api/categoryApi';
 import { getCommonAttributeKeys, translateAttributeName } from '../../utils/attributeTranslator';
+import { generateProductDescription } from '../../api/shopAssistant'; // AI API
 import '../../components/shop-owner/ShopOwnerLayout.css';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
@@ -56,6 +57,70 @@ export default function AddProductPage() {
         const list = [...attributes];
         list[index][field] = value;
         setAttributes(list);
+    };
+
+    // AI Generator State
+    const [isGenerating, setIsGenerating] = useState(false);
+
+    const handleAiGenerate = async () => {
+        if (!formData.name) {
+            alert(t('shopOwner.addProduct.pleaseEnterNameFirst', 'Vui lòng nhập tên sản phẩm trước!'));
+            return;
+        }
+
+        try {
+            setIsGenerating(true);
+            const attributesMap = {};
+            attributes.forEach(attr => {
+                if (attr.key && attr.value) attributesMap[attr.key] = attr.value;
+            });
+
+            // Handle Images for AI
+            const base64Images = [];
+            if (formData.images && formData.images.length > 0) {
+                // Limit to first 3 images to avoid payload too large
+                const imagesToProcess = formData.images.slice(0, 3);
+
+                for (const file of imagesToProcess) {
+                    if (file instanceof File) {
+                        try {
+                            const base64 = await new Promise((resolve, reject) => {
+                                const reader = new FileReader();
+                                reader.onload = () => {
+                                    const result = reader.result;
+                                    // Remove "data:image/xyz;base64," prefix
+                                    const base64Clean = result.split(',')[1];
+                                    resolve(base64Clean);
+                                };
+                                reader.onerror = reject;
+                                reader.readAsDataURL(file);
+                            });
+                            base64Images.push(base64);
+                        } catch (err) {
+                            console.warn("Failed to convert image for AI", err);
+                        }
+                    }
+                }
+            }
+
+            const requestData = {
+                productName: formData.name,
+                attributes: attributesMap,
+                language: 'vi',
+                images: base64Images
+            };
+
+            const response = await generateProductDescription(requestData);
+            if (response && response.result) {
+                handleDescriptionChange(response.result); // Set ReactQuill content
+                alert('Mô tả đã được tạo thành công bởi AI!');
+            }
+        } catch (error) {
+            console.error("AI Gen Error", error);
+            alert('Lỗi tạo mô tả: ' + (error.message || 'Unknown error'));
+        } finally {
+            setIsGenerating(false);
+        }
     };
 
     // Get common attributes for dropdown
@@ -415,6 +480,18 @@ export default function AddProductPage() {
                                 <div className="mb-3">
                                     <label className="form-label">
                                         {t('shopOwner.addProduct.productDescription')} <span style={{ color: 'red' }}>*</span>
+                                        <button
+                                            type="button"
+                                            className="btn btn-sm btn-outline-info ms-2"
+                                            onClick={handleAiGenerate}
+                                            disabled={isGenerating}
+                                        >
+                                            {isGenerating ? (
+                                                <><i className="fas fa-spinner fa-spin"></i> Generating...</>
+                                            ) : (
+                                                <><i className="fas fa-magic"></i> AI Generate</>
+                                            )}
+                                        </button>
                                     </label>
                                     <div className={`${errors.description ? 'is-invalid' : ''}`}>
                                         <ReactQuill
@@ -594,10 +671,10 @@ export default function AddProductPage() {
                                     // Check if this attribute key is already used by other attributes
                                     const usedKeys = attributes.map(a => a.key).filter((k, i) => i !== index && k);
                                     const availableAttributes = commonAttributes.filter(key => !usedKeys.includes(key));
-                                    
+
                                     // Check if current key is in common list or empty
                                     const isCustomAttribute = attr.key && !commonAttributes.includes(attr.key);
-                                    
+
                                     return (
                                         <div key={index} className="row mb-2 align-items-center">
                                             <div className="col-md-5">
@@ -745,8 +822,8 @@ export default function AddProductPage() {
                                                                     fontSize: '0.7rem'
                                                                 }}
                                                             >
-                                {t('shopOwner.addProduct.main')}
-                              </span>
+                                                                {t('shopOwner.addProduct.main')}
+                                                            </span>
                                                         )}
                                                     </div>
                                                 </div>
