@@ -3,7 +3,6 @@ package com.example.stockservice.controller;
 import com.example.stockservice.dto.CartDto;
 import com.example.stockservice.dto.CartItemDto;
 import com.example.stockservice.dto.ProductDto;
-import com.example.stockservice.dto.RedisCartItemDto;
 import com.example.stockservice.dto.SizeDto;
 import com.example.stockservice.jwt.JwtUtil;
 import com.example.stockservice.model.Cart;
@@ -15,7 +14,6 @@ import com.example.stockservice.request.cart.AddLiveCartItemRequest;
 import com.example.stockservice.request.cart.RemoveCartItemRequest;
 import com.example.stockservice.request.cart.UpdateCartItemRequest;
 import com.example.stockservice.service.cart.CartItemService;
-import com.example.stockservice.service.cart.CartRedisService;
 import com.example.stockservice.service.cart.CartService;
 import com.example.stockservice.service.flashsale.FlashSaleService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -33,7 +31,6 @@ import java.util.Map;
 public class CartController {
    private final CartService cartService;
    private final CartItemService cartItemService;
-   private final CartRedisService cartRedisService;
    private final ModelMapper modelMapper;
    private final FlashSaleService flashSaleService;
    private final JwtUtil jwtUtil;
@@ -52,25 +49,17 @@ public class CartController {
    }
 
    /**
-    * Thêm sản phẩm từ Live Stream vào giỏ hàng (Redis) với giá live
+    * Thêm sản phẩm từ Live Stream vào giỏ hàng với giá live
     */
    @PostMapping("/item/add-live")
-   ResponseEntity<RedisCartItemDto> addLiveItemToCart(
+   ResponseEntity<CartItemDto> addLiveItemToCart(
            @RequestBody AddLiveCartItemRequest request, 
            HttpServletRequest httpRequest
    ) {
        String userId = jwtUtil.ExtractUserId(httpRequest);
-       RedisCartItemDto cartItem = cartRedisService.addLiveItemToCart(
-               userId,
-               request.getProductId(),
-               request.getSizeId(),
-               request.getQuantity(),
-               request.getLiveRoomId(),
-               request.getLiveProductId(),
-               request.getLivePrice(),
-               request.getOriginalPrice()
-       );
-       return ResponseEntity.ok(cartItem);
+       CartItem cartItem = cartItemService.addLiveCartItem(request, userId);
+       CartItemDto cartItemDto = mapToDto(cartItem);
+       return ResponseEntity.ok(cartItemDto);
    }
 
    @PutMapping("/item/update")
@@ -178,7 +167,6 @@ public class CartController {
        }
 
         if (cartItem.getProduct() != null) {
-            // minhquy
             ProductDto productDto = modelMapper.map(cartItem.getProduct(), ProductDto.class);
 
             // Check for active Flash Sale and override price/discount
@@ -213,7 +201,6 @@ public class CartController {
             dto.setProductName(cartItem.getProduct().getName());
             dto.setDescription(cartItem.getProduct().getDescription());
             dto.setImageId(cartItem.getProduct().getImageId());
-            // minhquy
         }
 
 
@@ -225,7 +212,7 @@ public class CartController {
             dto.setSize(sizeDto);
         }
 
-        // Manually map sync fields from transient properties
+        // Map transient availability fields (populated by CartServiceImpl.refreshCartItems)
         dto.setPriceChanged(cartItem.getPriceChanged());
         dto.setOldPrice(cartItem.getOldPrice());
         dto.setAvailableStock(cartItem.getAvailableStock());

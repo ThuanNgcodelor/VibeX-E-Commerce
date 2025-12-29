@@ -28,6 +28,13 @@ public class CartItem extends BaseEntity {
     @JoinColumn(name = "cart_id", nullable = false)
     private Cart cart;
     private boolean isFlashSale;
+    
+    // Live commerce fields (previously only in RedisCartItemDto)
+    private String liveRoomId;      // ID phòng live (null nếu mua bình thường)
+    private String liveProductId;   // ID trong bảng live_products
+    private Double livePrice;       // Giá live tại thời điểm thêm
+    private Double originalPrice;   // Giá gốc (để hiển thị gạch ngang)
+    private Boolean isFromLive;     // Flag đánh dấu item từ live
 
     public void setTotalPrice() {
         this.totalPrice = this.unitPrice * this.quantity;

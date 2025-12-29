@@ -25,8 +25,10 @@ public class Size extends BaseEntity {
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
+    // Do NOT cascade to cartItems - we don't want to delete cart items when size is deleted
+    // Instead, cart items with deleted sizes will show as unavailable (sizeAvailable=false)
     @JsonIgnore
-    @OneToMany(mappedBy = "size", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "size")
     private List<CartItem> cartItems;
 }
 

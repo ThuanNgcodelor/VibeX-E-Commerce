@@ -24,6 +24,7 @@ import com.example.stockservice.repository.SizeRepository;
 @Service
 @RequiredArgsConstructor
 public class ProductServiceImpl implements ProductService {
+    private final com.example.stockservice.repository.CartItemRepository cartItemRepository;
     @Override
     public long countProductsByUserId(String userId) {
         return productRepository.countByUserId(userId);
@@ -230,7 +231,17 @@ public class ProductServiceImpl implements ProductService {
 
         if (request.getSizes() != null) {
             List<Size> managedSizes = toUpdate.getSizes();
-            if (managedSizes != null) {
+            if (managedSizes != null && !managedSizes.isEmpty()) {
+                // Detach cart items from sizes before deleting sizes
+                // This prevents FK constraint violation and keeps cart items with sizeAvailable=false
+                for (Size size : managedSizes) {
+                    if (size.getCartItems() != null) {
+                        for (com.example.stockservice.model.CartItem cartItem : size.getCartItems()) {
+                            cartItem.setSize(null);
+                            cartItemRepository.save(cartItem);
+                        }
+                    }
+                }
                 managedSizes.clear();
             }
 

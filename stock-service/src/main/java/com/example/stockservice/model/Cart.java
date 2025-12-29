@@ -20,16 +20,22 @@ public class Cart extends BaseEntity {
     private String userId;
     private double totalAmount;
 
-    @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @Builder.Default
     private Set<CartItem> items = new HashSet<>();
 
     public void updateTotalAmount() {
+        if (items == null) {
+            this.totalAmount = 0;
+            return;
+        }
         this.totalAmount = items.stream()
                 .mapToDouble(CartItem::getTotalPrice)
                 .sum();
     }
 
     public void removeItem(CartItem cartItem){
+        if (items == null) return;
         cartItem.setCart(null);
         items.remove(cartItem);
         updateTotalAmount();
