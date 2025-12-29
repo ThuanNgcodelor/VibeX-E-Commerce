@@ -1,4 +1,23 @@
 {
+  "chat": {
+    "title": "Chat",
+    "viewChatWindow": "Xem cửa sổ Chat",
+    "searchByName": "Tìm theo tên",
+    "all": "Tất cả",
+    "unread": "Chưa đọc",
+    "noConversations": "Chưa có cuộc trò chuyện nào",
+    "loading": "Đang tải...",
+    "loadingMessages": "Đang tải tin nhắn...",
+    "noMessages": "Chưa có tin nhắn. Hãy bắt đầu cuộc trò chuyện!",
+    "talkingAboutProduct": "Bạn đang trao đổi về sản phẩm này",
+    "typeMessage": "Nhập tin nhắn...",
+    "sendFailed": "Gửi tin nhắn thất bại. Vui lòng thử lại.",
+    "yesterday": "Hôm qua",
+    "selectConversation": "Chọn cuộc trò chuyện",
+    "selectConversationDesc": "Chọn một cuộc trò chuyện từ danh sách để bắt đầu nhắn tin",
+    "shop": "Cửa hàng",
+    "unknown": "Không xác định"
+  },
   "common": {
     "loading": "Đang tải...",
     "error": "Lỗi",
@@ -1434,7 +1453,6 @@
     "thankYouMessage": "Cảm ơn bạn đã mua sắm!",
     "customer": "Khách hàng"
   },
-<<<<<<< Updated upstream
   "coins": {
     "currentCoins": "Xu đang có",
     "expiry": "{{coins}} Shopee Xu sẽ hết hạn vào {{date}}",
@@ -1479,25 +1497,5 @@
       "productPrice": "Giá sản phẩm ...",
       "today": "Hôm nay thứ mấy?"
     }
-=======
-  "chat": {
-    "title": "Chat",
-    "viewChatWindow": "Xem cửa sổ Chat",
-    "searchByName": "Tìm theo tên",
-    "all": "Tất cả",
-    "unread": "Chưa đọc",
-    "noConversations": "Chưa có cuộc trò chuyện nào",
-    "loading": "Đang tải...",
-    "loadingMessages": "Đang tải tin nhắn...",
-    "noMessages": "Chưa có tin nhắn. Hãy bắt đầu cuộc trò chuyện!",
-    "talkingAboutProduct": "Bạn đang trao đổi với Người bán về sản phẩm này",
-    "typeMessage": "Nhập tin nhắn...",
-    "sendFailed": "Gửi tin nhắn thất bại. Vui lòng thử lại.",
-    "yesterday": "Hôm qua",
-    "selectConversation": "Chọn cuộc trò chuyện",
-    "selectConversationDesc": "Chọn một cuộc trò chuyện từ danh sách để bắt đầu nhắn tin",
-    "shop": "Cửa hàng",
-    "unknown": "Không xác định"
->>>>>>> Stashed changes
   }
 }

@@ -1,4 +1,23 @@
 {
+  "chat": {
+    "title": "Chat",
+    "viewChatWindow": "View Chat Window",
+    "searchByName": "Search by name",
+    "all": "All",
+    "unread": "Unread",
+    "noConversations": "No conversations yet",
+    "loading": "Loading...",
+    "loadingMessages": "Loading messages...",
+    "noMessages": "No messages yet. Start the conversation!",
+    "talkingAboutProduct": "You are discussing this product",
+    "typeMessage": "Type a message...",
+    "sendFailed": "Failed to send message. Please try again.",
+    "yesterday": "Yesterday",
+    "selectConversation": "Select a conversation",
+    "selectConversationDesc": "Choose a conversation from the list to start messaging",
+    "shop": "Shop",
+    "unknown": "Unknown"
+  },
   "common": {
     "loading": "Loading...",
     "error": "Error",
@@ -1436,7 +1455,6 @@
     "thankYouMessage": "Thank you for your purchase!",
     "customer": "Customer"
   },
-<<<<<<< Updated upstream
   "coins": {
     "currentCoins": "Current Coins",
     "expiry": "{{coins}} Shopee Coins will expire on {{date}}",
@@ -1481,25 +1499,5 @@
       "productPrice": "... product price",
       "today": "What day is today?"
     }
-=======
-  "chat": {
-    "title": "Chat",
-    "viewChatWindow": "View Chat Window",
-    "searchByName": "Search by name",
-    "all": "All",
-    "unread": "Unread",
-    "noConversations": "No conversations yet",
-    "loading": "Loading...",
-    "loadingMessages": "Loading messages...",
-    "noMessages": "No messages yet. Start the conversation!",
-    "talkingAboutProduct": "You are discussing this product with the Seller",
-    "typeMessage": "Type a message...",
-    "sendFailed": "Failed to send message. Please try again.",
-    "yesterday": "Yesterday",
-    "selectConversation": "Select a conversation",
-    "selectConversationDesc": "Choose a conversation from the list to start messaging",
-    "shop": "Shop",
-    "unknown": "Unknown"
->>>>>>> Stashed changes
   }
 }
