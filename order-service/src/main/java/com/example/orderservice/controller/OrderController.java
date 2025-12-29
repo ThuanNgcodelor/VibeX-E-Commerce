@@ -635,6 +635,45 @@ public class OrderController {
     }
 
     /**
+     * Search orders by query (order ID)
+     */
+    @GetMapping("/shop-owner/orders/search")
+    public ResponseEntity<List<OrderDto>> searchOrders(
+            @RequestParam String query,
+            HttpServletRequest request) {
+        try {
+            String shopOwnerId = jwtUtil.ExtractUserId(request);
+            List<Order> orders = orderService.searchOrders(shopOwnerId, query);
+            List<OrderDto> orderDtos = enrichOrderDtos(orders);
+            return ResponseEntity.ok(orderDtos);
+        } catch (Exception e) {
+            log.error("[SEARCH] Error: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
+    /**
+     * Get all order IDs matching filter (for Select All Across Pages)
+     */
+    @GetMapping("/shop-owner/orders/all-ids")
+    public ResponseEntity<List<String>> getAllOrderIds(
+            @RequestParam(required = false) List<String> status,
+            HttpServletRequest request) {
+        try {
+            String shopOwnerId = jwtUtil.ExtractUserId(request);
+            // Use existing method with large page size
+            Page<Order> ordersPage = orderService.getOrdersByShopOwner(shopOwnerId, status, 1, 10000);
+            List<String> orderIds = ordersPage.getContent().stream()
+                    .map(Order::getId)
+                    .collect(Collectors.toList());
+            return ResponseEntity.ok(orderIds);
+        } catch (Exception e) {
+            log.error("[GET-ALL-IDS] Error: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
+    /**
      * Bulk update order status via Kafka (async processing)
      * Delegate to service for business logic
      */

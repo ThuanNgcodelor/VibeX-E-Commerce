@@ -841,7 +841,19 @@
       "updateStatus": "Cập nhật trạng thái",
       "shippingFee": "Phí vận chuyển (GHN)",
       "cancelReason": "Lý do hủy",
-      "returnReason": "Lý do trả hàng"
+      "returnReason": "Lý do trả hàng",
+      "trackingShipping": "Tracking Vận Chuyển",
+      "ghnOrderCode": "Mã vận đơn GHN",
+      "currentStatus": "Trạng thái hiện tại",
+      "shippingHistory": "Lịch sử vận chuyển",
+      "noShippingHistory": "Chưa có lịch sử vận chuyển",
+      "noShippingInfo": "Chưa có thông tin vận chuyển",
+      "cannotDisplayHistory": "Không thể hiển thị lịch sử",
+      "deliveryInfo": "Thông tin giao hàng",
+      "paymentInfo": "Thông tin thanh toán",
+      "recipient": "Người nhận",
+      "id": "ID",
+      "voucher": "Voucher giảm giá"
     },
     "returnOrder": {
       "title": "Trả hàng & Hoàn tiền",
@@ -1106,7 +1118,8 @@
     "product": {
       "form": {
         "quantity": "Số lượng",
-        "price": "Giá"
+        "price": "Giá",
+        "sizeName": "Phân loại hàng"
       }
     },
     "notifications": {

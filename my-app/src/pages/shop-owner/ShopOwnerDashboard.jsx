@@ -8,9 +8,11 @@ export default function ShopOwnerDashboard() {
   const { t } = useTranslation();
   const [stats, setStats] = useState({
     pending: 0,
-    processing: 0,
+    confirmed: 0,
+    readyToShip: 0,
     shipped: 0,
     delivered: 0,
+    completed: 0,
     cancelled: 0,
     returned: 0,
     salesToday: 0,
@@ -30,9 +32,11 @@ export default function ShopOwnerDashboard() {
 
         setStats({
           pending: dashboardStats.pending || 0,
-          processing: dashboardStats.processing || 0,
+          confirmed: dashboardStats.confirmed || 0,
+          readyToShip: dashboardStats.readyToShip || 0,
           shipped: dashboardStats.shipped || 0,
           delivered: dashboardStats.delivered || 0,
+          completed: dashboardStats.completed || 0,
           cancelled: dashboardStats.cancelled || 0,
           returned: dashboardStats.returned || 0,
           salesToday: dashboardStats.salesToday || 0,
@@ -76,7 +80,7 @@ export default function ShopOwnerDashboard() {
             <div className="row g-0 text-center">
               <div className="col-3 border-end position-relative">
                 <TodoCard
-                  count={stats.pending + stats.processing}
+                  count={stats.pending}
                   label={t('shopOwner.dashboard.toProcess')}
                   link="/shop-owner/orders/bulk-shipping?status=PENDING"
                   specialClass="no-border"
@@ -84,9 +88,16 @@ export default function ShopOwnerDashboard() {
               </div>
               <div className="col-3 border-end position-relative">
                 <TodoCard
-                  count={stats.shipped + stats.delivered}
+                  count={stats.confirmed + stats.readyToShip}
+                  label="Đang chuẩn bị"
+                  link="/shop-owner/orders/bulk-shipping?status=CONFIRMED"
+                />
+              </div>
+              <div className="col-3 border-end position-relative">
+                <TodoCard
+                  count={stats.shipped + stats.delivered + stats.completed}
                   label={t('shopOwner.dashboard.processed')}
-                  link="/shop-owner/orders/bulk-shipping?status=PROCESSING,SHIPPED,DELIVERED"
+                  link="/shop-owner/orders/bulk-shipping?status=SHIPPED"
                 />
               </div>
               <div className="col-3 border-end position-relative">
@@ -129,7 +140,7 @@ export default function ShopOwnerDashboard() {
               <div className="col-md-6">
                 <div className="p-3">
                   <h5 className="text-muted mb-2 small">{t('shopOwner.dashboard.orders')}</h5>
-                  <h2>{stats.pending + stats.processing + stats.shipped + stats.delivered + stats.cancelled + stats.returned}</h2>
+                  <h2>{stats.pending + stats.confirmed + stats.readyToShip + stats.shipped + stats.delivered + stats.completed + stats.cancelled + stats.returned}</h2>
                 </div>
               </div>
             </div>

@@ -152,12 +152,13 @@ export default function ReturnOrderPage() {
 
     const STATUS_NUMERIC_MAP = {
         0: 'PENDING',
-        1: 'PROCESSING',
-        2: 'SHIPPED',
-        3: 'DELIVERED',
-        4: 'CANCELLED',
+        1: 'CONFIRMED',
+        2: 'READY_TO_SHIP',
+        3: 'SHIPPED',
+        4: 'DELIVERED',
         5: 'COMPLETED',
-        6: 'RETURNED'
+        6: 'CANCELLED',
+        7: 'RETURNED'
     };
 
     const normalizeStatus = (status) => {
@@ -169,12 +170,14 @@ export default function ReturnOrderPage() {
     const getStatusBadge = (status) => {
         const normalizedStatus = normalizeStatus(status);
         const statusMap = {
-            PENDING: { label: 'Pending', class: 'bg-warning' },
-            PROCESSING: { label: 'Processing', class: 'bg-info' },
-            SHIPPED: { label: 'Shipped', class: 'bg-success' },
-            DELIVERED: { label: 'Delivered', class: 'bg-success' },
-            CANCELLED: { label: 'Cancelled', class: 'bg-danger' },
-            COMPLETED: { label: 'Completed', class: 'bg-success' }
+            PENDING: { label: 'Chờ xác nhận', class: 'bg-warning' },
+            CONFIRMED: { label: 'Đã xác nhận', class: 'bg-info' },
+            READY_TO_SHIP: { label: 'Sẵn sàng giao', class: 'bg-primary' },
+            SHIPPED: { label: 'Đang giao', class: 'bg-success' },
+            DELIVERED: { label: 'Đã giao', class: 'bg-success' },
+            CANCELLED: { label: 'Đã hủy', class: 'bg-danger' },
+            COMPLETED: { label: 'Hoàn thành', class: 'bg-success' },
+            RETURNED: { label: 'Đã hoàn', class: 'bg-secondary' }
         };
 
         return statusMap[normalizedStatus] || { label: status || 'N/A', class: 'bg-secondary' };
@@ -183,12 +186,14 @@ export default function ReturnOrderPage() {
     const getStatusLabel = (status) => {
         const normalized = normalizeStatus(status);
         const statusMap = {
-            PENDING: 'Pending',
-            PROCESSING: 'Processing',
-            SHIPPED: 'Shipped',
-            DELIVERED: 'Delivered',
-            CANCELLED: 'Cancelled',
-            COMPLETED: 'Completed'
+            PENDING: 'Chờ xác nhận',
+            CONFIRMED: 'Đã xác nhận',
+            READY_TO_SHIP: 'Sẵn sàng giao',
+            SHIPPED: 'Đang giao',
+            DELIVERED: 'Đã giao',
+            CANCELLED: 'Đã hủy',
+            COMPLETED: 'Hoàn thành',
+            RETURNED: 'Đã hoàn'
         };
         return statusMap[normalized] || normalized || 'N/A';
     };
@@ -227,9 +232,8 @@ export default function ReturnOrderPage() {
     const getNextStatus = (currentStatus) => {
         const cur = normalizeStatus(currentStatus);
         const statusFlow = {
-            PENDING: 'PROCESSING',
-            PROCESSING: 'SHIPPED',
-            SHIPPED: 'DELIVERED'
+            PENDING: 'CONFIRMED',
+            CONFIRMED: 'READY_TO_SHIP'
         };
         return statusFlow[cur];
     };
@@ -361,11 +365,12 @@ export default function ReturnOrderPage() {
                         >
                             <option value="">{t('shopOwner.manageOrder.allStatus')}</option>
                             <option value="PENDING">{t('common.status.pending')}</option>
-                            <option value="PROCESSING">{t('common.status.processing')}</option>
+                            <option value="CONFIRMED">{t('common.status.confirmed')}</option>
+                            <option value="READY_TO_SHIP">Sẵn sàng giao</option>
                             <option value="SHIPPED">{t('common.status.shipped')}</option>
                             <option value="DELIVERED">{t('common.status.delivered')}</option>
-                            <option value="CANCELLED">{t('common.status.cancelled')}</option>
                             <option value="COMPLETED">{t('common.status.completed')}</option>
+                            <option value="CANCELLED">{t('common.status.cancelled')}</option>
                             <option value="RETURNED">{t('common.status.returned')}</option>
                         </select>
                         <button className="btn btn-secondary-shop" onClick={loadOrders}>

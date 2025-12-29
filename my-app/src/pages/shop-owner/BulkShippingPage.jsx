@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { getShopOwnerOrders, updateOrderStatusForShopOwner, getAllShopOwnerOrders, getShippingByOrderId, bulkUpdateOrderStatus } from '../../api/order';
+import { getShopOwnerOrders, updateOrderStatusForShopOwner, getAllShopOwnerOrders, getShippingByOrderId, bulkUpdateOrderStatus, searchOrders, getAllOrderIds } from '../../api/order';
 import { getUserById } from '../../api/user';
 import { useTranslation } from 'react-i18next';
+import i18n from '../../i18n/config';
 import '../../components/shop-owner/ShopOwnerLayout.css';
 
 // GHN status to Vietnamese mapping
@@ -54,6 +55,9 @@ export default function BulkShippingPage() {
     const [shippingData, setShippingData] = useState({}); // Shipping data per order
     const [loadingShipping, setLoadingShipping] = useState({});
     const [showTrackingModal, setShowTrackingModal] = useState(null); // orderId for modal
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState(null); // null = not searching, [] = no results
+    const [totalOrderCount, setTotalOrderCount] = useState(0); // Total orders matching filter
 
     // Load orders
     useEffect(() => {
@@ -222,12 +226,49 @@ export default function BulkShippingPage() {
         }
     };
 
+    // Select all orders across all pages
+    const handleSelectAllAcrossPages = async () => {
+        try {
+            const filterValue = statusFilter && statusFilter.trim() !== '' ? [statusFilter] : null;
+            const allOrderIds = await getAllOrderIds(filterValue);
+            setSelectedOrders(new Set(allOrderIds));
+            setTotalOrderCount(allOrderIds.length);
+            alert(`Đã chọn ${allOrderIds.length} đơn hàng`);
+        } catch (err) {
+            console.error('Error selecting all orders:', err);
+            alert('Không thể chọn tất cả đơn hàng');
+        }
+    };
+
+    // Search orders
+    const handleSearch = async () => {
+        if (!searchQuery.trim()) {
+            setSearchResults(null);
+            return;
+        }
+        try {
+            const results = await searchOrders(searchQuery.trim());
+            setSearchResults(results);
+        } catch (err) {
+            console.error('Search error:', err);
+            setSearchResults([]);
+        }
+    };
+
+    const clearSearch = () => {
+        setSearchQuery('');
+        setSearchResults(null);
+    };
+
     const STATUS_NUMERIC_MAP = {
         0: 'PENDING',
         1: 'CONFIRMED',
-        2: 'CANCELLED',
-        3: 'COMPLETED',
-        4: 'RETURNED'
+        2: 'READY_TO_SHIP',
+        3: 'SHIPPED',
+        4: 'DELIVERED',
+        5: 'COMPLETED',
+        6: 'CANCELLED',
+        7: 'RETURNED'
     };
 
     const normalizeStatus = (status) => {
@@ -239,9 +280,14 @@ export default function BulkShippingPage() {
     const getStatusBadge = (status) => {
         const normalizedStatus = normalizeStatus(status);
         const statusMap = {
-            PENDING: { label: 'Pending', class: 'bg-warning' },
-            CONFIRMED: { label: 'Confirmed', class: 'bg-info' },
-            CANCELLED: { label: 'Cancelled', class: 'bg-danger' }
+            PENDING: { label: t('common.status.pending'), class: 'bg-warning' },
+            CONFIRMED: { label: t('common.status.confirmed'), class: 'bg-info' },
+            READY_TO_SHIP: { label: t('common.status.readyToShip') || 'Sẵn sàng giao', class: 'bg-primary' },
+            SHIPPED: { label: t('common.status.shipped'), class: 'bg-success' },
+            DELIVERED: { label: t('common.status.delivered'), class: 'bg-success' },
+            COMPLETED: { label: t('common.status.completed'), class: 'bg-success' },
+            CANCELLED: { label: t('common.status.cancelled'), class: 'bg-danger' },
+            RETURNED: { label: t('common.status.returned'), class: 'bg-secondary' }
         };
 
         return statusMap[normalizedStatus] || { label: status || 'N/A', class: 'bg-secondary' };
@@ -250,20 +296,111 @@ export default function BulkShippingPage() {
     const getStatusLabel = (status) => {
         const normalized = normalizeStatus(status);
         const statusMap = {
-            PENDING: 'Pending',
-            CONFIRMED: 'Confirmed',
-            CANCELLED: 'Cancelled',
-            COMPLETED: 'Completed'
+            PENDING: 'Chờ xác nhận',
+            CONFIRMED: 'Đã xác nhận',
+            READY_TO_SHIP: 'Sẵn sàng giao',
+            SHIPPED: 'Đang giao',
+            DELIVERED: 'Đã giao',
+            COMPLETED: 'Hoàn thành',
+            CANCELLED: 'Đã hủy',
+            RETURNED: 'Đã hoàn'
         };
         return statusMap[normalized] || normalized || 'N/A';
     };
 
     const getNextStatus = (currentStatus) => {
         const cur = normalizeStatus(currentStatus);
+        // New flow: PENDING → CONFIRMED → READY_TO_SHIP (shipper picks up → SHIPPED auto)
         const statusFlow = {
-            PENDING: 'CONFIRMED'
+            PENDING: 'CONFIRMED',
+            CONFIRMED: 'READY_TO_SHIP'
         };
         return statusFlow[cur];
+    };
+
+    // Print order function  
+    const handlePrintOrder = (order) => {
+        const shipping = shippingData[order.id];
+        const subtotal = order.orderItems?.reduce((sum, item) => sum + (item.unitPrice || item.price || 0) * (item.quantity || 1), 0) || order.totalPrice;
+        const shippingFee = order.shippingFee || 0;
+        const total = order.totalPrice || (subtotal + shippingFee);
+
+        const printContent = `
+<!DOCTYPE html>
+<html>
+<head>
+    <title>${t('shopOwner.manageOrder.printOrder')} - ${order.id}</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; font-size: 12px; }
+        .header { text-align: center; margin-bottom: 20px; }
+        .header h1 { margin: 0; font-size: 18px; }
+        .section { margin-bottom: 15px; padding: 10px; border: 1px solid #ddd; }
+        .section-title { font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+        .row { display: flex; justify-content: space-between; margin-bottom: 5px; }
+        .items-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .items-table th, .items-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        .items-table th { background-color: #f5f5f5; }
+        .total-row { font-weight: bold; font-size: 14px; }
+        .barcode { font-family: monospace; font-size: 16px; letter-spacing: 2px; }
+        @media print { body { padding: 0; } }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>${t('shopOwner.manageOrder.printOrder')}</h1>
+        <p>${t('shopOwner.manageOrder.orderDate')}: ${new Date(order.creationTimestamp).toLocaleString()}</p>
+    </div>
+    
+    <div class="section">
+        <div class="section-title">${t('shopOwner.manageOrder.deliveryInfo')}</div>
+        <div class="row"><span>${t('shopOwner.manageOrder.recipient')}:</span><strong>${order.recipientName || 'N/A'}</strong></div>
+        <div class="row"><span>${t('shopOwner.manageOrder.phone')}:</span><strong>${order.recipientPhone || 'N/A'}</strong></div>
+        <div class="row"><span>${t('shopOwner.manageOrder.address')}:</span><span>${order.fullAddress || 'N/A'}</span></div>
+        ${shipping?.ghnOrderCode ? `<div class="row"><span>${t('shopOwner.manageOrder.ghnOrderCode')}:</span><span class="barcode">${shipping.ghnOrderCode}</span></div>` : ''}
+    </div>
+
+    <div class="section">
+        <div class="section-title">${t('shopOwner.manageOrder.productsInOrder')}</div>
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>${t('shopOwner.analytics.product')}</th>
+                    <th>${t('shopOwner.product.form.sizeName')}</th>
+                    <th>${t('shopOwner.product.form.quantity')}</th>
+                    <th>${t('shopOwner.product.form.price')}</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${order.orderItems?.map((item, idx) => `
+                    <tr>
+                        <td>${idx + 1}</td>
+                        <td>${item.productName || item.productId}</td>
+                        <td>${item.sizeName || 'N/A'}</td>
+                        <td>${item.quantity}</td>
+                        <td>${formatPrice((item.price || item.unitPrice) * item.quantity)}</td>
+                    </tr>
+                `).join('') || ''}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <div class="section-title">${t('shopOwner.manageOrder.paymentInfo')}</div>
+        <div class="row"><span>${t('shopOwner.manageOrder.subtotal')}:</span><span>${formatPrice(subtotal)}</span></div>
+        <div class="row"><span>${t('shopOwner.manageOrder.shippingFee')}:</span><span>${formatPrice(shippingFee)}</span></div>
+        <div class="row total-row"><span>${t('shopOwner.manageOrder.total')}:</span><span style="color: #ee4d2d;">${formatPrice(total)}</span></div>
+    </div>
+
+    <script>window.onload = function() { window.print(); }</script>
+</body>
+</html>`;
+
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.write(printContent);
+            printWindow.document.close();
+        }
     };
 
     // Load shipping data for an order
@@ -433,6 +570,26 @@ export default function BulkShippingPage() {
                 <div className="table-header">
                     <div className="table-title">{t('shopOwner.manageOrder.tableTitle')}</div>
                     <div className="table-actions" style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        {/* Search Box */}
+                        <div style={{ display: 'flex', gap: '5px' }}>
+                            <input
+                                type="text"
+                                className="form-control"
+                                placeholder="Tìm theo mã đơn..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                                style={{ width: '180px' }}
+                            />
+                            <button className="btn btn-outline-secondary" onClick={handleSearch}>
+                                <i className="fas fa-search"></i>
+                            </button>
+                            {searchResults !== null && (
+                                <button className="btn btn-outline-secondary" onClick={clearSearch}>
+                                    <i className="fas fa-times"></i>
+                                </button>
+                            )}
+                        </div>
                         <div className="search-filter">
                             <select
                                 className="form-select"
@@ -440,28 +597,41 @@ export default function BulkShippingPage() {
                                 onChange={(e) => {
                                     setStatusFilter(e.target.value);
                                     setCurrentPage(1);
+                                    setSearchResults(null);
                                 }}
-                                style={{ width: '200px' }}
+                                style={{ width: '180px' }}
                             >
                                 <option value="">{t('shopOwner.manageOrder.allStatus')}</option>
                                 <option value="PENDING">{t('common.status.pending')}</option>
+                                <option value="CONFIRMED">{t('common.status.confirmed')}</option>
+                                <option value="READY_TO_SHIP">Sẵn sàng giao</option>
                                 <option value="SHIPPED">{t('common.status.shipped')}</option>
                                 <option value="DELIVERED">{t('common.status.delivered')}</option>
-                                <option value="CANCELLED">{t('common.status.cancelled')}</option>
                                 <option value="COMPLETED">{t('common.status.completed')}</option>
+                                <option value="CANCELLED">{t('common.status.cancelled')}</option>
                                 <option value="RETURNED">{t('common.status.returned')}</option>
                             </select>
                         </div>
+                        {/* Select All Across Pages Button */}
+                        <button
+                            className="btn btn-outline-primary"
+                            onClick={handleSelectAllAcrossPages}
+                            title="Chọn tất cả đơn hàng"
+                        >
+                            <i className="fas fa-check-double"></i> Chọn tất cả
+                        </button>
                         {selectedOrders.size > 0 && (
                             <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                <span className="badge bg-secondary">{selectedOrders.size} đã chọn</span>
                                 <select
                                     className="form-select"
                                     value={bulkStatus}
                                     onChange={(e) => setBulkStatus(e.target.value)}
-                                    style={{ width: '150px' }}
+                                    style={{ width: '170px' }}
                                 >
                                     <option value="">{t('shopOwner.manageOrder.selectStatus')}</option>
                                     <option value="CONFIRMED">{t('common.status.confirmed')}</option>
+                                    <option value="READY_TO_SHIP">Sẵn sàng giao</option>
                                     <option value="CANCELLED">{t('common.status.cancelled')}</option>
                                     <option value="RETURNED">{t('common.status.returned')}</option>
                                 </select>
@@ -506,16 +676,24 @@ export default function BulkShippingPage() {
                             </tr>
                         </thead>
                         <tbody>
-                            {orders.length === 0 ? (
+                            {/* Search Results Info */}
+                            {searchResults !== null && (
+                                <tr>
+                                    <td colSpan="10" className="bg-info bg-opacity-10 py-2 px-3">
+                                        <i className="fas fa-search me-2"></i>
+                                        Tìm thấy <strong>{searchResults.length}</strong> đơn hàng với từ khóa "{searchQuery}"
+                                        <button className="btn btn-link btn-sm" onClick={clearSearch}>Xóa tìm kiếm</button>
+                                    </td>
+                                </tr>
+                            )}
+                            {(searchResults || orders).length === 0 ? (
                                 <tr>
                                     <td colSpan="10" className="text-center py-4">
-                                        <td colSpan="10" className="text-center py-4">
-                                            <p className="text-muted">{t('shopOwner.manageOrder.noOrders')}</p>
-                                        </td>
+                                        <p className="text-muted">{searchResults !== null ? 'Không tìm thấy đơn hàng' : t('shopOwner.manageOrder.noOrders')}</p>
                                     </td>
                                 </tr>
                             ) : (
-                                orders.map((order, index) => {
+                                (searchResults || orders).map((order, index) => {
                                     const statusInfo = getStatusBadge(order.orderStatus);
                                     const nextStatus = getNextStatus(order.orderStatus);
                                     const isExpanded = expandedRow === order.id;
@@ -697,7 +875,6 @@ export default function BulkShippingPage() {
                                                                                                 </div>
                                                                                                 <div>
                                                                                                     <div className="fw-medium text-dark">{item.productName || `Product ${item.productId}`}</div>
-                                                                                                    <small className="text-muted">{t('shopOwner.manageOrder.id')}: {item.productId}</small>
                                                                                                 </div>
                                                                                             </div>
                                                                                         </td>
@@ -715,24 +892,24 @@ export default function BulkShippingPage() {
                                                                 {/* Tracking Section */}
                                                                 <div className="mb-4">
                                                                     <h6 className="text-muted text-uppercase small fw-bold mb-3">
-                                                                        <i className="fas fa-shipping-fast me-2"></i>Tracking Vận Chuyển
+                                                                        <i className="fas fa-shipping-fast me-2"></i>{t('shopOwner.manageOrder.trackingShipping')}
                                                                     </h6>
                                                                     {loadingShipping[order.id] ? (
                                                                         <div className="text-center py-3">
-                                                                            <i className="fas fa-spinner fa-spin me-2"></i>Đang tải...
+                                                                            <i className="fas fa-spinner fa-spin me-2"></i>{t('common.loading')}
                                                                         </div>
                                                                     ) : shippingData[order.id] ? (
                                                                         <div className="border rounded p-3 bg-light">
                                                                             {/* GHN Order Code */}
                                                                             <div className="d-flex justify-content-between align-items-center mb-3">
-                                                                                <span className="text-muted small">Mã vận đơn GHN:</span>
+                                                                                <span className="text-muted small">{t('shopOwner.manageOrder.ghnOrderCode')}:</span>
                                                                                 <span className="fw-bold text-primary">{shippingData[order.id].ghnOrderCode || 'N/A'}</span>
                                                                             </div>
 
                                                                             {/* Current Status */}
                                                                             {shippingData[order.id].status && (
                                                                                 <div className="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
-                                                                                    <span className="text-muted small">Trạng thái hiện tại:</span>
+                                                                                    <span className="text-muted small">{t('shopOwner.manageOrder.currentStatus')}:</span>
                                                                                     <span
                                                                                         className="badge"
                                                                                         style={{
@@ -753,9 +930,10 @@ export default function BulkShippingPage() {
                                                                                         : shippingData[order.id].trackingHistory;
 
                                                                                     if (Array.isArray(history) && history.length > 0) {
+                                                                                        const isVietnamese = i18n.language === 'vi';
                                                                                         return (
                                                                                             <div className="mt-3">
-                                                                                                <div className="small fw-bold text-muted mb-2">Lịch sử vận chuyển:</div>
+                                                                                                <div className="small fw-bold text-muted mb-2">{t('shopOwner.manageOrder.shippingHistory')}:</div>
                                                                                                 <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
                                                                                                     {history.slice().reverse().map((entry, idx) => (
                                                                                                         <div key={idx} className="d-flex align-items-start mb-2" style={{ paddingLeft: '16px', borderLeft: idx === 0 ? '3px solid #26aa99' : '3px solid #e0e0e0' }}>
@@ -764,11 +942,13 @@ export default function BulkShippingPage() {
                                                                                                                     {formatTrackingTime(entry.ts)}
                                                                                                                 </div>
                                                                                                                 <div className={`${idx === 0 ? 'fw-bold' : ''}`}>
-                                                                                                                    {entry.title || 'Cập nhật'}
+                                                                                                                    {isVietnamese ? (entry.titleVi || entry.title) : (entry.titleEn || entry.title)}
                                                                                                                 </div>
-                                                                                                                {entry.description && (
-                                                                                                                    <div className="small text-muted">{entry.description}</div>
-                                                                                                                )}
+                                                                                                                {(isVietnamese ? entry.descVi : entry.descEn) || entry.description ? (
+                                                                                                                    <div className="small text-muted">
+                                                                                                                        {isVietnamese ? (entry.descVi || entry.description) : (entry.descEn || entry.description)}
+                                                                                                                    </div>
+                                                                                                                ) : null}
                                                                                                             </div>
                                                                                                         </div>
                                                                                                     ))}
@@ -776,21 +956,24 @@ export default function BulkShippingPage() {
                                                                                             </div>
                                                                                         );
                                                                                     }
-                                                                                    return <div className="text-muted small">Chưa có lịch sử vận chuyển</div>;
+                                                                                    return <div className="text-muted small">{t('shopOwner.manageOrder.noShippingHistory')}</div>;
                                                                                 } catch (e) {
-                                                                                    return <div className="text-muted small">Không thể hiển thị lịch sử</div>;
+                                                                                    return <div className="text-muted small">{t('shopOwner.manageOrder.cannotDisplayHistory')}</div>;
                                                                                 }
                                                                             })() : (
-                                                                                <div className="text-muted small">Chưa có lịch sử vận chuyển</div>
+                                                                                <div className="text-muted small">{t('shopOwner.manageOrder.noShippingHistory')}</div>
                                                                             )}
                                                                         </div>
                                                                     ) : (
-                                                                        <div className="text-muted small">Chưa có thông tin vận chuyển</div>
+                                                                        <div className="text-muted small">{t('shopOwner.manageOrder.noShippingInfo')}</div>
                                                                     )}
                                                                 </div>
 
                                                                 <div className="d-flex justify-content-end gap-2 pt-3 border-top">
-                                                                    <button className="btn btn-light border text-muted">
+                                                                    <button
+                                                                        className="btn btn-light border text-muted"
+                                                                        onClick={() => handlePrintOrder(order)}
+                                                                    >
                                                                         <i className="fas fa-print me-2"></i>{t('shopOwner.manageOrder.printOrder')}
                                                                     </button>
                                                                     {nextStatus && (

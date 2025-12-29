@@ -16,7 +16,10 @@ import com.example.orderservice.repository.OrderRepository;
 import com.example.orderservice.repository.ShippingOrderRepository;
 import com.example.orderservice.request.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.math.BigDecimal;
 import jakarta.servlet.http.HttpServletRequest;
@@ -249,14 +252,14 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public java.util.Map<String, Object> getShopStats(String shopOwnerId) {
+    public Map<String, Object> getShopStats(String shopOwnerId) {
         // 1. Get product IDs
         List<String> productIds = stockServiceClient.getProductIdsByShopOwner(shopOwnerId).getBody();
-        java.util.Map<String, Object> stats = new java.util.HashMap<>();
+        Map<String, Object> stats = new HashMap<>();
 
         if (productIds == null || productIds.isEmpty()) {
             stats.put("pending", 0);
-            stats.put("processing", 0);
+            stats.put("confirmed", 0);
             stats.put("shipped", 0);
             stats.put("completed", 0);
             stats.put("cancelled", 0);
@@ -267,28 +270,32 @@ public class OrderServiceImpl implements OrderService {
 
         // 2. Count by status
         long pending = orderRepository.countByProductIdsAndStatus(productIds, OrderStatus.PENDING);
-        long processing = orderRepository.countByProductIdsAndStatus(productIds, OrderStatus.PROCESSING);
+        long confirmed = orderRepository.countByProductIdsAndStatus(productIds, OrderStatus.CONFIRMED);
+        long readyToShip = orderRepository.countByProductIdsAndStatus(productIds, OrderStatus.READY_TO_SHIP);
         long shipped = orderRepository.countByProductIdsAndStatus(productIds, OrderStatus.SHIPPED);
+        long delivered = orderRepository.countByProductIdsAndStatus(productIds, OrderStatus.DELIVERED);
         long completed = orderRepository.countByProductIdsAndStatus(productIds, OrderStatus.COMPLETED);
         long cancelled = orderRepository.countByProductIdsAndStatus(productIds, OrderStatus.CANCELLED);
         long returned = orderRepository.countByProductIdsAndStatus(productIds, OrderStatus.RETURNED);
 
         // 3. Sales today
-        LocalDateTime startOfDay = java.time.LocalDate.now().atStartOfDay();
-        LocalDateTime endOfDay = java.time.LocalDate.now().atTime(java.time.LocalTime.MAX);
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        LocalDateTime endOfDay = LocalDate.now().atTime(LocalTime.MAX);
         Double salesToday = orderRepository.sumSalesByProductIdsAndDateRangeAndStatus(productIds, startOfDay, endOfDay,
                 OrderStatus.COMPLETED);
 
         stats.put("pending", pending);
-        stats.put("processing", processing);
+        stats.put("confirmed", confirmed);
+        stats.put("readyToShip", readyToShip);
         stats.put("shipped", shipped);
+        stats.put("delivered", delivered);
         stats.put("completed", completed);
         stats.put("cancelled", cancelled);
         stats.put("returned", returned);
 
         // Mappings for old Dashboard compatibility (if needed) or simple groupings
-        stats.put("waitingForPickup", pending + processing);
-        stats.put("processed", shipped + completed);
+        stats.put("waitingForPickup", confirmed + readyToShip);
+        stats.put("processed", shipped + delivered + completed);
 
         stats.put("salesToday", salesToday != null ? salesToday : 0.0);
 
@@ -1682,24 +1689,31 @@ public class OrderServiceImpl implements OrderService {
         String s = status.toLowerCase(); // GHN returns lowercase status
         String upperS = s.toUpperCase();
 
-        // Get Vietnamese title and description for this status
+        // Get i18n title and description for this status (vi and en)
         String[] statusInfo = getGhnStatusInfo(s);
-        String title = statusInfo[0];
-        String description = statusInfo[1];
+        String titleVi = statusInfo[0];
+        String descVi = statusInfo[1];
+        String titleEn = statusInfo[2];
+        String descEn = statusInfo[3];
 
-        // Append to tracking history
-        appendTrackingHistory(sh, s, title, description);
+        // Append to tracking history with i18n data
+        appendTrackingHistory(sh, s, titleVi, descVi, titleEn, descEn);
 
         sh.setStatus(upperS);
         shippingOrderRepository.save(sh);
 
-        // publish tracking event with title and description
+        // publish tracking event with i18n data
         Map<String, Object> evt = new HashMap<>();
         evt.put("orderId", sh.getOrderId());
         evt.put("ghnOrderCode", sh.getGhnOrderCode());
         evt.put("status", upperS);
-        evt.put("title", title);
-        evt.put("description", description);
+        evt.put("titleVi", titleVi);
+        evt.put("descVi", descVi);
+        evt.put("titleEn", titleEn);
+        evt.put("descEn", descEn);
+        // Backward compatibility
+        evt.put("title", titleVi);
+        evt.put("description", descVi);
         evt.put("ts", java.time.LocalDateTime.now().toString());
         trackingEmitterService.send(sh.getOrderId(), evt);
 
@@ -1716,13 +1730,13 @@ public class OrderServiceImpl implements OrderService {
 
             // Map GHN statuses to Order statuses
             switch (s) {
-                // Waiting for pickup - still CONFIRMED
+                // Waiting for pickup - should be READY_TO_SHIP (shop packed, waiting shipper)
                 case "ready_to_pick":
                 case "picking":
                 case "money_collect_picking":
-                    // Keep as CONFIRMED, shipper not picked up yet
-                    if (currentStatus == OrderStatus.PENDING) {
-                        newStatus = OrderStatus.CONFIRMED;
+                    // If order is CONFIRMED, auto-transition to READY_TO_SHIP
+                    if (currentStatus == OrderStatus.CONFIRMED) {
+                        newStatus = OrderStatus.READY_TO_SHIP;
                     }
                     break;
 
@@ -1792,64 +1806,86 @@ public class OrderServiceImpl implements OrderService {
     }
 
     /**
-     * Get Vietnamese title and description for GHN status
+     * Get i18n title and description for GHN status
      * 
-     * @return String[2] where [0] = title, [1] = description
+     * @return String[4] where [0] = title_vi, [1] = desc_vi, [2] = title_en, [3] = desc_en
      */
     private String[] getGhnStatusInfo(String ghnStatus) {
         switch (ghnStatus.toLowerCase()) {
             case "ready_to_pick":
-                return new String[] { "Chờ lấy hàng", "Đơn hàng đang chờ shipper đến lấy" };
+                return new String[] { "Chờ lấy hàng", "Đơn hàng đang chờ shipper đến lấy", 
+                                     "Waiting for pickup", "Order is waiting for shipper to pick up" };
             case "picking":
-                return new String[] { "Đang lấy hàng", "Shipper đang đến lấy hàng từ shop" };
+                return new String[] { "Đang lấy hàng", "Shipper đang đến lấy hàng từ shop",
+                                     "Picking up", "Shipper is picking up from shop" };
             case "money_collect_picking":
-                return new String[] { "Đang lấy hàng", "Shipper đang thu tiền và lấy hàng" };
+                return new String[] { "Đang lấy hàng", "Shipper đang thu tiền và lấy hàng",
+                                     "Collecting & picking", "Shipper is collecting money and picking up" };
             case "picked":
-                return new String[] { "Đã lấy hàng", "Shipper đã lấy hàng thành công" };
+                return new String[] { "Đã lấy hàng", "Shipper đã lấy hàng thành công",
+                                     "Picked up", "Shipper has picked up successfully" };
             case "storing":
-                return new String[] { "Đã nhập kho", "Đơn hàng đã được nhập kho phân loại" };
+                return new String[] { "Đã nhập kho", "Đơn hàng đã được nhập kho phân loại",
+                                     "In warehouse", "Order has been stored in warehouse" };
             case "transporting":
-                return new String[] { "Đang luân chuyển", "Đơn hàng đang được vận chuyển đến kho đích" };
+                return new String[] { "Đang luân chuyển", "Đơn hàng đang được vận chuyển đến kho đích",
+                                     "In transit", "Order is being transported to destination" };
             case "sorting":
-                return new String[] { "Đang phân loại", "Đơn hàng đang được phân loại tại kho" };
+                return new String[] { "Đang phân loại", "Đơn hàng đang được phân loại tại kho",
+                                     "Sorting", "Order is being sorted at warehouse" };
             case "delivering":
-                return new String[] { "Đang giao hàng", "Shipper đang giao hàng đến bạn, vui lòng chú ý điện thoại" };
+                return new String[] { "Đang giao hàng", "Shipper đang giao hàng đến bạn",
+                                     "Delivering", "Shipper is delivering to you" };
             case "money_collect_delivering":
-                return new String[] { "Đang giao hàng", "Shipper đang giao hàng và thu tiền COD" };
+                return new String[] { "Đang giao hàng", "Shipper đang giao hàng và thu tiền COD",
+                                     "Delivering (COD)", "Shipper is delivering and collecting COD" };
             case "delivered":
-                return new String[] { "Đã giao hàng", "Giao hàng thành công" };
+                return new String[] { "Đã giao hàng", "Giao hàng thành công",
+                                     "Delivered", "Delivery successful" };
             case "delivery_fail":
-                return new String[] { "Giao thất bại", "Giao hàng không thành công, sẽ giao lại" };
+                return new String[] { "Giao thất bại", "Giao hàng không thành công, sẽ giao lại",
+                                     "Delivery failed", "Delivery failed, will retry" };
             case "waiting_to_return":
-                return new String[] { "Chờ trả hàng", "Đơn hàng đang chờ trả về shop sau 3 lần giao thất bại" };
+                return new String[] { "Chờ trả hàng", "Đơn hàng đang chờ trả về shop",
+                                     "Waiting to return", "Waiting to return to shop" };
             case "return":
             case "returning":
-                return new String[] { "Đang trả hàng", "Đơn hàng đang được trả về shop" };
+                return new String[] { "Đang trả hàng", "Đơn hàng đang được trả về shop",
+                                     "Returning", "Order is being returned to shop" };
             case "return_transporting":
-                return new String[] { "Đang luân chuyển trả", "Đơn hàng đang được vận chuyển trả về shop" };
+                return new String[] { "Đang luân chuyển trả", "Đơn hàng đang được vận chuyển trả về shop",
+                                     "Return in transit", "Order is being transported back to shop" };
             case "return_sorting":
-                return new String[] { "Đang phân loại trả", "Đơn hàng đang được phân loại để trả về shop" };
+                return new String[] { "Đang phân loại trả", "Đơn hàng đang được phân loại để trả về shop",
+                                     "Return sorting", "Order is being sorted for return" };
             case "return_fail":
-                return new String[] { "Trả hàng thất bại", "Không thể trả hàng về shop" };
+                return new String[] { "Trả hàng thất bại", "Không thể trả hàng về shop",
+                                     "Return failed", "Failed to return to shop" };
             case "returned":
-                return new String[] { "Đã trả hàng", "Đơn hàng đã được trả về shop thành công" };
+                return new String[] { "Đã trả hàng", "Đơn hàng đã được trả về shop thành công",
+                                     "Returned", "Order has been returned successfully" };
             case "cancel":
-                return new String[] { "Đã hủy", "Đơn hàng đã bị hủy" };
+                return new String[] { "Đã hủy", "Đơn hàng đã bị hủy",
+                                     "Cancelled", "Order has been cancelled" };
             case "exception":
-                return new String[] { "Có sự cố", "Đơn hàng gặp sự cố, đang xử lý" };
+                return new String[] { "Có sự cố", "Đơn hàng gặp sự cố, đang xử lý",
+                                     "Exception", "Order has an exception, processing" };
             case "damage":
-                return new String[] { "Hàng bị hư hỏng", "Hàng hóa bị hư hỏng trong quá trình vận chuyển" };
+                return new String[] { "Hàng bị hư hỏng", "Hàng hóa bị hư hỏng trong quá trình vận chuyển",
+                                     "Damaged", "Package was damaged during transport" };
             case "lost":
-                return new String[] { "Hàng bị thất lạc", "Hàng hóa bị thất lạc" };
+                return new String[] { "Hàng bị thất lạc", "Hàng hóa bị thất lạc",
+                                     "Lost", "Package was lost" };
             default:
-                return new String[] { "Cập nhật trạng thái", "Trạng thái: " + ghnStatus };
+                return new String[] { "Cập nhật trạng thái", "Trạng thái: " + ghnStatus,
+                                     "Status update", "Status: " + ghnStatus };
         }
     }
 
     /**
-     * Append a new entry to the tracking history JSON array
+     * Append a new entry to the tracking history JSON array (i18n support)
      */
-    private void appendTrackingHistory(ShippingOrder sh, String status, String title, String description) {
+    private void appendTrackingHistory(ShippingOrder sh, String status, String titleVi, String descVi, String titleEn, String descEn) {
         try {
             java.util.List<Map<String, Object>> history = new java.util.ArrayList<>();
             String old = sh.getTrackingHistory();
@@ -1864,8 +1900,13 @@ public class OrderServiceImpl implements OrderService {
             Map<String, Object> entry = new HashMap<>();
             entry.put("ts", java.time.LocalDateTime.now().toString());
             entry.put("status", status);
-            entry.put("title", title);
-            entry.put("description", description);
+            entry.put("titleVi", titleVi);
+            entry.put("descVi", descVi);
+            entry.put("titleEn", titleEn);
+            entry.put("descEn", descEn);
+            // Backward compatibility
+            entry.put("title", titleVi);
+            entry.put("description", descVi);
             history.add(entry);
 
             sh.setTrackingHistory(objectMapper.writeValueAsString(history));
@@ -2038,6 +2079,31 @@ public class OrderServiceImpl implements OrderService {
         }
         
         return response;
+    }
+
+    // ==================== SEARCH ORDERS ====================
+    
+    @Override
+    public List<Order> searchOrders(String shopOwnerId, String query) {
+        if (query == null || query.trim().isEmpty()) {
+            return Collections.emptyList();
+        }
+        
+        // Get shop owner's product IDs
+        List<String> shopProductIds = stockServiceClient.getProductIdsByShopOwner(shopOwnerId).getBody();
+        if (shopProductIds == null || shopProductIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        
+        String searchQuery = query.trim().toLowerCase();
+        
+        // Search by order ID prefix
+        List<Order> allShopOrders = orderRepository.findByOrderItemsProductIdIn(shopProductIds);
+        
+        return allShopOrders.stream()
+                .filter(order -> order.getId().toLowerCase().contains(searchQuery))
+                .limit(50)  // Limit results
+                .collect(Collectors.toList());
     }
 
     // ==================== BULK UPDATE STATUS CONSUMER ====================

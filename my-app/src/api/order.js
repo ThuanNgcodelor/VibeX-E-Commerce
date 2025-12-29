@@ -313,3 +313,37 @@ export const bulkUpdateOrderStatus = async (orderIds, newStatus) => {
         throw new Error(error.response?.data?.error || "Failed to bulk update orders");
     }
 };
+
+/**
+ * Search orders by query (order ID)
+ * @param {string} query - Search query (order ID)
+ * @returns {Promise<Array>} - List of matching orders
+ */
+export const searchOrders = async (query) => {
+    try {
+        const response = await api.get("/shop-owner/orders/search", {
+            params: { query }
+        });
+        return response.data;
+    } catch (error) {
+        throw new Error(error.response?.data?.error || "Failed to search orders");
+    }
+};
+
+/**
+ * Get all order IDs matching filter (for Select All Across Pages)
+ * @param {string|Array|null} status - Status filter (optional)
+ * @returns {Promise<Array<string>>} - List of order IDs
+ */
+export const getAllOrderIds = async (status = null) => {
+    try {
+        const params = {};
+        if (status) {
+            params.status = Array.isArray(status) ? status.join(',') : status;
+        }
+        const response = await api.get("/shop-owner/orders/all-ids", { params });
+        return response.data;
+    } catch (error) {
+        throw new Error(error.response?.data?.error || "Failed to get order IDs");
+    }
+};
