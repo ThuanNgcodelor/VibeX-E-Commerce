@@ -3,9 +3,10 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import Header from '../../components/client/Header.jsx';
-import { getShopOwnerByUserId, getFollowerCount, checkIsFollowing, followShop, unfollowShop } from '../../api/user';
+import { getShopOwnerByUserId, getFollowerCount, checkIsFollowing, followShop, unfollowShop, getShopDecoration } from '../../api/user';
 import { getShopProducts, getShopStats, fetchProductImageById } from '../../api/product';
 import imgFallback from "../../assets/images/shop/6.png";
+import DecorationRenderer from '../../components/shop-owner/decoration/DecorationRenderer';
 
 export default function ShopDetailPage() {
     const { userId } = useParams();
@@ -16,8 +17,9 @@ export default function ShopDetailPage() {
     const [isFollowing, setIsFollowing] = useState(false);
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState('products'); // Default to products for better UX
+    const [activeTab, setActiveTab] = useState('products'); // Default to updated later
     const [imageUrls, setImageUrls] = useState({});
+    const [decorationConfig, setDecorationConfig] = useState(null);
     const { t } = useTranslation();
 
     useEffect(() => {
@@ -27,6 +29,17 @@ export default function ShopDetailPage() {
                 // 1. Get Shop Owner Info
                 const shopData = await getShopOwnerByUserId(userId);
                 setShopInfo(shopData);
+
+                // Fetch Decoration
+                try {
+                    const decoRes = await getShopDecoration(shopData.userId || userId);
+                    if (decoRes && decoRes.content) {
+                        setDecorationConfig(JSON.parse(decoRes.content));
+                        setActiveTab('home');
+                    }
+                } catch (e) {
+                    console.error("Decoration fetch error", e);
+                }
 
                 // 2. Get Shop Stats (Product Count, Avg Rating)
                 getShopStats(userId).then(data => {
@@ -272,6 +285,17 @@ export default function ShopDetailPage() {
                     <div className="card shadow-sm border-0">
                         <div className="card-header bg-white border-bottom">
                             <ul className="nav nav-tabs card-header-tabs border-0">
+                                {decorationConfig && decorationConfig.length > 0 && (
+                                    <li className="nav-item">
+                                        <button
+                                            className={`nav-link border-0 ${activeTab === 'home' ? 'active text-danger border-bottom border-danger border-3' : 'text-dark'}`}
+                                            onClick={() => setActiveTab('home')}
+                                            style={{ fontWeight: activeTab === 'home' ? 'bold' : 'normal' }}
+                                        >
+                                            Trang chủ
+                                        </button>
+                                    </li>
+                                )}
                                 <li className="nav-item">
                                     <button
                                         className={`nav-link border-0 ${activeTab === 'products' ? 'active text-danger border-bottom border-danger border-3' : 'text-dark'}`}
@@ -293,6 +317,9 @@ export default function ShopDetailPage() {
                             </ul>
                         </div>
                         <div className="card-body p-4">
+                            {activeTab === 'home' && decorationConfig && (
+                                <DecorationRenderer config={decorationConfig} />
+                            )}
                             {activeTab === 'intro' && (
                                 <div>
                                     <h5 className="text-danger mb-3 fw-bold">About the Shop</h5>

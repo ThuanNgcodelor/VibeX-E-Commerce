@@ -334,6 +334,18 @@ const ShopOwnerSidebar = ({ isOpen, onClose }) => {
                     )}
                 </div>
 
+                {/* Shop Decoration */}
+                <div className="sidebar-section">
+                    <Link
+                        className={`sidebar-item ${isActive('/shop-owner/decoration') ? 'active' : ''}`}
+                        to="/shop-owner/decoration"
+                        onClick={handleLinkClick}
+                    >
+                        <i className="fas fa-paint-brush"></i>
+                        <span>{t('shopDecoration') || 'Decoration'}</span>
+                    </Link>
+                </div>
+
                 {/* Settings */}
                 <div className="sidebar-section">
                     <Link

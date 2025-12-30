@@ -41,7 +41,7 @@ export const removeCartItem = async (cartItemId) => {
     try {
         await api.delete(`/stock/cart/item/remove/${cartItemId}`);
         return true;
-    } catch  {
+    } catch {
         return false;
     }
 };

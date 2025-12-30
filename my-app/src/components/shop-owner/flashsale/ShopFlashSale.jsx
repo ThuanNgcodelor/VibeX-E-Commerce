@@ -4,8 +4,10 @@ import axios from 'axios';
 import { API_BASE_URL } from '../../../config/config';
 import '../ShopOwnerLayout.css'; // Import shared styles
 import Cookies from 'js-cookie';
+import { useTranslation } from 'react-i18next';
 
 const ShopFlashSale = () => {
+    const { t } = useTranslation();
     const [sessions, setSessions] = useState([]);
     const [myRegistrations, setMyRegistrations] = useState([]);
     const [products, setProducts] = useState([]);
@@ -24,7 +26,7 @@ const ShopFlashSale = () => {
     useEffect(() => {
         const token = Cookies.get('accessToken');
         if (!token) {
-            alert("Bạn chưa đăng nhập. Vui lòng đăng nhập lại!");
+            alert("Bạn chưa đăng nhập. Vui lòng đăng nhập lại!"); // Consider translating this too if generic
             return;
         }
         fetchSessions();
@@ -84,7 +86,7 @@ const ShopFlashSale = () => {
                 salePrice: parseFloat(salePrice),
                 flashSaleStock: parseInt(stock)
             });
-            alert('Đăng ký thành công! Chờ Admin duyệt.');
+            alert(t('shopOwner.flashSale.successMessage'));
             fetchMyRegistrations();
             // Reset form and go back to list
             setSalePrice('');
@@ -93,7 +95,7 @@ const ShopFlashSale = () => {
             setIsRegistering(false);
         } catch (error) {
             console.error(error);
-            alert('Đăng ký thất bại: ' + (error.response?.data?.message || 'Lỗi không xác định'));
+            alert(t('shopOwner.flashSale.errorMessage', { message: error.response?.data?.message || 'Error' }));
         } finally {
             setLoading(false);
         }
@@ -105,11 +107,11 @@ const ShopFlashSale = () => {
             <div className="dashboard-header">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                        <h1>{isRegistering ? 'Đăng Ký Sản Phẩm Mới' : 'Quản Lý Flash Sale'}</h1>
+                        <h1>{isRegistering ? t('shopOwner.flashSale.registerTitle') : t('shopOwner.flashSale.title')}</h1>
                         <p className="text-muted">
                             {isRegistering
-                                ? 'điền thông tin sản phẩm để tham gia chương trình Flash Sale'
-                                : 'Danh sách các sản phẩm đã đăng ký tham gia Flash Sale'}
+                                ? t('shopOwner.flashSale.registerDescription')
+                                : t('shopOwner.flashSale.description')}
                         </p>
                     </div>
                     {isRegistering ? (
@@ -117,14 +119,14 @@ const ShopFlashSale = () => {
                             className="btn btn-secondary-shop"
                             onClick={() => setIsRegistering(false)}
                         >
-                            <i className="fas fa-arrow-left"></i> Quay lại
+                            <i className="fas fa-arrow-left"></i> {t('shopOwner.flashSale.backButton')}
                         </button>
                     ) : (
                         <button
                             className="btn btn-primary-shop"
                             onClick={() => setIsRegistering(true)}
                         >
-                            <i className="fas fa-plus"></i> Đăng Ký Tham Gia
+                            <i className="fas fa-plus"></i> {t('shopOwner.flashSale.registerButton')}
                         </button>
                     )}
                 </div>
@@ -137,19 +139,19 @@ const ShopFlashSale = () => {
                         <div className="col-md-8">
                             <div className="card" style={{ marginBottom: '20px' }}>
                                 <div className="card-header">
-                                    <h5><i className="fas fa-info-circle"></i> Thông tin đăng ký</h5>
+                                    <h5><i className="fas fa-info-circle"></i> {t('shopOwner.flashSale.registrationInfo')}</h5>
                                 </div>
                                 <div className="card-body">
                                     {/* Session Selection */}
                                     <div className="mb-3">
-                                        <label className="form-label">Chọn Chương Trình <span style={{ color: 'red' }}>*</span></label>
+                                        <label className="form-label">{t('shopOwner.flashSale.selectSessionRequired')} <span style={{ color: 'red' }}>*</span></label>
                                         <select
                                             className="form-select"
                                             value={selectedSessionId}
                                             onChange={e => setSelectedSessionId(e.target.value)}
                                             required
                                         >
-                                            <option value="">-- Chọn khung giờ Flash Sale --</option>
+                                            <option value="">{t('shopOwner.flashSale.selectSessionPlaceholder')}</option>
                                             {sessions.map(s => (
                                                 <option key={s.id} value={s.id}>
                                                     {s.name} ({new Date(s.startTime).toLocaleString('vi-VN')} - {new Date(s.endTime).toLocaleString('vi-VN')})
@@ -160,17 +162,17 @@ const ShopFlashSale = () => {
 
                                     {/* Product Selection */}
                                     <div className="mb-3">
-                                        <label className="form-label">Chọn Sản Phẩm <span style={{ color: 'red' }}>*</span></label>
+                                        <label className="form-label">{t('shopOwner.flashSale.selectProductRequired')} <span style={{ color: 'red' }}>*</span></label>
                                         <select
                                             className="form-select"
                                             value={selectedProductId}
                                             onChange={e => setSelectedProductId(e.target.value)}
                                             required
                                         >
-                                            <option value="">-- Chọn sản phẩm tham gia --</option>
+                                            <option value="">{t('shopOwner.flashSale.selectProductPlaceholder')}</option>
                                             {products.map(p => (
                                                 <option key={p.id} value={p.id}>
-                                                    {p.name} - Giá gốc: {p.price?.toLocaleString()}đ (Kho: {p.totalStock})
+                                                    {p.name} - {t('shopOwner.flashSale.originalPrice')}: {p.price?.toLocaleString()}đ ({t('shopOwner.flashSale.stockAvailable')}: {p.totalStock})
                                                 </option>
                                             ))}
                                         </select>
@@ -203,7 +205,7 @@ const ShopFlashSale = () => {
                                     <div className="row">
                                         <div className="col-md-6">
                                             <div className="mb-3">
-                                                <label className="form-label">Giá Sale (VND) <span style={{ color: 'red' }}>*</span></label>
+                                                <label className="form-label">{t('shopOwner.flashSale.salePrice')} <span style={{ color: 'red' }}>*</span></label>
                                                 <input
                                                     type="number"
                                                     className="form-control"
@@ -216,7 +218,7 @@ const ShopFlashSale = () => {
                                                 {selectedProductData && salePrice && (
                                                     <small className={`d-block mt-1 ${parseFloat(salePrice) >= selectedProductData.price ? 'text-danger' : 'text-success'}`}>
                                                         {parseFloat(salePrice) >= selectedProductData.price
-                                                            ? 'Lưu ý: Giá sale phải thấp hơn giá gốc!'
+                                                            ? t('shopOwner.flashSale.priceWarning') // 'Lưu ý: Giá sale phải thấp hơn giá gốc!'
                                                             : `Giảm: ${Math.round((1 - parseFloat(salePrice) / selectedProductData.price) * 100)}%`}
                                                     </small>
                                                 )}
@@ -224,7 +226,7 @@ const ShopFlashSale = () => {
                                         </div>
                                         <div className="col-md-6">
                                             <div className="mb-3">
-                                                <label className="form-label">Số Lượng Đăng Ký <span style={{ color: 'red' }}>*</span></label>
+                                                <label className="form-label">{t('shopOwner.flashSale.stock')} <span style={{ color: 'red' }}>*</span></label>
                                                 <input
                                                     type="number"
                                                     className={`form-control ${selectedProductData && parseInt(stock) > selectedProductData.totalStock ? 'is-invalid' : ''}`}
@@ -241,11 +243,11 @@ const ShopFlashSale = () => {
                                                 {selectedProductData && (
                                                     <>
                                                         <small className="text-muted d-block mt-1">
-                                                            Tồn kho khả dụng: {selectedProductData.totalStock}
+                                                            {t('shopOwner.flashSale.stockAvailable')}: {selectedProductData.totalStock}
                                                         </small>
                                                         {parseInt(stock) > selectedProductData.totalStock && (
                                                             <div className="invalid-feedback d-block">
-                                                                Số lượng đăng ký không thể vượt quá tồn kho hiện có!
+                                                                {t('shopOwner.flashSale.invalidStock')}
                                                             </div>
                                                         )}
                                                     </>
@@ -261,11 +263,11 @@ const ShopFlashSale = () => {
                         <div className="col-md-4">
                             <div className="card" style={{ position: 'sticky', top: '20px' }}>
                                 <div className="card-header">
-                                    <h5><i className="fas fa-check-circle"></i> Xác nhận</h5>
+                                    <h5><i className="fas fa-check-circle"></i> {t('shopOwner.flashSale.confirmHeader')}</h5>
                                 </div>
                                 <div className="card-body">
                                     <p className="text-muted small mb-3">
-                                        Vui lòng kiểm tra kỹ thông tin trước khi gửi đăng ký. Admin sẽ duyệt sản phẩm của bạn trước khi hiển thị.
+                                        {t('shopOwner.flashSale.confirmText')}
                                     </p>
                                     <div className="d-grid gap-2">
                                         <button
@@ -274,9 +276,9 @@ const ShopFlashSale = () => {
                                             disabled={loading}
                                         >
                                             {loading ? (
-                                                <><i className="fas fa-spinner fa-spin"></i> Đang xử lý...</>
+                                                <><i className="fas fa-spinner fa-spin"></i> {t('shopOwner.flashSale.loading')}</>
                                             ) : (
-                                                <><i className="fas fa-paper-plane"></i> Gửi Đăng Ký</>
+                                                <><i className="fas fa-paper-plane"></i> {t('shopOwner.flashSale.submitRegister')}</>
                                             )}
                                         </button>
                                         <button
@@ -284,7 +286,7 @@ const ShopFlashSale = () => {
                                             className="btn btn-secondary-shop"
                                             onClick={() => setIsRegistering(false)}
                                         >
-                                            Hủy bỏ
+                                            {t('shopOwner.flashSale.cancel')}
                                         </button>
                                     </div>
                                 </div>
@@ -296,25 +298,25 @@ const ShopFlashSale = () => {
                 /* List View */
                 <div className="card pb-5">
                     <div className="table-header">
-                        <h5 className="table-title mb-0">Lịch Sử Đăng Ký</h5>
+                        <h5 className="table-title mb-0">{t('shopOwner.flashSale.historyTitle')}</h5>
                     </div>
                     <div className="card-body p-0">
                         {myRegistrations.length === 0 ? (
                             <div className="text-center py-5">
                                 <div className="text-gray-300 text-5xl mb-3"><i className="fas fa-inbox"></i></div>
-                                <p className="text-gray-500">Bạn chưa đăng ký sản phẩm nào tham gia Flash Sale.</p>
+                                <p className="text-gray-500">{t('shopOwner.flashSale.noRegistrations')}</p>
                             </div>
                         ) : (
                             <div className="table-responsive">
                                 <table className="table table-hover mb-0">
                                     <thead className="bg-light text-muted">
                                         <tr>
-                                            <th className="ps-4 py-3">Sản Phẩm</th>
-                                            <th className="py-3">Chương Trình</th>
-                                            <th className="py-3">Giá Gốc</th>
-                                            <th className="py-3">Giá Sale</th>
-                                            <th className="py-3">Số Lượng</th>
-                                            <th className="py-3 text-center">Trạng Thái</th>
+                                            <th className="ps-4 py-3">{t('shopOwner.flashSale.product')}</th>
+                                            <th className="py-3">{t('shopOwner.flashSale.program')}</th>
+                                            <th className="py-3">{t('shopOwner.flashSale.originalPrice')}</th>
+                                            <th className="py-3">{t('shopOwner.flashSale.salePrice')}</th>
+                                            <th className="py-3">{t('shopOwner.flashSale.stock')}</th>
+                                            <th className="py-3 text-center">{t('shopOwner.flashSale.status')}</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -344,7 +346,9 @@ const ShopFlashSale = () => {
                                                         <span className={`badge rounded-pill ${reg.status === 'APPROVED' ? 'bg-success' :
                                                             reg.status === 'REJECTED' ? 'bg-danger' : 'bg-warning text-dark'
                                                             }`}>
-                                                            {reg.status}
+                                                            {reg.status === 'APPROVED' ? t('shopOwner.flashSale.approved') :
+                                                                reg.status === 'REJECTED' ? t('shopOwner.flashSale.rejected') :
+                                                                    t('shopOwner.flashSale.pending')}
                                                         </span>
                                                         {reg.rejectionReason && (
                                                             <div className="text-danger small mt-1" style={{ fontSize: '11px', maxWidth: '150px', margin: '0 auto' }}>

@@ -57,7 +57,7 @@ import ShopAdRequest from "./components/shop-owner/ads/ShopAdRequest.jsx";
 import AdminFlashSale from "./components/admin/flashsale/AdminFlashSale.jsx";
 import FlashSale from "./components/client/FlashSale.jsx";
 import ShopFlashSale from "./components/shop-owner/flashsale/ShopFlashSale.jsx";
-
+import ShopDecorationPage from "./pages/shop-owner/ShopDecorationPage.jsx";
 
 // Component to scroll to top on route change
 function ScrollToTop() {
@@ -100,12 +100,20 @@ function GlobalChatWidget() {
 }
 
 
+import { Toaster } from 'react-hot-toast';
+
+// ... (other imports)
+
+// Global Chat Widget - only show on client pages 
+// ...
+
 export default function App() {
   return (
     <HelmetProvider>
       <BrowserRouter>
         <ScrollToTop />
         <GlobalChatWidget />
+        <Toaster position="top-right" reverseOrder={false} />
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<AuthPage />} />
@@ -171,11 +179,11 @@ export default function App() {
             <Route path="inventory" element={<InventoryPage />} />
             <Route path="products/add" element={<AddProductPage />} />
             <Route path="products/edit/:id" element={<AddProductPage />} />
-
             <Route path="orders/returns" element={<ReturnOrderPage />} />
             <Route path="orders/bulk-shipping" element={<BulkShippingPage />} />
             <Route path="reviews" element={<ReviewManagementPage />} />
             <Route path="vouchers" element={<ShopVoucherPage />} />
+            <Route path="decoration" element={<ShopDecorationPage />} />
             <Route path="flash-sale" element={<ShopFlashSale />} />
             <Route path="ads" element={<ShopAdRequest />} />
             <Route path="analytics" element={<AnalyticsPage />} />

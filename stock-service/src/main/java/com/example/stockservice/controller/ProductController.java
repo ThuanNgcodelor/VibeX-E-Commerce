@@ -40,7 +40,6 @@ public class ProductController {
     private final FlashSaleService flashSaleService;
     private final ObjectMapper objectMapper;
 
-
     @GetMapping("/public/shop/{shopId}/stats")
     public ResponseEntity<java.util.Map<String, Object>> getShopStats(@PathVariable String shopId) {
         long productCount = productService.countProductsByUserId(shopId);
@@ -86,7 +85,6 @@ public class ProductController {
         return ResponseEntity.ok(products);
     }
 
-
     @PostMapping("/decreaseStock")
     public ResponseEntity<ProductDto> decreaseStock(@Valid @RequestBody DecreaseStockRequest request) {
         productService.decreaseStockBySize(request.getSizeId(), request.getQuantity());
@@ -127,7 +125,7 @@ public class ProductController {
     // "discountPercent": 12.1,
     // "categoryId": "1",
     // "sizes": [
-// {
+    // {
     // "name": "128GB",
     // "description": "Bộ nhớ 128GB",
     // "stock": 50,
@@ -149,8 +147,8 @@ public class ProductController {
     // }
     @PostMapping("/create")
     ResponseEntity<ProductDto> createProduct(@Valid @RequestPart("request") ProductCreateRequest request,
-                                             @RequestPart(value = "file", required = false) MultipartFile[] files,
-                                             HttpServletRequest httpServletRequest) {
+            @RequestPart(value = "file", required = false) MultipartFile[] files,
+            HttpServletRequest httpServletRequest) {
         String userId = jwtUtil.ExtractUserId(httpServletRequest);
         request.setUserId(userId);
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -159,8 +157,8 @@ public class ProductController {
 
     @PutMapping("/update")
     ResponseEntity<ProductDto> updateProduct(@Valid @RequestPart("request") ProductUpdateRequest request,
-                                             @RequestPart(value = "file", required = false) MultipartFile[] files,
-                                             HttpServletRequest httpServletRequest) {
+            @RequestPart(value = "file", required = false) MultipartFile[] files,
+            HttpServletRequest httpServletRequest) {
         String userId = jwtUtil.ExtractUserId(httpServletRequest);
         request.setUserId(userId);
         return ResponseEntity.status(HttpStatus.OK)
@@ -203,6 +201,7 @@ public class ProductController {
         return ResponseEntity.ok(productService.getAllProducts().stream()
                 .map(this::toDto).toList());
     }
+
     @GetMapping("/listPageShopOwner")
     ResponseEntity<Page<ProductDto>> getAllProductsByShopOwner(
             HttpServletRequest httpServletRequest,
