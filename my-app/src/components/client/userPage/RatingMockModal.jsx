@@ -104,13 +104,13 @@ export default function RatingModal({ isOpen, onClose, onSubmit, product, initia
                     </div>
 
                     <div className="modal-body">
-                        <div className={`alert ${mode === 'quick' ? 'alert-info' : 'alert-warning'} d-flex align-items-center mb-3`} role="alert" style={{ fontSize: '13px' }}>
+                        <div className={`alert ${mode === 'quick' ? 'alert-info' : 'alert-warning'} d-flex align-items-center mb-2`} role="alert" style={{ fontSize: '13px', padding: '8px 12px' }}>
                             <i className={`fas ${mode === 'quick' ? 'fa-star' : 'fa-coins'} me-2`}></i>
                             <div>{mode === 'quick' ? t('ratingModal.quickRateMessage') : t('ratingModal.shareReviewMessage')}</div>
                         </div>
 
-                        <div className="d-flex gap-3 mb-4">
-                            <div style={{ width: '60px', height: '60px', flexShrink: 0, border: '1px solid #eee', borderRadius: '4px', overflow: 'hidden' }}>
+                        <div className="d-flex gap-3 mb-2 align-items-center">
+                            <div style={{ width: '48px', height: '48px', flexShrink: 0, border: '1px solid #eee', borderRadius: '4px', overflow: 'hidden' }}>
                                 {product?.image ? (
                                     <img src={product.image} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                 ) : (
@@ -120,25 +120,25 @@ export default function RatingModal({ isOpen, onClose, onSubmit, product, initia
                                 )}
                             </div>
                             <div>
-                                <div className="fw-semibold text-truncate" style={{ maxWidth: '400px' }}>{product?.name || 'Product Name'}</div>
-                                <div className="text-muted small">{t('ratingModal.buyFrom')}: {product?.shopName || 'Shop'}</div>
+                                <div className="fw-semibold text-truncate" style={{ maxWidth: '400px', fontSize: '14px' }}>{product?.name || 'Product Name'}</div>
+                                <div className="text-muted small" style={{ fontSize: '12px' }}>{t('ratingModal.buyFrom')}: {product?.shopName || 'Shop'}</div>
                             </div>
                         </div>
 
-                        <div className="mb-4 text-center">
-                            <div className="d-flex justify-content-center gap-2 mb-2">
+                        <div className="mb-2 text-center">
+                            <div className="d-flex justify-content-center gap-2 mb-1">
                                 {[1, 2, 3, 4, 5].map(star => (
                                     <i
                                         key={star}
                                         className={`fas fa-star fa-2x cursor-pointer ${star <= (hoverRating || rating) ? 'text-warning' : 'text-secondary'}`}
-                                        style={{ cursor: 'pointer', color: star <= (hoverRating || rating) ? '#ffc107' : '#e4e5e9' }}
+                                        style={{ cursor: 'pointer', color: star <= (hoverRating || rating) ? '#ffc107' : '#e4e5e9', fontSize: '24px' }}
                                         onMouseEnter={() => setHoverRating(star)}
                                         onMouseLeave={() => setHoverRating(0)}
                                         onClick={() => setRating(star)}
                                     />
                                 ))}
                             </div>
-                            <div className="text-warning fw-bold">
+                            <div className="text-warning fw-bold" style={{ fontSize: '14px' }}>
                                 {hoverRating || rating ? (
                                     (hoverRating || rating) === 5 ? t('ratingModal.excellent') :
                                         (hoverRating || rating) === 4 ? t('ratingModal.good') :
@@ -150,17 +150,17 @@ export default function RatingModal({ isOpen, onClose, onSubmit, product, initia
 
                         {mode === 'full' && (
                             <>
-                                <div className="mb-3">
-                  <textarea
-                      className="form-control"
-                      rows="4"
-                      placeholder={t('rating.shareWhatYouLike')}
-                      value={comment}
-                      onChange={(e) => setComment(e.target.value)}
-                  ></textarea>
+                                <div className="mb-2">
+                                    <textarea
+                                        className="form-control"
+                                        rows="3"
+                                        placeholder={t('rating.shareWhatYouLike')}
+                                        value={comment}
+                                        onChange={(e) => setComment(e.target.value)}
+                                    ></textarea>
                                 </div>
 
-                                <div className="mb-3">
+                                <div className="mb-2">
                                     <div className="d-flex flex-wrap gap-2">
                                         {previewUrls.map((url, idx) => (
                                             <div key={idx} className="position-relative" style={{ width: '70px', height: '70px' }}>

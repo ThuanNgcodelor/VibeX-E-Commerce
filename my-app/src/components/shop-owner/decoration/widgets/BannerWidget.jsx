@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Form, Button, Row, Col, Image, Spinner, Card } from 'react-bootstrap';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
-import { uploadShopDecorationImage } from '../../../../api/user';
+import { uploadImage, getImageUrl } from '../../../../api/image';
 
 const BannerWidget = ({ data, onChange }) => {
     const { t } = useTranslation();
@@ -10,7 +10,7 @@ const BannerWidget = ({ data, onChange }) => {
     const images = data.images || [];
 
     const handleAddImage = () => {
-        onChange({ ...data, images: [...images, { url: '', link: '' }] });
+        onChange({ ...data, images: [...images, { imageId: '' }] });
     };
 
     const handleRemoveImage = (index) => {
@@ -30,9 +30,9 @@ const BannerWidget = ({ data, onChange }) => {
 
         setUploadingIndex(index);
         try {
-            const imageUrl = await uploadShopDecorationImage(file);
-            if (imageUrl) {
-                handleImageChange(index, 'url', imageUrl);
+            const imageId = await uploadImage(file);
+            if (imageId) {
+                handleImageChange(index, 'imageId', imageId);
                 toast.success(t('shopOwner.decoration.savedSuccess'));
             }
         } catch (error) {
@@ -46,10 +46,13 @@ const BannerWidget = ({ data, onChange }) => {
 
     return (
         <div className="p-2">
-            <h5 className="mb-3 fw-bold text-primary">
+            <h5 className="mb-1 fw-bold text-primary">
                 <i className="bi bi-images me-2"></i>
                 {t('shopOwner.decoration.widgets.bannerTitle')}
             </h5>
+            <div className="text-muted small mb-3 fst-italic">
+                {t('shopOwner.decoration.widgets.bannerSizeHint')}
+            </div>
 
             <div className="d-flex flex-column gap-3 mb-3">
                 {images.map((img, index) => (
@@ -72,10 +75,10 @@ const BannerWidget = ({ data, onChange }) => {
                                 {/* Image Preview Section */}
                                 <Col md={4} className="d-flex align-items-center justify-content-center">
                                     <div className="position-relative w-100" style={{ minHeight: '140px' }}>
-                                        {img.url ? (
+                                        {img.imageId ? (
                                             <div className="border rounded overflow-hidden shadow-sm h-100">
                                                 <Image
-                                                    src={img.url}
+                                                    src={getImageUrl(img.imageId)}
                                                     fluid
                                                     style={{ width: '100%', height: '140px', objectFit: 'cover' }}
                                                 />
@@ -92,17 +95,8 @@ const BannerWidget = ({ data, onChange }) => {
                                 {/* Inputs Section */}
                                 <Col md={8}>
                                     <Form.Group className="mb-3">
-                                        <Form.Label className="small fw-bold text-muted mb-1">
-                                            {t('shopOwner.decoration.widgets.imageUrl')}
-                                        </Form.Label>
-                                        <div className="input-group">
-                                            <Form.Control
-                                                type="text"
-                                                placeholder="https://example.com/image.jpg"
-                                                value={img.url}
-                                                onChange={(e) => handleImageChange(index, 'url', e.target.value)}
-                                            />
-                                            <div className="position-relative">
+                                        <div className="d-flex align-items-center">
+                                            <div className="position-relative w-100">
                                                 <input
                                                     type="file"
                                                     id={`file-upload-${index}`}
@@ -112,30 +106,18 @@ const BannerWidget = ({ data, onChange }) => {
                                                 />
                                                 <label
                                                     htmlFor={`file-upload-${index}`}
-                                                    className={`btn btn-outline-secondary h-100 d-flex align-items-center ${uploadingIndex === index ? 'disabled' : ''}`}
-                                                    style={{ borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}
+                                                    className={`btn btn-outline-primary w-100 d-flex align-items-center justify-content-center gap-2 ${uploadingIndex === index ? 'disabled' : ''}`}
                                                 >
                                                     {uploadingIndex === index ? (
                                                         <Spinner animation="border" size="sm" />
                                                     ) : (
-                                                        <><i className="bi bi-upload me-1"></i> Upload</>
+                                                        <><i className="bi bi-upload"></i> {t('shopOwner.decoration.widgets.imageUrl') || 'Select Image'}</>
                                                     )}
                                                 </label>
                                             </div>
                                         </div>
                                     </Form.Group>
 
-                                    <Form.Group>
-                                        <Form.Label className="small fw-bold text-muted mb-1">
-                                            {t('shopOwner.decoration.widgets.linkUrl')}
-                                        </Form.Label>
-                                        <Form.Control
-                                            type="text"
-                                            placeholder="https://myshop.com/product/123"
-                                            value={img.link}
-                                            onChange={(e) => handleImageChange(index, 'link', e.target.value)}
-                                        />
-                                    </Form.Group>
                                 </Col>
                             </Row>
                         </Card.Body>

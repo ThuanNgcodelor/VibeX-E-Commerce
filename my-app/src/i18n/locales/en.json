@@ -473,6 +473,7 @@
     "viewShop": "View Shop",
     "deliverySuccessful": "Delivery successful",
     "loadingShop": "Loading...",
+    "unknownShop": "Unknown Shop",
     "shopNotAvailable": "Shop info not available. Please try again."
   },
   "rating": {
@@ -823,6 +824,7 @@
       "notifications": "Notifications",
       "finance": "Finance",
       "wallet": "Wallet",
+      "subscription": "Subscription",
       "settings": "Settings"
     },
     "flashSale": {
@@ -862,6 +864,11 @@
       "saveChanges": "Save Changes",
       "componentLibrary": "Component Library",
       "previewAndEdit": "Preview & Edit",
+      "templates": "Templates",
+      "applyTemplate": "Apply Template",
+      "confirmApplyTemplate": "Apply this template?",
+      "confirmApplyTemplateText": "This will replace your current decoration. Are you sure?",
+      "templateApplied": "Template applied successfully",
       "savedSuccess": "Configuration saved successfully",
       "saveFailed": "Failed to save configuration",
       "loadFailed": "Failed to load shop configuration",
@@ -869,9 +876,12 @@
       "selectComponent": "Select a component from the library to start decorating",
       "unknownWidget": "Unknown Component",
       "defaultCollectionTitle": "New Collection",
+      "widgetAdded": "Widget added successfully",
+      "widgetsTab": "Widgets",
       "widgets": {
         "banner": "Banner Carousel",
         "bannerTitle": "Banner Settings",
+        "bannerSizeHint": "Recommended size: 1200x400px",
         "video": "Video",
         "videoTitle": "Video Settings",
         "products": "Product List",
@@ -893,6 +903,20 @@
         "chooseNow": "Choose now",
         "confirm": "Confirm",
         "cancel": "Cancel"
+      },
+      "templatesList": {
+        "simpleStore": {
+          "name": "Simple Store",
+          "desc": "A clean layout with a banner and product list."
+        },
+        "videoHighlight": {
+          "name": "Video Highlight",
+          "desc": "Focus on video content to showcase your brand."
+        },
+        "richContent": {
+          "name": "Rich Content",
+          "desc": "A comprehensive layout with multiple sections."
+        }
       }
     },
     "reviews": {
@@ -1451,7 +1475,8 @@
         "paymentFee": "Payment fee",
         "fixedFee": "Fixed fee",
         "subscriptionFee": "Subscription fee",
-        "perProduct": "per product"
+        "perProduct": "per product",
+        "contactSupport": "Contact support for more details"
       }
     },
     "returnOrder": {
@@ -1571,5 +1596,36 @@
       "today": "What day is today?"
     }
   },
-  "shopDecoration": "Shop Decoration"
+  "shopDecoration": "Shop Decoration",
+  "shop": {
+    "products": "Products",
+    "rating": "Rating",
+    "chatResponse": "Chat Response",
+    "followers": "Followers",
+    "joined": "Joined",
+    "following": "Following",
+    "home": "Home",
+    "intro": "Introduction",
+    "aboutShop": "About the Shop",
+    "shopName": "Shop Name",
+    "owner": "Owner",
+    "email": "Email",
+    "address": "Address",
+    "noProducts": "No products found in this shop.",
+    "follow": "Follow",
+    "followingStatus": "Following",
+    "chat": "Chat",
+    "online": "Online",
+    "errorLoading": "Failed to load shop information",
+    "notFound": "Shop not found",
+    "goHome": "Go to Homepage",
+    "yearsAgo": "{{count}} years ago",
+    "monthsAgo": "{{count}} months ago",
+    "daysAgo": "{{count}} days ago",
+    "hoursAgo": "{{count}} hours ago",
+    "justNow": "Just now",
+    "na": "N/A",
+    "soldOut": "Sold Out",
+    "noRatings": "No ratings"
+  }
 }

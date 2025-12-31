@@ -151,7 +151,7 @@ export const getShopOwnerInfo = async () => {
  */
 export const getShopOwnerByUserId = async (userId) => {
     try {
-        const response = await api.get(`/shop-owners/${userId}`);
+        const response = await api.get(`/shop-owners/${encodeURIComponent(userId)}`);
         return response.data;
     } catch {
         throw new Error("Failed to fetch shop owner");
@@ -361,7 +361,7 @@ export const checkDefaultAddress = async () => {
  * @param {string} shopId
  */
 export const followShop = async (shopId) => {
-    return api.post(`/follow/${shopId}`);
+    return api.post(`/follow/${encodeURIComponent(shopId)}`, {});
 };
 
 /**
@@ -369,7 +369,7 @@ export const followShop = async (shopId) => {
  * @param {string} shopId
  */
 export const unfollowShop = async (shopId) => {
-    return api.delete(`/follow/${shopId}`);
+    return api.delete(`/follow/${encodeURIComponent(shopId)}`);
 };
 
 /**
@@ -377,7 +377,7 @@ export const unfollowShop = async (shopId) => {
  * @param {string} shopId
  */
 export const getFollowerCount = async (shopId) => {
-    const res = await api.get(`/follow/${shopId}/count`);
+    const res = await api.get(`/follow/${encodeURIComponent(shopId)}/count`);
     return res.data;
 };
 
@@ -386,7 +386,7 @@ export const getFollowerCount = async (shopId) => {
  * @param {string} shopId
  */
 export const checkIsFollowing = async (shopId) => {
-    const res = await api.get(`/follow/${shopId}/status`);
+    const res = await api.get(`/follow/${encodeURIComponent(shopId)}/status`);
     return res.data;
 };
 
@@ -396,7 +396,7 @@ export const checkIsFollowing = async (shopId) => {
  */
 export const getShopDecoration = async (shopId) => {
     try {
-        const res = await api.get(`/shops/${shopId}/decoration`);
+        const res = await api.get(`/shops/${encodeURIComponent(shopId)}/decoration`);
         return res.data;
     } catch {
         return null;

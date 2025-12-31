@@ -462,6 +462,8 @@
     "processing": "Đang xử lý",
     "shipped": "Đã gửi hàng",
     "delivered": "Đã giao hàng",
+    "loadingShop": "Đang tải...",
+    "unknownShop": "Shop không xác định",
     "confirmed": "Đã xác nhận",
     "confirmReceipt": "Xác nhận đã nhận hàng",
     "confirmSuccess": "Đã xác nhận. Đơn hàng hoàn thành.",
@@ -974,6 +976,11 @@
       "saveChanges": "Lưu thay đổi",
       "componentLibrary": "Thư viện thành phần",
       "previewAndEdit": "Xem trước & Chỉnh sửa",
+      "templates": "Mẫu giao diện",
+      "applyTemplate": "Áp dụng mẫu",
+      "confirmApplyTemplate": "Áp dụng mẫu này?",
+      "confirmApplyTemplateText": "Mẫu này sẽ thay thế toàn bộ trang trí hiện tại của bạn. Bạn không thể hoàn tác.",
+      "templateApplied": "Đã áp dụng mẫu thành công",
       "savedSuccess": "Lưu cấu hình thành công",
       "saveFailed": "Lưu cấu hình thất bại",
       "loadFailed": "Không thể tải cấu hình shop",
@@ -1492,7 +1499,8 @@
         "paymentFee": "Phí thanh toán",
         "fixedFee": "Phí cố định",
         "subscriptionFee": "Phí gói subscription",
-        "perProduct": "mỗi sản phẩm"
+        "perProduct": "mỗi sản phẩm",
+        "contactSupport": "Liên hệ hỗ trợ để biết thêm chi tiết"
       }
     }
   },
@@ -1601,5 +1609,36 @@
       "today": "Hôm nay thứ mấy?"
     }
   },
-  "shopDecoration": "Trang trí Shop"
+  "shopDecoration": "Trang trí Shop",
+  "shop": {
+    "products": "Sản phẩm",
+    "rating": "Đánh giá",
+    "chatResponse": "Tỉ lệ phản hồi",
+    "followers": "Người theo dõi",
+    "joined": "Tham gia",
+    "following": "Đang theo dõi",
+    "home": "Trang chủ",
+    "intro": "Giới thiệu",
+    "aboutShop": "Thông tin Shop",
+    "shopName": "Tên Shop",
+    "owner": "Chủ Shop",
+    "email": "Email",
+    "address": "Địa chỉ",
+    "noProducts": "Không tìm thấy sản phẩm nào trong shop này.",
+    "follow": "Theo dõi",
+    "followingStatus": "Đang theo dõi",
+    "chat": "Chat",
+    "online": "Online",
+    "errorLoading": "Không thể tải thông tin shop",
+    "notFound": "Không tìm thấy Shop",
+    "goHome": "Về trang chủ",
+    "yearsAgo": "{{count}} năm trước",
+    "monthsAgo": "{{count}} tháng trước",
+    "daysAgo": "{{count}} ngày trước",
+    "hoursAgo": "{{count}} giờ trước",
+    "justNow": "Vừa xong",
+    "na": "N/A",
+    "soldOut": "Hết hàng",
+    "noRatings": "Chưa có đánh giá"
+  }
 }

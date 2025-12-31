@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import org.springframework.transaction.annotation.Propagation;
 
 @Service
 @RequiredArgsConstructor
@@ -138,8 +139,6 @@ public class ShopCoinServiceImpl implements ShopCoinService {
         return getOrCreateShopCoin(userId);
     }
 
-
-
     @Override
     @Transactional
     public void performReviewMission(String userId) {
@@ -225,7 +224,7 @@ public class ShopCoinServiceImpl implements ShopCoinService {
     }
 
     @Override
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public com.example.userservice.dto.UserMissionDto performMissionAction(String userId, String actionCode) {
         com.example.userservice.model.Mission mission = missionRepository.findByActionCode(actionCode)
                 .orElseThrow(() -> new NotFoundException("Mission not found with code: " + actionCode));

@@ -122,15 +122,47 @@ export default function OrderList() {
         getUser().then(setCurrentUser).catch(err => console.error("Failed to load user info", err));
     }, []);
 
-    const openRatingModal = (product, order, mode = 'full') => {
-        const shopInfo = shopInfoByOrder[order?.id];
+    const openRatingModal = async (product, order, mode = 'full') => {
+        setRatingMode(mode);
+        // Set initial state with what we have
+        let currentShopName = shopInfoByOrder[order?.id]?.shopName;
+
+        if (!currentShopName) {
+            // Try JIT fetch
+            try {
+                const prodId = product.productId;
+                if (prodId) {
+                    const prodRes = await fetchProductById(prodId);
+                    const prodData = prodRes?.data;
+                    const uId = prodData?.userId;
+
+                    if (uId) {
+                        try {
+                            const shopOwner = await getShopOwnerByUserId(uId);
+                            if (shopOwner?.shopName) {
+                                currentShopName = shopOwner.shopName;
+                                // Update cache
+                                setShopInfoByOrder(prev => ({
+                                    ...prev,
+                                    [order.id]: { shopName: shopOwner.shopName, shopOwnerId: uId }
+                                }));
+                            }
+                        } catch (e) {
+                            console.warn("JIT shop owner fetch failed", e);
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn("JIT product fetch failed", e);
+            }
+        }
+
         setSelectedProduct({
             id: product.productId,
             name: product.productName,
             image: imageUrls[product.imageId] || imageUrls[product.id] || imageUrls[`${product.productId}-${product.sizeId}`],
-            shopName: shopInfo?.shopName || t('orders.unknownShop') || 'Shop'
+            shopName: currentShopName || t('orders.unknownShop') || 'Shop'
         });
-        setRatingMode(mode);
         setRatingModalOpen(true);
     };
 

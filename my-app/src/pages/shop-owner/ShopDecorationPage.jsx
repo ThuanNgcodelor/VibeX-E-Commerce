@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button, Spinner } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Spinner, Tabs, Tab } from 'react-bootstrap';
 import { toast } from 'react-hot-toast';
 import { getMyShopDecoration, saveShopDecoration } from '../../api/user';
 import WidgetSelector from '../../components/shop-owner/decoration/WidgetSelector';
+import TemplateSelector from '../../components/shop-owner/decoration/TemplateSelector';
 import PreviewArea from '../../components/shop-owner/decoration/PreviewArea';
 import { useTranslation } from 'react-i18next';
+import Swal from 'sweetalert2';
 
 const ShopDecorationPage = () => {
     const { t } = useTranslation();
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [decorationConfig, setDecorationConfig] = useState([]);
+    const [activeTab, setActiveTab] = useState('widgets');
 
     useEffect(() => {
         fetchDecorationConfig();
@@ -53,6 +56,28 @@ const ShopDecorationPage = () => {
             data: getDefaultDataForType(type)
         };
         setDecorationConfig([...decorationConfig, newWidget]);
+        toast.success(t('shopOwner.decoration.widgetAdded'));
+    };
+
+    const applyTemplate = (template) => {
+        Swal.fire({
+            title: t('shopOwner.decoration.confirmApplyTemplate'),
+            text: t('shopOwner.decoration.confirmApplyTemplateText'),
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: t('yes'),
+            cancelButtonText: t('no')
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Generate new IDs for all widgets to avoid conflicts
+                const newConfig = template.config.map(widget => ({
+                    ...widget,
+                    id: Date.now() + Math.random() // Simple unique ID generation
+                }));
+                setDecorationConfig(newConfig);
+                toast.success(t('shopOwner.decoration.templateApplied'));
+            }
+        });
     };
 
     const removeWidget = (id) => {
@@ -89,9 +114,25 @@ const ShopDecorationPage = () => {
             <Row>
                 <Col md={3}>
                     <Card className="h-100">
-                        <Card.Header>{t('shopOwner.decoration.componentLibrary')}</Card.Header>
+                        <Card.Header>
+                            <Tabs
+                                activeKey={activeTab}
+                                onSelect={(k) => setActiveTab(k)}
+                                className="mb-0 card-header-tabs"
+                                justify
+                            >
+                                <Tab eventKey="widgets" title={t('shopOwner.decoration.widgetsTab')}>
+                                </Tab>
+                                <Tab eventKey="templates" title={t('shopOwner.decoration.templates')}>
+                                </Tab>
+                            </Tabs>
+                        </Card.Header>
                         <Card.Body>
-                            <WidgetSelector onAdd={addWidget} />
+                            {activeTab === 'widgets' ? (
+                                <WidgetSelector onAdd={addWidget} />
+                            ) : (
+                                <TemplateSelector onApply={applyTemplate} />
+                            )}
                         </Card.Body>
                     </Card>
                 </Col>

@@ -14,6 +14,7 @@ export const fetchImageById = (imageId) => {
     });
 };
 
+
 /**
  * Upload nhiều ảnh cùng lúc
  * @param {File[]|FileList} files - Mảng các file ảnh cần upload
@@ -27,7 +28,7 @@ export const uploadMultipleImages = async (files) => {
 
         const formData = new FormData();
         const filesArray = Array.from(files);
-        
+
         filesArray.forEach((file) => {
             if (file instanceof File) {
                 formData.append("images", file);
@@ -86,3 +87,15 @@ export const uploadImage = async (file) => {
 export const fetchProductImageById = (imageId) => {
     return fetchImageById(imageId);
 };
+
+/**
+ * Tạo URL string cho thẻ <img> (tránh hardcode localhost).
+ * Khác với fetchImageById (trả về dữ liệu binary), hàm này trả về string URL.
+ * @param {string} imageId - ID của ảnh
+ * @returns {string} - Đường dẫn tương đối (e.g. /v1/file-storage/get/...)
+ */
+export const getImageUrl = (imageId) => {
+    return imageId ? `${API_URL}/file-storage/get/${imageId}` : null;
+};
+
+

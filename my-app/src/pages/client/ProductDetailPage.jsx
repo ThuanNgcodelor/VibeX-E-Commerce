@@ -939,6 +939,10 @@ export default function ProductDetailPage() {
                                                 <div className="d-flex flex-column gap-3">
                                                     {(() => {
                                                         const filtered = reviews.filter(r => {
+                                                            // Hide reviews with no content (no text AND no images)
+                                                            const hasContent = (r.comment && r.comment.trim().length > 0) || (r.imageIds && r.imageIds.length > 0);
+                                                            if (!hasContent) return false;
+
                                                             if (reviewFilter === "All") return true;
                                                             const star = parseInt(reviewFilter.charAt(0));
                                                             return r.rating === star;

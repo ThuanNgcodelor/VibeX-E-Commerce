@@ -5,6 +5,7 @@ import { Navigation, Pagination, Autoplay } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
+import { getImageUrl } from '../../../api/image';
 
 const DecorationRenderer = ({ config }) => {
     if (!config || config.length === 0) return null;
@@ -49,9 +50,9 @@ const BannerRenderer = ({ data }) => {
         >
             {images.map((img, idx) => (
                 <SwiperSlide key={idx}>
-                    <a href={img.link || '#'} target="_blank" rel="noopener noreferrer">
-                        <Image src={img.url} className="w-100" style={{ objectFit: 'cover', maxHeight: '400px' }} />
-                    </a>
+                    <SwiperSlide key={idx}>
+                        <Image src={getImageUrl(img.imageId) || img.url} className="w-100" style={{ objectFit: 'cover', maxHeight: '400px' }} />
+                    </SwiperSlide>
                 </SwiperSlide>
             ))}
         </Swiper>
@@ -123,16 +124,28 @@ const ProductsRenderer = ({ data }) => {
                                 <div className="card h-100 shadow-sm border-0">
                                     <div style={{ position: 'relative', paddingBottom: '100%' }}>
                                         <img
-                                            src={product.imageId ? `http://localhost:8080/v1/file-storage/get/${product.imageId}` : 'data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%22150%22%20height%3D%22150%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20150%20150%22%20preserveAspectRatio%3D%22none%22%3E%3Cdefs%3E%3Cstyle%20type%3D%22text%2Fcss%22%3E%23holder_1%20text%20%7B%20fill%3A%23999%3Bfont-weight%3Anormal%3Bfont-family%3AHelvetica%2C%20monospace%3Bfont-size%3A10pt%20%7D%20%3C%2Fstyle%3E%3C%2Fdefs%3E%3Cg%20id%3D%22holder_1%22%3E%3Crect%20width%3D%22150%22%20height%3D%22150%22%20fill%3D%22%23eee%22%3E%3C%2Frect%3E%3Cg%3E%3Ctext%20x%3D%2258%22%20y%3D%2280%22%3EProduct%3C%2Ftext%3E%3C%2Fg%3E%3C%2Fg%3E%3C%2Fsvg%3E'}
+                                            src={getImageUrl(product.imageId) || 'data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%22150%22%20height%3D%22150%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20150%20150%22%20preserveAspectRatio%3D%22none%22%3E%3Cdefs%3E%3Cstyle%20type%3D%22text%2Fcss%22%3E%23holder_1%20text%20%7B%20fill%3A%23999%3Bfont-weight%3Anormal%3Bfont-family%3AHelvetica%2C%20monospace%3Bfont-size%3A10pt%20%7D%20%3C%2Fstyle%3E%3C%2Fdefs%3E%3Cg%20id%3D%22holder_1%22%3E%3Crect%20width%3D%22150%22%20height%3D%22150%22%20fill%3D%22%23eee%22%3E%3C%2Frect%3E%3Cg%3E%3Ctext%20x%3D%2258%22%20y%3D%2280%22%3EProduct%3C%2Ftext%3E%3C%2Fg%3E%3C%2Fg%3E%3C%2Fsvg%3E'}
                                             className="card-img-top position-absolute top-0 start-0 w-100 h-100"
                                             alt={product.name}
                                             style={{ objectFit: 'cover' }}
                                         />
+                                        {product.discountPercent > 0 && (
+                                            <div className="position-absolute top-0 end-0 bg-warning text-dark px-2 py-1 small fw-bold" style={{ fontSize: '12px' }}>
+                                                -{product.discountPercent}%
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="card-body p-2">
                                         <h6 className="card-title text-truncate mb-1">{product.name}</h6>
-                                        <div className="fw-bold text-primary">
-                                            {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(product.price)}
+                                        <div className="d-flex align-items-baseline gap-2 flex-wrap">
+                                            <div className="fw-bold text-primary">
+                                                {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(product.price)}
+                                            </div>
+                                            {product.originalPrice > product.price && (
+                                                <div className="text-muted text-decoration-line-through small" style={{ fontSize: '13px' }}>
+                                                    {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(product.originalPrice)}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
