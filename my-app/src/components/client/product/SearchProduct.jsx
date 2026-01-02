@@ -7,6 +7,7 @@ import {
 } from "../../../api/product.js";
 import { searchProducts } from "../../../api/searchApi.js";
 import { trackSearch } from "../../../api/tracking";
+import { fetchCategories } from "../../../api/categoryApi.js";
 
 const USE_OBJECT_URL = true;
 
@@ -40,16 +41,26 @@ const SearchProduct = () => {
 
     // Filter states
     const [selectedAreas, setSelectedAreas] = useState([]);
-    const [selectedShipping] = useState([]);
     const [priceMin, setPriceMin] = useState("");
     const [priceMax, setPriceMax] = useState("");
-    const [shopTypes] = useState([]);
-    const [condition] = useState("");
-    const [rating] = useState([]);
-    const [promotions] = useState([]);
     const [categories, setCategories] = useState([]);
+    const [availableCategories, setAvailableCategories] = useState([]);
+    const [showFilters, setShowFilters] = useState(true);
 
     const createdUrlsRef = useRef([]);
+
+    // Load categories from backend
+    useEffect(() => {
+        const loadCategories = async () => {
+            try {
+                const response = await fetchCategories();
+                setAvailableCategories(response || []);
+            } catch (error) {
+                console.error("Failed to load categories:", error);
+            }
+        };
+        loadCategories();
+    }, []);
 
     // Load products with search API
     useEffect(() => {
@@ -183,6 +194,26 @@ const SearchProduct = () => {
         setCategories([]);
     };
 
+    const setQuickPrice = (min, max) => {
+        setPriceMin(min ? min.toString() : "");
+        setPriceMax(max ? max.toString() : "");
+    };
+
+    const removeFilter = (type, value) => {
+        if (type === 'price') {
+            setPriceMin("");
+            setPriceMax("");
+        } else if (type === 'location') {
+            setSelectedAreas(selectedAreas.filter(a => a !== value));
+        } else if (type === 'category') {
+            setCategories(categories.filter(c => c !== value));
+        }
+    };
+
+    const hasActiveFilters = () => {
+        return priceMin || priceMax || selectedAreas.length > 0 || categories.length > 0;
+    };
+
     const formatSoldCount = (count) => {
         if (!count || count === 0) return "0";
         if (count >= 1000) {
@@ -191,16 +222,21 @@ const SearchProduct = () => {
         return count.toString();
     };
 
+    const formatPrice = (price) => {
+        if (!price) return "";
+        const num = parseFloat(price);
+        if (num >= 1000000) {
+            return `${(num / 1000000).toFixed(1)}tr`.replace('.0', 'tr');
+        }
+        if (num >= 1000) {
+            return `${(num / 1000).toFixed(0)}k`;
+        }
+        return num.toString();
+    };
+
     // Vietnamese provinces/cities
     const provinces = [
-        "Hà Nội", "TP. Hồ Chí Minh", "Hải Phòng", "Đà Nẵng", "Cần Thơ",
-        "An Giang", "Bà Rịa - Vũng Tàu", "Bắc Giang", "Bắc Kạn", "Bạc Liêu",
-        "Bắc Ninh", "Bến Tre", "Bình Định", "Bình Dương", "Bình Phước"
-    ];
-
-    // Demo categories
-    const categoryList = [
-        "Piggy Bank", "Home & Living", "Toys", "Tools & Utilities"
+        "Hà Nội", "TP. Hồ Chí Minh", "Đà Nẵng", "Hải Phòng", "Cần Thơ", "Bình Dương"
     ];
 
     if (loading) {
@@ -214,113 +250,269 @@ const SearchProduct = () => {
     }
 
     return (
-        <div style={{ minHeight: '100vh', paddingTop: '12px', paddingBottom: '20px' }}>
+        <div style={{ minHeight: '100vh', paddingTop: '12px', paddingBottom: '20px', background: '#f5f5f5' }}>
             <div className="container" style={{ maxWidth: '1250px' }}>
                 {/* Search Result Title */}
                 <div style={{ marginBottom: '12px', fontSize: '16px', color: '#262626', fontWeight: 500 }}>
                     {t('search.searchResults', { keyword: debouncedQuery || query || '' })}
+                    {total > 0 && <span style={{ color: '#757575', fontWeight: 400 }}> ({total} {t('search.products')})</span>}
                 </div>
 
-                <div className="row g-3">
-                    {/* Left Sidebar - Filters */}
-                    <div className="col-12 col-lg-2 col-md-3">
-                        <div style={{ borderRadius: '4px', padding: '12px', border: '1px solid #f0f0f0', background: '#fff' }}>
-                            <h6 style={{ fontSize: '14px', fontWeight: 600, color: '#333', marginBottom: '12px' }}>{t('search.searchFilters')}</h6>
-
-                            {/* Location */}
-                            <div className="mb-3" style={{ borderBottom: '1px solid #f5f5f5', paddingBottom: '12px' }}>
-                                <h6 style={{ fontSize: '13px', fontWeight: 600, color: '#444', marginBottom: '8px' }}>{t('search.location')}</h6>
-                                <div style={{ maxHeight: '180px', overflowY: 'auto' }}>
-                                    {provinces.slice(0, 6).map((province) => (
-                                        <div key={province} className="form-check mb-2">
-                                            <input
-                                                className="form-check-input"
-                                                type="checkbox"
-                                                id={`area-${province}`}
-                                                checked={selectedAreas.includes(province)}
-                                                onChange={(e) => {
-                                                    if (e.target.checked) {
-                                                        setSelectedAreas([...selectedAreas, province]);
-                                                    } else {
-                                                        setSelectedAreas(selectedAreas.filter(a => a !== province));
-                                                    }
-                                                }}
-                                                style={{ cursor: 'pointer', marginTop: '3px' }}
-                                            />
-                                            <label className="form-check-label" htmlFor={`area-${province}`} style={{ fontSize: '13px', color: '#555', cursor: 'pointer' }}>
-                                                {province}
-                                            </label>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Category */}
-                            <div className="mb-3" style={{ borderBottom: '1px solid #f5f5f5', paddingBottom: '12px' }}>
-                                <h6 style={{ fontSize: '13px', fontWeight: 600, color: '#444', marginBottom: '8px' }}>{t('search.category')}</h6>
-                                <div>
-                                    {categoryList.map((cat) => (
-                                        <div key={cat} className="form-check mb-2">
-                                            <input
-                                                className="form-check-input"
-                                                type="checkbox"
-                                                id={`cat-${cat}`}
-                                                checked={categories.includes(cat)}
-                                                onChange={(e) => {
-                                                    if (e.target.checked) {
-                                                        setCategories([...categories, cat]);
-                                                    } else {
-                                                        setCategories(categories.filter(c => c !== cat));
-                                                    }
-                                                }}
-                                                style={{ cursor: 'pointer', marginTop: '3px' }}
-                                            />
-                                            <label className="form-check-label" htmlFor={`cat-${cat}`} style={{ fontSize: '13px', color: '#555', cursor: 'pointer' }}>
-                                                {cat}
-                                            </label>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Price Range */}
-                            <div className="mb-3" style={{ borderBottom: '1px solid #f5f5f5', paddingBottom: '12px' }}>
-                                <h6 style={{ fontSize: '13px', fontWeight: 600, color: '#444', marginBottom: '8px' }}>{t('search.priceRange')}</h6>
-                                <div className="d-flex gap-2 mb-2">
-                                    <input
-                                        type="number"
-                                        className="form-control form-control-sm"
-                                        placeholder={t('search.from')}
-                                        value={priceMin}
-                                        onChange={(e) => setPriceMin(e.target.value)}
-                                        style={{ fontSize: '13px', height: '32px' }}
-                                    />
-                                    <input
-                                        type="number"
-                                        className="form-control form-control-sm"
-                                        placeholder={t('search.to')}
-                                        value={priceMax}
-                                        onChange={(e) => setPriceMax(e.target.value)}
-                                        style={{ fontSize: '13px', height: '32px' }}
-                                    />
-                                </div>
-                            </div>
-
+                {/* Active Filters Bar */}
+                {hasActiveFilters() && (
+                    <div style={{ background: '#fff', borderRadius: '4px', padding: '10px 12px', marginBottom: '12px', border: '1px solid #f0f0f0' }}>
+                        <div className="d-flex align-items-center flex-wrap gap-2">
+                            <span style={{ fontSize: '13px', color: '#757575', marginRight: '4px' }}>
+                                <i className="fa fa-filter" style={{ marginRight: '6px' }}></i>
+                                {t('search.activeFilters')}:
+                            </span>
+                            {(priceMin || priceMax) && (
+                                <span
+                                    style={{
+                                        background: '#fff3f0',
+                                        color: '#ee4d2d',
+                                        fontSize: '12px',
+                                        padding: '4px 8px',
+                                        borderRadius: '12px',
+                                        border: '1px solid #ee4d2d',
+                                        cursor: 'pointer',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '6px'
+                                    }}
+                                    onClick={() => removeFilter('price')}
+                                >
+                                    {formatPrice(priceMin) || '0'} - {formatPrice(priceMax) || '∞'}
+                                    <i className="fa fa-times" style={{ fontSize: '10px' }}></i>
+                                </span>
+                            )}
+                            {selectedAreas.map(area => (
+                                <span
+                                    key={area}
+                                    style={{
+                                        background: '#fff3f0',
+                                        color: '#ee4d2d',
+                                        fontSize: '12px',
+                                        padding: '4px 8px',
+                                        borderRadius: '12px',
+                                        border: '1px solid #ee4d2d',
+                                        cursor: 'pointer',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '6px'
+                                    }}
+                                    onClick={() => removeFilter('location', area)}
+                                >
+                                    {area}
+                                    <i className="fa fa-times" style={{ fontSize: '10px' }}></i>
+                                </span>
+                            ))}
+                            {categories.map(cat => (
+                                <span
+                                    key={cat}
+                                    style={{
+                                        background: '#fff3f0',
+                                        color: '#ee4d2d',
+                                        fontSize: '12px',
+                                        padding: '4px 8px',
+                                        borderRadius: '12px',
+                                        border: '1px solid #ee4d2d',
+                                        cursor: 'pointer',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '6px'
+                                    }}
+                                    onClick={() => removeFilter('category', cat)}
+                                >
+                                    {cat}
+                                    <i className="fa fa-times" style={{ fontSize: '10px' }}></i>
+                                </span>
+                            ))}
                             <button
-                                className="btn w-100 mt-3"
                                 onClick={clearAllFilters}
                                 style={{
-                                    fontSize: '13px',
-                                    padding: '10px',
-                                    background: '#fff',
+                                    background: 'transparent',
+                                    border: 'none',
                                     color: '#ee4d2d',
-                                    border: '1px solid #ee4d2d',
-                                    borderRadius: '2px',
-                                    fontWeight: 600
+                                    fontSize: '12px',
+                                    cursor: 'pointer',
+                                    textDecoration: 'underline',
+                                    padding: '0 4px'
                                 }}
                             >
                                 {t('search.clearAll')}
                             </button>
+                        </div>
+                    </div>
+                )}
+
+                <div className="row g-3">
+                    {/* Left Sidebar - Filters */}
+                    <div className="col-12 col-lg-2 col-md-3">
+                        <div style={{ position: 'sticky', top: '70px' }}>
+                            {/* Mobile Toggle Button */}
+                            <button
+                                className="btn w-100 d-lg-none mb-2"
+                                onClick={() => setShowFilters(!showFilters)}
+                                style={{
+                                    background: '#fff',
+                                    border: '1px solid #ee4d2d',
+                                    color: '#ee4d2d',
+                                    fontSize: '14px',
+                                    padding: '8px'
+                                }}
+                            >
+                                <i className={`fa fa-${showFilters ? 'minus' : 'plus'}`} style={{ marginRight: '8px' }}></i>
+                                {showFilters ? t('search.hideFilters') : t('search.showFilters')}
+                            </button>
+
+                            <div style={{
+                                borderRadius: '4px',
+                                padding: '12px',
+                                border: '1px solid #f0f0f0',
+                                background: '#fff',
+                                display: showFilters ? 'block' : 'none'
+                            }} className="d-lg-block">
+                                <h6 style={{ fontSize: '14px', fontWeight: 600, color: '#333', marginBottom: '12px' }}>
+                                    <i className="fa fa-sliders" style={{ marginRight: '8px' }}></i>
+                                    {t('search.searchFilters')}
+                                </h6>
+
+                                {/* Smart Price Range */}
+                                <div className="mb-3" style={{ borderBottom: '1px solid #f5f5f5', paddingBottom: '12px' }}>
+                                    <h6 style={{ fontSize: '13px', fontWeight: 600, color: '#444', marginBottom: '8px' }}>
+                                        {t('search.priceRange')}
+                                    </h6>
+
+                                    {/* Quick Price Buttons */}
+                                    <div className="d-flex flex-wrap gap-1 mb-2">
+                                        {[
+                                            { label: '< 100k', min: null, max: 100000 },
+                                            { label: '100k-500k', min: 100000, max: 500000 },
+                                            { label: '500k-1tr', min: 500000, max: 1000000 },
+                                            { label: '> 1tr', min: 1000000, max: null }
+                                        ].map(preset => (
+                                            <button
+                                                key={preset.label}
+                                                onClick={() => setQuickPrice(preset.min, preset.max)}
+                                                style={{
+                                                    fontSize: '11px',
+                                                    padding: '4px 8px',
+                                                    background: (priceMin === (preset.min?.toString() || "") &&
+                                                        priceMax === (preset.max?.toString() || "")) ? '#ee4d2d' : '#fff',
+                                                    color: (priceMin === (preset.min?.toString() || "") &&
+                                                        priceMax === (preset.max?.toString() || "")) ? '#fff' : '#555',
+                                                    border: '1px solid #e5e5e5',
+                                                    borderRadius: '12px',
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                {preset.label}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    {/* Custom Range */}
+                                    <div className="d-flex gap-2">
+                                        <input
+                                            type="number"
+                                            className="form-control form-control-sm"
+                                            placeholder="Min"
+                                            value={priceMin}
+                                            onChange={(e) => setPriceMin(e.target.value)}
+                                            style={{ fontSize: '12px', height: '30px' }}
+                                        />
+                                        <span style={{ alignSelf: 'center', color: '#999' }}>-</span>
+                                        <input
+                                            type="number"
+                                            className="form-control form-control-sm"
+                                            placeholder="Max"
+                                            value={priceMax}
+                                            onChange={(e) => setPriceMax(e.target.value)}
+                                            style={{ fontSize: '12px', height: '30px' }}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Category */}
+                                {availableCategories.length > 0 && (
+                                    <div className="mb-3" style={{ borderBottom: '1px solid #f5f5f5', paddingBottom: '12px' }}>
+                                        <h6 style={{ fontSize: '13px', fontWeight: 600, color: '#444', marginBottom: '8px' }}>
+                                            {t('search.category')}
+                                        </h6>
+                                        <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                                            {availableCategories.map((cat) => (
+                                                <div key={cat.id} className="form-check mb-2">
+                                                    <input
+                                                        className="form-check-input"
+                                                        type="checkbox"
+                                                        id={`cat-${cat.id}`}
+                                                        checked={categories.includes(cat.name)}
+                                                        onChange={(e) => {
+                                                            if (e.target.checked) {
+                                                                setCategories([...categories, cat.name]);
+                                                            } else {
+                                                                setCategories(categories.filter(c => c !== cat.name));
+                                                            }
+                                                        }}
+                                                        style={{ cursor: 'pointer', marginTop: '3px' }}
+                                                    />
+                                                    <label className="form-check-label" htmlFor={`cat-${cat.id}`} style={{ fontSize: '13px', color: '#555', cursor: 'pointer' }}>
+                                                        {cat.name}
+                                                    </label>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Location */}
+                                <div className="mb-3">
+                                    <h6 style={{ fontSize: '13px', fontWeight: 600, color: '#444', marginBottom: '8px' }}>
+                                        {t('search.location')}
+                                    </h6>
+                                    <div style={{ maxHeight: '180px', overflowY: 'auto' }}>
+                                        {provinces.map((province) => (
+                                            <div key={province} className="form-check mb-2">
+                                                <input
+                                                    className="form-check-input"
+                                                    type="checkbox"
+                                                    id={`area-${province}`}
+                                                    checked={selectedAreas.includes(province)}
+                                                    onChange={(e) => {
+                                                        if (e.target.checked) {
+                                                            setSelectedAreas([...selectedAreas, province]);
+                                                        } else {
+                                                            setSelectedAreas(selectedAreas.filter(a => a !== province));
+                                                        }
+                                                    }}
+                                                    style={{ cursor: 'pointer', marginTop: '3px' }}
+                                                />
+                                                <label className="form-check-label" htmlFor={`area-${province}`} style={{ fontSize: '13px', color: '#555', cursor: 'pointer' }}>
+                                                    {province}
+                                                </label>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <button
+                                    className="btn w-100"
+                                    onClick={clearAllFilters}
+                                    style={{
+                                        fontSize: '13px',
+                                        padding: '8px',
+                                        background: '#fff',
+                                        color: '#ee4d2d',
+                                        border: '1px solid #ee4d2d',
+                                        borderRadius: '2px',
+                                        fontWeight: 600
+                                    }}
+                                >
+                                    <i className="fa fa-times-circle" style={{ marginRight: '6px' }}></i>
+                                    {t('search.clearAll')}
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -394,6 +586,7 @@ const SearchProduct = () => {
 
                         {products.length === 0 ? (
                             <div className="text-center py-5" style={{ background: '#fff', borderRadius: '4px' }}>
+                                <i className="fa fa-search" style={{ fontSize: '48px', color: '#d9d9d9', marginBottom: '16px' }}></i>
                                 <p style={{ fontSize: '16px', color: '#757575' }}>{t('search.noProductsFound')}</p>
                             </div>
                         ) : (
@@ -502,8 +695,19 @@ const SearchProduct = () => {
                                                                     )}
                                                                 </div>
                                                                 <div className="d-flex align-items-center gap-1 mb-1" style={{ fontSize: '10px' }}>
-                                                                    <span style={{ color: '#ffc107', fontSize: '9px' }}>★★★★★</span>
-                                                                    <span style={{ color: '#9e9e9e' }}>{t('search.sold')} {formatSoldCount(product.soldOf || 0)}</span>
+                                                                    {product.averageRating && product.averageRating > 0 ? (
+                                                                        <>
+                                                                            <span style={{ color: '#ffc107', fontSize: '9px' }}>
+                                                                                {'★'.repeat(Math.floor(product.averageRating))}{'☆'.repeat(5 - Math.floor(product.averageRating))}
+                                                                            </span>
+                                                                            <span style={{ color: '#757575' }}>({product.averageRating.toFixed(1)})</span>
+                                                                        </>
+                                                                    ) : (
+                                                                        <span style={{ color: '#d9d9d9', fontSize: '9px' }}>☆☆☆☆☆</span>
+                                                                    )}
+                                                                    <span style={{ color: '#9e9e9e', marginLeft: '4px' }}>
+                                                                        {t('search.sold')} {formatSoldCount(product.soldCount || 0)}
+                                                                    </span>
                                                                 </div>
                                                                 <div style={{ fontSize: '10px', color: '#9e9e9e', marginBottom: '1px' }}>
                                                                     {t('search.freeShipping')}
@@ -587,7 +791,7 @@ const SearchProduct = () => {
           }
         }
       `}</style>
-        </div>
+        </div >
     );
 };
 

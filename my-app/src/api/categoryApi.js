@@ -58,4 +58,5 @@ const categoryApi = {
     remove: (id) => api.delete(`/deleteCategoryById/${id}`),
 };
 
+export const fetchCategories = categoryApi.getAll;
 export default categoryApi;

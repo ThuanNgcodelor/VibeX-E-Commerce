@@ -1,11 +1,10 @@
-import React, { useEffect, useState, useRef, useMemo } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { isAuthenticated } from "../../api/auth.js";
 import { getRecentlyViewed } from "../../api/tracking.js";
 import { fetchProductById, fetchProductImageById } from "../../api/product.js";
 import imgFallback from "../../assets/images/shop/6.png";
-import Loading from "./Loading.jsx";
 
 /**
  * RecentlyViewed - Hiển thị sản phẩm đã xem gần đây
@@ -159,7 +158,6 @@ export default function RecentlyViewed() {
                         }}
                     >
                         {t('recommendations.viewMore', 'Xem tiếp')}
-                        <span>→</span>
                     </Link>
                 </div>
 

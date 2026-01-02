@@ -547,7 +547,11 @@
     "sold": "Đã bán",
     "freeShipping": "Miễn phí vận chuyển",
     "seeMore": "Xem thêm",
-    "loading": "Đang tải..."
+    "loading": "Đang tải...",
+    "products": "sản phẩm",
+    "activeFilters": "Bộ lọc đang áp dụng",
+    "hideFilters": "Ẩn bộ lọc",
+    "showFilters": "Hiển thị bộ lọc"
   },
   "home": {
     "categories": "DANH MỤC",

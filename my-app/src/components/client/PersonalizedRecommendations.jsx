@@ -203,7 +203,6 @@ export default function PersonalizedRecommendations() {
                         }}
                     >
                         {t('home.viewMore', 'Xem thêm')}
-                        <span>→</span>
                     </Link>
                 </div>
 

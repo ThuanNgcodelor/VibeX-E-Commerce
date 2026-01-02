@@ -44,7 +44,6 @@ public class ProductServiceImpl implements ProductService {
     private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
     private final org.springframework.kafka.core.KafkaTemplate<String, com.example.stockservice.event.ProductUpdateKafkaEvent> kafkaTemplate;
     private final InventoryService inventoryService;
-    private final KafkaTemplate<String, ProductUpdateKafkaEvent> kafkaTemplate;
 
     @org.springframework.beans.factory.annotation.Value("${kafka.topic.product-updates}")
     private String productUpdatesTopic;

@@ -33,4 +33,8 @@ public class ProductDto {
     private java.util.Map<String, String> attributes;
 
     private Integer flashSaleRemaining;
+    
+    // Analytics fields
+    private Integer soldCount;           // Total số lượng đã bán
+    private Double averageRating;        // Đánh giá trung bình (1-5 sao)
 }

@@ -6,6 +6,7 @@ import com.example.stockservice.dto.search.*;
 import com.example.stockservice.enums.ProductStatus;
 import com.example.stockservice.model.Product;
 import com.example.stockservice.repository.ProductRepository;
+import com.example.stockservice.repository.ReviewRepository;
 import com.example.stockservice.service.analytic.AnalyticsRedisService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +29,7 @@ public class SearchService {
     private final SearchCacheService searchCacheService;
     private final SearchHistoryService searchHistoryService;
     private final AnalyticsRedisService analyticsRedisService;
+    private final ReviewRepository reviewRepository;
     
     /**
      * Main search method
@@ -354,6 +356,10 @@ public class SearchService {
             .mapToInt(SizeDto::getStock)
             .sum();
         
+        // Get analytics data
+        Integer soldCount = 0; // TODO: Get from order history if available
+        Double averageRating = reviewRepository.getAverageRatingByProductId(p.getId());
+        
         return ProductDto.builder()
             .id(p.getId())
             .name(p.getName())
@@ -370,6 +376,8 @@ public class SearchService {
             .sizes(sizeDtos)
             .totalStock(totalStock)
             .createdAt(p.getCreatedTimestamp())
+            .soldCount(soldCount)
+            .averageRating(averageRating)
             .build();
     }
 }
