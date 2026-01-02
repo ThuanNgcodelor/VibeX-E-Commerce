@@ -4,6 +4,7 @@ import { toast } from 'react-hot-toast';
 import { getMyShopDecoration, saveShopDecoration } from '../../api/user';
 import WidgetSelector from '../../components/shop-owner/decoration/WidgetSelector';
 import TemplateSelector from '../../components/shop-owner/decoration/TemplateSelector';
+import AiDecorationModal from '../../components/shop-owner/decoration/AiDecorationModal'; // Import AI Modal
 import PreviewArea from '../../components/shop-owner/decoration/PreviewArea';
 import { useTranslation } from 'react-i18next';
 import Swal from 'sweetalert2';
@@ -13,7 +14,9 @@ const ShopDecorationPage = () => {
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [decorationConfig, setDecorationConfig] = useState([]);
+    const [shopStyle, setShopStyle] = useState({});
     const [activeTab, setActiveTab] = useState('widgets');
+    const [showAiModal, setShowAiModal] = useState(false);
 
     useEffect(() => {
         fetchDecorationConfig();
@@ -24,9 +27,17 @@ const ShopDecorationPage = () => {
         try {
             const data = await getMyShopDecoration();
             if (data && data.content) {
-                setDecorationConfig(JSON.parse(data.content));
+                const parsed = JSON.parse(data.content);
+                if (Array.isArray(parsed)) {
+                    setDecorationConfig(parsed);
+                    setShopStyle({});
+                } else {
+                    setDecorationConfig(parsed.widgets || []);
+                    setShopStyle(parsed.style || {});
+                }
             } else {
                 setDecorationConfig([]);
+                setShopStyle({});
             }
         } catch (error) {
             console.error('Error fetching decoration config:', error);
@@ -39,7 +50,12 @@ const ShopDecorationPage = () => {
     const handleSave = async () => {
         setSaving(true);
         try {
-            await saveShopDecoration(decorationConfig);
+            // Save as an object containing both style and widgets
+            const payload = {
+                style: shopStyle,
+                widgets: decorationConfig
+            };
+            await saveShopDecoration(payload);
             toast.success(t('shopOwner.decoration.savedSuccess'));
         } catch (error) {
             console.error('Error saving decoration:', error);
@@ -74,7 +90,9 @@ const ShopDecorationPage = () => {
                     ...widget,
                     id: Date.now() + Math.random() // Simple unique ID generation
                 }));
+                // Templates currently valid as just arrays, but could be objects later
                 setDecorationConfig(newConfig);
+                setShopStyle({}); // Reset style for simple templates
                 toast.success(t('shopOwner.decoration.templateApplied'));
             }
         });
@@ -111,6 +129,18 @@ const ShopDecorationPage = () => {
                     {saving ? <Spinner as="span" animation="border" size="sm" /> : t('shopOwner.decoration.saveChanges')}
                 </Button>
             </div>
+
+            {/* AI Magic Button Section */}
+            <div className="mb-4 p-3 bg-white rounded shadow-sm d-flex justify-content-between align-items-center border-start border-5 border-warning">
+                <div>
+                    <h5 className="mb-1 text-primary"><i className="fas fa-magic me-2"></i>AI Magic Decorator</h5>
+                    <small className="text-muted">Desribe your dream shop and let AI build it for you!</small>
+                </div>
+                <Button variant="outline-warning" className="fw-bold" onClick={() => setShowAiModal(true)}>
+                    <i className="fas fa-wand-magic-sparkles me-1"></i> Auto Design
+                </Button>
+            </div>
+
             <Row>
                 <Col md={3}>
                     <Card className="h-100">
@@ -139,7 +169,16 @@ const ShopDecorationPage = () => {
                 <Col md={9}>
                     <Card className="h-100">
                         <Card.Header>{t('shopOwner.decoration.previewAndEdit')}</Card.Header>
-                        <Card.Body className="bg-light" style={{ minHeight: '500px', overflowY: 'auto' }}>
+                        <Card.Body
+                            className="bg-light"
+                            style={{
+                                minHeight: '500px',
+                                overflowY: 'auto',
+                                backgroundColor: shopStyle.backgroundColor || '#f8f9fa',
+                                color: shopStyle.textColor || 'inherit',
+                                fontFamily: shopStyle.fontFamily || 'inherit'
+                            }}
+                        >
                             <PreviewArea
                                 widgets={decorationConfig}
                                 onRemove={removeWidget}
@@ -150,6 +189,21 @@ const ShopDecorationPage = () => {
                     </Card>
                 </Col>
             </Row>
+
+            <AiDecorationModal
+                show={showAiModal}
+                onHide={() => setShowAiModal(false)}
+                onApply={(newConfig) => {
+                    // Handle AI response which is likely { style: {...}, widgets: [...] }
+                    if (Array.isArray(newConfig)) {
+                        setDecorationConfig(newConfig);
+                        setShopStyle({});
+                    } else {
+                        setDecorationConfig(newConfig.widgets || []);
+                        setShopStyle(newConfig.style || {});
+                    }
+                }}
+            />
         </Container>
     );
 };

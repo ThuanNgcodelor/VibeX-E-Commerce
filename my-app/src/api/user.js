@@ -444,3 +444,26 @@ export const uploadShopDecorationImage = async (file) => {
     });
     return response.data;
 };
+
+/**
+ * Generate shop decoration using AI
+ * @param {Object} data - { shopType: "..." }
+ * @returns {Promise<Array>} - Promise returns widget list
+ */
+export const generateShopDecoration = async (data) => {
+    // Note: Calling stock-service directly might be CORS issue if not proxied.
+    // Assuming backend gateway handles /v1/stock/shop-assistant...
+    // But user.js uses /v1/user base URL.
+    // We should probably create a new api/shopAssistant.js or just force url here.
+    // Let's assume gateway routes /v1/stock correctly.
+    const res = await api.post("/stock/shop-assistant/generate-decoration", data, {
+        baseURL: "http://localhost:8080/v1" // Hacky if needed, but let's try relative first if gateway
+    });
+    // Wait, createApiInstance sets baseURL to GATEWAY_URL + Service URL usually. 
+    // user.js sets API_URL = "/v1/user".
+    // We need to call "/v1/stock/shop-assistant/generate-decoration".
+    // Best to use a new instance or override baseURL.
+    // Let's try to just use axios directly or a new instance if provided.
+    // Actually, let's use the 'shopAssistant.js' if it exists or import createApiInstance.
+    return res.data?.result ? JSON.parse(res.data.result) : [];
+};

@@ -1012,7 +1012,16 @@
         "chooseNow": "Chọn ngay",
         "confirm": "Xác nhận",
         "cancel": "Hủy bỏ"
-      }
+      },
+      "aiModalTitle": "Trợ lý AI Trang trí Shop",
+      "aiModalDesc": "Mô tả ý tưởng cửa hàng của bạn và để AI tạo ra cấu hình trang trí độc đáo.",
+      "aiPlaceholder": "Ví dụ: Tôi muốn một cửa hàng thời trang hiện đại với tông màu tối, banner lớn và danh sách sản phẩm nổi bật...",
+      "generate": "Tạo thiết kế",
+      "generating": "Đang tạo...",
+      "aiSuccess": "Đã tạo cấu hình trang trí thành công!",
+      "aiFailed": "Tạo cấu hình thất bại. Vui lòng thử lại.",
+      "aiParseError": "Lỗi xử lý kết quả từ AI.",
+      "autoDesign": "Tự động thiết kế"
     },
     "reviews": {
       "title": "Quản lý đánh giá",

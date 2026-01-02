@@ -10,7 +10,12 @@ const BannerWidget = ({ data, onChange }) => {
     const images = data.images || [];
 
     const handleAddImage = () => {
-        onChange({ ...data, images: [...images, { imageId: '' }] });
+        onChange({
+            ...data,
+            images: [...images, { imageId: '' }],
+            height: data.height || 400,
+            objectFit: data.objectFit || 'cover'
+        });
     };
 
     const handleRemoveImage = (index) => {
@@ -22,6 +27,10 @@ const BannerWidget = ({ data, onChange }) => {
         const newImages = [...images];
         newImages[index][field] = value;
         onChange({ ...data, images: newImages });
+    };
+
+    const handleSettingChange = (field, value) => {
+        onChange({ ...data, [field]: value });
     };
 
     const handleFileUpload = async (index, e) => {
@@ -133,6 +142,48 @@ const BannerWidget = ({ data, onChange }) => {
             >
                 <i className="bi bi-plus-circle me-2"></i> {t('shopOwner.decoration.widgets.addSlide')}
             </Button>
+
+            <div className="mt-4 p-3 bg-light rounded border">
+                <h6 className="fw-bold mb-3"><i className="bi bi-gear-fill me-2"></i>Banner Settings</h6>
+                <Row className="g-3">
+                    <Col md={6}>
+                        <Form.Group>
+                            <Form.Label className="small fw-bold">Height (px)</Form.Label>
+                            <div className="d-flex align-items-center gap-2">
+                                <Form.Range
+                                    className="w-100"
+                                    min={200}
+                                    max={800}
+                                    step={10}
+                                    value={data.height || 400}
+                                    onChange={(e) => handleSettingChange('height', parseInt(e.target.value))}
+                                />
+                                <Form.Control
+                                    type="number"
+                                    value={data.height || 400}
+                                    onChange={(e) => handleSettingChange('height', parseInt(e.target.value))}
+                                    style={{ width: '80px' }}
+                                    size="sm"
+                                />
+                            </div>
+                        </Form.Group>
+                    </Col>
+                    <Col md={6}>
+                        <Form.Group>
+                            <Form.Label className="small fw-bold">Image Fit</Form.Label>
+                            <Form.Select
+                                size="sm"
+                                value={data.objectFit || 'cover'}
+                                onChange={(e) => handleSettingChange('objectFit', e.target.value)}
+                            >
+                                <option value="cover">Cover (Fill Area)</option>
+                                <option value="contain">Contain (Show Full Image)</option>
+                                <option value="fill">Fill (Stretch)</option>
+                            </Form.Select>
+                        </Form.Group>
+                    </Col>
+                </Row>
+            </div>
         </div>
     );
 };

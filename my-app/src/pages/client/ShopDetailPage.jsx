@@ -34,8 +34,13 @@ export default function ShopDetailPage() {
                 try {
                     const decoRes = await getShopDecoration(shopData.userId || userId);
                     if (decoRes && decoRes.content) {
-                        setDecorationConfig(JSON.parse(decoRes.content));
-                        setActiveTab('home');
+                        const parsed = JSON.parse(decoRes.content);
+                        setDecorationConfig(parsed);
+
+                        const hasWidgets = Array.isArray(parsed) ? parsed.length > 0 : (parsed.widgets && parsed.widgets.length > 0);
+                        if (hasWidgets) {
+                            setActiveTab('home');
+                        }
                     }
                 } catch (e) {
                     console.error("Decoration fetch error", e);
@@ -285,7 +290,7 @@ export default function ShopDetailPage() {
                     <div className="card shadow-sm border-0">
                         <div className="card-header bg-white border-bottom">
                             <ul className="nav nav-tabs card-header-tabs border-0">
-                                {decorationConfig && decorationConfig.length > 0 && (
+                                {decorationConfig && ((Array.isArray(decorationConfig) && decorationConfig.length > 0) || (!Array.isArray(decorationConfig) && decorationConfig.widgets && decorationConfig.widgets.length > 0)) && (
                                     <li className="nav-item">
                                         <button
                                             className={`nav-link border-0 ${activeTab === 'home' ? 'active text-danger border-bottom border-danger border-3' : 'text-dark'}`}

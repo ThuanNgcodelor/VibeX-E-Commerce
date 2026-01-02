@@ -31,4 +31,11 @@ public class ShopAssistantController {
         String result = contentGenerationService.generateReviewReply(request);
         return ResponseEntity.ok(Map.of("result", result));
     }
+
+    @PostMapping("/generate-decoration")
+    @Operation(summary = "Generate Shop Decoration", description = "Generate a complete shop decoration config from a text prompt")
+    public ResponseEntity<Map<String, String>> generateDecoration(@RequestBody ContentGenerationRequest request) {
+        String result = contentGenerationService.generateShopDecoration(request);
+        return ResponseEntity.ok(Map.of("result", result));
+    }
 }

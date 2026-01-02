@@ -904,6 +904,15 @@
         "confirm": "Confirm",
         "cancel": "Cancel"
       },
+      "aiModalTitle": "AI Magic Decorator",
+      "aiModalDesc": "Describe your dream shop and let AI generate a unique decoration configuration.",
+      "aiPlaceholder": "E.g., I want a modern fashion shop with dark theme, big banners, and featured products...",
+      "generate": "Generate Magic",
+      "generating": "Generating...",
+      "aiSuccess": "Decoration configuration generated successfully!",
+      "aiFailed": "Failed to generate configuration. Please try again.",
+      "aiParseError": "Error parsing AI response.",
+      "autoDesign": "Auto Design",
       "templatesList": {
         "simpleStore": {
           "name": "Simple Store",

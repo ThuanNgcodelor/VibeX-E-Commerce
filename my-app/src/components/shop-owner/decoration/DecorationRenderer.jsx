@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Container, Image } from 'react-bootstrap';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation, Pagination, Autoplay } from 'swiper/modules';
@@ -8,7 +8,13 @@ import 'swiper/css/pagination';
 import { getImageUrl } from '../../../api/image';
 
 const DecorationRenderer = ({ config }) => {
-    if (!config || config.length === 0) return null;
+    if (!config) return null;
+
+    // Handle both array (old) and object (new with style) formats
+    const widgets = Array.isArray(config) ? config : (config.widgets || []);
+    const globalStyle = !Array.isArray(config) ? (config.style || {}) : {};
+
+    if (widgets.length === 0) return null;
 
     const renderWidget = (widget) => {
         switch (widget.type) {
@@ -23,9 +29,16 @@ const DecorationRenderer = ({ config }) => {
         }
     };
 
+    const containerStyle = {
+        backgroundColor: globalStyle.backgroundColor || 'transparent',
+        color: globalStyle.textColor || 'inherit',
+        fontFamily: globalStyle.fontFamily || 'inherit',
+        minHeight: '100%'
+    };
+
     return (
-        <div className="shop-decoration-renderer">
-            {config.map((widget, index) => (
+        <div className="shop-decoration-renderer" style={containerStyle}>
+            {widgets.map((widget, index) => (
                 <div key={widget.id || index} className="mb-4">
                     {renderWidget(widget)}
                 </div>
@@ -36,6 +49,9 @@ const DecorationRenderer = ({ config }) => {
 
 const BannerRenderer = ({ data }) => {
     const images = data.images || [];
+    const height = data.height || 400;
+    const objectFit = data.objectFit || 'cover';
+
     if (images.length === 0) return null;
 
     return (
@@ -47,12 +63,18 @@ const BannerRenderer = ({ data }) => {
             pagination={{ clickable: true }}
             autoplay={{ delay: 3000 }}
             className="rounded overflow-hidden"
+            style={{ height: `${height}px` }}
         >
             {images.map((img, idx) => (
                 <SwiperSlide key={idx}>
-                    <SwiperSlide key={idx}>
-                        <Image src={getImageUrl(img.imageId) || img.url} className="w-100" style={{ objectFit: 'cover', maxHeight: '400px' }} />
-                    </SwiperSlide>
+                    <Image
+                        src={getImageUrl(img.imageId) || img.url}
+                        className="w-100"
+                        style={{
+                            height: '100%',
+                            objectFit: objectFit
+                        }}
+                    />
                 </SwiperSlide>
             ))}
         </Swiper>
@@ -62,12 +84,16 @@ const BannerRenderer = ({ data }) => {
 const VideoRenderer = ({ data }) => {
     if (!data.url) return null;
     const getEmbedUrl = (url) => {
-        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-        const match = url.match(regExp);
-        if (match && match[2].length === 11) {
-            return `https://www.youtube.com/embed/${match[2]}`;
+        try {
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+            const match = url.match(regExp);
+            if (match && match[2].length === 11) {
+                return `https://www.youtube.com/embed/${match[2]}`;
+            }
+            return url;
+        } catch (e) {
+            return url;
         }
-        return url;
     };
 
     return (
@@ -78,10 +104,10 @@ const VideoRenderer = ({ data }) => {
 };
 
 const ProductsRenderer = ({ data }) => {
-    const [products, setProducts] = React.useState([]);
-    const [loading, setLoading] = React.useState(false);
+    const [products, setProducts] = useState([]);
+    const [loading, setLoading] = useState(false);
 
-    React.useEffect(() => {
+    useEffect(() => {
         if (data.productIds && data.productIds.length > 0) {
             fetchData(data.productIds);
         } else {
@@ -95,12 +121,9 @@ const ProductsRenderer = ({ data }) => {
             const { fetchProductById } = await import('../../../api/product');
             const promises = ids.map(id => fetchProductById(id));
             const responses = await Promise.all(promises);
-            // fetchProductById returns axios response, data is in res.data
-            // Filter out failures or nulls if any
             const productsData = responses
                 .map(res => res && res.data)
                 .filter(item => item !== null && item !== undefined);
-
             setProducts(productsData);
         } catch (error) {
             console.error("Failed to load products for widget", error);

@@ -153,4 +153,59 @@ public class ContentGenerationService {
             throw new RuntimeException("Failed to generate content with images: " + e.getMessage());
         }
     }
+
+    public String generateShopDecoration(ContentGenerationRequest request) {
+        String prompt = buildDecorationPrompt(request);
+        return callAi(prompt);
+    }
+
+    private String buildDecorationPrompt(ContentGenerationRequest request) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("You are an expert UI/UX designer and Shop Decorator.\n");
+        sb.append("Generate a valid JSON configuration for a shop decoration based on the user's request.\n");
+        sb.append("User Request: \"").append(request.getPlanningPrompt()).append("\"\n\n");
+
+        sb.append("OUTPUT FORMAT:\n");
+        sb.append("You must return ONLY a JSON object. No markdown, no comments.\n");
+        sb.append("The JSON structure must match this EXACT format:\n");
+        sb.append("{\n");
+        sb.append("  \"style\": {\n");
+        sb.append("    \"backgroundColor\": \"#hex\",\n");
+        sb.append("    \"textColor\": \"#hex\",\n");
+        sb.append("    \"fontFamily\": \"string\" (e.g., 'Roboto', 'Inter', 'Serif')\n");
+        sb.append("  },\n");
+        sb.append("  \"widgets\": [\n");
+        sb.append("    {\n");
+        sb.append("      \"id\": 1,\n");
+        sb.append("      \"type\": \"banner\",\n");
+        sb.append("      \"data\": {\n");
+        sb.append("        \"images\": [\n");
+        sb.append("          { \"url\": \"https://placehold.co/1200x400/png?text=Banner+Image\" }\n");
+        sb.append("        ]\n");
+        sb.append("      }\n");
+        sb.append("    },\n");
+        sb.append("    {\n");
+        sb.append("      \"id\": 2,\n");
+        sb.append("      \"type\": \"products\",\n");
+        sb.append("      \"data\": {\n");
+        sb.append("        \"title\": \"Featured Collection\",\n");
+        sb.append("        \"productIds\": []\n");
+        sb.append("      }\n");
+        sb.append("    }\n");
+        sb.append("  ]\n");
+        sb.append("}\n\n");
+
+        sb.append("RULES:\n");
+        sb.append("1. 'widgets' array can contain 'banner', 'video', 'products' types.\n");
+        sb.append(
+                "2. For 'banner' images, use specific colors in the placeholder URL that match the theme (e.g., https://placehold.co/1200x400/ffcccb/ffffff?text=Summer+Sale).\n");
+        sb.append(
+                "3. For 'products', leave 'productIds' empty (the user will fill them later), but set a catchy 'title'.\n");
+        sb.append(
+                "4. For 'video', you can leave 'url' empty or put a relevant generic YouTube link if you know one, otherwise empty string.\n");
+        sb.append("5. Limit to 3-5 widgets total.\n");
+        sb.append("6. Return ONLY valid JSON. Do not wrap in ```json.\n");
+
+        return sb.toString();
+    }
 }

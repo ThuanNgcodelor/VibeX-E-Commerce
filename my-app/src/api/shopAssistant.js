@@ -29,3 +29,16 @@ export const generateReviewReply = async (data) => {
         throw error;
     }
 };
+
+/**
+ * Generate shop decoration config using AI
+ * @param {string} prompt - User description
+ */
+export const generateShopDecoration = async (prompt) => {
+    try {
+        const response = await api.post('/stock/shop-assistant/generate-decoration', { planningPrompt: prompt });
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};

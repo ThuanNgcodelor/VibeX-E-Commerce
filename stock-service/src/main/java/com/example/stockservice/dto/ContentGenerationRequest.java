@@ -27,4 +27,7 @@ public class ContentGenerationRequest {
 
     // Multimodal
     private java.util.List<String> images; // Base64 encoded images
+
+    // AI Decoration
+    private String planningPrompt;
 }
