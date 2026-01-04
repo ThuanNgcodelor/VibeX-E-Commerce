@@ -50,6 +50,7 @@
       "title": "Status",
       "pending": "Pending",
       "confirmed": "Confirmed",
+      "readyToShip": "Ready to Ship",
       "shipped": "Shipped",
       "delivered": "Delivered",
       "cancelled": "Cancelled",

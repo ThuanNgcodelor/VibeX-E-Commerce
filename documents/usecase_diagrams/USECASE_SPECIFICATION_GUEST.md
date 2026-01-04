@@ -67,44 +67,70 @@ graph LR
         UC2((Filter by Category))
         UC3((Filter by Price))
         UC4((Sort Results))
+        UC5((Autocomplete))
+        UC6((View Trending))
     end
     GUEST --> UC1
     GUEST --> UC2
     GUEST --> UC3
     GUEST --> UC4
+    GUEST --> UC5
+    GUEST --> UC6
 ```
 
 ### 2.1 Search by Keyword
 | Field | Description |
 |-------|-------------|
-| **Purpose** | Tìm kiếm sản phẩm theo từ khóa (tên, mô tả) |
-| **Inputs** | Search keyword |
-| **Outputs** | List of matching products |
-| **API Endpoint** | `GET /v1/stock/product?keyword={keyword}` |
+| **Purpose** | Tìm kiếm sản phẩm với smart query parsing và Redis cache |
+| **Inputs** | Query string, Filters (optional), Sort (optional), Page number, Page size |
+| **Outputs** | List of matching products, Total count, Parsed criteria (extracted price/category), Cached status |
+| **API Endpoint** | `POST /v1/stock/search/query` |
+| **Smart Parsing** | Tự động parse giá và category từ query:<br>- "laptop dưới 10tr" → priceMax: 10,000,000<br>- "áo từ 100k đến 500k" → priceMin: 100,000, priceMax: 500,000<br>- "điện thoại trên 5tr" → priceMin: 5,000,000 |
+| **Cache** | Results cached in Redis 24h, Response time: <50ms (cache hit), ~300-500ms (cache miss) |
 
 ### 2.2 Filter by Category
 | Field | Description |
-|-------|-------------|
+|-------|----------------|
 | **Purpose** | Lọc sản phẩm theo danh mục |
-| **Inputs** | Category ID |
-| **Outputs** | Products trong category đã chọn |
-| **API Endpoint** | `GET /v1/stock/product?categoryId={categoryId}` |
+| **Inputs** | Category names (array), Combined with search query |
+| **Outputs** | Products in selected categories |
+| **API Endpoint** | Included in `POST /v1/stock/search/query` filters |
 
 ### 2.3 Filter by Price
 | Field | Description |
-|-------|-------------|
+|-------|----------------|
 | **Purpose** | Lọc sản phẩm theo khoảng giá |
 | **Inputs** | Min price, Max price |
-| **Outputs** | Products trong khoảng giá |
-| **API Endpoint** | `GET /v1/stock/product?minPrice={}&maxPrice={}` |
+| **Outputs** | Products within price range |
+| **API Endpoint** | Included in `POST /v1/stock/search/query` filters |
+| **Quick Presets** | UI provides quick buttons: < 100k, 100k-500k, 500k-1tr, > 1tr |
 
 ### 2.4 Sort Results
 | Field | Description |
-|-------|-------------|
+|-------|----------------|
 | **Purpose** | Sắp xếp kết quả tìm kiếm |
-| **Inputs** | Sort by (price, rating, newest, bestselling), Sort direction (asc/desc) |
+| **Inputs** | Sort by (relevance, price-asc, price-desc, newest, bestselling) |
 | **Outputs** | Sorted product list |
-| **API Endpoint** | `GET /v1/stock/product?sortBy={}&sortDir={}` |
+| **API Endpoint** | Included in `POST /v1/stock/search/query` sortBy parameter |
+
+### 2.5 Autocomplete Suggestions
+| Field | Description |
+|-------|----------------|
+| **Purpose** | Gợi ý sản phẩm và keywords khi user đang nhập |
+| **Inputs** | Partial query string (min 2 chars), Limit (default 10) |
+| **Outputs** | List of suggestions: product names + trending keywords |
+| **API Endpoint** | `GET /v1/stock/search/autocomplete?q={query}&limit=10` |
+| **Response Types** | - "product": Product name với productId<br>- "keyword": Trending search term |
+| **Performance** | Debounced 300ms, Response time: <200ms |
+
+### 2.6 View Trending Keywords
+| Field | Description |
+|-------|----------------|
+| **Purpose** | Xem các từ khóa được tìm kiếm nhiều nhất |
+| **Inputs** | None (displayed on homepage/search page) |
+| **Outputs** | Top trending keywords với search count |
+| **Storage** | Redis analytics:search:{keyword}, TTL: 7 days |
+| **Update** | Real-time increment mỗi khi có search |
 
 ---
 

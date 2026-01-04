@@ -3,6 +3,7 @@ import Swal from 'sweetalert2';
 import { useSearchParams } from 'react-router-dom';
 import { getShopOwnerOrders, updateOrderStatusForShopOwner, returnOrder, getAllShopOwnerOrders } from '../../api/order';
 import { getUserById } from '../../api/user';
+import { getImageUrl } from '../../api/image';
 import { useTranslation } from 'react-i18next';
 import '../../components/shop-owner/ShopOwnerLayout.css';
 
@@ -438,7 +439,7 @@ export default function ReturnOrderPage() {
                         <thead>
                             <tr>
                                 <th>No.</th>
-                                <th>{t('shopOwner.manageOrder.customer')}</th>
+                                <th>{t('shopOwner.manageOrder.ghnOrderCode', 'GHN Code')}</th>
                                 <th>{t('shopOwner.analytics.product')}</th>
                                 <th>{t('shopOwner.manageOrder.subtotal')}</th>
                                 <th>{t('shopOwner.manageOrder.shipping')}</th>
@@ -466,7 +467,11 @@ export default function ReturnOrderPage() {
                                         <React.Fragment key={order.id}>
                                             <tr data-order-id={order.id}>
                                                 <td><strong>{orderNumber}</strong></td>
-                                                <td>{usernames[order.userId] || order.userId || 'N/A'}</td>
+                                                <td>
+                                                    <span className="text-primary fw-bold" style={{ fontSize: '0.85rem' }}>
+                                                        {order.ghnOrderCode || '-'}
+                                                    </span>
+                                                </td>
                                                 <td style={{ maxWidth: '300px' }}>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                         <span title={formatProducts(order.orderItems)}>
@@ -545,6 +550,7 @@ export default function ReturnOrderPage() {
                                                                 <table className="table table-sm table-bordered">
                                                                     <thead>
                                                                         <tr>
+                                                                            <th style={{ width: '70px' }}></th>
                                                                             <th>{t('shopOwner.analytics.product')}</th>
                                                                             <th>Size</th>
                                                                             <th>{t('shopOwner.product.form.quantity')}</th>
@@ -555,6 +561,21 @@ export default function ReturnOrderPage() {
                                                                     <tbody>
                                                                         {order.orderItems.map((item, itemIndex) => (
                                                                             <tr key={itemIndex}>
+                                                                                <td>
+                                                                                    {item.imageId || item.productImage ? (
+                                                                                        <img
+                                                                                            src={getImageUrl(item.imageId || item.productImage)}
+                                                                                            alt={item.productName}
+                                                                                            className="rounded"
+                                                                                            style={{ width: '50px', height: '50px', objectFit: 'cover' }}
+                                                                                            onError={(e) => { e.target.src = 'data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2250%22%20height%3D%2250%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2050%2050%22%3E%3Crect%20width%3D%2250%22%20height%3D%2250%22%20fill%3D%22%23eee%22%3E%3C%2Frect%3E%3C%2Fsvg%3E'; }}
+                                                                                        />
+                                                                                    ) : (
+                                                                                        <div className="bg-light rounded d-flex align-items-center justify-content-center" style={{ width: '50px', height: '50px' }}>
+                                                                                            <i className="fas fa-image text-secondary opacity-50"></i>
+                                                                                        </div>
+                                                                                    )}
+                                                                                </td>
                                                                                 <td>{item.productName || `Product ${item.productId}`}</td>
                                                                                 <td>{item.sizeName || 'N/A'}</td>
                                                                                 <td>{item.quantity || 1}</td>

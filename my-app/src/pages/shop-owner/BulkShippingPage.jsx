@@ -3,6 +3,7 @@ import Swal from 'sweetalert2';
 import { useSearchParams } from 'react-router-dom';
 import { getShopOwnerOrders, updateOrderStatusForShopOwner, getAllShopOwnerOrders, getShippingByOrderId, bulkUpdateOrderStatus, searchOrders, getAllOrderIds } from '../../api/order';
 import { getUserById } from '../../api/user';
+import { getImageUrl } from '../../api/image';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n/config';
 import '../../components/shop-owner/ShopOwnerLayout.css';
@@ -46,7 +47,7 @@ export default function BulkShippingPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [expandedRow, setExpandedRow] = useState(null);
-    const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || '');
+    const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || 'PENDING');
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [pageSize] = useState(10);
@@ -59,6 +60,37 @@ export default function BulkShippingPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState(null); // null = not searching, [] = no results
     const [totalOrderCount, setTotalOrderCount] = useState(0); // Total orders matching filter
+
+    // Helper: Check if order can be edited/selected
+    const canEditOrder = (orderStatus) => {
+        const normalizedStatus = normalizeStatus(orderStatus);
+        // Orders that CANNOT be edited: DELIVERED, COMPLETED, CANCELLED, RETURNED
+        const nonEditableStatuses = ['DELIVERED', 'COMPLETED', 'CANCELLED', 'RETURNED'];
+        return !nonEditableStatuses.includes(normalizedStatus);
+    };
+
+    // Helper: Check if order can transition to a specific status
+    const canTransitionTo = (currentStatus, targetStatus) => {
+        const current = normalizeStatus(currentStatus);
+        const target = normalizeStatus(targetStatus);
+
+        // Allowed transitions:
+        // PENDING → CONFIRMED, CANCELLED
+        // CONFIRMED → READY_TO_SHIP, CANCELLED
+        // READY_TO_SHIP → (auto SHIPPED by GHN)
+        const allowedTransitions = {
+            'PENDING': ['CONFIRMED', 'CANCELLED'],
+            'CONFIRMED': ['READY_TO_SHIP', 'CANCELLED'],
+            'READY_TO_SHIP': [], // Cannot manually change, will be SHIPPED by GHN
+            'SHIPPED': [], // GHN controls
+            'DELIVERED': [],
+            'COMPLETED': [],
+            'CANCELLED': [],
+            'RETURNED': []
+        };
+
+        return allowedTransitions[current]?.includes(target) || false;
+    };
 
     // Load orders
     useEffect(() => {
@@ -206,6 +238,35 @@ export default function BulkShippingPage() {
             return;
         }
 
+        // Validate transitions for all selected orders
+        const invalidOrders = [];
+        for (const orderId of selectedOrders) {
+            const order = orders.find(o => o.id === orderId);
+            if (order && !canTransitionTo(order.orderStatus, bulkStatus)) {
+                invalidOrders.push({
+                    id: orderId,
+                    current: getStatusLabel(order.orderStatus),
+                    target: getStatusLabel(bulkStatus)
+                });
+            }
+        }
+
+        if (invalidOrders.length > 0) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Không thể cập nhật',
+                html: `<p>Một số đơn hàng không thể chuyển sang trạng thái "${getStatusLabel(bulkStatus)}":</p>
+                       <ul style="text-align: left; max-height: 200px; overflow-y: auto;">
+                         ${invalidOrders.slice(0, 5).map(o =>
+                    `<li>Đơn ${o.id.substring(0, 8)}... (${o.current})</li>`
+                ).join('')}
+                         ${invalidOrders.length > 5 ? `<li>... và ${invalidOrders.length - 5} đơn khác</li>` : ''}
+                       </ul>
+                       <p class="mt-2 small text-muted">Gợi ý: Chỉ PENDING → CONFIRMED → Sẵn sàng giao</p>`
+            });
+            return;
+        }
+
         const result = await Swal.fire({
             title: t('shopOwner.manageOrder.confirmBulkUpdateTitle', 'Xác nhận cập nhật hàng loạt'),
             text: t('shopOwner.manageOrder.confirmBulkUpdate', { count: selectedOrders.size, status: getStatusLabel(bulkStatus) }),
@@ -263,6 +324,23 @@ export default function BulkShippingPage() {
     };
 
     const toggleOrderSelection = (orderId) => {
+        // Find order to check if it's editable
+        const order = orders.find(o => o.id === orderId);
+        if (!order || !canEditOrder(order.orderStatus)) {
+            // Show warning for non-editable orders
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 2000
+            });
+            Toast.fire({
+                icon: 'warning',
+                title: 'Đơn hàng này không thể chỉnh sửa'
+            });
+            return;
+        }
+
         const newSelected = new Set(selectedOrders);
         if (newSelected.has(orderId)) {
             newSelected.delete(orderId);
@@ -273,23 +351,70 @@ export default function BulkShippingPage() {
     };
 
     const toggleSelectAll = () => {
-        if (selectedOrders.size === orders.length) {
+        // Filter only editable orders on current page
+        const editableOrders = orders.filter(o => canEditOrder(o.orderStatus));
+        const editableOrderIds = editableOrders.map(o => o.id);
+
+        // Check if all editable orders are already selected
+        const allEditableSelected = editableOrderIds.every(id => selectedOrders.has(id));
+
+        if (allEditableSelected && editableOrderIds.length > 0) {
+            // Deselect all
             setSelectedOrders(new Set());
         } else {
-            setSelectedOrders(new Set(orders.map(o => o.id)));
+            // Select only editable orders
+            setSelectedOrders(new Set(editableOrderIds));
+
+            // Show info if some orders were skipped
+            const skippedCount = orders.length - editableOrders.length;
+            if (skippedCount > 0) {
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000
+                });
+                Toast.fire({
+                    icon: 'info',
+                    title: `Đã chọn ${editableOrders.length} đơn. ${skippedCount} đơn không thể chỉnh sửa.`
+                });
+            }
         }
     };
 
-    // Select all orders across all pages
+    // Select all EDITABLE orders across all pages
     const handleSelectAllAcrossPages = async () => {
         try {
-            const filterValue = statusFilter && statusFilter.trim() !== '' ? [statusFilter] : null;
-            const allOrderIds = await getAllOrderIds(filterValue);
+            // Get filter but EXCLUDE non-editable statuses
+            let filterStatuses = [];
+
+            if (statusFilter && statusFilter.trim() !== '') {
+                // If user has filtered by a specific status, use it
+                filterStatuses = [statusFilter];
+            } else {
+                // Otherwise, get only EDITABLE statuses
+                filterStatuses = ['PENDING', 'CONFIRMED', 'READY_TO_SHIP', 'SHIPPED'];
+            }
+
+            // Make sure we don't include non-editable statuses
+            const editableStatuses = filterStatuses.filter(status => {
+                const normalizedStatus = normalizeStatus(status);
+                return !['DELIVERED', 'COMPLETED', 'CANCELLED', 'RETURNED'].includes(normalizedStatus);
+            });
+
+            if (editableStatuses.length === 0) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Không có đơn hàng nào có thể chọn',
+                    text: 'Tất cả đơn hàng trong bộ lọc hiện tại đã được giao hoặc hoàn tất.'
+                });
+                return;
+            }
+
+            const allOrderIds = await getAllOrderIds(editableStatuses);
             setSelectedOrders(new Set(allOrderIds));
             setTotalOrderCount(allOrderIds.length);
-            // alert(`Đã chọn ${allOrderIds.length} đơn hàng`); // REMOVED AS REQUESTED
 
-            // Optional: Show a small toast or just nothing
             const Toast = Swal.mixin({
                 toast: true,
                 position: 'top-end',
@@ -299,7 +424,7 @@ export default function BulkShippingPage() {
             });
             Toast.fire({
                 icon: 'success',
-                title: `Đã chọn ${allOrderIds.length} đơn hàng`
+                title: `✓ Đã chọn ${allOrderIds.length} đơn hàng có thể chỉnh sửa`
             });
         } catch (err) {
             console.error('Error selecting all orders:', err);
@@ -680,10 +805,9 @@ export default function BulkShippingPage() {
                                 }}
                                 style={{ width: '180px' }}
                             >
-                                <option value="">{t('shopOwner.manageOrder.allStatus')}</option>
                                 <option value="PENDING">{t('common.status.pending')}</option>
                                 <option value="CONFIRMED">{t('common.status.confirmed')}</option>
-                                <option value="READY_TO_SHIP">Sẵn sàng giao</option>
+                                <option value="READY_TO_SHIP">{t('common.status.readyToShip', 'Sẵn sàng giao')}</option>
                                 <option value="SHIPPED">{t('common.status.shipped')}</option>
                                 <option value="DELIVERED">{t('common.status.delivered')}</option>
                                 <option value="COMPLETED">{t('common.status.completed')}</option>
@@ -710,7 +834,7 @@ export default function BulkShippingPage() {
                                 >
                                     <option value="">{t('shopOwner.manageOrder.selectStatus')}</option>
                                     <option value="CONFIRMED">{t('common.status.confirmed')}</option>
-                                    <option value="READY_TO_SHIP">Sẵn sàng giao</option>
+                                    <option value="READY_TO_SHIP">{t('common.status.readyToShip', 'Sẵn sàng giao')}</option>
                                     <option value="CANCELLED">{t('common.status.cancelled')}</option>
                                     <option value="RETURNED">{t('common.status.returned')}</option>
                                 </select>
@@ -743,22 +867,21 @@ export default function BulkShippingPage() {
                                         onChange={toggleSelectAll}
                                     />
                                 </th>
-                                <th style={{ width: '12%' }}>{t('shopOwner.manageOrder.customer')}</th>
-                                <th style={{ width: '10%' }}>{t('shopOwner.manageOrder.phone')}</th>
-                                <th style={{ width: '18%' }}>{t('shopOwner.manageOrder.address')}</th>
-                                <th style={{ width: '9%' }}>{t('shopOwner.manageOrder.subtotal')}</th>
-                                <th style={{ width: '9%' }}>{t('shopOwner.manageOrder.shipping')}</th>
-                                <th style={{ width: '9%' }}>{t('shopOwner.manageOrder.total')}</th>
-                                <th style={{ width: '9%' }}>{t('shopOwner.manageOrder.orderDate')}</th>
-                                <th style={{ width: '9%' }}>{t('common.status.title')}</th>
-                                <th style={{ width: '11%' }}>{t('shopOwner.manageOrder.actions')}</th>
+                                <th style={{ width: '12%' }}>{t('shopOwner.manageOrder.ghnOrderCode', 'GHN Code')}</th>
+                                <th style={{ width: '15%' }}>{t('shopOwner.analytics.product', 'Products')}</th>
+                                <th style={{ width: '10%' }}>{t('shopOwner.manageOrder.subtotal')}</th>
+                                <th style={{ width: '10%' }}>{t('shopOwner.manageOrder.shipping')}</th>
+                                <th style={{ width: '10%' }}>{t('shopOwner.manageOrder.total')}</th>
+                                <th style={{ width: '12%' }}>{t('shopOwner.manageOrder.orderDate')}</th>
+                                <th style={{ width: '12%' }}>{t('common.status.title')}</th>
+                                <th style={{ width: '15%' }}>{t('shopOwner.manageOrder.actions')}</th>
                             </tr>
                         </thead>
                         <tbody>
                             {/* Search Results Info */}
                             {searchResults !== null && (
                                 <tr>
-                                    <td colSpan="10" className="bg-info bg-opacity-10 py-2 px-3">
+                                    <td colSpan="9" className="bg-info bg-opacity-10 py-2 px-3">
                                         <i className="fas fa-search me-2"></i>
                                         Tìm thấy <strong>{searchResults.length}</strong> đơn hàng với từ khóa "{searchQuery}"
                                         <button className="btn btn-link btn-sm" onClick={clearSearch}>Xóa tìm kiếm</button>
@@ -767,7 +890,7 @@ export default function BulkShippingPage() {
                             )}
                             {(searchResults || orders).length === 0 ? (
                                 <tr>
-                                    <td colSpan="10" className="text-center py-4">
+                                    <td colSpan="9" className="text-center py-4">
                                         <p className="text-muted">{searchResults !== null ? 'Không tìm thấy đơn hàng' : t('shopOwner.manageOrder.noOrders')}</p>
                                     </td>
                                 </tr>
@@ -792,18 +915,36 @@ export default function BulkShippingPage() {
                                     const total = order.totalPrice || (subtotal + shippingFee - voucherDiscount);
                                     return (
                                         <React.Fragment key={order.id}>
-                                            <tr data-order-id={order.id}>
+                                            <tr data-order-id={order.id} style={{
+                                                opacity: canEditOrder(order.orderStatus) ? 1 : 0.6,
+                                                backgroundColor: !canEditOrder(order.orderStatus) ? '#f8f9fa' : 'inherit'
+                                            }}>
                                                 <td>
                                                     <input
                                                         type="checkbox"
                                                         checked={isSelected}
                                                         onChange={() => toggleOrderSelection(order.id)}
+                                                        disabled={!canEditOrder(order.orderStatus)}
+                                                        title={!canEditOrder(order.orderStatus) ? 'Đơn hàng này không thể chỉnh sửa' : ''}
                                                     />
                                                 </td>
-                                                <td>{usernames[order.userId] || order.userId || 'N/A'}</td>
-                                                <td>{order.recipientPhone || 'N/A'}</td>
-                                                <td className="text-truncate" style={{ maxWidth: '200px' }} title={order.fullAddress || order.shippingAddress || 'N/A'}>
-                                                    {order.fullAddress || order.shippingAddress || 'N/A'}
+                                                <td>
+                                                    <span className="text-primary fw-bold" style={{ fontSize: '0.85rem' }}>
+                                                        {shippingData[order.id]?.ghnOrderCode || order.ghnOrderCode || '-'}
+                                                    </span>
+                                                </td>
+                                                <td style={{ maxWidth: '200px' }}>
+                                                    <div className="text-truncate" title={order.orderItems?.map(item => `${item.productName || 'Product'} x${item.quantity}`).join(', ')}>
+                                                        {order.orderItems?.length > 0
+                                                            ? order.orderItems.map((item, i) => (
+                                                                <span key={i} className="d-block small">
+                                                                    {item.productName || `Product ${item.productId}`} x{item.quantity}
+                                                                </span>
+                                                            )).slice(0, 2)
+                                                            : 'N/A'
+                                                        }
+                                                        {order.orderItems?.length > 2 && <span className="text-muted small">+{order.orderItems.length - 2} more</span>}
+                                                    </div>
                                                 </td>
                                                 <td>
                                                     <strong style={{ color: '#555' }}>
@@ -949,7 +1090,26 @@ export default function BulkShippingPage() {
                                                                                         <td className="ps-3 text-muted small">{itemIndex + 1}</td>
                                                                                         <td>
                                                                                             <div className="d-flex align-items-center">
-                                                                                                <div className="bg-light rounded d-flex align-items-center justify-content-center me-3" style={{ width: '40px', height: '40px' }}>
+                                                                                                {item.imageId || item.productImage ? (
+                                                                                                    <img
+                                                                                                        src={getImageUrl(item.imageId || item.productImage)}
+                                                                                                        alt={item.productName}
+                                                                                                        className="rounded me-3"
+                                                                                                        style={{ width: '50px', height: '50px', objectFit: 'cover' }}
+                                                                                                        onError={(e) => {
+                                                                                                            e.target.style.display = 'none';
+                                                                                                            e.target.nextSibling.style.display = 'flex';
+                                                                                                        }}
+                                                                                                    />
+                                                                                                ) : null}
+                                                                                                <div
+                                                                                                    className="bg-light rounded d-flex align-items-center justify-content-center me-3"
+                                                                                                    style={{
+                                                                                                        width: '50px',
+                                                                                                        height: '50px',
+                                                                                                        display: (item.imageId || item.productImage) ? 'none' : 'flex'
+                                                                                                    }}
+                                                                                                >
                                                                                                     <i className="fas fa-image text-secondary opacity-50"></i>
                                                                                                 </div>
                                                                                                 <div>

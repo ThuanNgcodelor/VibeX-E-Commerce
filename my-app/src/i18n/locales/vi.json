@@ -50,6 +50,7 @@
       "title": "Trạng thái",
       "pending": "Đang chờ",
       "confirmed": "Xác nhận",
+      "readyToShip": "Sẵn sàng giao",
       "shipped": "Đã gửi hàng",
       "delivered": "Đã giao hàng",
       "cancelled": "Đã hủy",
@@ -505,7 +506,6 @@
     "chat": "Chat",
     "viewShop": "Xem Shop",
     "deliverySuccessful": "Giao hàng thành công",
-    "loadingShop": "Đang tải...",
     "shopNotAvailable": "Thông tin shop chưa sẵn sàng. Vui lòng thử lại."
   },
   "rating": {
@@ -1626,57 +1626,6 @@
       "saleProducts": "Sản phẩm đang giảm giá",
       "productPrice": "Giá sản phẩm ...",
       "today": "Hôm nay thứ mấy?"
-    }
-  },
-  "tracking": {
-    "backButton": "← TRỞ LẠI",
-    "orderId": "MÃ ĐƠN HÀNG",
-    "orderStatus": {
-      "pending": "Đang chờ",
-      "confirmed": "Đã xác nhận",
-      "shipped": "Đang vận chuyển",
-      "delivered": "Đã giao hàng",
-      "completed": "Hoàn thành",
-      "cancelled": "Đã hủy",
-      "returned": "Trả hàng"
-    },
-    "steps": {
-      "orderPlaced": "Đặt hàng",
-      "paymentConfirmedVNPAY": "Đã thanh toán",
-      "paymentConfirmedCOD": "Đã xác nhận",
-      "handedToShipper": "Đã giao cho vận chuyển",
-      "delivered": "Đã giao hàng",
-      "completed": "Hoàn thành"
-    },
-    "timeline": {
-      "statusUpdate": "Cập nhật trạng thái",
-      "orderPlaced": "Đặt hàng thành công",
-      "orderPlacedDesc": "Đơn hàng đã được đặt thành công",
-      "confirmed": "Đã xác nhận đơn hàng",
-      "confirmedDesc": "Đơn hàng đã được shop xác nhận",
-      "handedToCarrier": "Đã giao cho đơn vị vận chuyển",
-      "handedToCarrierDesc": "Đơn hàng đã được bàn giao cho GHN",
-      "delivered": "Đã giao hàng",
-      "deliveredDesc": "Giao hàng thành công",
-      "completed": "Hoàn thành",
-      "completedDesc": "Đơn hàng đã hoàn thành"
-    },
-    "thankYouMessage": "Cảm ơn bạn đã mua sắm!",
-    "buttons": {
-      "buyAgain": "Mua lại",
-      "contactSeller": "Liên hệ người bán"
-    },
-    "address": {
-      "title": "Địa chỉ nhận hàng",
-      "updating": "Đang cập nhật..."
-    },
-    "priceBreakdown": {
-      "subtotal": "Tổng tiền hàng",
-      "shippingFee": "Phí vận chuyển",
-      "shippingDiscount": "Giảm giá phí vận chuyển",
-      "voucherDiscount": "Giảm giá voucher",
-      "total": "Tổng thanh toán",
-      "paymentMethod": "Phương thức thanh toán"
     }
   },
   "shopDecoration": "Trang trí Shop",

@@ -3,6 +3,7 @@ import Chart from 'chart.js/auto';
 import { getSalesAnalytics, exportSalesReport } from '../../api/order'; // Import export
 import { getShopStats } from '../../api/product';
 import { getShopOwnerInfo } from '../../api/user';
+import { getShopBehaviorAnalytics } from '../../api/shopAnalytics'; // NEW: Phase 4
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast'; // Import toast
 import '../../components/shop-owner/ShopOwnerLayout.css';
@@ -21,6 +22,18 @@ export default function AnalyticsPage() {
         ordersByStatus: {},
         averageOrderValue: 0
     });
+
+    // NEW: Behavior Analytics State (Phase 4)
+    const [behaviorStats, setBehaviorStats] = useState({
+        totalViews: 0,
+        totalCarts: 0,
+        totalPurchases: 0,
+        conversionRate: 0,
+        topViewedProducts: [],
+        conversionFunnel: null,
+        abandonedProducts: []
+    });
+
     const [loading, setLoading] = useState(true);
     const [dateRange, setDateRange] = useState({
         startDate: new Date(new Date().setDate(new Date().getDate() - 7)).toISOString().split('T')[0],
@@ -31,6 +44,9 @@ export default function AnalyticsPage() {
     const chartInstance = React.useRef(null);
     const pieChartRef = React.useRef(null);
     const pieChartInstance = React.useRef(null);
+    // NEW: Funnel chart ref (Phase 4)
+    const funnelChartRef = React.useRef(null);
+    const funnelChartInstance = React.useRef(null);
 
     const fetchData = async () => {
         try {
@@ -55,6 +71,23 @@ export default function AnalyticsPage() {
                 totalCancelled: analyticsData.totalCancelled || 0,
                 totalReturned: analyticsData.totalReturned || 0
             });
+
+            // NEW: Fetch Behavior Analytics (Phase 4)
+            try {
+                const behaviorData = await getShopBehaviorAnalytics();
+                setBehaviorStats({
+                    totalViews: behaviorData.totalViews || 0,
+                    totalCarts: behaviorData.totalCarts || 0,
+                    totalPurchases: behaviorData.totalPurchases || 0,
+                    conversionRate: behaviorData.conversionRate || 0,
+                    topViewedProducts: behaviorData.topViewedProducts || [],
+                    conversionFunnel: behaviorData.conversionFunnel || null,
+                    abandonedProducts: behaviorData.abandonedProducts || []
+                });
+            } catch (error) {
+                console.log("Behavior analytics not available:", error);
+                // Don't show error toast - behavior analytics is optional
+            }
 
         } catch (error) {
             console.error("Failed to fetch analytics:", error);
@@ -213,6 +246,71 @@ export default function AnalyticsPage() {
         };
     }, [stats, loading]);
 
+    // NEW: Initialize/Update Funnel Chart (Phase 4)
+    useEffect(() => {
+        if (loading || !funnelChartRef.current || !behaviorStats.conversionFunnel) return;
+
+        if (funnelChartInstance.current) {
+            funnelChartInstance.current.destroy();
+        }
+
+        const ctx = funnelChartRef.current.getContext('2d');
+        const funnel = behaviorStats.conversionFunnel;
+
+        funnelChartInstance.current = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Views', 'Add to Cart', 'Purchases'],
+                datasets: [{
+                    label: 'Customer Journey',
+                    data: [funnel.views, funnel.carts, funnel.purchases],
+                    backgroundColor: [
+                        'rgba(78, 115, 223, 0.8)',  // Blue for Views
+                        'rgba(28, 200, 138, 0.8)',  // Green for Carts
+                        'rgba(155, 89, 182, 0.8)'   // Purple for Purchases
+                    ],
+                    borderColor: [
+                        'rgba(78, 115, 223, 1)',
+                        'rgba(28, 200, 138, 1)',
+                        'rgba(155, 89, 182, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                indexAxis: 'y', // Horizontal bar chart
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                return context.dataset.label + ': ' + context.parsed.x.toLocaleString();
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function (value) {
+                                if (value >= 1000) return (value / 1000) + 'k';
+                                return value;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        return () => {
+            if (funnelChartInstance.current) {
+                funnelChartInstance.current.destroy();
+            }
+        };
+    }, [behaviorStats, loading]);
+
 
     if (loading && !stats.todayRevenue) { // Only show full loader on initial load
         return <div className="d-flex justify-content-center align-items-center" style={{ height: '100vh' }}>
@@ -344,6 +442,154 @@ export default function AnalyticsPage() {
                     </table>
                 </div>
             </div>
+
+            {/* ========== NEW: BEHAVIOR ANALYTICS SECTIONS (Phase 4) ========== */}
+
+            {/* Section Header */}
+            <div className="dashboard-header mt-5 mb-3">
+                <h2><i className="fas fa-chart-bar me-2"></i>{t('shopOwner.analytics.behaviorAnalytics', 'Behavior Analytics')}</h2>
+            </div>
+
+            {/* Behavior Stats Cards */}
+            <div className="todo-cards" style={{ marginBottom: '30px', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+                <div className="todo-card">
+                    <div className="count" style={{ fontSize: '28px', color: '#4e73df' }}>
+                        {behaviorStats.totalViews.toLocaleString()}
+                    </div>
+                    <div className="label">
+                        <i className="fas fa-eye"></i> {t('shopOwner.analytics.totalViews', 'Total Views')}
+                    </div>
+                </div>
+                <div className="todo-card">
+                    <div className="count" style={{ fontSize: '28px', color: '#1cc88a' }}>
+                        {behaviorStats.totalCarts.toLocaleString()}
+                    </div>
+                    <div className="label">
+                        <i className="fas fa-shopping-cart"></i> {t('shopOwner.analytics.totalCarts', 'Add to Cart')}
+                    </div>
+                </div>
+                <div className="todo-card">
+                    <div className="count" style={{ fontSize: '28px', color: '#9b59b6' }}>
+                        {behaviorStats.totalPurchases.toLocaleString()}
+                    </div>
+                    <div className="label">
+                        <i className="fas fa-credit-card"></i> {t('shopOwner.analytics.totalPurchases', 'Purchases')}
+                    </div>
+                </div>
+                <div className="todo-card">
+                    <div className="count" style={{ fontSize: '28px', color: '#f39c12' }}>
+                        {behaviorStats.conversionRate.toFixed(2)}%
+                    </div>
+                    <div className="label">
+                        <i className="fas fa-chart-line"></i> {t('shopOwner.analytics.conversionRate', 'Conversion Rate')}
+                    </div>
+                </div>
+            </div>
+
+            <div className="row">
+                {/* Conversion Funnel Chart */}
+                <div className="col-lg-6 mb-4">
+                    <div className="analytics-section h-100">
+                        <div className="section-title">{t('shopOwner.analytics.conversionFunnel', 'Conversion Funnel')}</div>
+                        <div className="analytics-content">
+                            <div style={{ height: '300px', width: '100%' }}>
+                                <canvas ref={funnelChartRef}></canvas>
+                            </div>
+                            {behaviorStats.conversionFunnel && (
+                                <div className="mt-3 text-center small">
+                                    <span className="me-3">
+                                        <i className="fas fa-eye text-primary"></i> → <i className="fas fa-shopping-cart text-success"></i>: {behaviorStats.conversionFunnel.viewToCartRate.toFixed(2)}%
+                                    </span>
+                                    <span>
+                                        <i className="fas fa-shopping-cart text-success"></i> → <i className="fas fa-credit-card text-purple"></i>: {behaviorStats.conversionFunnel.cartToPurchaseRate.toFixed(2)}%
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Top Viewed Products */}
+                <div className="col-lg-6 mb-4">
+                    <div className="analytics-section h-100">
+                        <div className="section-title">{t('shopOwner.analytics.topViewedProducts', 'Top Viewed Products')}</div>
+                        <div className="analytics-content">
+                            <div className="table-responsive" style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                                <table className="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>{t('shopOwner.analytics.product', 'Product')}</th>
+                                            <th>{t('shopOwner.analytics.views', 'Views')}</th>
+                                            <th>CVR%</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {behaviorStats.topViewedProducts.length > 0 ? (
+                                            behaviorStats.topViewedProducts.slice(0, 5).map((product, index) => (
+                                                <tr key={index}>
+                                                    <td style={{ maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                        {product.productName}
+                                                    </td>
+                                                    <td>{product.viewCount.toLocaleString()}</td>
+                                                    <td>
+                                                        <span className={`badge ${product.conversionRate > 5 ? 'bg-success' : product.conversionRate > 2 ? 'bg-warning' : 'bg-danger'}`}>
+                                                            {product.conversionRate.toFixed(1)}%
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan="3" className="text-center text-muted">{t('shopOwner.analytics.noData', 'No Data')}</td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Abandoned Products Section */}
+            {behaviorStats.abandonedProducts.length > 0 && (
+                <div className="analytics-section" style={{ marginTop: '20px', borderLeft: '4px solid #f39c12', backgroundColor: '#fff8e6' }}>
+                    <div className="section-title" style={{ color: '#f39c12' }}>
+                        <i className="fas fa-exclamation-triangle me-2"></i>
+                        {t('shopOwner.analytics.abandonedProducts', 'Products Needing Attention')}
+                    </div>
+                    <div className="table-responsive">
+                        <table className="table">
+                            <thead>
+                                <tr>
+                                    <th>{t('shopOwner.analytics.product', 'Product')}</th>
+                                    <th>{t('shopOwner.analytics.views', 'Views')}</th>
+                                    <th>{t('shopOwner.analytics.carts', 'Carts')}</th>
+                                    <th>{t('shopOwner.analytics.purchases', 'Purchases')}</th>
+                                    <th>{t('shopOwner.analytics.issue', 'Issue')}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {behaviorStats.abandonedProducts.map((product, index) => (
+                                    <tr key={index}>
+                                        <td>{product.productName}</td>
+                                        <td>{product.viewCount.toLocaleString()}</td>
+                                        <td>{product.cartCount.toLocaleString()}</td>
+                                        <td>{product.purchaseCount.toLocaleString()}</td>
+                                        <td>
+                                            <small className="text-muted">{product.issue}</small>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div className="alert alert-warning mt-3 mb-0">
+                        <i className="fas fa-lightbulb me-2"></i>
+                        <strong>{t('shopOwner.analytics.suggestion', 'Suggestion')}:</strong> {t('shopOwner.analytics.abandonedSuggestion', 'Consider reviewing price, product description, or images for these products')}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

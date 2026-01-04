@@ -790,6 +790,99 @@ graph LR
         UC2((Filter Results))
         UC3((Sort Results))
         UC4((View Search History))
+        UC5((Delete All History))
+        UC6((Delete History Item))
+        UC7((Autocomplete + History))
+    end
+    USER --> UC1
+    USER --> UC2
+    USER --> UC3
+    USER --> UC4
+    USER --> UC5
+    USER --> UC6
+    USER --> UC7
+```
+
+### 15.1 Search by Keyword
+| Field | Description |
+|-------|-------------|
+| **Purpose** | Tìm kiếm thông minh với cache và lưu lịch sử |
+| **Inputs** | Query string, Filters, Sort, Page, Size, JWT Token |
+| **Outputs** | Products list, Total count, Parsed criteria, Cached status |
+| **API Endpoint** | `POST /v1/stock/search/query` |
+| **Smart Parsing** | Tự động parse từ query:<br>- "laptop dưới 10tr" → priceMax: 10,000,000<br>- "áo từ 100k đến 500k" → priceMin: 100,000, priceMax: 500,000<br>- "điện thoại trên 5tr" → priceMin: 5,000,000<br>- "áo size M" → sizes: [M] |
+| **Side Effects** | Query được lưu vào search history (max 10 items, LIFO, TTL 30 days) |
+| **Cache** | Redis 24h, <50ms (hit) ~300-500ms (miss) |
+
+### 15.2 Filter Results
+| Field | Description |
+|-------|-------------|
+| **Purpose** | Lọc kết quả tìm kiếm theo nhiều tiêu chí |
+| **Inputs** | Price range (min/max), Categories (array), Locations (array), Sizes (array) |
+| **Outputs** | Filtered product list matching all criteria |
+| **API Endpoint** | Included in `POST /v1/stock/search/query` filters object |
+| **Smart Features** | - Quick price presets (< 100k, 100k-500k, 500k-1tr, > 1tr)<br>- Dynamic category loading from API<br>- Active filter badges with X button to remove |
+
+### 15.3 Sort Results
+| Field | Description |
+|-------|-------------|
+| **Purpose** | Sắp xếp kết quả theo tiêu chí |
+| **Inputs** | Sort by (relevance, price-asc, price-desc, newest, bestselling) |
+| **Outputs** | Sorted product list |
+| **API Endpoint** | Included in `POST /v1/stock/search/query` sortBy parameter |
+
+### 15.4 View Search History
+| Field | Description |
+|-------|-------------|
+| **Purpose** | Xem 10 queries tìm kiếm gần nhất |
+| **Inputs** | JWT Token |
+| **Outputs** | List of recent search queries (max 10, ordered LIFO) |
+| **API Endpoint** | `GET /v1/stock/search/history` |
+| **Storage** | Redis key: `search:history:{userId}`, TTL: 30 days |
+| **Display** | Shown in autocomplete dropdown when search box is focused |
+
+### 15.5 Delete All Search History
+| Field | Description |
+|-------|-------------|
+| **Purpose** | Xóa toàn bộ lịch sử tìm kiếm của user |
+| **Inputs** | JWT Token |
+| **Outputs** | Success message, History cleared |
+| **API Endpoint** | `DELETE /v1/stock/search/history` |
+| **Effect** | Redis key `search:history:{userId}` deleted |
+
+### 15.6 Delete Single History Item
+| Field | Description |
+|-------|-------------|
+| **Purpose** | Xóa 1 query cụ thể khỏi lịch sử |
+| **Inputs** | JWT Token, Query string to remove |
+| **Outputs** | Success message, Item removed from history |
+| **API Endpoint** | `DELETE /v1/stock/search/history/item?query={query}` |
+| **UI** | X button next to each history item in autocomplete dropdown |
+
+### 15.7 Autocomplete with History
+| Field | Description |
+|-------|-------------|
+| **Purpose** | Gợi ý thông minh kết hợp products, history và trending |
+| **Inputs** | Partial query (or empty), JWT Token, Limit (default 10) |
+| **Outputs** | Mixed suggestions: user's history + matching products + trending keywords |
+| **API Endpoint** | `GET /v1/stock/search/autocomplete?q={query}&limit=10` |
+| **Empty Query** | Returns user's search history only (max 10) |
+| **With Query** | Returns: matching products + matching history items + trending keywords |
+| **Response Types** | - "history": từ search history của user<br>- "product": product name với productId<br>- "keyword": trending search term |
+| **UX** | - Debounced 300ms<br>- Icons for each type<br>- X button on history items<br>- Click to navigate or remove |
+
+---
+
+## 17. USER BEHAVIOR ANALYTICS & RECOMMENDATIONS (Phân Tích Hành Vi & Gợi Ý)
+
+```mermaid
+graph LR
+    USER[👤 User]
+    subgraph "Behavior Analytics & Recommendations"
+        UC1((View Recently Viewed))
+        UC2((View Trending Products))
+        UC3((View Personalized For You))
+        UC4((View Similar Products))
     end
     USER --> UC1
     USER --> UC2
@@ -797,37 +890,113 @@ graph LR
     USER --> UC4
 ```
 
-### 15.1 Search by Keyword
-| Field | Description |
-|-------|-------------|
-| **Purpose** | Tìm kiếm sản phẩm theo từ khóa |
-| **Inputs** | Search keyword |
-| **Outputs** | Matching products |
-| **API Endpoint** | `GET /v1/stock/product?keyword={keyword}` |
+> **📌 Context**: Phase 1 (Behavior Tracking) tự động theo dõi hành vi user (VIEW, SEARCH, ADD_CART, PURCHASE) và lưu vào Redis + Kafka. Phase 2 (Recommendations) sử dụng data này để tạo gợi ý cá nhân hóa.
 
-### 15.2 Filter Results
+### 17.1 View Recently Viewed Products
 | Field | Description |
 |-------|-------------|
-| **Purpose** | Lọc kết quả tìm kiếm |
-| **Inputs** | Price range, Category, Rating, Location |
-| **Outputs** | Filtered product list |
-| **API Endpoint** | `GET /v1/stock/product?minPrice={}&maxPrice={}&category={}` |
+| **Purpose** | Xem danh sách sản phẩm đã xem gần đây |
+| **Inputs** | JWT Token, Limit (default 10) |
+| **Outputs** | List of recently viewed products với product details, source, reason |
+| **API Endpoint** | `GET /v1/stock/analytics/recommendations/recently-viewed?limit=10` |
+| **Data Source** | Redis key: `recent_views:{userId}`, LIFO order |
+| **Tracking** | Tự động track khi user xem ProductDetailPage |
+| **Display** | Homepage section "ĐÃ XEM GẦN ĐÂY" |
+| **Guest Behavior** | ❌ Guest không có data → section không hiển thị |
 
-### 15.3 Sort Results
+### 17.2 View Trending Products
 | Field | Description |
 |-------|-------------|
-| **Purpose** | Sắp xếp kết quả |
-| **Inputs** | Sort by (price, rating, newest, bestselling) |
-| **Outputs** | Sorted product list |
-| **API Endpoint** | `GET /v1/stock/product?sortBy={}&sortDir={}` |
+| **Purpose** | Xem sản phẩm xu hướng (được xem nhiều nhất) |
+| **Inputs** | Limit (default 12) |
+| **Outputs** | List of trending products sorted by view count (24h window) |
+| **API Endpoint** | `GET /v1/stock/analytics/recommendations/trending?limit=12` |
+| **Data Source** | Redis sorted set: `product_views` với scores = view count |
+| **Algorithm** | Top N products với view count cao nhất |
+| **Display** | Homepage section "SẢN PHẨM XU HƯỚNG" với badge 🔥 |
+| **Available For** | ✅ All users (Guest + Logged-in) |
 
-### 15.4 View Search History
+### 17.3 View Personalized Recommendations
 | Field | Description |
 |-------|-------------|
-| **Purpose** | Xem lịch sử tìm kiếm |
-| **Inputs** | JWT Token |
-| **Outputs** | Recent search keywords |
-| **API Endpoint** | `GET /v1/user/search-history` |
+| **Purpose** | Xem gợi ý sản phẩm cá nhân hóa dựa trên hành vi |
+| **Inputs** | JWT Token, Limit (default 12) |
+| **Outputs** | Personalized product list với reason (e.g., "Vì bạn đã xem [ProductName]") |
+| **API Endpoint** | `GET /v1/stock/analytics/recommendations/personalized?limit=12` |
+| **Algorithm** | 1. Lấy 5 sản phẩm recently viewed<br>2. Lấy category của sản phẩm đầu tiên<br>3. Tìm products cùng category<br>4. Exclude products đã xem<br>5. Random shuffle để tạo diversity |
+| **Fallback** | Nếu không đủ data → return trending products |
+| **Display** | Homepage section "CÓ THỂ BẠN QUAN TÂM" |
+| **Guest Behavior** | ❌ Guest không có data → section không hiển thị |
+
+### 17.4 View Similar Products
+| Field | Description |
+|-------|-------------|
+| **Purpose** | Xem sản phẩm tương tự với một sản phẩm cụ thể |
+| **Inputs** | Product ID, Limit (default 6) |
+| **Outputs** | List of similar products (same category or shop) |
+| **API Endpoint** | `GET /v1/stock/analytics/recommendations/similar/{productId}?limit=6` |
+| **Algorithm** | 1. Tìm products cùng category với productId<br>2. Nếu không đủ → thêm products cùng shop<br>3. Exclude chính product đang xem |
+| **Display** | ProductDetailPage section "SẢN PHẨM TƯƠNG TỰ" |
+| **Available For** | ✅ All users (Guest + Logged-in) |
+
+---
+
+## 18. BEHAVIOR TRACKING (Tự Động - Background)
+
+> **⚠️ Note**: User không cần gọi trực tiếp các API này. Frontend tự động track khi có hành động.
+
+```mermaid
+graph LR
+    USER[👤 User]
+    subgraph "Auto Tracking Events"
+        UC1((Track View))
+        UC2((Track Search))
+        UC3((Track Add Cart))
+        UC4((Track Purchase))
+    end
+    USER -.auto.-> UC1
+    USER -.auto.-> UC2
+    USER -.auto.-> UC3
+    USER -.auto.-> UC4
+```
+
+### 18.1 Track Product View (Auto)
+| Field | Description |
+|-------|-------------|
+| **Purpose** | Theo dõi sự kiện xem sản phẩm |
+| **Trigger** | User navigate to ProductDetailPage |
+| **Tracked Data** | Product ID, Session ID, Source (search/category/home), Duration |
+| **API Endpoint** | `POST /v1/stock/analytics/track/view` (called by frontend) |
+| **Side Effects** | - Increment Redis view counter<br>- Add to recently viewed (if logged in)<br>- Send Kafka event → MySQL behavior_logs |
+| **Performance** | < 10ms (async via Kafka) |
+
+### 18.2 Track Search (Auto)
+| Field | Description |
+|-------|-------------|
+| **Purpose** | Theo dõi từ khóa tìm kiếm |
+| **Trigger** | User submit search query |
+| **Tracked Data** | Keyword, Session ID, User ID (if logged in) |
+| **API Endpoint** | `POST /v1/stock/analytics/track/search` (called by frontend) |
+| **Side Effects** | - Increment Redis search counter<br>- Update trending keywords<br>- Add to search history (Phase 3, if logged in) |
+
+### 18.3 Track Add to Cart (Auto)
+| Field | Description |
+|-------|-------------|
+| **Purpose** | Theo dõi sự kiện thêm vào giỏ hàng |
+| **Trigger** | User click "Add to Cart" successfully |
+| **Tracked Data** | Product ID, Quantity, User ID |
+| **API Endpoint** | `POST /v1/stock/analytics/track/cart` (called by frontend) |
+| **Side Effects** | - Send Kafka event → MySQL<br>- Update product analytics (cart_count) |
+
+### 18.4 Track Purchase (Auto)
+| Field | Description |
+|-------|-------------|
+| **Purpose** | Theo dõi sự kiện mua hàng thành công |
+| **Trigger** | Order status = CONFIRMED |
+| **Tracked Data** | User ID, Product ID, Shop ID, Order ID, Quantity |
+| **API Endpoint** | `POST /v1/stock/analytics/track/purchase` (called by Order Service) |
+| **Side Effects** | - Send Kafka event → MySQL<br>- Update product analytics (purchase_count, conversion_rate, popularity_score) |
+| **Integration** | Called from Order Service via Kafka or Feign |
 
 ---
 
