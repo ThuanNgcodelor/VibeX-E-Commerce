@@ -1,7 +1,7 @@
 package com.example.stockservice.service.product;
 
 import com.example.stockservice.client.FileStorageClient;
-import com.example.stockservice.event.ProductUpdateKafkaEvent;
+
 import com.example.stockservice.service.category.CategoryService;
 import org.springframework.data.domain.Pageable;
 import com.example.stockservice.enums.ProductStatus;
@@ -13,7 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.kafka.core.KafkaTemplate;
+
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -27,6 +27,7 @@ import com.example.stockservice.repository.SizeRepository;
 @RequiredArgsConstructor
 public class ProductServiceImpl implements ProductService {
     private final com.example.stockservice.repository.CartItemRepository cartItemRepository;
+
     @Override
     public long countProductsByUserId(String userId) {
         return productRepository.countByUserId(userId);
@@ -43,10 +44,16 @@ public class ProductServiceImpl implements ProductService {
     private final SizeRepository sizeRepository;
     private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
     private final org.springframework.kafka.core.KafkaTemplate<String, com.example.stockservice.event.ProductUpdateKafkaEvent> kafkaTemplate;
+    // Generic KafkaTemplate for notifications
+    private final org.springframework.kafka.core.KafkaTemplate<String, Object> genericKafkaTemplate;
+
     private final InventoryService inventoryService;
 
     @org.springframework.beans.factory.annotation.Value("${kafka.topic.product-updates}")
     private String productUpdatesTopic;
+
+    @org.springframework.beans.factory.annotation.Value("${kafka.topic.notification}")
+    private String notificationTopic;
 
     @Override
     @org.springframework.transaction.annotation.Transactional
@@ -108,8 +115,6 @@ public class ProductServiceImpl implements ProductService {
 
     private void checkAndUpdateProductStatus(Product product) {
         // Use direct DB count to ensure data consistency
-        // Note: product.getId() might be null if it's a new product still being saved,
-        // but this is called after updates
         if (product.getId() == null)
             return;
 
@@ -128,6 +133,34 @@ public class ProductServiceImpl implements ProductService {
                 product.setStatus(ProductStatus.IN_STOCK);
                 productRepository.save(product);
             }
+        }
+
+        // CHECK LOW STOCK for Notification
+        // Calculate total stock
+        List<Size> sizes = sizeRepository.findByProductId(product.getId());
+        int totalStock = sizes.stream().mapToInt(Size::getStock).sum();
+
+        // Threshold = 10 (hardcoded for now as per requirement/plan)
+        if (totalStock <= 10) {
+            sendLowStockNotification(product, totalStock);
+        }
+    }
+
+    private void sendLowStockNotification(Product product, int totalStock) {
+        try {
+            com.example.stockservice.request.SendNotificationRequest notificationRequest = com.example.stockservice.request.SendNotificationRequest
+                    .builder()
+                    .userId(product.getUserId()) // Shop Owner ID
+                    .shopId(product.getUserId()) // Shop ID is usually same as Owner ID in this context
+                    .message("Cảnh báo: Sản phẩm '" + product.getName() + "' sắp hết hàng! Hiện còn: " + totalStock)
+                    .isShopOwnerNotification(true)
+                    .build();
+
+            genericKafkaTemplate.send(notificationTopic, notificationRequest);
+            // System.out.println("Sent low stock notification for product: " +
+            // product.getName());
+        } catch (Exception e) {
+            System.err.println("Failed to send low stock notification: " + e.getMessage());
         }
     }
 
@@ -296,7 +329,8 @@ public class ProductServiceImpl implements ProductService {
             List<Size> managedSizes = toUpdate.getSizes();
             if (managedSizes != null && !managedSizes.isEmpty()) {
                 // Detach cart items from sizes before deleting sizes
-                // This prevents FK constraint violation and keeps cart items with sizeAvailable=false
+                // This prevents FK constraint violation and keeps cart items with
+                // sizeAvailable=false
                 for (Size size : managedSizes) {
                     if (size.getCartItems() != null) {
                         for (com.example.stockservice.model.CartItem cartItem : size.getCartItems()) {

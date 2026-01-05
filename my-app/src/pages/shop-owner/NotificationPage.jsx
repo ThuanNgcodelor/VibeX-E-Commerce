@@ -254,7 +254,8 @@ export default function NotificationPage() {
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
-  const handleMarkAsRead = async (e, id, orderId) => {
+  const handleMarkAsRead = async (e, notification) => {
+    const { id, orderId } = notification;
     e.stopPropagation(); // Prevent triggering row click if clicking specific button
     try {
       await markNotificationAsRead(id);
@@ -265,6 +266,9 @@ export default function NotificationPage() {
       // If notification has orderId, navigate to order page
       if (orderId) {
         handleViewOrder(orderId);
+      } else if (notification.type === 'product' && notification.message.toLowerCase().includes('sắp hết hàng')) {
+        // Navigate to Inventory for low stock
+        navigate('/shop-owner/inventory');
       }
     } catch (err) {
       console.error('Error marking notification as read:', err);
@@ -501,7 +505,7 @@ export default function NotificationPage() {
               <li
                 key={notification.id}
                 className={`notification-item ${notification.isRead ? '' : 'unread'}`}
-                onClick={(e) => handleMarkAsRead(e, notification.id, notification.orderId)}
+                onClick={(e) => handleMarkAsRead(e, notification)}
               >
                 <div className={`notification-icon-box bg-${notification.color}`}>
                   <i className={`fas ${notification.icon}`}></i>

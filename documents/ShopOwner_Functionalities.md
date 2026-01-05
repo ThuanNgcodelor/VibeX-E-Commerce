@@ -5,7 +5,7 @@ Tài liệu này tổng hợp các chức năng chính của Shop Owner, bao g�
 ## 1. Tổng Quan Kiến Trúc
 Hệ thống sử dụng kiến trúc Microservices với các service chính liên quan đến Shop Owner:
 - **User Service**: Quản lý thông tin Shop, trang trí (Decoration), ví (Wallet).
-- **Stock Service**: Quản lý sản phẩm, tồn kho, Flash Sale.
+- **Stock Service**: Quản lý sản phẩm, tồn kho, Flash Sale, AI Assistant (Chatbot & Content Gen).
 - **Order Service**: Quản lý đơn hàng, vận chuyển (GHN), doanh thu/sổ cái (Ledger).
 
 Data flow chủ yếu thông qua Rest API (Feign Client) cho các tác vụ đồng bộ và Kafka cho các tác vụ bất đồng bộ (đặt hàng, thông báo).
@@ -37,8 +37,17 @@ Data flow chủ yếu thông qua Rest API (Feign Client) cho các tác vụ đ�
     -   **Tồn kho**: Khi có đơn hàng, `stock-service` nhận request trừ kho. Nếu là Flash Sale, check giới hạn số lượng bán ra (`FlashSaleProduct`).
     -   **Thống kê**: API `getShopStats` đếm số lượng sản phẩm theo trạng thái (BANNED, OUT_OF_STOCK).
 
-### 2.3. Quản Lý Đơn Hàng (Order Management)
-*   **Mô tả**: Xem danh sách đơn, xác nhận, chuẩn bị hàng, giao hàng.
+### 2.3. Trợ Lý Ảo Shop (Shop Assistant AI)
+*   **Mô tả**: Sử dụng AI để hỗ trợ Shop Owner trong việc quản lý và vận hành.
+*   **Service**: `stock-service`
+*   **Controller**: `ShopAssistantController`, `AIChatController`
+*   **Chức Năng**:
+    -   **Sinh mô tả sản phẩm (`generate-description`)**: Tạo mô tả HTML chuẩn SEO dựa trên tên và thuộc tính sản phẩm.
+    -   **Gợi ý trả lời đánh giá (`generate-reply`)**: Đề xuất nội dung phản hồi cho review của khách hàng.
+    -   **AI Chatbot (`ai-chat`)**: Trò chuyện, giải đáp thắc mắc về vận hành shop (Powered by Ollama + Qwen).
+
+### 2.4. Quản Lý Đơn Hàng (Order Management)
+*   **Mô tả**: Xem danh sách đơn, xác nhận, chuẩn bị hàng, giao hàng, xuất báo cáo.
 *   **Service**: `order-service`
 *   **Controller**: `OrderController`
 *   **Thư viện & External APIs**:
@@ -57,9 +66,13 @@ Data flow chủ yếu thông qua Rest API (Feign Client) cho các tác vụ đ�
         -   Shop Owner xác nhận đơn hàng -> Hệ thống gọi API GHN tạo đơn vận chuyển (`createShippingOrder`).
         -   Cập nhật mã vận đơn GHN vào hệ thống.
     3.  **Hoàn thành**:
-        -   Khi status = `CONFIRMED` -> Gọi `ShopLedgerService` để cộng tiền vào ví Shop.
+        -   Khi status = `CONFIRMED` -> Tạo đơn GHN.
+        -   Khi status = `DELIVERED` -> Gọi `ShopLedgerService` để cộng tiền vào ví Shop.
+*   **Chức năng mở rộng**:
+    -   **Bulk Update**: Cập nhật trạng thái nhiều đơn cùng lúc (`metrics/bulk-update-status`).
+    -   **Export Analytics**: Xuất báo cáo doanh thu ra file CSV (`/shop-owner/analytics/export`).
 
-### 2.4. Trang Trí Shop (Shop Decoration)
+### 2.5. Trang Trí Shop (Shop Decoration)
 *   **Mô tả**: Kéo thả widget để thiết kế giao diện trang chủ Shop.
 *   **Service**: `user-service`
 *   **Controller**: `ShopDecorationController`
@@ -94,22 +107,37 @@ Data flow chủ yếu thông qua Rest API (Feign Client) cho các tác vụ đ�
     -   Lưu cấu hình giao diện dưới dạng chuỗi **JSON** trong database (`ShopDecoration` entity).
     -   Frontend render dynamic components dựa trên JSON này.
 
-### 2.5. Ví & Doanh Thu (Wallet & Ledger)
-*   **Mô tả**: Xem doanh thu, lịch sử giao dịch, yêu cầu rút tiền.
-*   **Service**: `order-service` (Ledger), `user-service` (Wallet info).
+### 2.6. Ví & Doanh Thu (Wallet & Ledger)
+*   **Mô tả**: Quản lý dòng tiền, xem doanh thu, lịch sử giao dịch và thực hiện rút tiền về tài khoản ngân hàng.
+*   **Service**:
+    -   `order-service`: Quản lý Sổ cái (Ledger), tính toán phí/hoa hồng, xử lý yêu cầu rút tiền.
+    -   `user-service`: (Phần UserWallet dùng cho người mua hoàn tiền, ít liên quan Shop Owner).
 *   **Controller**: `LedgerController`
+*   **Entities Chính**:
+    -   `ShopLedger`: Lưu tổng số dư khả dụng (`balanceAvailable`) và doanh thu chờ (`balancePending`).
+    -   `ShopLedgerEntry`: Lưu lịch sử từng giao dịch (Cộng tiền đơn hàng, Trừ phí, Rút tiền).
+    -   `PayoutBatch`: Lưu thông tin các đợt yêu cầu rút tiền.
 *   **Cơ chế nghiệp vụ**:
-    -   **Ghi nhận doanh thu**: Chỉ khi đơn hàng `CONFIRMED`, hệ thống tính toán:
-        `Doanh thu = Giá trị đơn - Phí sàn - Voucher (nếu có)`.
-    -   **Sổ cái (Ledger)**: Lưu log biến động số dư (`ShopLedgerEntry`).
-    -   **Rút tiền**: Shop Owner tạo request -> Admin duyệt -> Trừ tiền trong ví.
+    1.  **Ghi nhận doanh thu (Earning)**:
+        -   Kích hoạt khi đơn hàng chuyển trạng thái `DELIVERED` (Giao thành công).
+        -   Service: `ShopLedgerServiceImpl.processOrderEarning`.
+        -   **Công thức**: `Thực nhận = Tổng tiền hàng - (Phí sàn + Phí cố định + Phí Freeship + Phí Voucher)`.
+        -   Tỷ lệ phí được lấy từ Gói dịch vụ (`ShopSubscription`). Nếu không có gói, dùng tỷ lệ mặc định (4% Payment + 4% Fixed).
+    2.  **Rút tiền (Payout)**:
+        -   Shop Owner tạo yêu cầu -> Hệ thống kiểm tra số dư -> Trừ tiền trong `ShopLedger`.
+        -   Tạo record `PayoutBatch` với trạng thái `PENDING`.
+        -   Tạo `ShopLedgerEntry` loại `PAYOUT` để ghi log.
+    3.  **Frontend (`WalletPage.jsx`)**:
+        -   Hiển thị tab "Thu nhập" (Các đơn hàng đã cộng tiền) và "Lịch sử rút tiền".
+        -   Cho phép xuất file Excel lịch sử rút tiền và hóa đơn rút tiền (`exportInvoice`).
 
 ## 3. Tổng Hợp Kỹ Thuật
 
 | Hạng mục | Chi tiết |
 | :--- | :--- |
 | **Message Queue** | **Kafka** (Topics: `order-topic`, `notification-topic`, `update-status-order-topic`) |
-| **External APIs** | **GHN** (Vận chuyển), **VNPay** (Thanh toán), **Cloudinary** (Lưu trữ ảnh), **Gemini AI** (Sinh mô tả sản phẩm) |
+| **External APIs** | **GHN** (Vận chuyển), **VNPay** (Thanh toán), **Cloudinary** (Lưu trữ ảnh) |
+| **AI Modules** | **Ollama** (Local LLM runner), **Qwen** (Base Model for Chat/Content Gen) |
 | **Frameworks** | Spring Boot 3.x, Spring Cloud OpenFeign (gọi chéo service) |
 | **Database** | PostgreSQL, Redis (Caching cart/session) |
 | **Frontend** | ReactJS (Vite), TailwindCSS, Mermaid (Biểu đồ) |

@@ -1010,6 +1010,11 @@
       "widgets": {
         "banner": "Ảnh chạy (Banner)",
         "bannerTitle": "Cài đặt Banner",
+        "bannerHeight": "Chiều cao Banner",
+        "imageFit": "Chế độ hiển thị ảnh",
+        "fitCover": "Cắt ảnh (Cover)",
+        "fitContain": "Toàn bộ ảnh (Contain)",
+        "fitFill": "Kéo dãn (Fill)",
         "video": "Video",
         "videoTitle": "Cài đặt Video",
         "products": "Danh sách sản phẩm",

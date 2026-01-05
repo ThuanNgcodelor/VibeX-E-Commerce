@@ -13,6 +13,10 @@ const BannerWidget = ({ data, onChange }) => {
         onChange({ ...data, images: [...images, { imageId: '' }] });
     };
 
+    const handleSettingChange = (field, value) => {
+        onChange({ ...data, [field]: value });
+    };
+
     const handleRemoveImage = (index) => {
         const newImages = images.filter((_, i) => i !== index);
         onChange({ ...data, images: newImages });
@@ -52,6 +56,32 @@ const BannerWidget = ({ data, onChange }) => {
             </h5>
             <div className="text-muted small mb-3 fst-italic">
                 {t('shopOwner.decoration.widgets.bannerSizeHint')}
+            </div>
+
+
+            <div className="card p-3 mb-3 bg-light">
+                <Form.Group className="mb-3">
+                    <Form.Label className="fw-bold small">{t('shopOwner.decoration.widgets.bannerHeight')} ({data.height || 400}px)</Form.Label>
+                    <Form.Range
+                        min={100}
+                        max={1000}
+                        step={10}
+                        value={data.height || 400}
+                        onChange={(e) => handleSettingChange('height', parseInt(e.target.value))}
+                    />
+                </Form.Group>
+                <Form.Group>
+                    <Form.Label className="fw-bold small">{t('shopOwner.decoration.widgets.imageFit')}</Form.Label>
+                    <Form.Select
+                        size="sm"
+                        value={data.objectFit || 'cover'}
+                        onChange={(e) => handleSettingChange('objectFit', e.target.value)}
+                    >
+                        <option value="cover">{t('shopOwner.decoration.widgets.fitCover')}</option>
+                        <option value="contain">{t('shopOwner.decoration.widgets.fitContain')}</option>
+                        <option value="fill">{t('shopOwner.decoration.widgets.fitFill')}</option>
+                    </Form.Select>
+                </Form.Group>
             </div>
 
             <div className="d-flex flex-column gap-3 mb-3">

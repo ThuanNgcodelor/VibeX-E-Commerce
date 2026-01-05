@@ -339,17 +339,16 @@ export default function WalletPage() {
                         <table className="table table-hover align-middle mb-0">
                             <thead className="bg-light text-muted text-uppercase small">
                                 <tr>
-                                    <th scope="col" className="ps-4 py-3 border-0">{t('shopOwner.wallet.details.order')} / Ref</th>
+                                    <th scope="col" className="ps-4 py-3 border-0">{t('shopOwner.wallet.details.description', 'Mô tả')} / {t('shopOwner.wallet.details.order')}</th>
                                     <th scope="col" className="py-3 border-0">{t('shopOwner.wallet.details.estimatedPaymentDate')}</th>
                                     <th scope="col" className="py-3 border-0 text-center">{t('shopOwner.wallet.details.status')}</th>
-                                    <th scope="col" className="py-3 border-0">{t('shopOwner.wallet.details.description', 'Description')}</th>
                                     <th scope="col" className="pe-4 py-3 border-0 text-end">{t('shopOwner.wallet.details.amount')}</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {filteredEntries.length === 0 ? (
                                     <tr>
-                                        <td colSpan="5" className="text-center py-5 text-muted">
+                                        <td colSpan="4" className="text-center py-5 text-muted">
                                             <div className="d-flex flex-column align-items-center">
                                                 <i className="fas fa-box-open fa-3x mb-3 text-secondary opacity-50"></i>
                                                 <p className="mb-0">{t('shopOwner.wallet.details.noEntries')}</p>
@@ -384,7 +383,9 @@ export default function WalletPage() {
                                             <tr key={entry.id}>
                                                 <td className="ps-4 py-3">
                                                     <div className="d-flex flex-column">
-                                                        <span className="fw-bold font-monospace text-dark" style={{ letterSpacing: '-0.5px' }}>{entry.orderId}</span>
+                                                        <span className="fw-bold text-dark mb-1" title={entry.productName}>
+                                                            {entry.productName}
+                                                        </span>
                                                         {entry.type === 'PAYOUT' && entry.payoutId && (
                                                             <button
                                                                 className="btn btn-sm btn-link text-decoration-none p-0 mt-1 d-inline-flex align-items-center"
@@ -407,11 +408,6 @@ export default function WalletPage() {
                                                 <td className="text-center">
                                                     <span className={`badge rounded-pill px-3 py-2 fw-normal ${badgeClass}`}>
                                                         {statusLabel}
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    <span className="text-secondary small d-inline-block text-truncate" style={{ maxWidth: '250px' }} title={entry.productName}>
-                                                        {entry.productName}
                                                     </span>
                                                 </td>
                                                 <td className="pe-4 text-end">

@@ -38,6 +38,9 @@ const DecorationRenderer = ({ config }) => {
 
 const BannerRenderer = ({ data }) => {
     const images = data.images || [];
+    const height = data.height || 400;
+    const objectFit = data.objectFit || 'cover';
+
     if (images.length === 0) return null;
 
     return (
@@ -49,12 +52,15 @@ const BannerRenderer = ({ data }) => {
             pagination={{ clickable: true }}
             autoplay={{ delay: 3000 }}
             className="rounded overflow-hidden"
+            style={{ height: `${height}px` }}
         >
             {images.map((img, idx) => (
                 <SwiperSlide key={idx}>
-                    <SwiperSlide key={idx}>
-                        <Image src={getImageUrl(img.imageId) || img.url} className="w-100" style={{ objectFit: 'cover', maxHeight: '400px' }} />
-                    </SwiperSlide>
+                    <Image
+                        src={getImageUrl(img.imageId) || img.url}
+                        className="w-100 h-100"
+                        style={{ objectFit: objectFit }}
+                    />
                 </SwiperSlide>
             ))}
         </Swiper>

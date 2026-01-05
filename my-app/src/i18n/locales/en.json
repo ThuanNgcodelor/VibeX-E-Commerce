@@ -894,6 +894,11 @@
       "widgets": {
         "banner": "Banner Carousel",
         "bannerTitle": "Banner Settings",
+        "bannerHeight": "Banner Height",
+        "imageFit": "Image Fit Mode",
+        "fitCover": "Cover",
+        "fitContain": "Contain",
+        "fitFill": "Fill",
         "bannerSizeHint": "Recommended size: 1200x400px",
         "video": "Video",
         "videoTitle": "Video Settings",
