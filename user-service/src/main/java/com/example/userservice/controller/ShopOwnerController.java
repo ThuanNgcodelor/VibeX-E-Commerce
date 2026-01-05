@@ -52,4 +52,9 @@ public class ShopOwnerController {
         ShopOwner updated = shopOwnerService.updateShopOwner(request, file);
         return ResponseEntity.ok(modelMapper.map(updated, ShopOwnerDto.class));
     }
+
+    @GetMapping("/admin/list")
+    public ResponseEntity<java.util.List<com.example.userservice.dto.ShopOwnerStatsDto>> getAllShopOwnersAdmin() {
+        return ResponseEntity.ok(shopOwnerService.getAllShopOwnersWithStats());
+    }
 }

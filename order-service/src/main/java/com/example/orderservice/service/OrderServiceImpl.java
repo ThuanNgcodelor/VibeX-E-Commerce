@@ -35,8 +35,6 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
-import com.example.orderservice.service.TrackingEmitterService;
-
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -475,6 +473,7 @@ public class OrderServiceImpl implements OrderService {
     public List<Order> getUserOrders(String userId) {
         return orderRepository.findByUserIdOrderByCreatedAtDesc(userId);
     }
+
 
     @Override
     @Transactional
@@ -1184,8 +1183,7 @@ public class OrderServiceImpl implements OrderService {
                 })
                 .collect(java.util.stream.Collectors.toList());
 
-        log.info(
-                "[PAYMENT-ORDER] Creating order - userId: {}, addressId: {}, items: {}, shippingFee: {}, voucherId: {}",
+        log.info("[PAYMENT-ORDER] Creating order - userId: {}, addressId: {}, items: {}, shippingFee: {}, voucherId: {}",
                 userId, addressId, selectedItems.size(), shippingFee, voucherId);
 
         // 5. Delegate to existing method
@@ -1334,73 +1332,6 @@ public class OrderServiceImpl implements OrderService {
         return firstOrder;
     }
 
-    // Helper method to calculate shipping fee for a specific shop
-    private java.math.BigDecimal calculateShopShippingFee(String addressId, String shopOwnerId, List<com.example.orderservice.dto.SelectedItemDto> items) {
-        try {
-            // 1. Get customer address
-            com.example.orderservice.dto.AddressDto customerAddress = userServiceClient.getAddressById(addressId).getBody();
-            if (customerAddress == null || customerAddress.getDistrictId() == null || customerAddress.getWardCode() == null) {
-                log.warn("[SHIPPING-CALC] Invalid customer address: {}", addressId);
-                return java.math.BigDecimal.valueOf(30000); // Fallback
-            }
-
-            // 2. Get shop owner address
-            com.example.orderservice.dto.ShopOwnerDto shopOwner = userServiceClient.getShopOwnerByUserId(shopOwnerId).getBody();
-            if (shopOwner == null || shopOwner.getDistrictId() == null || shopOwner.getWardCode() == null) {
-                log.warn("[SHIPPING-CALC] Shop owner address not configured: {}", shopOwnerId);
-                return java.math.BigDecimal.valueOf(30000); // Fallback
-            }
-
-            // 3. Calculate weight
-            int weight = 0;
-            for (com.example.orderservice.dto.SelectedItemDto item : items) {
-                try {
-                     com.example.orderservice.dto.SizeDto size = stockServiceClient.getSizeById(item.getSizeId()).getBody();
-                     int itemWeight = (size != null && size.getWeight() != null && size.getWeight() > 0) ? size.getWeight() : 500;
-                     weight += item.getQuantity() * itemWeight;
-                } catch (Exception e) {
-                    weight += item.getQuantity() * 500;
-                }
-            }
-            if (weight == 0) weight = 1000;
-
-            // 4. Get available services
-            Integer serviceTypeId = 2; // Default Standard/Light
-             try {
-                com.example.orderservice.dto.GhnAvailableServicesResponse servicesResponse = ghnApiClient.getAvailableServices(
-                        shopOwner.getDistrictId(),
-                        customerAddress.getDistrictId());
-                if (servicesResponse != null && servicesResponse.getData() != null) {
-                    boolean hasType2 = servicesResponse.getData().stream().anyMatch(s -> s.getServiceTypeId() == 2);
-                     if (!hasType2 && !servicesResponse.getData().isEmpty()) {
-                         serviceTypeId = servicesResponse.getData().get(0).getServiceTypeId();
-                     }
-                }
-            } catch (Exception e) {
-                 log.warn("[SHIPPING-CALC] Failed to get available services: {}", e.getMessage());
-            }
-
-            // 5. Calculate Fee
-            com.example.orderservice.dto.GhnCalculateFeeRequest req = com.example.orderservice.dto.GhnCalculateFeeRequest.builder()
-                    .fromDistrictId(shopOwner.getDistrictId())
-                    .fromWardCode(shopOwner.getWardCode())
-                    .toDistrictId(customerAddress.getDistrictId())
-                    .toWardCode(customerAddress.getWardCode())
-                    .weight(weight)
-                    .length(20).width(15).height(10)
-                    .serviceTypeId(serviceTypeId)
-                    .build();
-
-            com.example.orderservice.dto.GhnCalculateFeeResponse res = ghnApiClient.calculateFee(req);
-            if (res != null && res.getCode() == 200 && res.getData() != null) {
-                return java.math.BigDecimal.valueOf(res.getData().getTotal());
-            }
-        } catch (Exception e) {
-            log.error("[SHIPPING-CALC] Failed to calculate fee for shop {}: {}", shopOwnerId, e.getMessage());
-        }
-        return java.math.BigDecimal.valueOf(30000); // Final fallback
-    }
-
     @KafkaListener(topics = "#{@orderTopic.name}", groupId = "order-service-checkout", containerFactory = "checkoutListenerFactory")
     @Transactional
     public void consumeCheckout(CheckOutKafkaRequest msg) {
@@ -1473,8 +1404,7 @@ public class OrderServiceImpl implements OrderService {
         log.info("[CONSUMER] Splitting order into {} separate orders by shop", totalShops);
 
         // Calculate shipping fee per shop (divide equally if multiple shops)
-        // double shippingFeePerShop = (msg.getShippingFee() != null ? msg.getShippingFee() : 0.0) / totalShops;
-        // NOTE: We now recalculate fee per shop inside the loop for accuracy
+        double shippingFeePerShop = (msg.getShippingFee() != null ? msg.getShippingFee() : 0.0) / totalShops;
 
         // Determine which shop the voucher belongs to (if any)
         String voucherShopOwnerId = null;
@@ -1510,9 +1440,8 @@ public class OrderServiceImpl implements OrderService {
                 log.info("[CONSUMER] Applying voucher {} to order for shop {}", msg.getVoucherId(), shopOwnerId);
             }
 
-            // Recalculate shipping fee for this shop (Backend calculation for accuracy)
-            java.math.BigDecimal shopShippingFee = calculateShopShippingFee(msg.getAddressId(), shopOwnerId, shopItems);
-            order.setShippingFee(shopShippingFee);
+            // Set shipping fee (divided equally among shops)
+            order.setShippingFee(BigDecimal.valueOf(shippingFeePerShop));
 
             // 2) Items + decrease stock (skip decrease stock cho test products)
             List<OrderItem> items = toOrderItemsFromSelectedForCheckout(shopItems, order);
@@ -1877,86 +1806,84 @@ public class OrderServiceImpl implements OrderService {
     /**
      * Get i18n title and description for GHN status
      * 
-     * @return String[4] where [0] = title_vi, [1] = desc_vi, [2] = title_en, [3] =
-     *         desc_en
+     * @return String[4] where [0] = title_vi, [1] = desc_vi, [2] = title_en, [3] = desc_en
      */
     private String[] getGhnStatusInfo(String ghnStatus) {
         switch (ghnStatus.toLowerCase()) {
             case "ready_to_pick":
-                return new String[] { "Chờ lấy hàng", "Đơn hàng đang chờ shipper đến lấy",
-                        "Waiting for pickup", "Order is waiting for shipper to pick up" };
+                return new String[] { "Chờ lấy hàng", "Đơn hàng đang chờ shipper đến lấy", 
+                                     "Waiting for pickup", "Order is waiting for shipper to pick up" };
             case "picking":
                 return new String[] { "Đang lấy hàng", "Shipper đang đến lấy hàng từ shop",
-                        "Picking up", "Shipper is picking up from shop" };
+                                     "Picking up", "Shipper is picking up from shop" };
             case "money_collect_picking":
                 return new String[] { "Đang lấy hàng", "Shipper đang thu tiền và lấy hàng",
-                        "Collecting & picking", "Shipper is collecting money and picking up" };
+                                     "Collecting & picking", "Shipper is collecting money and picking up" };
             case "picked":
                 return new String[] { "Đã lấy hàng", "Shipper đã lấy hàng thành công",
-                        "Picked up", "Shipper has picked up successfully" };
+                                     "Picked up", "Shipper has picked up successfully" };
             case "storing":
                 return new String[] { "Đã nhập kho", "Đơn hàng đã được nhập kho phân loại",
-                        "In warehouse", "Order has been stored in warehouse" };
+                                     "In warehouse", "Order has been stored in warehouse" };
             case "transporting":
                 return new String[] { "Đang luân chuyển", "Đơn hàng đang được vận chuyển đến kho đích",
-                        "In transit", "Order is being transported to destination" };
+                                     "In transit", "Order is being transported to destination" };
             case "sorting":
                 return new String[] { "Đang phân loại", "Đơn hàng đang được phân loại tại kho",
-                        "Sorting", "Order is being sorted at warehouse" };
+                                     "Sorting", "Order is being sorted at warehouse" };
             case "delivering":
                 return new String[] { "Đang giao hàng", "Shipper đang giao hàng đến bạn",
-                        "Delivering", "Shipper is delivering to you" };
+                                     "Delivering", "Shipper is delivering to you" };
             case "money_collect_delivering":
                 return new String[] { "Đang giao hàng", "Shipper đang giao hàng và thu tiền COD",
-                        "Delivering (COD)", "Shipper is delivering and collecting COD" };
+                                     "Delivering (COD)", "Shipper is delivering and collecting COD" };
             case "delivered":
                 return new String[] { "Đã giao hàng", "Giao hàng thành công",
-                        "Delivered", "Delivery successful" };
+                                     "Delivered", "Delivery successful" };
             case "delivery_fail":
                 return new String[] { "Giao thất bại", "Giao hàng không thành công, sẽ giao lại",
-                        "Delivery failed", "Delivery failed, will retry" };
+                                     "Delivery failed", "Delivery failed, will retry" };
             case "waiting_to_return":
                 return new String[] { "Chờ trả hàng", "Đơn hàng đang chờ trả về shop",
-                        "Waiting to return", "Waiting to return to shop" };
+                                     "Waiting to return", "Waiting to return to shop" };
             case "return":
             case "returning":
                 return new String[] { "Đang trả hàng", "Đơn hàng đang được trả về shop",
-                        "Returning", "Order is being returned to shop" };
+                                     "Returning", "Order is being returned to shop" };
             case "return_transporting":
                 return new String[] { "Đang luân chuyển trả", "Đơn hàng đang được vận chuyển trả về shop",
-                        "Return in transit", "Order is being transported back to shop" };
+                                     "Return in transit", "Order is being transported back to shop" };
             case "return_sorting":
                 return new String[] { "Đang phân loại trả", "Đơn hàng đang được phân loại để trả về shop",
-                        "Return sorting", "Order is being sorted for return" };
+                                     "Return sorting", "Order is being sorted for return" };
             case "return_fail":
                 return new String[] { "Trả hàng thất bại", "Không thể trả hàng về shop",
-                        "Return failed", "Failed to return to shop" };
+                                     "Return failed", "Failed to return to shop" };
             case "returned":
                 return new String[] { "Đã trả hàng", "Đơn hàng đã được trả về shop thành công",
-                        "Returned", "Order has been returned successfully" };
+                                     "Returned", "Order has been returned successfully" };
             case "cancel":
                 return new String[] { "Đã hủy", "Đơn hàng đã bị hủy",
-                        "Cancelled", "Order has been cancelled" };
+                                     "Cancelled", "Order has been cancelled" };
             case "exception":
                 return new String[] { "Có sự cố", "Đơn hàng gặp sự cố, đang xử lý",
-                        "Exception", "Order has an exception, processing" };
+                                     "Exception", "Order has an exception, processing" };
             case "damage":
                 return new String[] { "Hàng bị hư hỏng", "Hàng hóa bị hư hỏng trong quá trình vận chuyển",
-                        "Damaged", "Package was damaged during transport" };
+                                     "Damaged", "Package was damaged during transport" };
             case "lost":
                 return new String[] { "Hàng bị thất lạc", "Hàng hóa bị thất lạc",
-                        "Lost", "Package was lost" };
+                                     "Lost", "Package was lost" };
             default:
                 return new String[] { "Cập nhật trạng thái", "Trạng thái: " + ghnStatus,
-                        "Status update", "Status: " + ghnStatus };
+                                     "Status update", "Status: " + ghnStatus };
         }
     }
 
     /**
      * Append a new entry to the tracking history JSON array (i18n support)
      */
-    private void appendTrackingHistory(ShippingOrder sh, String status, String titleVi, String descVi, String titleEn,
-            String descEn) {
+    private void appendTrackingHistory(ShippingOrder sh, String status, String titleVi, String descVi, String titleEn, String descEn) {
         try {
             java.util.List<Map<String, Object>> history = new java.util.ArrayList<>();
             String old = sh.getTrackingHistory();
@@ -2079,27 +2006,27 @@ public class OrderServiceImpl implements OrderService {
     }
 
     // ==================== BULK UPDATE STATUS PRODUCER ====================
-
+    
     @Override
     public Map<String, Object> bulkUpdateOrderStatus(String shopOwnerId, List<String> orderIds, String newStatus) {
         if (orderIds == null || orderIds.isEmpty()) {
             throw new IllegalArgumentException("Order IDs are required");
         }
-
+        
         if (newStatus == null || newStatus.isBlank()) {
             throw new IllegalArgumentException("New status is required");
         }
-
+        
         // Get shop owner's product IDs for validation
         List<String> shopProductIds = stockServiceClient.getProductIdsByShopOwner(shopOwnerId).getBody();
         if (shopProductIds == null || shopProductIds.isEmpty()) {
             throw new RuntimeException("No products found for this shop owner");
         }
-
+        
         int sent = 0;
         int rejected = 0;
         List<String> rejectedOrderIds = new ArrayList<>();
-
+        
         for (String orderId : orderIds) {
             try {
                 Order order = orderRepository.findById(orderId).orElse(null);
@@ -2108,17 +2035,17 @@ public class OrderServiceImpl implements OrderService {
                     rejectedOrderIds.add(orderId);
                     continue;
                 }
-
+                
                 // Check if order has items from this shop
                 boolean belongsToShop = order.getOrderItems().stream()
                         .anyMatch(item -> shopProductIds.contains(item.getProductId()));
-
+                
                 if (!belongsToShop) {
                     rejected++;
                     rejectedOrderIds.add(orderId);
                     continue;
                 }
-
+                
                 // Build Kafka message
                 UpdateStatusOrderRequest msg = UpdateStatusOrderRequest.builder()
                         .orderId(orderId)
@@ -2126,21 +2053,21 @@ public class OrderServiceImpl implements OrderService {
                         .newStatus(newStatus)
                         .timestamp(LocalDateTime.now())
                         .build();
-
+                
                 // Send to Kafka (async, non-blocking)
                 updateStatusKafkaTemplate.send(updateStatusOrderTopic.name(), orderId, msg);
                 sent++;
-
+                
             } catch (Exception e) {
                 log.error("[BULK-UPDATE] Failed to process order {}: {}", orderId, e.getMessage());
                 rejected++;
                 rejectedOrderIds.add(orderId);
             }
         }
-
-        log.info("[BULK-UPDATE] Shop {} sent {} orders to Kafka, rejected {}",
+        
+        log.info("[BULK-UPDATE] Shop {} sent {} orders to Kafka, rejected {}", 
                 shopOwnerId, sent, rejected);
-
+        
         Map<String, Object> response = new HashMap<>();
         response.put("accepted", sent);
         response.put("rejected", rejected);
@@ -2148,58 +2075,62 @@ public class OrderServiceImpl implements OrderService {
         if (!rejectedOrderIds.isEmpty()) {
             response.put("rejectedOrderIds", rejectedOrderIds);
         }
-
+        
         return response;
     }
 
     // ==================== SEARCH ORDERS ====================
-
+    
     @Override
     public List<Order> searchOrders(String shopOwnerId, String query) {
         if (query == null || query.trim().isEmpty()) {
             return Collections.emptyList();
         }
-
+        
         // Get shop owner's product IDs
         List<String> shopProductIds = stockServiceClient.getProductIdsByShopOwner(shopOwnerId).getBody();
         if (shopProductIds == null || shopProductIds.isEmpty()) {
             return Collections.emptyList();
         }
-
+        
         String searchQuery = query.trim().toLowerCase();
-
+        
         // Search by order ID prefix
         List<Order> allShopOrders = orderRepository.findByOrderItemsProductIdIn(shopProductIds);
-
+        
         return allShopOrders.stream()
                 .filter(order -> order.getId().toLowerCase().contains(searchQuery))
-                .limit(50) // Limit results
+                .limit(50)  // Limit results
                 .collect(Collectors.toList());
     }
 
     // ==================== BULK UPDATE STATUS CONSUMER ====================
-
+    
     /**
      * Batch consumer for update-order-topic topic
      * Processes multiple status updates in parallel for high throughput
      */
-    @KafkaListener(topics = "#{@updateStatusOrderTopic.name()}", groupId = "order-service-status-update", containerFactory = "updateStatusListenerFactory")
+    @KafkaListener(
+            topics = "#{@updateStatusOrderTopic.name()}", 
+            groupId = "order-service-status-update", 
+            containerFactory = "updateStatusListenerFactory"
+    )
     public void consumeBulkStatusUpdate(List<UpdateStatusOrderRequest> messages) {
         if (messages == null || messages.isEmpty()) {
             return;
         }
-
+        
         log.info("[BULK-STATUS-CONSUMER] Received batch of {} messages", messages.size());
-
+        
         int success = 0;
         int failed = 0;
         Map<String, List<String>> resultsByShopOwner = new HashMap<>();
-
+        
         for (UpdateStatusOrderRequest msg : messages) {
             try {
-                log.info("[BULK-STATUS-CONSUMER] Processing: orderId={}, newStatus={}",
+                log.info("[BULK-STATUS-CONSUMER] Processing: orderId={}, newStatus={}", 
                         msg.getOrderId(), msg.getNewStatus());
-
+                
                 // 1. Get order
                 Order order = orderRepository.findById(msg.getOrderId()).orElse(null);
                 if (order == null) {
@@ -2208,7 +2139,7 @@ public class OrderServiceImpl implements OrderService {
                     addResult(resultsByShopOwner, msg.getShopOwnerId(), "FAILED:" + msg.getOrderId());
                     continue;
                 }
-
+                
                 // 2. Update status
                 OrderStatus newStatus;
                 try {
@@ -2219,56 +2150,57 @@ public class OrderServiceImpl implements OrderService {
                     addResult(resultsByShopOwner, msg.getShopOwnerId(), "FAILED:" + msg.getOrderId());
                     continue;
                 }
-
+                
                 order.setOrderStatus(newStatus);
                 orderRepository.save(order);
-
+                
                 // 3. Side effects
                 if (newStatus == OrderStatus.CONFIRMED) {
                     try {
                         createShippingOrderForOrder(msg.getOrderId());
                     } catch (Exception e) {
-                        log.warn("[BULK-STATUS-CONSUMER] Failed to create shipping for order {}: {}",
+                        log.warn("[BULK-STATUS-CONSUMER] Failed to create shipping for order {}: {}", 
                                 msg.getOrderId(), e.getMessage());
                     }
                 }
-
+                
                 if (newStatus == OrderStatus.DELIVERED) {
                     try {
                         shopLedgerService.processOrderEarning(order);
                     } catch (Exception e) {
-                        log.warn("[BULK-STATUS-CONSUMER] Failed to process ledger for order {}: {}",
+                        log.warn("[BULK-STATUS-CONSUMER] Failed to process ledger for order {}: {}", 
                                 msg.getOrderId(), e.getMessage());
                     }
                 }
-
+                
                 success++;
                 addResult(resultsByShopOwner, msg.getShopOwnerId(), "SUCCESS:" + msg.getOrderId());
-
-                log.info("[BULK-STATUS-CONSUMER] Successfully updated order {} to {}",
+                
+                log.info("[BULK-STATUS-CONSUMER] Successfully updated order {} to {}", 
                         msg.getOrderId(), msg.getNewStatus());
-
+                
             } catch (Exception e) {
-                log.error("[BULK-STATUS-CONSUMER] Failed to process order {}: {}",
+                log.error("[BULK-STATUS-CONSUMER] Failed to process order {}: {}", 
                         msg.getOrderId(), e.getMessage(), e);
                 failed++;
                 addResult(resultsByShopOwner, msg.getShopOwnerId(), "FAILED:" + msg.getOrderId());
             }
         }
-
+        
         // 4. Send notifications to shop owners
         for (Map.Entry<String, List<String>> entry : resultsByShopOwner.entrySet()) {
             String shopOwnerId = entry.getKey();
             List<String> results = entry.getValue();
-
+            
             long successCount = results.stream().filter(r -> r.startsWith("SUCCESS:")).count();
             long failedCount = results.stream().filter(r -> r.startsWith("FAILED:")).count();
-
+            
             String message = String.format(
-                    "Đã cập nhật %d đơn hàng thành công%s",
+                    "Đã cập nhật %d đơn hàng thành công%s", 
                     successCount,
-                    failedCount > 0 ? String.format(", %d đơn thất bại", failedCount) : "");
-
+                    failedCount > 0 ? String.format(", %d đơn thất bại", failedCount) : ""
+            );
+            
             try {
                 SendNotificationRequest notification = SendNotificationRequest.builder()
                         .userId(shopOwnerId)
@@ -2279,7 +2211,7 @@ public class OrderServiceImpl implements OrderService {
                         .build();
                 kafkaTemplateSend.send(notificationTopic.name(), shopOwnerId, notification);
             } catch (Exception e) {
-                log.error("[BULK-STATUS-CONSUMER] Failed to send notification to {}: {}",
+                log.error("[BULK-STATUS-CONSUMER] Failed to send notification to {}: {}", 
                         shopOwnerId, e.getMessage());
             }
         }
@@ -2289,5 +2221,26 @@ public class OrderServiceImpl implements OrderService {
 
     private void addResult(Map<String, List<String>> resultsByShopOwner, String shopOwnerId, String result) {
         resultsByShopOwner.computeIfAbsent(shopOwnerId, k -> new ArrayList<>()).add(result);
+    }
+
+    @Override
+    public List<Object[]> getShopRevenueTrend(String shopId) {
+        List<String> productIds = stockServiceClient.getProductIdsByShopOwner(shopId).getBody();
+        if (productIds == null || productIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+        // Last 6 months including current month
+        LocalDateTime startDate = LocalDateTime.now().minusMonths(5).withDayOfMonth(1).withHour(0).withMinute(0)
+                .withSecond(0);
+        return orderRepository.getMonthlyRevenueByProductIds(productIds, startDate);
+    }
+
+    @Override
+    public List<Object[]> getShopOrderStatusDistribution(String shopId) {
+        List<String> productIds = stockServiceClient.getProductIdsByShopOwner(shopId).getBody();
+        if (productIds == null || productIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+        return orderRepository.countByStatusForProductIds(productIds);
     }
 }

@@ -1,81 +1,47 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import '../../assets/admin/css/ShopOwnerManagementPage.css';
 import ShopOwnerList from '../../components/admin/shopOwner/ShopOwnerList';
 import ShopStatsDashboard from '../../components/admin/shopOwner/ShopStatsDashboard';
 import OverviewDashboard from '../../components/admin/shopOwner/OverviewDashboard';
-
-// Mock data - sẽ thay bằng API call sau
-const mockShops = [
-    {
-        id: '1',
-        userId: 'user-001',
-        shopName: 'Tech Store VN',
-        ownerName: 'Nguyễn Văn A',
-        verified: true,
-        imageUrl: null,
-        totalProducts: 150,
-        totalOrders: 320,
-        totalRevenue: 125000000,
-        createdAt: '2024-01-15'
-    },
-    {
-        id: '2',
-        userId: 'user-002',
-        shopName: 'Fashion Paradise',
-        ownerName: 'Trần Thị B',
-        verified: true,
-        imageUrl: null,
-        totalProducts: 280,
-        totalOrders: 512,
-        totalRevenue: 200000000,
-        createdAt: '2024-02-20'
-    },
-    {
-        id: '3',
-        userId: 'user-003',
-        shopName: 'Home & Living',
-        ownerName: 'Lê Văn C',
-        verified: false,
-        imageUrl: null,
-        totalProducts: 95,
-        totalOrders: 180,
-        totalRevenue: 75000000,
-        createdAt: '2024-03-10'
-    },
-    {
-        id: '4',
-        userId: 'user-004',
-        shopName: 'Beauty Corner',
-        ownerName: 'Phạm Thị D',
-        verified: true,
-        imageUrl: null,
-        totalProducts: 120,
-        totalOrders: 245,
-        totalRevenue: 95000000,
-        createdAt: '2024-04-05'
-    },
-    {
-        id: '5',
-        userId: 'user-005',
-        shopName: 'Sports Gear',
-        ownerName: 'Hoàng Văn E',
-        verified: false,
-        imageUrl: null,
-        totalProducts: 65,
-        totalOrders: 102,
-        totalRevenue: 45000000,
-        createdAt: '2024-05-12'
-    }
-];
+import shopOwnerAdminApi from '../../api/shopOwnerAdminApi';
 
 export default function ShopOwnerManagementPage() {
     const [selectedShopId, setSelectedShopId] = useState(null);
+    const [shops, setShops] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        fetchShops();
+    }, []);
+
+    const fetchShops = async () => {
+        try {
+            setLoading(true);
+            const data = await shopOwnerAdminApi.getAllShopOwnersWithStats();
+            // Map userId to id for frontend compatibility if needed, or just use userId
+            const mappedData = data.map(item => ({
+                ...item,
+                id: item.userId, // Use userId as id
+                createdAt: 'N/A' // backend doesn't return createdAt in stats DTO yet, or fix DTO
+            }));
+            setShops(mappedData);
+            setLoading(false);
+        } catch (err) {
+            console.error("Failed to fetch shops:", err);
+            setError("Cannot fetch shop owner data.");
+            setLoading(false);
+        }
+    };
 
     const handleSelectShop = (shopId) => {
         setSelectedShopId(shopId);
     };
 
-    const selectedShop = mockShops.find(shop => shop.id === selectedShopId);
+    const selectedShop = shops.find(shop => shop.id === selectedShopId);
+
+    if (loading) return <div className="p-5 text-center">Loading shop data...</div>;
+    if (error) return <div className="p-5 text-center text-danger">Error: {error}</div>;
 
     return (
         <div className="shop-owner-management">
@@ -92,7 +58,7 @@ export default function ShopOwnerManagementPage() {
                     {/* Left Panel - Shop List */}
                     <div className="col-lg-5">
                         <ShopOwnerList
-                            shops={mockShops}
+                            shops={shops}
                             selectedShopId={selectedShopId}
                             onSelectShop={handleSelectShop}
                         />
@@ -103,7 +69,7 @@ export default function ShopOwnerManagementPage() {
                         {selectedShopId && selectedShop ? (
                             <ShopStatsDashboard shop={selectedShop} />
                         ) : (
-                            <OverviewDashboard shops={mockShops} />
+                            <OverviewDashboard shops={shops} />
                         )}
                     </div>
                 </div>

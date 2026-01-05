@@ -238,6 +238,23 @@ public class ProductController {
         return ResponseEntity.ok(productIds);
     }
 
+    @GetMapping("/internal/count/shop/{shopId}")
+    public ResponseEntity<Long> getShopProductCount(@PathVariable String shopId) {
+        return ResponseEntity.ok(productService.countProductsByUserId(shopId));
+    }
+
+    @GetMapping("/internal/category-stats/shop/{shopId}")
+    public ResponseEntity<List<java.util.Map<String, Object>>> getShopCategoryStats(@PathVariable String shopId) {
+        List<Object[]> stats = productService.getProductsByCategory(shopId);
+        List<java.util.Map<String, Object>> result = stats.stream().map(row -> {
+            java.util.Map<String, Object> map = new java.util.HashMap<>();
+            map.put("categoryName", row[0]);
+            map.put("count", row[1]);
+            return map;
+        }).collect(Collectors.toList());
+        return ResponseEntity.ok(result);
+    }
+
     private ProductDto toDto(Product product) {
         ProductDto dto = modelMapper.map(product, ProductDto.class);
         if (product.getCategory() != null) {

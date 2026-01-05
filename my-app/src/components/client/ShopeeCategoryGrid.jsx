@@ -28,10 +28,10 @@ export default function ShopeeCategoryGrid() {
   return (
     <div style={{ background: 'white', padding: '24px 0', marginTop: '8px' }}>
       <div className="container" style={{ maxWidth: '1200px' }}>
-        <h4 style={{ 
-          fontSize: '16px', 
-          color: '#757575', 
-          marginBottom: '16px', 
+        <h4 style={{
+          fontSize: '16px',
+          color: '#757575',
+          marginBottom: '16px',
           textTransform: 'uppercase',
           fontWeight: 500
         }}>

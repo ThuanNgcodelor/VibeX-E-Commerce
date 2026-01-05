@@ -16,6 +16,8 @@ public class ShopOwnerServiceImpl implements ShopOwnerService {
     private final ShopOwnerRepository shopOwnerRepository;
     private final FileStorageClient fileStorageClient;
     private final com.example.userservice.repository.ShopFollowRepository shopFollowRepository;
+    private final com.example.userservice.client.StockServiceClient stockServiceClient;
+    private final com.example.userservice.client.OrderServiceClient orderServiceClient;
 
     @Override
     public ShopOwner updateShopOwner(UpdateShopOwnerRequest request, MultipartFile file) {
@@ -90,6 +92,18 @@ public class ShopOwnerServiceImpl implements ShopOwnerService {
             System.out.println("DEBUG: Shop Stats - userId: " + userId + ", followers: " + followersCount);
             shopOwner.setFollowersCount(followersCount);
 
+            // Following count
+            int followingCount = (int) shopFollowRepository.countByFollowerId(userId);
+            System.out.println("DEBUG: Shop Stats - userId: " + userId + ", following: " + followingCount);
+            shopOwner.setFollowingCount(followingCount);
+
+            // Total Ratings from Stock Service
+            org.springframework.http.ResponseEntity<Long> response = stockServiceClient.getShopReviewCount(userId);
+            System.out.println("DEBUG: Shop Stats - userId: " + userId + ", ratings response: " + response.getBody());
+            if (response != null && response.getBody() != null) {
+                shopOwner.setTotalRatings(response.getBody().intValue());
+            }
+
             // Save updated stats (optional, serves as cache)
             shopOwnerRepository.save(shopOwner);
 
@@ -100,5 +114,102 @@ public class ShopOwnerServiceImpl implements ShopOwnerService {
         }
 
         return shopOwner;
+    }
+
+    @Override
+    public java.util.List<com.example.userservice.dto.ShopOwnerStatsDto> getAllShopOwnersWithStats() {
+        java.util.List<ShopOwner> shopOwners = shopOwnerRepository.findAll();
+
+        return shopOwners.stream().map(shopOwner -> {
+            String shopId = shopOwner.getUserId();
+            long productCount = 0;
+            long orderCount = 0;
+            double revenue = 0.0;
+            int totalRatings = 0;
+
+            // 1. Get Product Count
+            try {
+                org.springframework.http.ResponseEntity<Long> productRes = stockServiceClient
+                        .getShopProductCount(shopId);
+                if (productRes.getBody() != null) {
+                    productCount = productRes.getBody();
+                }
+            } catch (Exception e) {
+                // Ignore
+            }
+
+            // 2. Get Order Stats (Count + Revenue)
+            try {
+                org.springframework.http.ResponseEntity<java.util.Map<String, Object>> orderRes = orderServiceClient
+                        .getShopOrderStats(shopId);
+                if (orderRes.getBody() != null) {
+                    java.util.Map<String, Object> stats = orderRes.getBody();
+                    if (stats.containsKey("completed")) {
+                        orderCount += ((Number) stats.get("completed")).longValue();
+                    }
+                    if (stats.containsKey("totalRevenue")) {
+                        revenue = ((Number) stats.get("totalRevenue")).doubleValue();
+                    }
+                    // Actually, let's look at OrderServiceImpl again.
+                }
+            } catch (Exception e) {
+                // Ignore
+            }
+
+            // 3. Get Ratings
+            try {
+                org.springframework.http.ResponseEntity<Long> ratingRes = stockServiceClient.getShopReviewCount(shopId);
+                if (ratingRes.getBody() != null) {
+                    totalRatings = ratingRes.getBody().intValue();
+                }
+            } catch (Exception e) {
+                // Ignore
+            }
+
+            // 4. Get Detailed Stats
+            java.util.List<java.util.Map<String, Object>> revenueTrend = new java.util.ArrayList<>();
+            java.util.List<java.util.Map<String, Object>> productCategoryStats = new java.util.ArrayList<>();
+            java.util.List<java.util.Map<String, Object>> orderStatusDistribution = new java.util.ArrayList<>();
+
+            try {
+                org.springframework.http.ResponseEntity<java.util.List<java.util.Map<String, Object>>> trendRes = orderServiceClient
+                        .getShopRevenueTrend(shopId);
+                if (trendRes.getBody() != null)
+                    revenueTrend = trendRes.getBody();
+            } catch (Exception e) {
+            }
+
+            try {
+                org.springframework.http.ResponseEntity<java.util.List<java.util.Map<String, Object>>> catRes = stockServiceClient
+                        .getShopCategoryStats(shopId);
+                if (catRes.getBody() != null)
+                    productCategoryStats = catRes.getBody();
+            } catch (Exception e) {
+            }
+
+            try {
+                org.springframework.http.ResponseEntity<java.util.List<java.util.Map<String, Object>>> statusRes = orderServiceClient
+                        .getShopOrderStatusDistribution(shopId);
+                if (statusRes.getBody() != null)
+                    orderStatusDistribution = statusRes.getBody();
+            } catch (Exception e) {
+            }
+
+            return com.example.userservice.dto.ShopOwnerStatsDto.builder()
+                    .userId(shopOwner.getUserId())
+                    .shopName(shopOwner.getShopName())
+                    .ownerName(shopOwner.getOwnerName())
+                    .email(shopOwner.getEmail())
+                    .phone(shopOwner.getPhone())
+                    .totalProducts(productCount)
+                    .totalOrders(orderCount) // Completed orders
+                    .totalRevenue(revenue)
+                    .totalRatings(totalRatings)
+                    .status(shopOwner.getVerified() ? "ACTIVE" : "PENDING")
+                    .revenueTrend(revenueTrend)
+                    .productCategoryStats(productCategoryStats)
+                    .orderStatusDistribution(orderStatusDistribution)
+                    .build();
+        }).collect(java.util.stream.Collectors.toList());
     }
 }

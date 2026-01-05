@@ -12,19 +12,27 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface ProductRepository extends JpaRepository<Product,String> {
+public interface ProductRepository extends JpaRepository<Product, String> {
     @Query("SELECT p FROM products p WHERE p.name LIKE CONCAT('%', :keyword, '%')")
     List<Product> searchProductByName(@Param("keyword") String keyword);
+
     Page<Product> findAllByStatus(ProductStatus status, Pageable pageable);
+
     List<Product> findByUserId(String userId);
+
     @Query("SELECT DISTINCT p FROM products p LEFT JOIN FETCH p.sizes where p.status = 'IN_STOCK'")
     List<Product> findAllWithSizes();
 
     long countByCategory_Id(String categoryId);
+
     @Query("SELECT COUNT(p) FROM products p WHERE p.userId = :userId")
     long countByUserId(@Param("userId") String userId);
 
     @Query("SELECT COUNT(p) FROM products p WHERE p.userId = :userId AND p.status = :status")
     long countByUserIdAndStatus(@Param("userId") String userId, @Param("status") ProductStatus status);
+
     List<Product> findByCategoryId(String categoryId);
+
+    @Query("SELECT p.category.name, COUNT(p) FROM products p WHERE p.userId = :userId GROUP BY p.category.name")
+    List<Object[]> countProductsByCategory(@Param("userId") String userId);
 }

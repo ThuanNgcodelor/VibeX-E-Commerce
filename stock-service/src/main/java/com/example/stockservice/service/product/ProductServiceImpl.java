@@ -1,7 +1,6 @@
 package com.example.stockservice.service.product;
 
 import com.example.stockservice.client.FileStorageClient;
-import com.example.stockservice.event.ProductUpdateKafkaEvent;
 import com.example.stockservice.service.category.CategoryService;
 import org.springframework.data.domain.Pageable;
 import com.example.stockservice.enums.ProductStatus;
@@ -13,7 +12,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -27,6 +25,7 @@ import com.example.stockservice.repository.SizeRepository;
 @RequiredArgsConstructor
 public class ProductServiceImpl implements ProductService {
     private final com.example.stockservice.repository.CartItemRepository cartItemRepository;
+
     @Override
     public long countProductsByUserId(String userId) {
         return productRepository.countByUserId(userId);
@@ -296,7 +295,8 @@ public class ProductServiceImpl implements ProductService {
             List<Size> managedSizes = toUpdate.getSizes();
             if (managedSizes != null && !managedSizes.isEmpty()) {
                 // Detach cart items from sizes before deleting sizes
-                // This prevents FK constraint violation and keeps cart items with sizeAvailable=false
+                // This prevents FK constraint violation and keeps cart items with
+                // sizeAvailable=false
                 for (Size size : managedSizes) {
                     if (size.getCartItems() != null) {
                         for (com.example.stockservice.model.CartItem cartItem : size.getCartItems()) {
@@ -420,5 +420,10 @@ public class ProductServiceImpl implements ProductService {
                 .collect(Collectors.toList());
 
         return getProductsPage(pageable, filteredProducts);
+    }
+
+    @Override
+    public List<Object[]> getProductsByCategory(String userId) {
+        return productRepository.countProductsByCategory(userId);
     }
 }

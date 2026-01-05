@@ -42,4 +42,6 @@ public interface ProductService {
     long countProductsByUserId(String userId);
 
     long countProductsByUserIdAndStatus(String userId, com.example.stockservice.enums.ProductStatus status);
+
+    List<Object[]> getProductsByCategory(String userId);
 }

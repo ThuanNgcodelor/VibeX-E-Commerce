@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-
 @RestController
 @RequestMapping("/v1/order")
 @RequiredArgsConstructor
@@ -40,7 +39,6 @@ public class OrderController {
     private final ShippingOrderRepository shippingOrderRepository;
     private final GhnApiClient ghnApiClient;
     private final com.example.orderservice.service.TrackingEmitterService trackingEmitterService;
-
 
     private OrderDto enrichOrderDto(Order order) {
         OrderDto dto = modelMapper.map(order, OrderDto.class);
@@ -246,6 +244,37 @@ public class OrderController {
     ResponseEntity<List<AddressDto>> getUserAddresses(HttpServletRequest request) {
         List<AddressDto> addresses = orderService.getUserAddresses(request);
         return ResponseEntity.ok(addresses);
+    }
+
+    @GetMapping("/internal/stats/shop/{shopId}")
+    public ResponseEntity<Map<String, Object>> getShopOrderStats(@PathVariable String shopId) {
+        return ResponseEntity.ok(orderService.getShopStats(shopId));
+    }
+
+    @GetMapping("/internal/revenue-trend/shop/{shopId}")
+    public ResponseEntity<List<java.util.Map<String, Object>>> getShopRevenueTrend(@PathVariable String shopId) {
+        List<Object[]> stats = orderService.getShopRevenueTrend(shopId);
+        List<java.util.Map<String, Object>> result = stats.stream().map(row -> {
+            java.util.Map<String, Object> map = new java.util.HashMap<>();
+            map.put("month", row[0]);
+            map.put("year", row[1]);
+            map.put("revenue", row[2]);
+            return map;
+        }).collect(Collectors.toList());
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/internal/status-distribution/shop/{shopId}")
+    public ResponseEntity<List<java.util.Map<String, Object>>> getShopOrderStatusDistribution(
+            @PathVariable String shopId) {
+        List<Object[]> stats = orderService.getShopOrderStatusDistribution(shopId);
+        List<java.util.Map<String, Object>> result = stats.stream().map(row -> {
+            java.util.Map<String, Object> map = new java.util.HashMap<>();
+            map.put("status", row[0]);
+            map.put("count", row[1]);
+            return map;
+        }).collect(Collectors.toList());
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/addresses/{addressId}")
@@ -683,15 +712,14 @@ public class OrderController {
             HttpServletRequest httpRequest) {
         try {
             String shopOwnerId = jwtUtil.ExtractUserId(httpRequest);
-            
+
             Map<String, Object> result = orderService.bulkUpdateOrderStatus(
-                    shopOwnerId, 
-                    request.getOrderIds(), 
-                    request.getNewStatus()
-            );
-            
+                    shopOwnerId,
+                    request.getOrderIds(),
+                    request.getNewStatus());
+
             return ResponseEntity.accepted().body(result);
-            
+
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         } catch (RuntimeException e) {
@@ -944,7 +972,7 @@ public class OrderController {
     }
 
     // ============ Internal Endpoints for AI Chat Service ============
-    
+
     /**
      * Get orders by userId - for AI chat to query user's orders
      * Internal endpoint - no authentication required (called from stock-service)
@@ -960,7 +988,7 @@ public class OrderController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
-    
+
     /**
      * Get order by ID - for AI chat to query order details
      * Internal endpoint - no authentication required (called from stock-service)
@@ -984,7 +1012,8 @@ public class OrderController {
         }
     }
 
-    // ==================== INTERNAL SHOP OWNER ENDPOINTS (for AI Chat) ====================
+    // ==================== INTERNAL SHOP OWNER ENDPOINTS (for AI Chat)
+    // ====================
 
     /**
      * Get shop owner orders (internal)
@@ -1013,7 +1042,7 @@ public class OrderController {
             @PathVariable String shopOwnerId) {
         try {
             Map<String, Object> stats = orderService.getShopStats(shopOwnerId);
-            
+
             // Build statusCounts map
             Map<String, Long> statusCounts = new HashMap<>();
             statusCounts.put("PENDING", ((Number) stats.getOrDefault("pending", 0)).longValue());
@@ -1022,13 +1051,13 @@ public class OrderController {
             statusCounts.put("COMPLETED", ((Number) stats.getOrDefault("completed", 0)).longValue());
             statusCounts.put("CANCELLED", ((Number) stats.getOrDefault("cancelled", 0)).longValue());
             statusCounts.put("RETURNED", ((Number) stats.getOrDefault("returned", 0)).longValue());
-            
+
             long total = statusCounts.values().stream().mapToLong(Long::longValue).sum();
-            
+
             Map<String, Object> result = new HashMap<>();
             result.put("statusCounts", statusCounts);
             result.put("total", total);
-            
+
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             log.error("Error getting shop owner order stats: {}", e.getMessage());
@@ -1046,28 +1075,27 @@ public class OrderController {
             // Get all pending orders
             List<Order> pendingOrders = orderService.getOrdersByShopOwner(shopOwnerId, "PENDING");
             int totalPending = pendingOrders.size();
-            
+
             if (totalPending == 0) {
                 return ResponseEntity.ok(Map.of(
                         "totalPending", 0,
                         "successCount", 0,
                         "failCount", 0,
-                        "message", "Không có đơn hàng nào đang chờ xác nhận."
-                ));
+                        "message", "Không có đơn hàng nào đang chờ xác nhận."));
             }
-            
+
             // Use bulk update via Kafka
             List<String> orderIds = pendingOrders.stream()
                     .map(Order::getId)
                     .collect(Collectors.toList());
-            
+
             Map<String, Object> result = orderService.bulkUpdateOrderStatus(
                     shopOwnerId, orderIds, "CONFIRMED");
-            
+
             result.put("totalPending", totalPending);
             result.put("successCount", result.get("accepted"));
             result.put("failCount", result.get("rejected"));
-            
+
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             log.error("Error bulk confirming orders: {}", e.getMessage());
@@ -1075,8 +1103,7 @@ public class OrderController {
                     "totalPending", 0,
                     "successCount", 0,
                     "failCount", 0,
-                    "message", "Lỗi: " + e.getMessage()
-            ));
+                    "message", "Lỗi: " + e.getMessage()));
         }
     }
 }
