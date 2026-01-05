@@ -16,7 +16,6 @@ public class ShopOwnerServiceImpl implements ShopOwnerService {
     private final ShopOwnerRepository shopOwnerRepository;
     private final FileStorageClient fileStorageClient;
     private final com.example.userservice.repository.ShopFollowRepository shopFollowRepository;
-    private final com.example.userservice.client.StockServiceClient stockServiceClient;
 
     @Override
     public ShopOwner updateShopOwner(UpdateShopOwnerRequest request, MultipartFile file) {
@@ -90,18 +89,6 @@ public class ShopOwnerServiceImpl implements ShopOwnerService {
             int followersCount = (int) shopFollowRepository.countByShopId(userId);
             System.out.println("DEBUG: Shop Stats - userId: " + userId + ", followers: " + followersCount);
             shopOwner.setFollowersCount(followersCount);
-
-            // Following count
-            int followingCount = (int) shopFollowRepository.countByFollowerId(userId);
-            System.out.println("DEBUG: Shop Stats - userId: " + userId + ", following: " + followingCount);
-            shopOwner.setFollowingCount(followingCount);
-
-            // Total Ratings from Stock Service
-            org.springframework.http.ResponseEntity<Long> response = stockServiceClient.getShopReviewCount(userId);
-            System.out.println("DEBUG: Shop Stats - userId: " + userId + ", ratings response: " + response.getBody());
-            if (response != null && response.getBody() != null) {
-                shopOwner.setTotalRatings(response.getBody().intValue());
-            }
 
             // Save updated stats (optional, serves as cache)
             shopOwnerRepository.save(shopOwner);

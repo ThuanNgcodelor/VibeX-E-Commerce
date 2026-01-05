@@ -1,11 +1,11 @@
-import React, {useEffect, useState} from "react";
-import {Link, useLocation, useNavigate} from "react-router-dom";
-import {useTranslation} from "react-i18next";
-import {getUserRole, isAuthenticated, login, register} from "../../api/auth.js";
-import {checkEmailExists} from "../../api/user.js";
+import React, { useEffect, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { getUserRole, isAuthenticated, login, register } from "../../api/auth.js";
+import { checkEmailExists } from "../../api/user.js";
 import { GOOGLE_CLIENT_ID, GOOGLE_REDIRECT_URI } from "../../config/config.js";
 
-export default function Auth(){
+export default function Auth() {
     const { t } = useTranslation();
     const [loginData, setLoginData] = useState({
         email: '',
@@ -19,7 +19,7 @@ export default function Auth(){
     });
     const [error, setError] = useState('');
     const [fieldErrors, setFieldErrors] = useState({}); // Lưu validation errors theo từng field
-    const [,setLoading] = useState(false);
+    const [, setLoading] = useState(false);
     const [success, setSuccess] = useState("");
     const navigate = useNavigate();
     const location = useLocation();
@@ -53,19 +53,19 @@ export default function Auth(){
                 }
             }
         }
-    }, [from,navigate]);
+    }, [from, navigate]);
 
     const handleLogin = async (e) => {
         setLoginData({
             ...loginData,
-            [e.target.name] : e.target.value,
+            [e.target.name]: e.target.value,
         });
     };
 
     const handleRegister = async (e) => {
         setRegisterData({
             ...registerData,
-            [e.target.name] : e.target.value,
+            [e.target.name]: e.target.value,
         });
         // Clear field error khi user thay đổi input
         if (fieldErrors[e.target.name]) {
@@ -85,7 +85,7 @@ export default function Auth(){
         setError('');
         setSuccess('');
         setLoading(true);
-        if(loginData.email === '' || loginData.password === ''){
+        if (loginData.email === '' || loginData.password === '') {
             setError(t('auth.login.fillAllFields'));
             return;
         }
@@ -95,13 +95,13 @@ export default function Auth(){
             const role = getUserRole();
             const roles = Array.isArray(role) ? role : [role].filter(Boolean);
 
-            if(roles.includes("ROLE_ADMIN") || roles.includes("ROLE_SHOP_OWNER")) {
+            if (roles.includes("ROLE_ADMIN") || roles.includes("ROLE_SHOP_OWNER")) {
                 navigate("/admin");
             } else if (roles.includes("ROLE_USER")) {
                 navigate("/information");
             }
 
-        } catch(error){
+        } catch (error) {
             console.log(loginData);
 
             setError(error.response?.data?.message || t('auth.login.loginFailed'));
@@ -226,20 +226,20 @@ export default function Auth(){
                                     <form action="" method="post">
                                         <div className="login-register-input">
                                             <input type="text"
-                                                   id="login-email"
-                                                   name="email"
-                                                   value={loginData.email}
-                                                   onChange={handleLogin}
-                                                   placeholder={t('auth.login.emailPlaceholder')}
+                                                id="login-email"
+                                                name="email"
+                                                value={loginData.email}
+                                                onChange={handleLogin}
+                                                placeholder={t('auth.login.emailPlaceholder')}
                                             />
                                         </div>
                                         <div className="login-register-input">
                                             <input type="password"
-                                                   id="login-password"
-                                                   name="password"
-                                                   value={loginData.password}
-                                                   onChange={handleLogin}
-                                                   placeholder={t('auth.login.passwordPlaceholder')}
+                                                id="login-password"
+                                                name="password"
+                                                value={loginData.password}
+                                                onChange={handleLogin}
+                                                placeholder={t('auth.login.passwordPlaceholder')}
                                             />
                                             <div className="forgot">
                                                 <a onClick={handleForgotPassword}>{t('auth.login.forgot')}</a>
@@ -251,10 +251,10 @@ export default function Auth(){
                                         </div>
                                         <div className="btn-register">
                                             <button className="btn-register-now"
-                                                    onClick={handleLoginSubmit}>{t('auth.login.button')}
+                                                onClick={handleLoginSubmit}>{t('auth.login.button')}
                                             </button>
                                         </div>
-                                        <br/>
+                                        <br />
                                         <div style={{ display: "flex", gap: "20px", marginBottom: "20px" }}>
                                             <button
                                                 type="button"
@@ -296,12 +296,12 @@ export default function Auth(){
                                     <form method="post">
                                         <div className="login-register-input">
                                             <input type="text"
-                                                   id="register-username"
-                                                   name="username"
-                                                   value={registerData.username}
-                                                   placeholder="Username"
-                                                   onChange={handleRegister}
-                                                   style={fieldErrors.username ? { borderColor: '#c62828' } : {}}
+                                                id="register-username"
+                                                name="username"
+                                                value={registerData.username}
+                                                placeholder="Username"
+                                                onChange={handleRegister}
+                                                style={fieldErrors.username ? { borderColor: '#c62828' } : {}}
                                             />
                                             {fieldErrors.username && (
                                                 <div style={{
@@ -315,12 +315,12 @@ export default function Auth(){
                                         </div>
                                         <div className="login-register-input">
                                             <input type="text"
-                                                   id="register-email"
-                                                   name="email"
-                                                   value={registerData.email}
-                                                   placeholder="E-mail address"
-                                                   onChange={handleRegister}
-                                                   style={fieldErrors.email ? { borderColor: '#c62828' } : {}}
+                                                id="register-email"
+                                                name="email"
+                                                value={registerData.email}
+                                                placeholder="E-mail address"
+                                                onChange={handleRegister}
+                                                style={fieldErrors.email ? { borderColor: '#c62828' } : {}}
                                             />
                                             {fieldErrors.email && (
                                                 <div style={{
@@ -334,12 +334,12 @@ export default function Auth(){
                                         </div>
                                         <div className="login-register-input">
                                             <input type="password"
-                                                   id="register-password"
-                                                   name="password"
-                                                   value={registerData.password}
-                                                   placeholder="Password"
-                                                   onChange={handleRegister}
-                                                   style={fieldErrors.password ? { borderColor: '#c62828' } : {}}
+                                                id="register-password"
+                                                name="password"
+                                                value={registerData.password}
+                                                placeholder="Password"
+                                                onChange={handleRegister}
+                                                style={fieldErrors.password ? { borderColor: '#c62828' } : {}}
                                             />
                                             {fieldErrors.password && (
                                                 <div style={{
@@ -354,11 +354,11 @@ export default function Auth(){
 
                                         <div className="login-register-input">
                                             <input type="password"
-                                                   id="register-confirmPassword"
-                                                   name="confirmPassword"
-                                                   value={registerData.confirmPassword}
-                                                   placeholder="Confirm Password"
-                                                   onChange={handleRegister}
+                                                id="register-confirmPassword"
+                                                name="confirmPassword"
+                                                value={registerData.confirmPassword}
+                                                placeholder="Confirm Password"
+                                                onChange={handleRegister}
                                             />
                                         </div>
                                         <div className="login-register-paragraph">

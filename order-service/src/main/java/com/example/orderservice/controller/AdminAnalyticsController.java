@@ -1,0 +1,45 @@
+package com.example.orderservice.controller;
+
+import com.example.orderservice.dto.SuspiciousProductDto;
+import com.example.orderservice.service.SuspiciousActivityService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/v1/order/admin/analytics")
+@RequiredArgsConstructor
+public class AdminAnalyticsController {
+
+    private final SuspiciousActivityService suspiciousActivityService;
+    private final com.example.orderservice.service.AdminDashboardService adminDashboardService;
+
+    @GetMapping("/suspicious")
+    public ResponseEntity<List<SuspiciousProductDto>> getSuspiciousProducts() {
+        return ResponseEntity.ok(suspiciousActivityService.getSuspiciousProducts());
+    }
+
+    @GetMapping("/dashboard")
+    public ResponseEntity<com.example.orderservice.dto.DashboardStatsDto> getDashboardStats() {
+        return ResponseEntity.ok(adminDashboardService.getDashboardStats());
+    }
+
+    @GetMapping("/revenue-chart")
+    public ResponseEntity<List<com.example.orderservice.dto.DailyRevenueDto>> getRevenueChartData() {
+        return ResponseEntity.ok(adminDashboardService.getRevenueChartData(30)); // Default 30 days
+    }
+
+    @GetMapping("/recent-orders")
+    public ResponseEntity<List<com.example.orderservice.dto.OrderDto>> getRecentOrders() {
+        return ResponseEntity.ok(adminDashboardService.getRecentOrders());
+    }
+
+    @GetMapping("/top-categories")
+    public ResponseEntity<List<com.example.orderservice.dto.CategorySalesDto>> getTopCategories() {
+        return ResponseEntity.ok(adminDashboardService.getTopCategories());
+    }
+}

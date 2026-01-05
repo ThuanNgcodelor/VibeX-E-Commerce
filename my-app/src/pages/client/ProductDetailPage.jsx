@@ -6,6 +6,7 @@ import Header from "../../components/client/Header.jsx";
 import ShopInfoBar from "../../components/client/product/ShopInfoBar.jsx";
 import { fetchProductById, fetchProductImageById, fetchAddToCart } from "../../api/product.js";
 import { fetchReviewsByProductId } from "../../api/review.js";
+import { trackProductView, trackAddToCart } from "../../api/analyticsApi.js";
 import { getCart, getShopOwnerByUserId } from "../../api/user.js";
 import { useCart } from "../../contexts/CartContext.jsx";
 import { translateAttributeName, translateAttributeValue } from "../../utils/attributeTranslator.js";
@@ -66,6 +67,9 @@ export default function ProductDetailPage() {
     useEffect(() => {
         const load = async () => {
             try {
+                // Tracking view (non-blocking)
+                trackProductView(id);
+
                 setError(null);
                 const res = await fetchProductById(id);
                 const p = res.data;
@@ -204,6 +208,9 @@ export default function ProductDetailPage() {
             if (selectedSizeId) {
                 requestData.sizeId = selectedSizeId;
             }
+
+            // Track add to cart event
+            trackAddToCart();
 
             await fetchAddToCart(requestData);
             const cart = await getCart();

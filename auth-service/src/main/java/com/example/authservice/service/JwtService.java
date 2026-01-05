@@ -22,7 +22,8 @@ public class JwtService {
     public String generateToken(String username) {
         UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
         Map<String, Object> claims = new HashMap<>();
-        String userId = ((CustomUserDetails) userDetails).getId();
+        CustomUserDetails custom = (CustomUserDetails) userDetails;
+        String userId = custom.getId();
         Collection<? extends GrantedAuthority> authorities = userDetails.getAuthorities();
 
         List<String> roles = authorities.stream()
@@ -30,11 +31,28 @@ public class JwtService {
                 .collect(Collectors.toList());
 
         claims.put("userId", userId);
+        claims.put("username", custom.getUsername());
+
+        claims.put("email", custom.getUsername());
         claims.put("roles", roles);
+        claims.put("type", "access");
 
         return createToken(claims, userDetails);
     }
 
+    public String generateRefreshToken(String username) {
+        UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
+        Map<String, Object> claims = new HashMap<>();
+        CustomUserDetails custom = (CustomUserDetails) userDetails;
+        String userId = custom.getId();
+
+        claims.put("userId", userId);
+        claims.put("username", custom.getUsername());
+        claims.put("email", custom.getUsername());
+        claims.put("type", "refresh");
+
+        return createRefreshToken(claims, userDetails);
+    }
 
     private String createToken(Map<String, Object> claims, UserDetails userDetails) {
         return Jwts.builder()
@@ -42,12 +60,40 @@ public class JwtService {
                 .setSubject(userDetails.getUsername())
                 .setIssuer("auth-service")
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60)) // 1 hour
+                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60)) // 1 hour for access token
+                .signWith(getSignKey(), SignatureAlgorithm.HS256).compact();
+    }
+
+    private String createRefreshToken(Map<String, Object> claims, UserDetails userDetails) {
+        return Jwts.builder()
+                .setClaims(claims)
+                .setSubject(userDetails.getUsername())
+                .setIssuer("auth-service")
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + 1000L * 60 * 60 * 24 * 7)) // 7 days
                 .signWith(getSignKey(), SignatureAlgorithm.HS256).compact();
     }
 
     private Key getSignKey() {
         byte[] keyBytes = Decoders.BASE64.decode(SECRET);
         return Keys.hmacShaKeyFor(keyBytes);
+    }
+
+    public io.jsonwebtoken.Claims getClaims(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(getSignKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+    }
+
+    public boolean validateRefreshToken(String token) {
+        try {
+            io.jsonwebtoken.Claims claims = getClaims(token);
+            String type = claims.get("type", String.class);
+            return "refresh".equals(type);
+        } catch (Exception e) {
+            return false;
+        }
     }
 }

@@ -17,9 +17,15 @@ public class CustomErrorDecoder implements ErrorDecoder {
 
     @Override
     public Exception decode(String methodKey, Response response) {
+        if (response.body() == null) {
+            return GenericErrorResponse.builder()
+                    .httpStatus(HttpStatus.valueOf(response.status()))
+                    .message("Error calling " + methodKey + " - No response body")
+                    .build();
+        }
+
         try (InputStream body = response.body().asInputStream()) {
-            Map<String, String> errors =
-                    mapper.readValue(IOUtils.toString(body, StandardCharsets.UTF_8), Map.class);
+            Map<String, String> errors = mapper.readValue(IOUtils.toString(body, StandardCharsets.UTF_8), Map.class);
             String msg = errors.get("message");
             if (msg == null) {
                 msg = errors.get("error");

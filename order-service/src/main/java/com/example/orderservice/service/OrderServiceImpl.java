@@ -476,7 +476,6 @@ public class OrderServiceImpl implements OrderService {
         return orderRepository.findByUserIdOrderByCreatedAtDesc(userId);
     }
 
-
     @Override
     @Transactional
     public Order updateOrder(String orderId, UpdateOrderRequest request) {
@@ -1185,7 +1184,8 @@ public class OrderServiceImpl implements OrderService {
                 })
                 .collect(java.util.stream.Collectors.toList());
 
-        log.info("[PAYMENT-ORDER] Creating order - userId: {}, addressId: {}, items: {}, shippingFee: {}, voucherId: {}",
+        log.info(
+                "[PAYMENT-ORDER] Creating order - userId: {}, addressId: {}, items: {}, shippingFee: {}, voucherId: {}",
                 userId, addressId, selectedItems.size(), shippingFee, voucherId);
 
         // 5. Delegate to existing method
@@ -1808,84 +1808,86 @@ public class OrderServiceImpl implements OrderService {
     /**
      * Get i18n title and description for GHN status
      * 
-     * @return String[4] where [0] = title_vi, [1] = desc_vi, [2] = title_en, [3] = desc_en
+     * @return String[4] where [0] = title_vi, [1] = desc_vi, [2] = title_en, [3] =
+     *         desc_en
      */
     private String[] getGhnStatusInfo(String ghnStatus) {
         switch (ghnStatus.toLowerCase()) {
             case "ready_to_pick":
-                return new String[] { "Chờ lấy hàng", "Đơn hàng đang chờ shipper đến lấy", 
-                                     "Waiting for pickup", "Order is waiting for shipper to pick up" };
+                return new String[] { "Chờ lấy hàng", "Đơn hàng đang chờ shipper đến lấy",
+                        "Waiting for pickup", "Order is waiting for shipper to pick up" };
             case "picking":
                 return new String[] { "Đang lấy hàng", "Shipper đang đến lấy hàng từ shop",
-                                     "Picking up", "Shipper is picking up from shop" };
+                        "Picking up", "Shipper is picking up from shop" };
             case "money_collect_picking":
                 return new String[] { "Đang lấy hàng", "Shipper đang thu tiền và lấy hàng",
-                                     "Collecting & picking", "Shipper is collecting money and picking up" };
+                        "Collecting & picking", "Shipper is collecting money and picking up" };
             case "picked":
                 return new String[] { "Đã lấy hàng", "Shipper đã lấy hàng thành công",
-                                     "Picked up", "Shipper has picked up successfully" };
+                        "Picked up", "Shipper has picked up successfully" };
             case "storing":
                 return new String[] { "Đã nhập kho", "Đơn hàng đã được nhập kho phân loại",
-                                     "In warehouse", "Order has been stored in warehouse" };
+                        "In warehouse", "Order has been stored in warehouse" };
             case "transporting":
                 return new String[] { "Đang luân chuyển", "Đơn hàng đang được vận chuyển đến kho đích",
-                                     "In transit", "Order is being transported to destination" };
+                        "In transit", "Order is being transported to destination" };
             case "sorting":
                 return new String[] { "Đang phân loại", "Đơn hàng đang được phân loại tại kho",
-                                     "Sorting", "Order is being sorted at warehouse" };
+                        "Sorting", "Order is being sorted at warehouse" };
             case "delivering":
                 return new String[] { "Đang giao hàng", "Shipper đang giao hàng đến bạn",
-                                     "Delivering", "Shipper is delivering to you" };
+                        "Delivering", "Shipper is delivering to you" };
             case "money_collect_delivering":
                 return new String[] { "Đang giao hàng", "Shipper đang giao hàng và thu tiền COD",
-                                     "Delivering (COD)", "Shipper is delivering and collecting COD" };
+                        "Delivering (COD)", "Shipper is delivering and collecting COD" };
             case "delivered":
                 return new String[] { "Đã giao hàng", "Giao hàng thành công",
-                                     "Delivered", "Delivery successful" };
+                        "Delivered", "Delivery successful" };
             case "delivery_fail":
                 return new String[] { "Giao thất bại", "Giao hàng không thành công, sẽ giao lại",
-                                     "Delivery failed", "Delivery failed, will retry" };
+                        "Delivery failed", "Delivery failed, will retry" };
             case "waiting_to_return":
                 return new String[] { "Chờ trả hàng", "Đơn hàng đang chờ trả về shop",
-                                     "Waiting to return", "Waiting to return to shop" };
+                        "Waiting to return", "Waiting to return to shop" };
             case "return":
             case "returning":
                 return new String[] { "Đang trả hàng", "Đơn hàng đang được trả về shop",
-                                     "Returning", "Order is being returned to shop" };
+                        "Returning", "Order is being returned to shop" };
             case "return_transporting":
                 return new String[] { "Đang luân chuyển trả", "Đơn hàng đang được vận chuyển trả về shop",
-                                     "Return in transit", "Order is being transported back to shop" };
+                        "Return in transit", "Order is being transported back to shop" };
             case "return_sorting":
                 return new String[] { "Đang phân loại trả", "Đơn hàng đang được phân loại để trả về shop",
-                                     "Return sorting", "Order is being sorted for return" };
+                        "Return sorting", "Order is being sorted for return" };
             case "return_fail":
                 return new String[] { "Trả hàng thất bại", "Không thể trả hàng về shop",
-                                     "Return failed", "Failed to return to shop" };
+                        "Return failed", "Failed to return to shop" };
             case "returned":
                 return new String[] { "Đã trả hàng", "Đơn hàng đã được trả về shop thành công",
-                                     "Returned", "Order has been returned successfully" };
+                        "Returned", "Order has been returned successfully" };
             case "cancel":
                 return new String[] { "Đã hủy", "Đơn hàng đã bị hủy",
-                                     "Cancelled", "Order has been cancelled" };
+                        "Cancelled", "Order has been cancelled" };
             case "exception":
                 return new String[] { "Có sự cố", "Đơn hàng gặp sự cố, đang xử lý",
-                                     "Exception", "Order has an exception, processing" };
+                        "Exception", "Order has an exception, processing" };
             case "damage":
                 return new String[] { "Hàng bị hư hỏng", "Hàng hóa bị hư hỏng trong quá trình vận chuyển",
-                                     "Damaged", "Package was damaged during transport" };
+                        "Damaged", "Package was damaged during transport" };
             case "lost":
                 return new String[] { "Hàng bị thất lạc", "Hàng hóa bị thất lạc",
-                                     "Lost", "Package was lost" };
+                        "Lost", "Package was lost" };
             default:
                 return new String[] { "Cập nhật trạng thái", "Trạng thái: " + ghnStatus,
-                                     "Status update", "Status: " + ghnStatus };
+                        "Status update", "Status: " + ghnStatus };
         }
     }
 
     /**
      * Append a new entry to the tracking history JSON array (i18n support)
      */
-    private void appendTrackingHistory(ShippingOrder sh, String status, String titleVi, String descVi, String titleEn, String descEn) {
+    private void appendTrackingHistory(ShippingOrder sh, String status, String titleVi, String descVi, String titleEn,
+            String descEn) {
         try {
             java.util.List<Map<String, Object>> history = new java.util.ArrayList<>();
             String old = sh.getTrackingHistory();
@@ -2008,27 +2010,27 @@ public class OrderServiceImpl implements OrderService {
     }
 
     // ==================== BULK UPDATE STATUS PRODUCER ====================
-    
+
     @Override
     public Map<String, Object> bulkUpdateOrderStatus(String shopOwnerId, List<String> orderIds, String newStatus) {
         if (orderIds == null || orderIds.isEmpty()) {
             throw new IllegalArgumentException("Order IDs are required");
         }
-        
+
         if (newStatus == null || newStatus.isBlank()) {
             throw new IllegalArgumentException("New status is required");
         }
-        
+
         // Get shop owner's product IDs for validation
         List<String> shopProductIds = stockServiceClient.getProductIdsByShopOwner(shopOwnerId).getBody();
         if (shopProductIds == null || shopProductIds.isEmpty()) {
             throw new RuntimeException("No products found for this shop owner");
         }
-        
+
         int sent = 0;
         int rejected = 0;
         List<String> rejectedOrderIds = new ArrayList<>();
-        
+
         for (String orderId : orderIds) {
             try {
                 Order order = orderRepository.findById(orderId).orElse(null);
@@ -2037,17 +2039,17 @@ public class OrderServiceImpl implements OrderService {
                     rejectedOrderIds.add(orderId);
                     continue;
                 }
-                
+
                 // Check if order has items from this shop
                 boolean belongsToShop = order.getOrderItems().stream()
                         .anyMatch(item -> shopProductIds.contains(item.getProductId()));
-                
+
                 if (!belongsToShop) {
                     rejected++;
                     rejectedOrderIds.add(orderId);
                     continue;
                 }
-                
+
                 // Build Kafka message
                 UpdateStatusOrderRequest msg = UpdateStatusOrderRequest.builder()
                         .orderId(orderId)
@@ -2055,21 +2057,21 @@ public class OrderServiceImpl implements OrderService {
                         .newStatus(newStatus)
                         .timestamp(LocalDateTime.now())
                         .build();
-                
+
                 // Send to Kafka (async, non-blocking)
                 updateStatusKafkaTemplate.send(updateStatusOrderTopic.name(), orderId, msg);
                 sent++;
-                
+
             } catch (Exception e) {
                 log.error("[BULK-UPDATE] Failed to process order {}: {}", orderId, e.getMessage());
                 rejected++;
                 rejectedOrderIds.add(orderId);
             }
         }
-        
-        log.info("[BULK-UPDATE] Shop {} sent {} orders to Kafka, rejected {}", 
+
+        log.info("[BULK-UPDATE] Shop {} sent {} orders to Kafka, rejected {}",
                 shopOwnerId, sent, rejected);
-        
+
         Map<String, Object> response = new HashMap<>();
         response.put("accepted", sent);
         response.put("rejected", rejected);
@@ -2077,62 +2079,58 @@ public class OrderServiceImpl implements OrderService {
         if (!rejectedOrderIds.isEmpty()) {
             response.put("rejectedOrderIds", rejectedOrderIds);
         }
-        
+
         return response;
     }
 
     // ==================== SEARCH ORDERS ====================
-    
+
     @Override
     public List<Order> searchOrders(String shopOwnerId, String query) {
         if (query == null || query.trim().isEmpty()) {
             return Collections.emptyList();
         }
-        
+
         // Get shop owner's product IDs
         List<String> shopProductIds = stockServiceClient.getProductIdsByShopOwner(shopOwnerId).getBody();
         if (shopProductIds == null || shopProductIds.isEmpty()) {
             return Collections.emptyList();
         }
-        
+
         String searchQuery = query.trim().toLowerCase();
-        
+
         // Search by order ID prefix
         List<Order> allShopOrders = orderRepository.findByOrderItemsProductIdIn(shopProductIds);
-        
+
         return allShopOrders.stream()
                 .filter(order -> order.getId().toLowerCase().contains(searchQuery))
-                .limit(50)  // Limit results
+                .limit(50) // Limit results
                 .collect(Collectors.toList());
     }
 
     // ==================== BULK UPDATE STATUS CONSUMER ====================
-    
+
     /**
      * Batch consumer for update-order-topic topic
      * Processes multiple status updates in parallel for high throughput
      */
-    @KafkaListener(
-            topics = "#{@updateStatusOrderTopic.name()}", 
-            groupId = "order-service-status-update", 
-            containerFactory = "updateStatusListenerFactory"
-    )
+    @KafkaListener(topics = "#{@updateStatusOrderTopic.name()}", groupId = "order-service-status-update", containerFactory = "updateStatusListenerFactory")
     public void consumeBulkStatusUpdate(List<UpdateStatusOrderRequest> messages) {
         if (messages == null || messages.isEmpty()) {
             return;
         }
-        
+
         log.info("[BULK-STATUS-CONSUMER] Received batch of {} messages", messages.size());
-        
+
         int success = 0;
         int failed = 0;
         Map<String, List<String>> resultsByShopOwner = new HashMap<>();
-        
+
         for (UpdateStatusOrderRequest msg : messages) {
             try {
-                log.info("[BULK-STATUS-CONSUMER] Processing: orderId={}, newStatus={}", 
+                log.info("[BULK-STATUS-CONSUMER] Processing: orderId={}, newStatus={}",
                         msg.getOrderId(), msg.getNewStatus());
-                
+
                 // 1. Get order
                 Order order = orderRepository.findById(msg.getOrderId()).orElse(null);
                 if (order == null) {
@@ -2141,7 +2139,7 @@ public class OrderServiceImpl implements OrderService {
                     addResult(resultsByShopOwner, msg.getShopOwnerId(), "FAILED:" + msg.getOrderId());
                     continue;
                 }
-                
+
                 // 2. Update status
                 OrderStatus newStatus;
                 try {
@@ -2152,57 +2150,56 @@ public class OrderServiceImpl implements OrderService {
                     addResult(resultsByShopOwner, msg.getShopOwnerId(), "FAILED:" + msg.getOrderId());
                     continue;
                 }
-                
+
                 order.setOrderStatus(newStatus);
                 orderRepository.save(order);
-                
+
                 // 3. Side effects
                 if (newStatus == OrderStatus.CONFIRMED) {
                     try {
                         createShippingOrderForOrder(msg.getOrderId());
                     } catch (Exception e) {
-                        log.warn("[BULK-STATUS-CONSUMER] Failed to create shipping for order {}: {}", 
+                        log.warn("[BULK-STATUS-CONSUMER] Failed to create shipping for order {}: {}",
                                 msg.getOrderId(), e.getMessage());
                     }
                 }
-                
+
                 if (newStatus == OrderStatus.DELIVERED) {
                     try {
                         shopLedgerService.processOrderEarning(order);
                     } catch (Exception e) {
-                        log.warn("[BULK-STATUS-CONSUMER] Failed to process ledger for order {}: {}", 
+                        log.warn("[BULK-STATUS-CONSUMER] Failed to process ledger for order {}: {}",
                                 msg.getOrderId(), e.getMessage());
                     }
                 }
-                
+
                 success++;
                 addResult(resultsByShopOwner, msg.getShopOwnerId(), "SUCCESS:" + msg.getOrderId());
-                
-                log.info("[BULK-STATUS-CONSUMER] Successfully updated order {} to {}", 
+
+                log.info("[BULK-STATUS-CONSUMER] Successfully updated order {} to {}",
                         msg.getOrderId(), msg.getNewStatus());
-                
+
             } catch (Exception e) {
-                log.error("[BULK-STATUS-CONSUMER] Failed to process order {}: {}", 
+                log.error("[BULK-STATUS-CONSUMER] Failed to process order {}: {}",
                         msg.getOrderId(), e.getMessage(), e);
                 failed++;
                 addResult(resultsByShopOwner, msg.getShopOwnerId(), "FAILED:" + msg.getOrderId());
             }
         }
-        
+
         // 4. Send notifications to shop owners
         for (Map.Entry<String, List<String>> entry : resultsByShopOwner.entrySet()) {
             String shopOwnerId = entry.getKey();
             List<String> results = entry.getValue();
-            
+
             long successCount = results.stream().filter(r -> r.startsWith("SUCCESS:")).count();
             long failedCount = results.stream().filter(r -> r.startsWith("FAILED:")).count();
-            
+
             String message = String.format(
-                    "Đã cập nhật %d đơn hàng thành công%s", 
+                    "Đã cập nhật %d đơn hàng thành công%s",
                     successCount,
-                    failedCount > 0 ? String.format(", %d đơn thất bại", failedCount) : ""
-            );
-            
+                    failedCount > 0 ? String.format(", %d đơn thất bại", failedCount) : "");
+
             try {
                 SendNotificationRequest notification = SendNotificationRequest.builder()
                         .userId(shopOwnerId)
@@ -2213,16 +2210,15 @@ public class OrderServiceImpl implements OrderService {
                         .build();
                 kafkaTemplateSend.send(notificationTopic.name(), shopOwnerId, notification);
             } catch (Exception e) {
-                log.error("[BULK-STATUS-CONSUMER] Failed to send notification to {}: {}", 
+                log.error("[BULK-STATUS-CONSUMER] Failed to send notification to {}: {}",
                         shopOwnerId, e.getMessage());
             }
         }
-        
+
         log.info("[BULK-STATUS-CONSUMER] Batch completed: {} success, {} failed", success, failed);
     }
-    
+
     private void addResult(Map<String, List<String>> resultsByShopOwner, String shopOwnerId, String result) {
         resultsByShopOwner.computeIfAbsent(shopOwnerId, k -> new ArrayList<>()).add(result);
     }
 }
-

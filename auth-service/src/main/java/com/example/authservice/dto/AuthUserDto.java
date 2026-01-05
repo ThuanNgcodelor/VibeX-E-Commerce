@@ -12,9 +12,10 @@ public class AuthUserDto {
     private String username;
     private String email;
     private String password;
+    private boolean active;
     private Role role; // Role chính
     private Set<Role> roles = new HashSet<>(); // Tất cả roles
-    
+
     // Helper methods
     public void addRole(Role role) {
         this.roles.add(role);
@@ -22,7 +23,7 @@ public class AuthUserDto {
             this.role = role;
         }
     }
-    
+
     public boolean hasRole(Role role) {
         return this.roles.contains(role);
     }

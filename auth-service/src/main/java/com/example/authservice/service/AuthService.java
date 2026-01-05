@@ -30,7 +30,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final UserServiceClient userServiceClient;
     private final JwtService jwtService;
-    private final RedisTemplate<String,String> redisTemplate;
+    private final RedisTemplate<String, String> redisTemplate;
     private final EmailService emailService;
     private final GoogleOAuth2Service googleOAuth2Service;
 
@@ -41,13 +41,12 @@ public class AuthService {
 
     private static final Duration OTP_TTL = Duration.ofMinutes(5);
     private static final Duration COOLDOWN = Duration.ofSeconds(60);
-    private static final Duration VERIFIED_TTL = Duration.ofMinutes(15); // Tăng lên 15 phút để user có đủ thời gian reset password
+    private static final Duration VERIFIED_TTL = Duration.ofMinutes(15); // Tăng lên 15 phút để user có đủ thời gian
+                                                                         // reset password
     private static final int OTP_LENGTH = 6;
     private static final int MAX_PER_DAY = 10;
 
     private static final SecureRandom RNG = new SecureRandom();
-
-
 
     public void forgotPassword(ForgotPassword request) {
         final String email = normalizeEmail(request.getEmail());
@@ -93,10 +92,10 @@ public class AuthService {
 
         String key = OTP_KEY_PREFIX + normalizedEmail;
         String value = redisTemplate.opsForValue().get(key); // dùng String
-        
-        log.debug("Verifying OTP - Email: {}, Normalized: {}, Key: {}, Stored OTP: {}, Received OTP: {}", 
+
+        log.debug("Verifying OTP - Email: {}, Normalized: {}, Key: {}, Stored OTP: {}, Received OTP: {}",
                 email, normalizedEmail, key, value, trimmedOtp);
-        
+
         if (value == null) {
             log.warn("OTP not found in Redis for email: {}", normalizedEmail);
             return false;
@@ -105,9 +104,9 @@ public class AuthService {
         // Trim stored OTP as well to handle any edge cases
         String storedOtp = value.trim();
         boolean isValid = storedOtp.equals(trimmedOtp);
-        
+
         log.debug("OTP comparison - Stored: '{}', Received: '{}', Match: {}", storedOtp, trimmedOtp, isValid);
-        
+
         if (isValid) {
             // Xoá OTP để không dùng lại
             redisTemplate.delete(key);
@@ -124,9 +123,9 @@ public class AuthService {
 
     public boolean resetPassword(UpdatePasswordRequest request) {
         final String email = normalizeEmail(request.getEmail());
-        final String otp   = request.getOtp() != null ? request.getOtp().trim() : null;
+        final String otp = request.getOtp() != null ? request.getOtp().trim() : null;
 
-        log.debug("resetPassword - Email: {}, Normalized: {}, Has OTP: {}", 
+        log.debug("resetPassword - Email: {}, Normalized: {}, Has OTP: {}",
                 request.getEmail(), email, otp != null && !otp.isBlank());
 
         boolean allowed;
@@ -155,8 +154,7 @@ public class AuthService {
                 UpdatePassword.builder()
                         .email(email)
                         .password(request.getNewPassword())
-                        .build()
-        );
+                        .build());
 
         boolean ok = response != null && response.getStatusCode().is2xxSuccessful();
         if (ok) {
@@ -175,7 +173,7 @@ public class AuthService {
 
     private String randomOtp(int length) {
         int bound = (int) Math.pow(10, length);
-        int base  = (int) Math.pow(10, length - 1);
+        int base = (int) Math.pow(10, length - 1);
         int number = RNG.nextInt(bound - base) + base; // đảm bảo độ dài đúng (không bị 0 đầu)
         return String.valueOf(number);
     }
@@ -204,7 +202,6 @@ public class AuthService {
         }
     }
 
-
     public RegisterDto register(RegisterRequest request) {
         ResponseEntity<RegisterDto> response = userServiceClient.save(request);
         if (response == null || response.getBody() == null) {
@@ -219,6 +216,7 @@ public class AuthService {
         if (authentication.isAuthenticated()) {
             return TokenDto.builder()
                     .token(jwtService.generateToken(loginRequest.getEmail()))
+                    .refreshToken(jwtService.generateRefreshToken(loginRequest.getEmail()))
                     .build();
         } else {
             throw new WrongCredentialsException("Invalid email or password");
@@ -231,7 +229,7 @@ public class AuthService {
             final String email = googleUser.getEmail().trim().toLowerCase();
 
             AuthUserDto user = null;
-            
+
             try {
                 var resp = userServiceClient.getUserByEmail(email);
                 if (resp != null && resp.getBody() != null) {
@@ -268,6 +266,7 @@ public class AuthService {
 
             return TokenDto.builder()
                     .token(jwtService.generateToken(user.getEmail()))
+                    .refreshToken(jwtService.generateRefreshToken(user.getEmail()))
                     .build();
 
         } catch (Exception e) {
@@ -285,6 +284,7 @@ public class AuthService {
             if (user != null && user.hasRole(Role.valueOf(selectedRole.toUpperCase()))) {
                 return TokenDto.builder()
                         .token(jwtService.generateToken(loginRequest.getEmail()))
+                        .refreshToken(jwtService.generateRefreshToken(loginRequest.getEmail()))
                         .build();
             } else {
                 throw new WrongCredentialsException("You don't have permission for this role");
@@ -307,5 +307,41 @@ public class AuthService {
         req.setUsername(username);
         req.setPassword("Google1234");
         return req;
+    }
+
+    public boolean sendUserUpdateEmail(SendUserUpdateEmailRequest request) {
+        log.info("Sending user update email to: {}", request.getEmail());
+        return emailService.sendUserUpdateEmail(
+                request.getEmail(),
+                request.getUsername(),
+                request.getFirstName(),
+                request.getLastName());
+    }
+
+    public boolean sendUserLockStatusEmail(SendUserLockStatusEmailRequest request) {
+        log.info("Sending user lock status email to: {}, locked: {}", request.getEmail(), request.isLocked());
+        return emailService.sendUserLockStatusEmail(
+                request.getEmail(),
+                request.getUsername(),
+                request.getFirstName(),
+                request.getLastName(),
+                request.isLocked());
+    }
+
+    public TokenDto refreshToken(com.example.authservice.request.RefreshTokenRequest request) {
+        String requestRefreshToken = request.getRefreshToken();
+        if (requestRefreshToken != null && jwtService.validateRefreshToken(requestRefreshToken)) {
+            String username = jwtService.getClaims(requestRefreshToken).getSubject();
+            if (username != null) {
+                // Generate new tokens
+                String newAccessToken = jwtService.generateToken(username);
+                String newRefreshToken = jwtService.generateRefreshToken(username); // Rotate refresh token
+                return TokenDto.builder()
+                        .token(newAccessToken)
+                        .refreshToken(newRefreshToken)
+                        .build();
+            }
+        }
+        throw new RuntimeException("Invalid refresh token");
     }
 }

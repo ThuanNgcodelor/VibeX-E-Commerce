@@ -45,6 +45,7 @@ import LiveManagePage from "./pages/live/LiveManagePage.jsx";
 import VoucherManagementPage from "./pages/admin/VoucherManagementPage.jsx";
 import CoinManagement from "./components/admin/coins/CoinManagement.jsx";
 import SubscriptionPlanManagementPage from "./pages/admin/SubscriptionPlanManagementPage.jsx";
+import SuspiciousActivityPage from "./pages/admin/SuspiciousActivityPage.jsx";
 import BannerManagementPage from "./pages/admin/BannerManagementPage.jsx";
 import ShopOwnerManagementPage from "./pages/admin/ShopOwnerManagementPage.jsx";
 import RegisterShopOwner from "./pages/client/RegisterShopOwner.jsx";
@@ -163,6 +164,7 @@ export default function App() {
             <Route path="subscription" element={<SubscriptionPlanManagementPage />} />
             <Route path="ads" element={<AdManagement />} />
             <Route path="coins" element={<CoinManagement />} />
+            <Route path="suspicious-activity" element={<SuspiciousActivityPage />} />
             <Route path="logout" element={<Logout />} />
           </Route>
 

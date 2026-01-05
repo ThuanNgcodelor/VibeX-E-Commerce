@@ -17,22 +17,27 @@ import java.util.List;
 import java.util.Map;
 
 @FeignClient(name = "user-service", path = "/v1", configuration = com.example.orderservice.config.FeignConfig.class)
-public interface    UserServiceClient {
-    @GetMapping("/user/getUserById/{userId}")
-    ResponseEntity<UserDto> getUserById(@PathVariable String userId);
-    
-    @GetMapping("/user/address/getAllAddresses")
-    ResponseEntity<List<AddressDto>> getAllAddresses(@RequestHeader("Authorization") String authorization);
-    
-    @GetMapping("/user/address/getAddressById/{addressId}")
-    ResponseEntity<AddressDto> getAddressById(@PathVariable String addressId);
-    
-    @GetMapping("/user/shop-owners/{userId}")
-    ResponseEntity<ShopOwnerDto> getShopOwnerByUserId(@PathVariable String userId);
-    
-    @PostMapping("/wallet/internal/refund")
-    ResponseEntity<Map<String, Object>> addRefundToWallet(@RequestBody com.example.orderservice.dto.AddRefundRequestDto request);
-    @GetMapping("/shop-subscriptions/internal/shop/{shopOwnerId}")
-    ResponseEntity<com.example.orderservice.dto.ShopSubscriptionDTO> getSubscriptionByShopOwnerId(
-            @PathVariable("shopOwnerId") String shopOwnerId);
+public interface UserServiceClient {
+        @GetMapping("/user/getUserById/{userId}")
+        ResponseEntity<UserDto> getUserById(@PathVariable String userId);
+
+        @GetMapping("/user/address/getAllAddresses")
+        ResponseEntity<List<AddressDto>> getAllAddresses(@RequestHeader("Authorization") String authorization);
+
+        @GetMapping("/user/address/getAddressById/{addressId}")
+        ResponseEntity<AddressDto> getAddressById(@PathVariable String addressId);
+
+        @GetMapping("/user/shop-owners/{userId}")
+        ResponseEntity<ShopOwnerDto> getShopOwnerByUserId(@PathVariable String userId);
+
+        @PostMapping("/wallet/internal/refund")
+        ResponseEntity<Map<String, Object>> addRefundToWallet(
+                        @RequestBody com.example.orderservice.dto.AddRefundRequestDto request);
+
+        @GetMapping("/shop-subscriptions/internal/shop/{shopOwnerId}")
+        ResponseEntity<com.example.orderservice.dto.ShopSubscriptionDTO> getSubscriptionByShopOwnerId(
+                        @PathVariable("shopOwnerId") String shopOwnerId);
+
+        @GetMapping("/user/stats/count")
+        ResponseEntity<Long> countActiveUsers();
 }

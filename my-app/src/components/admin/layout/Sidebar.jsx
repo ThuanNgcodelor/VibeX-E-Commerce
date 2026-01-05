@@ -25,7 +25,7 @@ const Sidebar = () => {
                 <div className="brand-icon">
                     <i className="fas fa-th"></i>
                 </div>
-                <span className="brand-text">EzMart</span>
+                <span className="brand-text">Vibe</span>
             </Link>
 
             {/* Dashboard */}
@@ -36,6 +36,17 @@ const Sidebar = () => {
                 >
                     <i className="fas fa-tachometer-alt"></i>
                     <span>Dashboard</span>
+                </Link>
+            </li>
+
+            {/* Suspicious Activity */}
+            <li className="nav-item-ezmart">
+                <Link
+                    className={`nav-link-ezmart ${isActive("/admin/suspicious-activity") ? "active" : ""}`}
+                    to="/admin/suspicious-activity"
+                >
+                    <i className="fas fa-exclamation-triangle"></i>
+                    <span>Suspicious Activity</span>
                 </Link>
             </li>
 

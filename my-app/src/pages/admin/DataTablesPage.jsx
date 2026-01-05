@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { deleteUserById, getAllUser, updateUser } from "../../api/user";
+import { toggleUserActive, getAllUser, updateUser } from "../../api/user";
 import Swal from "sweetalert2";
 import '../../assets/admin/css/UserManagement.css';
 
@@ -8,7 +8,6 @@ const DataTablesPage = () => {
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [editing, setEditing] = useState(null);
-  const [deletingId, setDeletingId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRole, setFilterRole] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -77,19 +76,24 @@ const DataTablesPage = () => {
     setFilteredUsers(filtered);
   };
 
-  const confirmDelete = async (id) => {
+  const confirmToggleActive = async (user) => {
+    const isActive = user.active === "ACTIVE";
+    const action = isActive ? "lock" : "unlock";
+    const actionVi = isActive ? "khóa" : "mở khóa";
+
     const result = await Swal.fire({
-      title: 'Are you sure?',
-      text: "You won't be able to revert this!",
+      title: `${actionVi.charAt(0).toUpperCase() + actionVi.slice(1)} tài khoản?`,
+      text: `Bạn có chắc muốn ${actionVi} tài khoản "${user.email}"?`,
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: '#dc3545',
+      confirmButtonColor: isActive ? '#dc3545' : '#28a745',
       cancelButtonColor: '#6c757d',
-      confirmButtonText: 'Yes, delete it!'
+      confirmButtonText: `Đồng ý ${actionVi}`,
+      cancelButtonText: 'Hủy'
     });
 
     if (result.isConfirmed) {
-      await handleDelete(id);
+      await handleToggleActive(user.id, isActive);
     }
   };
 
@@ -105,16 +109,27 @@ const DataTablesPage = () => {
       gender: user.gender || "",
       birthDate: user.birthDate || "",
     });
+    console.log("Edit user data:", user); // Debug log
   };
 
-  const handleDelete = async (id) => {
+  const handleToggleActive = async (id, wasActive) => {
     try {
-      await deleteUserById(id);
-      setUsers((prev) => prev.filter((u) => u.id !== id));
-      Swal.fire('Deleted!', 'User has been deleted.', 'success');
+      const updatedUser = await toggleUserActive(id);
+
+      // Update user list
+      setUsers((prev) =>
+        prev.map((u) => (u.id === id ? updatedUser : u))
+      );
+
+      const newStatus = wasActive ? "khóa" : "mở khóa";
+      Swal.fire(
+        'Thành công!',
+        `Tài khoản đã được ${newStatus}.`,
+        'success'
+      );
     } catch (err) {
-      console.error("Delete failed:", err);
-      Swal.fire("Error!", "Failed to delete user.", "error");
+      console.error("Toggle active failed:", err);
+      Swal.fire("Lỗi!", `Không thể ${wasActive ? "khóa" : "mở khóa"} tài khoản.`, "error");
     }
   };
 
@@ -152,10 +167,9 @@ const DataTablesPage = () => {
   const stats = {
     totalUsers: users.length,
     activeUsers: users.filter(u => u.active === "ACTIVE").length,
-    inactiveUsers: users.filter(u => u.active === "INACTIVE").length,
-    adminUsers: users.filter(u => u.primaryRole === "ADMIN" || u.roles?.includes("ADMIN")).length,
+    lockedUsers: users.filter(u => u.active === "INACTIVE").length,
     shopOwners: users.filter(u => u.primaryRole === "SHOP_OWNER" || u.roles?.includes("SHOP_OWNER")).length,
-    regularUsers: users.filter(u => u.primaryRole === "USER").length,
+    adminUsers: users.filter(u => u.primaryRole === "ADMIN" || u.roles?.includes("ADMIN")).length,
   };
 
   // Get role badge color
@@ -178,27 +192,38 @@ const DataTablesPage = () => {
         </div>
       </div> */}
 
-      {/* Stats Cards */}
+      {/* Statistics Cards */}
       <div className="stats-grid">
-        <div className="stat-card">
+        <div className="stat-card" onClick={() => setFilterStatus('all')} style={{ cursor: 'pointer' }}>
           <div className="stat-icon stat-icon-total">
             <i className="fas fa-users"></i>
           </div>
           <div className="stat-info">
             <span className="stat-label">Total Users</span>
             <h2 className="stat-value">{stats.totalUsers}</h2>
-            <span className="stat-sublabel">All registered users</span>
+            <span className="stat-sublabel">Click to show all</span>
           </div>
         </div>
 
-        <div className="stat-card">
+        <div className="stat-card" onClick={() => setFilterStatus('active')} style={{ cursor: 'pointer' }}>
           <div className="stat-icon stat-icon-active">
             <i className="fas fa-user-check"></i>
           </div>
           <div className="stat-info">
             <span className="stat-label">Active Users</span>
             <h2 className="stat-value">{stats.activeUsers}</h2>
-            <span className="stat-sublabel">{((stats.activeUsers / stats.totalUsers) * 100).toFixed(1)}% of total</span>
+            <span className="stat-sublabel">Click to filter active</span>
+          </div>
+        </div>
+
+        <div className="stat-card" onClick={() => setFilterStatus('inactive')} style={{ cursor: 'pointer', borderLeft: '4px solid #dc3545' }}>
+          <div className="stat-icon stat-icon-locked">
+            <i className="fas fa-user-lock"></i>
+          </div>
+          <div className="stat-info">
+            <span className="stat-label">Locked Accounts</span>
+            <h2 className="stat-value">{stats.lockedUsers}</h2>
+            <span className="stat-sublabel">Click to show locked</span>
           </div>
         </div>
 
@@ -327,15 +352,14 @@ const DataTablesPage = () => {
                             <i className="fas fa-edit"></i>
                           </button>
                           <button
-                            onClick={() => confirmDelete(user.id)}
-                            className="btn-action btn-delete"
-                            title="Delete User"
-                            disabled={deletingId === user.id}
+                            onClick={() => confirmToggleActive(user)}
+                            className={`btn-action ${user.active === "ACTIVE" ? "btn-lock" : "btn-unlock"}`}
+                            title={user.active === "ACTIVE" ? "Lock Account" : "Unlock Account"}
                           >
-                            {deletingId === user.id ? (
-                              <i className="fas fa-spinner fa-spin"></i>
+                            {user.active === "ACTIVE" ? (
+                              <i className="fas fa-lock"></i>
                             ) : (
-                              <i className="fas fa-trash"></i>
+                              <i className="fas fa-lock-open"></i>
                             )}
                           </button>
                         </div>

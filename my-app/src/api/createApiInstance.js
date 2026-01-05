@@ -19,6 +19,7 @@ const createApiInstance = (baseURL) => {
                 '/verifyOtp',
                 '/updatePassword',
                 '/login/google',
+                '/refresh', // Refresh endpoint
                 '/order/track/',
             ];
 
@@ -58,18 +59,46 @@ const createApiInstance = (baseURL) => {
         "/order/track/",
         "/stock/search/query", // Public - allow guest to search products
         "/stock/search/autocomplete", // Public - allow guest to use autocomplete
+        "/auth/forgotPassword"
     ];
 
     api.interceptors.response.use(
         (response) => response,
-        (error) => {
+        async (error) => {
+            const originalRequest = error.config;
             const status = error?.response?.status;
+
+            // Nếu lỗi 401 và không phải là request refresh
+            if (status === 401 && !originalRequest._retry && !originalRequest.url.includes('/refresh')) {
+                if (isPublicEndpoint(originalRequest.url)) {
+                    return Promise.reject(error);
+                }
+
+                originalRequest._retry = true;
+
+                try {
+                    // Import dynamically to avoid circular dependency issues during initialization
+                    const authModule = await import('./auth.js');
+                    const newToken = await authModule.refreshAccessToken();
+
+                    if (newToken) {
+                        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+                        return api(originalRequest);
+                    }
+                } catch (refreshError) {
+                    // Refresh failed - logout user
+                    const authModule = await import('./auth.js');
+                    authModule.logout();
+                    return Promise.reject(refreshError);
+                }
+            }
+
             if (status === 401) {
                 const reqUrl = error?.config?.url || "";
                 const currentPath = window.location.pathname;
                 // Check if URL matches any public endpoint pattern
                 // reqUrl can be relative (e.g., "/shop-owners/123") or full path
-                const isPublicEndpoint = PUBLIC_401_ALLOWLIST.some((p) => {
+                const isPublicEndpointMatch = PUBLIC_401_ALLOWLIST.some((p) => {
                     // Remove leading slash for comparison
                     const pattern = p.replace(/^\//, '');
                     const urlPath = reqUrl.replace(/^\//, '');
@@ -85,28 +114,25 @@ const createApiInstance = (baseURL) => {
 
                 // Nếu là public endpoint hoặc đang ở trang auth/public → chỉ reject, không redirect
                 // QUAN TRỌNG: Không redirect khi ở trang public, kể cả khi có token invalid
-                if (isPublicEndpoint || onAuthPage || onPublicPage) {
+                if (isPublicEndpointMatch || onAuthPage || onPublicPage) {
                     // Nếu có token invalid ở trang public, xóa token nhưng không redirect
-                    if (hasToken && !isPublicEndpoint) {
+                    if (hasToken && !isPublicEndpointMatch) {
                         Cookies.remove("accessToken");
                     }
                     return Promise.reject(error);
                 }
 
-                // Chỉ redirect khi KHÔNG ở trang public và có token (token invalid/expired)
-                if (hasToken) {
-                    Cookies.remove("accessToken");
-                    const current = window.location.pathname + window.location.search;
-                    window.location.href = `/login?from=${encodeURIComponent(current)}`;
-                    return;
-                }
-
-                // Guest không có token ở trang không public → chỉ reject error, không redirect
-                return Promise.reject(error);
+                // If refresh token failed or other 401 issues, redirect to login
+                // But wait, the refresh logic above handles the main 401 case.
+                // This block is fallback or for public endpoints.
             }
             return Promise.reject(error);
         }
     );
+
+    function isPublicEndpoint(url) {
+        return PUBLIC_401_ALLOWLIST.some((p) => url.includes(p));
+    }
 
     return api;
 };

@@ -37,8 +37,56 @@ export const updatePassword = (email, newPassword) =>
  */
 export const login = async (data) => {
     const response = await api.post("/login", data);
-    const { token } = response.data;
-    Cookies.set("accessToken", token, { expires: 7 });
+    const { token, refreshToken } = response.data;
+
+    // Lưu accessToken
+    Cookies.set("accessToken", token, {
+        expires: 1, // 1 ngày
+        path: '/',
+        sameSite: 'lax',
+        secure: window.location.protocol === 'https:'
+    });
+
+    // Lưu refreshToken nếu có
+    if (refreshToken) {
+        Cookies.set("refreshToken", refreshToken, {
+            expires: 7, // 7 ngày
+            path: '/',
+            sameSite: 'lax',
+            secure: window.location.protocol === 'https:'
+        });
+    }
+
+    return response.data;
+};
+
+/**
+ * Đăng nhập bằng Google
+ * @param {string} token - Google OAuth Code
+ * @returns {Promise} - Promise trả về thông tin người dùng và token
+ */
+export const googleLogin = async (token) => {
+    const response = await api.post("/login/google", { code: token });
+    const { token: accessToken, refreshToken } = response.data;
+
+    // Lưu accessToken
+    Cookies.set("accessToken", accessToken, {
+        expires: 1, // 1 ngày
+        path: '/',
+        sameSite: 'lax',
+        secure: window.location.protocol === 'https:'
+    });
+
+    // Lưu refreshToken nếu có
+    if (refreshToken) {
+        Cookies.set("refreshToken", refreshToken, {
+            expires: 7, // 7 ngày
+            path: '/',
+            sameSite: 'lax',
+            secure: window.location.protocol === 'https:'
+        });
+    }
+
     return response.data;
 };
 
@@ -61,10 +109,75 @@ export const getToken = () => {
 };
 
 /**
+ * Lấy refresh token từ cookie
+ * @returns {string|null}
+ */
+export const getRefreshToken = () => {
+    return Cookies.get("refreshToken") || null;
+};
+
+/**
  * Đăng xuất (xóa token)
  */
 export const logout = () => {
     Cookies.remove("accessToken");
+    Cookies.remove("refreshToken");
+};
+
+/**
+ * Logic Refresh Token
+ */
+let isRefreshing = false;
+let refreshPromise = null;
+
+export const refreshAccessToken = async () => {
+    if (isRefreshing && refreshPromise) {
+        return refreshPromise;
+    }
+
+    const refreshToken = getRefreshToken();
+    if (!refreshToken) {
+        throw new Error("No refresh token available");
+    }
+
+    isRefreshing = true;
+    refreshPromise = (async () => {
+        try {
+            const response = await api.post("/refresh", { refreshToken });
+            const { token, refreshToken: newRefreshToken } = response.data;
+
+            if (!token) {
+                throw new Error("No access token in refresh response");
+            }
+
+            // Cập nhật accessToken
+            Cookies.set("accessToken", token, {
+                expires: 1,
+                path: '/',
+                sameSite: 'lax',
+                secure: window.location.protocol === 'https:'
+            });
+
+            // Cập nhật refreshToken nếu có mới
+            if (newRefreshToken) {
+                Cookies.set("refreshToken", newRefreshToken, {
+                    expires: 7,
+                    path: '/',
+                    sameSite: 'lax',
+                    secure: window.location.protocol === 'https:'
+                });
+            }
+            return token;
+        } catch (error) {
+            logout();
+            throw error;
+        } finally {
+            isRefreshing = false;
+            refreshPromise = null;
+        }
+    })();
+
+    return refreshPromise;
 };
 
 /**
@@ -98,6 +211,30 @@ export const getUserRole = () => {
     } catch (error) {
         return [];
     }
+};
+
+/**
+ * Lấy primary role từ token và map sang format frontend
+ * ROLE_ADMIN -> Admin
+ * ROLE_SHOP_OWNER -> ShopOwner
+ * ROLE_USER -> User
+ */
+export const getPrimaryRole = () => {
+    const roles = getUserRole();
+    if (roles.length === 0) return null;
+
+    // Ưu tiên ADMIN
+    if (roles.some(r => r === 'ROLE_ADMIN' || r.includes('ADMIN'))) {
+        return 'Admin';
+    }
+
+    // Cuối cùng là USER
+    if (roles.some(r => r === 'ROLE_USER' || r.includes('USER'))) {
+        return 'User';
+    }
+
+    // Fallback
+    return roles[0].replace('ROLE_', '');
 };
 
 /**

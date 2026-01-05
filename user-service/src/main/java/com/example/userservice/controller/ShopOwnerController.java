@@ -45,8 +45,8 @@ public class ShopOwnerController {
 
     @PutMapping(value = "/update", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ShopOwnerDto> updateShopOwner(@Valid @RequestPart("request") UpdateShopOwnerRequest request,
-                                                        @RequestPart(value = "file", required = false) MultipartFile file, 
-                                                        HttpServletRequest requestHttp) {
+            @RequestPart(value = "file", required = false) MultipartFile file,
+            HttpServletRequest requestHttp) {
         String userId = jwtUtil.ExtractUserId(requestHttp);
         request.setUserId(userId);
         ShopOwner updated = shopOwnerService.updateShopOwner(request, file);

@@ -75,4 +75,52 @@ public interface OrderRepository extends JpaRepository<Order, String> {
         Long countByProductIdsAndDateRangeAndStatus(@Param("productIds") List<String> productIds,
                         @Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate,
                         @Param("status") OrderStatus status);
+
+        @Query("SELECT new com.example.orderservice.dto.SuspiciousProductDto(" +
+                        "oi.productId, '', '', '', " +
+                        "COUNT(DISTINCT o), " +
+                        "SUM(CASE WHEN o.orderStatus = 'CANCELLED' THEN 1 ELSE 0 END), " +
+                        "0.0) " +
+                        "FROM Order o JOIN o.orderItems oi " +
+                        "WHERE o.createdAt >= :startDate " +
+                        "GROUP BY oi.productId " +
+                        "HAVING COUNT(DISTINCT o) >= :minOrders")
+        List<com.example.orderservice.dto.SuspiciousProductDto> findSuspiciousProductsRaw(
+                        @Param("startDate") LocalDateTime startDate,
+                        @Param("minOrders") Long minOrders);
+
+        // Query for Brushing: aggregated by productId, count distinct userId
+        @Query("SELECT new com.example.orderservice.dto.SuspiciousProductDto(" +
+                        "oi.productId, COUNT(o), COUNT(DISTINCT o.userId)) " +
+                        "FROM Order o JOIN o.orderItems oi " +
+                        "WHERE o.createdAt >= :startDate " +
+                        "GROUP BY oi.productId " +
+                        "HAVING COUNT(o) >= :minOrders")
+        List<com.example.orderservice.dto.SuspiciousProductDto> findBrushingProductsRaw(
+                        @Param("startDate") LocalDateTime startDate,
+                        @Param("minOrders") Long minOrders);
+
+        // Query for Price Manipulation: average unit price over last 30 days
+        @Query("SELECT new com.example.orderservice.dto.SuspiciousProductDto(" +
+                        "oi.productId, AVG(oi.unitPrice)) " +
+                        "FROM Order o JOIN o.orderItems oi " +
+                        "WHERE o.createdAt >= :startDate " +
+                        "GROUP BY oi.productId ")
+        List<com.example.orderservice.dto.SuspiciousProductDto> findProductAveragePriceRaw(
+                        @Param("startDate") LocalDateTime startDate);
+
+        // Dashboard Queries
+        @Query("SELECT SUM(o.totalPrice) FROM Order o WHERE o.orderStatus = 'COMPLETED'")
+        Double sumTotalRevenue();
+
+        @Query("SELECT COUNT(o) FROM Order o WHERE o.orderStatus <> 'CANCELLED'")
+        Long countAllValidOrders();
+
+        @Query("SELECT new com.example.orderservice.dto.DailyRevenueDto(" +
+                        "CAST(o.createdAt AS LocalDate), SUM(o.totalPrice), COUNT(o)) " +
+                        "FROM Order o " +
+                        "WHERE o.createdAt >= :startDate AND o.orderStatus = 'COMPLETED' " +
+                        "GROUP BY CAST(o.createdAt AS LocalDate) " +
+                        "ORDER BY CAST(o.createdAt AS LocalDate) ASC")
+        List<com.example.orderservice.dto.DailyRevenueDto> getDailyRevenue(@Param("startDate") LocalDateTime startDate);
 }

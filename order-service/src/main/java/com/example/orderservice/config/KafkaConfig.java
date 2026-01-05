@@ -21,7 +21,6 @@ import org.springframework.kafka.support.serializer.JsonSerializer;
 import java.util.HashMap;
 import java.util.Map;
 
-
 /**
  * - Tạo 2 ConsumerFactory riêng cho CheckOutKafkaRequest và PaymentEvent
  * - Tạo 2 ListenerFactory với concurrency = 10
@@ -48,7 +47,6 @@ public class KafkaConfig {
 
     @Value("${spring.kafka.consumer.group-id}")
     private String groupId;
-
 
     @Bean
     public NewTopic notificationTopic() {
@@ -101,7 +99,7 @@ public class KafkaConfig {
     }
 
     // ==================== PRODUCER CONFIG ====================
-    
+
     // Producer Factory cho UpdateStatusOrderRequest
     @Bean
     public ProducerFactory<String, UpdateStatusOrderRequest> updateStatusProducerFactory() {
@@ -143,7 +141,6 @@ public class KafkaConfig {
         props.put(ProducerConfig.LINGER_MS_CONFIG, 5);
         return new DefaultKafkaProducerFactory<>(props);
     }
-
 
     // ==================== CONSUMER CONFIG ====================
 
@@ -213,35 +210,29 @@ public class KafkaConfig {
     // Listener Factory cho Checkout
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, CheckOutKafkaRequest> checkoutListenerFactory() {
-        ConcurrentKafkaListenerContainerFactory<String, CheckOutKafkaRequest> factory =
-                new ConcurrentKafkaListenerContainerFactory<>();
+        ConcurrentKafkaListenerContainerFactory<String, CheckOutKafkaRequest> factory = new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(checkoutConsumerFactory());
-        factory.setConcurrency(10); //  10 threads cho 10 partitions
+        factory.setConcurrency(10); // 10 threads cho 10 partitions
         return factory;
     }
 
-    //  Listener Factory cho Payment
+    // Listener Factory cho Payment
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, PaymentEvent> paymentListenerFactory() {
-        ConcurrentKafkaListenerContainerFactory<String, PaymentEvent> factory =
-                new ConcurrentKafkaListenerContainerFactory<>();
+        ConcurrentKafkaListenerContainerFactory<String, PaymentEvent> factory = new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(paymentConsumerFactory());
-        factory.setConcurrency(10); //  10 threads cho 10 partitions
+        factory.setConcurrency(10); // 10 threads cho 10 partitions
         return factory;
     }
 
     // Listener Factory cho Update Status Order
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, UpdateStatusOrderRequest> updateStatusListenerFactory() {
-        ConcurrentKafkaListenerContainerFactory<String, UpdateStatusOrderRequest> factory =
-                new ConcurrentKafkaListenerContainerFactory<>();
+        ConcurrentKafkaListenerContainerFactory<String, UpdateStatusOrderRequest> factory = new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(updateStatusConsumerFactory());
         factory.setConcurrency(10); // 10 threads cho 10 partitions
         factory.setBatchListener(true); // BATCH LISTENER cho high throughput
         return factory;
     }
 
-
 }
-
-

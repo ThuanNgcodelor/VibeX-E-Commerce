@@ -34,7 +34,7 @@ public class UserController {
     }
 
     @GetMapping("/information")
-    ResponseEntity<UserInformationDto> getInformation(HttpServletRequest request){
+    ResponseEntity<UserInformationDto> getInformation(HttpServletRequest request) {
         String userId = jwtUtil.ExtractUserId(request);
         return ResponseEntity.ok(userService.convertUserToUserInformationDto(userService.getUserById(userId)));
     }
@@ -46,9 +46,10 @@ public class UserController {
 
     @GetMapping("/getAll")
     public ResponseEntity<List<UserAdminDto>> getAll() {
-        return ResponseEntity.ok(userService.getAllUsers().stream().map(
-                user -> modelMapper.map(user,UserAdminDto.class)).toList());
+        return ResponseEntity.ok(userService.getAllUsers().stream()
+                .map(userService::toUserAdminDto).toList());
     }
+
     @GetMapping("/getUserForAdminByUserId/{id}")
     public ResponseEntity<UserAdminDto> getUserForAdminByUserId(@PathVariable String id) {
         return ResponseEntity.ok(modelMapper.map(userService.getUserById(id), UserAdminDto.class));
@@ -79,7 +80,8 @@ public class UserController {
     public ResponseEntity<UserAdminDto> updateUserById(
             @Valid @RequestPart("request") UserUpdateRequest request,
             @RequestPart(value = "file", required = false) MultipartFile file) {
-        return ResponseEntity.ok(modelMapper.map(userService.updateUserById(request, file), UserAdminDto.class));
+        User updatedUser = userService.updateUserById(request, file);
+        return ResponseEntity.ok(userService.toUserAdminDto(updatedUser));
     }
 
     @DeleteMapping("/deleteUserById/{id}")
@@ -93,5 +95,20 @@ public class UserController {
         User user = userService.findUserByEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Toggle active status của user (ACTIVE <-> INACTIVE)
+     * Admin only - Lock/Unlock user account
+     */
+    @PutMapping("/toggleActive/{id}")
+    public ResponseEntity<UserAdminDto> toggleActiveStatus(@PathVariable String id) {
+        User user = userService.toggleActiveStatus(id);
+        return ResponseEntity.ok(modelMapper.map(user, UserAdminDto.class));
+    }
+
+    @GetMapping("/stats/count")
+    public ResponseEntity<Long> countActiveUsers() {
+        return ResponseEntity.ok(userService.countActiveUsers());
     }
 }

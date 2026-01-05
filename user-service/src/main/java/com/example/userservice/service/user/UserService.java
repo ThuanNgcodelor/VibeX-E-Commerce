@@ -13,20 +13,43 @@ import java.util.List;
 
 public interface UserService {
     User SaveUser(RegisterRequest registerRequest);
-    List<User> getAllUsers();
-    User getUserById(String id);
-    User getUserByEmail(String email);
-    User getUserByUsername(String username);
-    User updateUserById(UserUpdateRequest request, MultipartFile file);
-    void deleteUserById(String id);
-    User findUserById(String id);
-    User findUserByUsername(String username);
-    User findUserByEmail(String email);
-    UserDetails updateUserDetails(UserDetails toUpdate,UserDetails request, MultipartFile file);
-    CartDto getCart(HttpServletRequest request);
-    void updatePasswordByEmail(String email, String rawPassword);
-    List<com.example.userservice.model.RoleRequest> getUserRoleRequests(String userId);
-    UserInformationDto convertUserToUserInformationDto(User user);
-    
 
+    List<User> getAllUsers();
+
+    User getUserById(String id);
+
+    User getUserByEmail(String email);
+
+    User getUserByUsername(String username);
+
+    User updateUserById(UserUpdateRequest request, MultipartFile file);
+
+    void deleteUserById(String id);
+
+    /**
+     * Toggle active status of user account
+     * ACTIVE -> INACTIVE (Lock account)
+     * INACTIVE -> ACTIVE (Unlock account)
+     */
+    User toggleActiveStatus(String id);
+
+    User findUserById(String id);
+
+    User findUserByUsername(String username);
+
+    User findUserByEmail(String email);
+
+    UserDetails updateUserDetails(UserDetails toUpdate, UserDetails request, MultipartFile file);
+
+    CartDto getCart(HttpServletRequest request);
+
+    void updatePasswordByEmail(String email, String rawPassword);
+
+    List<com.example.userservice.model.RoleRequest> getUserRoleRequests(String userId);
+
+    UserInformationDto convertUserToUserInformationDto(User user);
+
+    com.example.userservice.dto.UserAdminDto toUserAdminDto(User user);
+
+    Long countActiveUsers();
 }

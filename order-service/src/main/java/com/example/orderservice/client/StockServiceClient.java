@@ -14,8 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-
-@FeignClient(name = "stock-service", path = "/v1/stock",configuration = FeignConfig.class)
+@FeignClient(name = "stock-service", path = "/v1/stock", configuration = FeignConfig.class)
 public interface StockServiceClient {
 
     @PostMapping(value = "/cart/removeItems", headers = "X-Internal-Call=true")
@@ -36,13 +35,13 @@ public interface StockServiceClient {
     @GetMapping(value = "/cart/getCartByUserId/{userId}", headers = "X-Internal-Call=true")
     ResponseEntity<CartDto> getCartByUserIdInternal(@PathVariable String userId);
 
-    @GetMapping(value = "/product/getProductById/{id}",headers = "X-Internal-Call=true")
+    @GetMapping(value = "/product/getProductById/{id}", headers = "X-Internal-Call=true")
     ResponseEntity<ProductDto> getProductById(@PathVariable String id);
 
-    @GetMapping(value = "/size/getSizeById/{sizeId}",headers = "X-Internal-Call=true")
+    @GetMapping(value = "/size/getSizeById/{sizeId}", headers = "X-Internal-Call=true")
     ResponseEntity<SizeDto> getSizeById(@PathVariable String sizeId);
 
-    @DeleteMapping(value = "/cart/clear/{cartId}",headers = "X-Internal-Call=true")
+    @DeleteMapping(value = "/cart/clear/{cartId}", headers = "X-Internal-Call=true")
     ResponseEntity<Void> clearCartByCartId(@PathVariable String cartId);
 
     @PostMapping(value = "/cart/removeItemsByUserId", headers = "X-Internal-Call=true")
@@ -50,4 +49,16 @@ public interface StockServiceClient {
 
     @GetMapping(value = "/product/shop-owner/{userId}/ids", headers = "X-Internal-Call=true")
     ResponseEntity<List<String>> getProductIdsByShopOwner(@PathVariable String userId);
+
+    @GetMapping(value = "/analytics/shop/{shopId}/views", headers = "X-Internal-Call=true")
+    ResponseEntity<Long> getShopTotalViews(@PathVariable String shopId);
+
+    @GetMapping(value = "/analytics/system/views", headers = "X-Internal-Call=true")
+    ResponseEntity<Long> getSystemTotalViews();
+
+    @GetMapping(value = "/analytics/system/visits", headers = "X-Internal-Call=true")
+    ResponseEntity<Long> getSystemSiteVisits();
+
+    @GetMapping(value = "/analytics/system/cart-adds", headers = "X-Internal-Call=true")
+    ResponseEntity<Long> getSystemAddToCart();
 }

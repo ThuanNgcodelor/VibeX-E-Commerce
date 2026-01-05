@@ -1,10 +1,7 @@
 package com.example.userservice.service.role;
 
 import com.example.userservice.dto.FullShopRegistrationRequest;
-import com.example.userservice.enums.BusinessType;
-import com.example.userservice.enums.IdentificationType;
-import com.example.userservice.enums.RequestStatus;
-import com.example.userservice.enums.Role;
+import com.example.userservice.enums.*;
 import com.example.userservice.exception.NotFoundException;
 import com.example.userservice.model.*;
 import com.example.userservice.repository.IdentificationRepository;

@@ -1,5 +1,6 @@
 package com.example.userservice.model;
 
+import com.example.userservice.enums.Active;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
@@ -89,6 +90,9 @@ public class ShopOwner {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @Enumerated(EnumType.STRING)
+    private Active active = Active.ACTIVE;
 
     @PrePersist
     protected void onCreate() {

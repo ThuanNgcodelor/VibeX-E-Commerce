@@ -1,9 +1,7 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
-import Cookies from "js-cookie";
 import Swal from "sweetalert2";
-import {API_BASE_URL, LOCAL_BASE_URL} from "../../config/config.js";
+import { googleLogin } from "../../api/auth.js";
 
 const GoogleCallback = () => {
   const navigate = useNavigate();
@@ -22,11 +20,10 @@ const GoogleCallback = () => {
     const code = urlParams.get("code");
 
     if (code) {
-      axios
-        .post(`${LOCAL_BASE_URL}/v1/auth/login/google`, { code })
-        .then((res) => {
-          console.log("Google login successful:", res.data);
-          Cookies.set("accessToken", res.data.token);
+      googleLogin(code)
+        .then((data) => {
+          console.log("Google login successful:", data);
+          // Token and refresh token are already saved by googleLogin in auth.js
 
           // Success toast
           Toast.fire({
@@ -37,17 +34,7 @@ const GoogleCallback = () => {
           navigate("/");
         })
         .catch((err) => {
-          console.error("Google login error details:", {
-            message: err.message,
-            status: err.response?.status,
-            statusText: err.response?.statusText,
-            data: err.response?.data,
-            config: {
-              url: err.config?.url,
-              method: err.config?.method,
-              data: err.config?.data,
-            },
-          });
+          console.error("Google login error details:", err);
 
           let errorMessage = "Google login failed!";
           if (err.response?.data?.message) {
@@ -80,7 +67,7 @@ const GoogleCallback = () => {
         navigate("/login");
       });
     }
-  }, [navigate]);
+  }, [navigate, Toast]);
 
   return <div>Logging in with Google...</div>;
 };

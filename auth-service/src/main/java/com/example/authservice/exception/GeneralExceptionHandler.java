@@ -5,6 +5,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -19,9 +21,9 @@ import java.util.Map;
 public class GeneralExceptionHandler extends ResponseEntityExceptionHandler {
 
     protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex,
-                                                                  @NonNull HttpHeaders headers,
-                                                                  @NonNull HttpStatus status,
-                                                                  @NonNull WebRequest request) {
+            @NonNull HttpHeaders headers,
+            @NonNull HttpStatus status,
+            @NonNull WebRequest request) {
         Map<String, String> errors = new HashMap<>();
         ex.getBindingResult().getAllErrors()
                 .forEach(x -> errors.put(((FieldError) x).getField(), x.getDefaultMessage()));
@@ -62,5 +64,11 @@ public class GeneralExceptionHandler extends ResponseEntityExceptionHandler {
         errors.put("error", exception.getMessage());
         return new ResponseEntity<>(errors, HttpStatus.FORBIDDEN);
     }
-}
 
+    @ExceptionHandler({ LockedException.class, DisabledException.class })
+    public ResponseEntity<?> handleLockedException(Exception exception) {
+        Map<String, String> errors = new HashMap<>();
+        errors.put("message", "Account is locked or disabled");
+        return new ResponseEntity<>(errors, HttpStatus.UNAUTHORIZED);
+    }
+}

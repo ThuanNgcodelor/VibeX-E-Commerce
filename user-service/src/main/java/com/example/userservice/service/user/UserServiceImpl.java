@@ -1,8 +1,10 @@
 package com.example.userservice.service.user;
 
+import com.example.userservice.client.AuthServiceClient;
 import com.example.userservice.client.FileStorageClient;
 import com.example.userservice.client.StockServiceClient;
 import com.example.userservice.dto.CartDto;
+import com.example.userservice.dto.SendUserUpdateEmailRequest;
 import com.example.userservice.dto.UserInformationDto;
 import com.example.userservice.exception.NotFoundException;
 import com.example.userservice.enums.Active;
@@ -35,6 +37,7 @@ public class UserServiceImpl implements UserService {
     private final ModelMapper modelMapper;
     private final StockServiceClient stockServiceClient;
     private final RoleRequestService roleRequestService;
+    private final AuthServiceClient authServiceClient;
 
     @Override
     public CartDto getCart(HttpServletRequest request) {
@@ -60,7 +63,7 @@ public class UserServiceImpl implements UserService {
         if (userRepository.existsByEmailIgnoreCase(registerRequest.getEmail())) {
             throw new IllegalArgumentException("Email already exists");
         }
-        
+
         Set<Role> initialRoles = new HashSet<>();
         initialRoles.add(Role.USER);
 
@@ -68,8 +71,8 @@ public class UserServiceImpl implements UserService {
                 .username(registerRequest.getUsername())
                 .password(passwordEncoder.encode(registerRequest.getPassword()))
                 .email(registerRequest.getEmail())
-                .primaryRole(Role.USER)  
-                .roles(initialRoles)     
+                .primaryRole(Role.USER)
+                .roles(initialRoles)
                 .active(Active.ACTIVE)
                 .userDetails(new UserDetails())
                 .build();
@@ -78,7 +81,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<User> getAllUsers() {
-        return userRepository.findAllByActive(Active.ACTIVE);
+        return userRepository.findAll(); // Return ALL users including locked accounts
     }
 
     @Override
@@ -101,7 +104,29 @@ public class UserServiceImpl implements UserService {
         User toUpdate = findUserById(request.getId());
         request.setUserDetails(updateUserDetails(toUpdate.getUserDetails(), request.getUserDetails(), file));
         modelMapper.map(request, toUpdate);
-        return userRepository.save(toUpdate);
+        User updatedUser = userRepository.save(toUpdate);
+
+        // Send email notification to user about the update
+        try {
+            System.out.println("Attempting to send user update email to: " + updatedUser.getEmail());
+
+            SendUserUpdateEmailRequest emailRequest = SendUserUpdateEmailRequest.builder()
+                    .email(updatedUser.getEmail())
+                    .username(updatedUser.getUsername())
+                    .firstName(
+                            updatedUser.getUserDetails() != null ? updatedUser.getUserDetails().getFirstName() : null)
+                    .lastName(updatedUser.getUserDetails() != null ? updatedUser.getUserDetails().getLastName() : null)
+                    .build();
+
+            authServiceClient.sendUserUpdateEmail(emailRequest);
+            System.out.println("Successfully sent user update email to: " + updatedUser.getEmail());
+        } catch (Exception e) {
+            // Log error but don't fail the update operation
+            System.err.println("Failed to send user update email to " + updatedUser.getEmail() + ": " + e.getMessage());
+            e.printStackTrace();
+        }
+
+        return updatedUser;
     }
 
     @Override
@@ -109,6 +134,47 @@ public class UserServiceImpl implements UserService {
         User toDelete = findUserById(id);
         toDelete.setActive(Active.INACTIVE);
         userRepository.save(toDelete);
+    }
+
+    @Override
+    public User toggleActiveStatus(String id) {
+        User user = findUserById(id);
+
+        // Toggle active status
+        boolean isLocked = false;
+        if (user.getActive() == Active.ACTIVE) {
+            user.setActive(Active.INACTIVE);
+            isLocked = true;
+            System.out.println("User " + user.getEmail() + " has been LOCKED (INACTIVE)");
+        } else {
+            user.setActive(Active.ACTIVE);
+            isLocked = false;
+            System.out.println("User " + user.getEmail() + " has been UNLOCKED (ACTIVE)");
+        }
+
+        User savedUser = userRepository.save(user);
+
+        // Send email notification about lock status
+        try {
+            System.out.println("Attempting to send lock status email to: " + savedUser.getEmail());
+
+            com.example.userservice.dto.SendUserLockStatusEmailRequest emailRequest = com.example.userservice.dto.SendUserLockStatusEmailRequest
+                    .builder()
+                    .email(savedUser.getEmail())
+                    .username(savedUser.getUsername())
+                    .firstName(savedUser.getUserDetails() != null ? savedUser.getUserDetails().getFirstName() : null)
+                    .lastName(savedUser.getUserDetails() != null ? savedUser.getUserDetails().getLastName() : null)
+                    .locked(isLocked)
+                    .build();
+
+            authServiceClient.sendUserLockStatusEmail(emailRequest);
+            System.out.println("Successfully sent lock status email to: " + savedUser.getEmail());
+        } catch (Exception e) {
+            System.err.println("Failed to send lock status email to " + savedUser.getEmail() + ": " + e.getMessage());
+            e.printStackTrace();
+        }
+
+        return savedUser;
     }
 
     @Override
@@ -158,13 +224,34 @@ public class UserServiceImpl implements UserService {
         return roleRequestService.getUserRequests(userId);
     }
 
+    // Helper method to convert User to UserAdminDto (map nested UserDetails to flat
+    // DTO)
+    public com.example.userservice.dto.UserAdminDto toUserAdminDto(User user) {
+        com.example.userservice.dto.UserAdminDto dto = modelMapper.map(user,
+                com.example.userservice.dto.UserAdminDto.class);
+
+        // Manually map nested UserDetails fields to flat DTO
+        if (user.getUserDetails() != null) {
+            UserDetails details = user.getUserDetails();
+            dto.setFirstName(details.getFirstName());
+            dto.setLastName(details.getLastName());
+            dto.setPhoneNumber(details.getPhoneNumber());
+            dto.setGender(details.getGender() != null ? details.getGender().toString() : null);
+            dto.setAboutMe(details.getAboutMe());
+            dto.setBirthDate(details.getBirthDate() != null ? details.getBirthDate().toString() : null);
+            dto.setImageUrl(details.getImageUrl());
+        }
+
+        return dto;
+    }
+
     @Override
     public UserInformationDto convertUserToUserInformationDto(User user) {
         UserInformationDto dto = new UserInformationDto();
         dto.setId(user.getId());
         dto.setUsername(user.getUsername());
         dto.setEmail(user.getEmail());
-        
+
         UserDetails userDetails = user.getUserDetails();
         if (userDetails != null) {
             dto.setFirstName(userDetails.getFirstName());
@@ -175,7 +262,12 @@ public class UserServiceImpl implements UserService {
             dto.setBirthDate(String.valueOf(userDetails.getBirthDate()));
             dto.setImageUrl(userDetails.getImageUrl());
         }
-        
+
         return dto;
+    }
+
+    @Override
+    public Long countActiveUsers() {
+        return userRepository.countByActive(Active.ACTIVE);
     }
 }

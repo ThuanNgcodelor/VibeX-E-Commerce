@@ -28,7 +28,7 @@ public class Notification {
     private String shopId;
     private String orderId;
     private String message;
-    
+
     @Column(name = "is_read")
     @JsonProperty("isRead")
     private boolean read;

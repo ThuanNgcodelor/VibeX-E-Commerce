@@ -43,15 +43,20 @@ public class AuthConfig {
                                 "/v3/api-docs.yaml",
                                 "/swagger-resources/**",
                                 "/webjars/**",
-                                "/actuator/**").permitAll()
-                        .anyRequest().authenticated()
-                );
+                                "/actuator/**",
+                                "/v1/auth/sendUserUpdateEmail",
+                                "/v1/auth/sendUserLockStatusEmail",
+                                "/v1/auth/refresh")
+
+                        .permitAll()
+                        .anyRequest().authenticated());
 
         return http.build();
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(final AuthenticationConfiguration authenticationConfiguration) throws Exception {
+    public AuthenticationManager authenticationManager(final AuthenticationConfiguration authenticationConfiguration)
+            throws Exception {
         return authenticationConfiguration.getAuthenticationManager();
     }
 

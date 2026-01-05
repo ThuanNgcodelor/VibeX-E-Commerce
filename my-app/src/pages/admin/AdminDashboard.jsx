@@ -1,36 +1,51 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import '../../assets/admin/css/AdminDashboard.css';
+import { getDashboardStats, getRevenueChartData, getRecentOrders, getTopCategories } from '../../api/adminAnalyticsApi';
 
 const AdminDashboard = () => {
-    // Static data for dashboard
-    const stats = {
-        totalSales: {
-            value: '$983,410',
-            change: '+3.2%',
-            trend: 'up',
-            label: 'vs last month'
-        },
-        totalOrders: {
-            value: '58,375',
-            change: '-2.8%',
-            trend: 'down',
-            label: 'vs last month'
-        },
-        totalVisitors: {
-            value: '237,782',
-            change: '+9.05%',
-            trend: 'up',
-            label: 'vs last month'
-        }
-    };
+    const [dashboardStats, setDashboardStats] = useState({
+        totalSales: 0,
+        totalOrders: 0,
+        totalUsers: 0,
+        totalProducts: 0,
+        totalViews: 0,
+        conversionRate: 0
+    });
+    const [revenueData, setRevenueData] = useState([]);
+    const [recentOrdersList, setRecentOrdersList] = useState([]);
+    const [topCategoriesList, setTopCategoriesList] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-    const topCategories = [
-        { name: 'Electronics', value: '$1,206,000', percentage: 60, color: '#FF6B35' },
-        { name: 'Fashion', value: '$906,000', percentage: 45, color: '#F7931E' },
-        { name: 'Home & Kitchen', value: '$716,000', percentage: 35, color: '#FDC830' },
-        { name: 'Beauty & Personal Care', value: '$506,000', percentage: 25, color: '#37B7C3' }
-    ];
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const [stats, revenue, orders, categories] = await Promise.all([
+                    getDashboardStats(),
+                    getRevenueChartData(),
+                    getRecentOrders(),
+                    getTopCategories()
+                ]);
+                setDashboardStats(stats);
+                setRevenueData(revenue);
+                setRecentOrdersList(orders);
+                setTopCategoriesList(categories);
+            } catch (error) {
+                console.error("Failed to fetch dashboard data", error);
+            } finally {
+                setLoading(false);
+            }
+        };
 
+        fetchData();
+
+        // Auto-refresh every 30 seconds
+        const intervalId = setInterval(fetchData, 30000);
+
+        // Cleanup interval on unmount
+        return () => clearInterval(intervalId);
+    }, []);
+
+    // Static data for fallback or unimplemented sections
     const activeUsers = [
         { country: 'United States', users: 2758, percentage: 36, flag: '🇺🇸', color: '#FF6B35' },
         { country: 'United Kingdom', users: 1839, percentage: 24, flag: '🇬🇧', color: '#667eea' },
@@ -39,64 +54,10 @@ const AdminDashboard = () => {
     ];
 
     const conversionMetrics = [
-        { label: 'Product Showcased', value: '25,000', change: '+3%', color: '#4ade80' },
-        { label: 'Add to Cart', value: '12,000', change: '+2%', color: '#60a5fa' },
-        { label: 'Proceed to Checkout', value: '8,500', change: '+1%', color: '#a78bfa' },
-        { label: 'Completed Purchase', value: '6,200', change: '+2%', color: '#f472b6' },
-        { label: 'Abandoned Cart', value: '3,000', change: '-1%', color: '#fb923c' }
-    ];
-
-    const recentOrders = [
-        {
-            id: '#10234',
-            customer: 'Annette Miller',
-            product: 'Wireless Headphones',
-            productImage: '🎧',
-            qty: 2,
-            total: '$200',
-            status: 'Shipped',
-            statusColor: 'warning'
-        },
-        {
-            id: '#10235',
-            customer: 'Sebastian Adams',
-            product: 'Running Shoes',
-            productImage: '👟',
-            qty: 1,
-            total: '$75',
-            status: 'Processing',
-            statusColor: 'warning'
-        },
-        {
-            id: '#10236',
-            customer: 'Suzanne Bright',
-            product: 'Smartwatch',
-            productImage: '⌚',
-            qty: 1,
-            total: '$150',
-            status: 'Delivered',
-            statusColor: 'success'
-        },
-        {
-            id: '#10237',
-            customer: 'Peter Hoof',
-            product: 'Coffee Maker',
-            productImage: '☕',
-            qty: 1,
-            total: '$60',
-            status: 'Pending',
-            statusColor: 'danger'
-        },
-        {
-            id: '#10238',
-            customer: 'Anita Singh',
-            product: 'Bluetooth Speaker',
-            productImage: '🔊',
-            qty: 3,
-            total: '$90',
-            status: 'Shipped',
-            statusColor: 'warning'
-        }
+        { label: 'Site Visits (Base)', value: (dashboardStats.totalSiteVisits || 0).toLocaleString(), percentage: '100%', change: 'Base', color: '#667eea' },
+        { label: 'Product Views', value: (dashboardStats.totalViews || 0).toLocaleString(), percentage: `${(dashboardStats.productViewRate || 0).toFixed(1)}%`, change: 'of visits', color: '#60a5fa' },
+        { label: 'Added to Cart', value: (dashboardStats.totalAddToCart || 0).toLocaleString(), percentage: `${(dashboardStats.addToCartRate || 0).toFixed(1)}%`, change: 'of visits', color: '#fb923c' },
+        { label: 'Orders Completed', value: (dashboardStats.totalOrders || 0).toLocaleString(), percentage: `${(dashboardStats.orderCompletionRate || 0).toFixed(1)}%`, change: 'of visits', color: '#4ade80' }
     ];
 
     const trafficSources = [
@@ -121,29 +82,13 @@ const AdminDashboard = () => {
             time: '1:32 AM',
             icon: '📦',
             color: '#667eea'
-        },
-        {
-            type: 'review',
-            message: 'Vincent Laurent left a 5-star review for "Wireless Headphones"',
-            time: '2:46 AM',
-            icon: '⭐',
-            color: '#FDC830'
-        },
-        {
-            type: 'stock',
-            message: '"Running Shoes" stock is below 10 units',
-            time: '3:12 AM',
-            icon: '⚠️',
-            color: '#fb923c'
-        },
-        {
-            type: 'order',
-            message: 'Damien Lyons order status changed from "Pending" to "Processing"',
-            time: '7:02 AM',
-            icon: '📋',
-            color: '#37B7C3'
         }
     ];
+
+    // Formatting helper
+    const formatCurrency = (amount) => {
+        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+    };
 
     return (
         <div className="admin-dashboard">
@@ -156,9 +101,9 @@ const AdminDashboard = () => {
                         </div>
                         <div className="stat-info-compact">
                             <span className="stat-label-compact">Total Sales</span>
-                            <h2 className="stat-value-compact">{stats.totalSales.value}</h2>
-                            <span className={`stat-change ${stats.totalSales.trend === 'up' ? 'positive' : 'negative'}`}>
-                                {stats.totalSales.change} {stats.totalSales.label}
+                            <h2 className="stat-value-compact">{loading ? '...' : formatCurrency(dashboardStats.totalSales)}</h2>
+                            <span className="stat-change positive">
+                                +3.2% vs last month
                             </span>
                         </div>
                     </div>
@@ -169,9 +114,9 @@ const AdminDashboard = () => {
                         </div>
                         <div className="stat-info-compact">
                             <span className="stat-label-compact">Total Orders</span>
-                            <h2 className="stat-value-compact">{stats.totalOrders.value}</h2>
-                            <span className={`stat-change ${stats.totalOrders.trend === 'up' ? 'positive' : 'negative'}`}>
-                                {stats.totalOrders.change} {stats.totalOrders.label}
+                            <h2 className="stat-value-compact">{loading ? '...' : dashboardStats.totalOrders}</h2>
+                            <span className="stat-change positive">
+                                +5.5% vs last month
                             </span>
                         </div>
                     </div>
@@ -181,10 +126,10 @@ const AdminDashboard = () => {
                             <i className="fas fa-users"></i>
                         </div>
                         <div className="stat-info-compact">
-                            <span className="stat-label-compact">Total Visitors</span>
-                            <h2 className="stat-value-compact">{stats.totalVisitors.value}</h2>
-                            <span className={`stat-change ${stats.totalVisitors.trend === 'up' ? 'positive' : 'negative'}`}>
-                                {stats.totalVisitors.change} {stats.totalVisitors.label}
+                            <span className="stat-label-compact">Total Users</span>
+                            <h2 className="stat-value-compact">{loading ? '...' : dashboardStats.totalUsers}</h2>
+                            <span className="stat-change positive">
+                                +2.4% vs last month
                             </span>
                         </div>
                     </div>
@@ -196,21 +141,35 @@ const AdminDashboard = () => {
                         <button className="btn-link">See All</button>
                     </div>
                     <div className="card-body">
-                        <div className="category-donut-compact">
+                        <div className="category-donut-compact" style={{
+                            background: topCategoriesList.length > 0
+                                ? `conic-gradient(${topCategoriesList.reduce((acc, cat, index, array) => {
+                                    const prevPercentage = array.slice(0, index).reduce((p, c) => p + c.percentage, 0);
+                                    const currentEnd = prevPercentage + cat.percentage;
+                                    const degreeStart = (prevPercentage / 100) * 360;
+                                    const degreeEnd = (currentEnd / 100) * 360;
+                                    return `${acc}${index === 0 ? 'from 0deg, ' : ''}${cat.color} ${degreeStart}deg ${degreeEnd}deg${index < array.length - 1 ? ', ' : ''}`;
+                                }, '')})`
+                                : '#e9ecef'
+                        }}>
                             <div className="donut-center-compact">
-                                <span className="donut-value-compact">$3,400,000</span>
+                                <span className="donut-value-compact">{loading ? '...' : formatCurrency(dashboardStats.totalSales)}</span>
                             </div>
                         </div>
                         <div className="categories-list-compact">
-                            {topCategories.map((category, index) => (
-                                <div key={index} className="category-item-compact">
-                                    <div className="category-info">
-                                        <div className="category-color" style={{ backgroundColor: category.color }}></div>
-                                        <span className="category-name">{category.name}</span>
+                            {topCategoriesList.length > 0 ? (
+                                topCategoriesList.map((category, index) => (
+                                    <div key={index} className="category-item-compact">
+                                        <div className="category-info">
+                                            <div className="category-color" style={{ backgroundColor: category.color }}></div>
+                                            <span className="category-name">{category.name}</span>
+                                        </div>
+                                        <span className="category-value">{formatCurrency(category.value)} ({category.percentage}%)</span>
                                     </div>
-                                    <span className="category-value">{category.value}</span>
-                                </div>
-                            ))}
+                                ))
+                            ) : (
+                                <p className="text-center">No category data</p>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -227,34 +186,43 @@ const AdminDashboard = () => {
                                 <span className="legend-item"><span className="legend-dot order"></span> Order</span>
                             </div>
                         </div>
-                        <button className="btn-action">Last 8 Days</button>
+                        <button className="btn-action">Last 30 Days</button>
                     </div>
                     <div className="card-body">
                         <div className="chart-placeholder">
-                            <div className="chart-stats">
-                                <div className="chart-stat-item">
-                                    <span className="chart-label">12 Aug</span>
-                                    <span className="chart-value">$14,521</span>
-                                </div>
-                            </div>
-                            <div className="chart-visual">
-                                <svg width="100%" height="200" viewBox="0 0 600 200">
-                                    {/* Revenue line (orange) */}
-                                    <polyline
-                                        points="0,150 100,120 200,100 300,80 400,110 500,90 600,70"
-                                        fill="none"
-                                        stroke="#FF6B35"
-                                        strokeWidth="3"
-                                    />
-                                    {/* Order line (dotted) */}
-                                    <polyline
-                                        points="0,170 100,150 200,140 300,130 400,145 500,135 600,125"
-                                        fill="none"
-                                        stroke="#FDC830"
-                                        strokeWidth="2"
-                                        strokeDasharray="5,5"
-                                    />
-                                </svg>
+                            {/* Simple SVG Chart Implementation based on data */}
+                            <div className="chart-visual" style={{ display: 'flex', alignItems: 'flex-end', height: '200px', gap: '10px' }}>
+                                {(() => {
+                                    const maxRevenue = Math.max(...revenueData.map(d => d.revenue), 1);
+                                    return revenueData.map((data, index) => (
+                                        <div key={index} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                            <div style={{
+                                                width: '100%',
+                                                height: '100%',
+                                                display: 'flex',
+                                                alignItems: 'flex-end',
+                                                justifyContent: 'center'
+                                            }}>
+                                                <div style={{
+                                                    width: '100%',
+                                                    height: `${(data.revenue / maxRevenue) * 100}%`,
+                                                    backgroundColor: '#FF6B35',
+                                                    borderRadius: '4px 4px 0 0',
+                                                    minHeight: '4px'
+                                                }} title={`Revenue: $${data.revenue} - Date: ${data.date}`}></div>
+                                            </div>
+                                            <span style={{
+                                                fontSize: '10px',
+                                                marginTop: '5px',
+                                                color: '#888',
+                                                whiteSpace: 'nowrap'
+                                            }}>
+                                                {new Date(data.date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' })}
+                                            </span>
+                                        </div>
+                                    ));
+                                })()}
+                                {revenueData.length === 0 && <p className="text-center w-100">No data available for chart</p>}
                             </div>
                         </div>
                     </div>
@@ -278,16 +246,6 @@ const AdminDashboard = () => {
                             <p className="target-message">
                                 <span className="fire-icon">🎯</span> <strong>Great Progress!</strong> We reached 85% from our monthly target, keep it up!
                             </p>
-                            <div className="target-amounts">
-                                <div className="amount-item">
-                                    <span className="amount-label">Our Goal</span>
-                                    <span className="amount-value">$600,000</span>
-                                </div>
-                                <div className="amount-item">
-                                    <span className="amount-label">Reached</span>
-                                    <span className="amount-value">$510,000</span>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -298,16 +256,9 @@ const AdminDashboard = () => {
                 <div className="card users-card-compact">
                     <div className="card-header">
                         <h3 className="card-title">Active User</h3>
-                        <button className="btn-menu">
-                            <i className="fas fa-ellipsis-v"></i>
-                        </button>
                     </div>
                     <div className="card-body">
-                        <div className="user-total">
-                            <span className="user-count-large">2,758</span>
-                            <span className="count-badge badge-success">+8.52%</span>
-                            <span className="user-sublabel">from last week</span>
-                        </div>
+                        {/* Static Active Users for now */}
                         <div className="users-list-compact">
                             {activeUsers.map((user, index) => (
                                 <div key={index} className="user-item-compact">
@@ -320,7 +271,7 @@ const AdminDashboard = () => {
                                         <div className="user-progress-compact">
                                             <div
                                                 className="progress-fill-compact"
-                                                style={{ width: `${user.percentage}%`, backgroundColor: user.color }}
+                                                style={{ width: `${user.percentage}% `, backgroundColor: user.color }}
                                             ></div>
                                         </div>
                                     </div>
@@ -335,28 +286,31 @@ const AdminDashboard = () => {
                         <h3 className="card-title">Conversion Rate</h3>
                     </div>
                     <div className="card-body">
+                        {/* Static Conversion Metrics */}
                         <div className="conversion-metrics">
                             {conversionMetrics.map((metric, index) => (
                                 <div key={index} className="conversion-item">
                                     <div className="conversion-header">
                                         <span className="conversion-label">{metric.label}</span>
-                                        <span className={`conversion-change ${metric.change.startsWith('+') ? 'positive' : 'negative'}`}>
+                                        <span className="conversion-change" style={{ color: '#888', fontSize: '0.8rem' }}>
                                             {metric.change}
                                         </span>
                                     </div>
-                                    <h3 className="conversion-value">{metric.value}</h3>
+                                    <div className="d-flex align-items-baseline justify-content-between mt-1">
+                                        <h3 className="conversion-value" style={{ fontSize: '1.5rem' }}>{metric.percentage}</h3>
+                                        <span style={{ fontSize: '0.9rem', color: '#555' }}>({metric.value})</span>
+                                    </div>
+                                    <div className="progress mt-2" style={{ height: '4px', backgroundColor: '#f0f0f0' }}>
+                                        <div
+                                            className="progress-bar"
+                                            style={{
+                                                width: metric.percentage,
+                                                backgroundColor: metric.color
+                                            }}
+                                        ></div>
+                                    </div>
                                 </div>
                             ))}
-                        </div>
-                        <div className="conversion-visual">
-                            {/* Visual funnel representation */}
-                            <div className="funnel-bars">
-                                <div className="funnel-bar" style={{ width: '100%', backgroundColor: conversionMetrics[0].color }}></div>
-                                <div className="funnel-bar" style={{ width: '80%', backgroundColor: conversionMetrics[1].color }}></div>
-                                <div className="funnel-bar" style={{ width: '60%', backgroundColor: conversionMetrics[2].color }}></div>
-                                <div className="funnel-bar" style={{ width: '40%', backgroundColor: conversionMetrics[3].color }}></div>
-                                <div className="funnel-bar" style={{ width: '20%', backgroundColor: conversionMetrics[4].color }}></div>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -364,25 +318,9 @@ const AdminDashboard = () => {
                 <div className="card traffic-card-compact">
                     <div className="card-header">
                         <h3 className="card-title">Traffic Sources</h3>
-                        <button className="btn-menu">
-                            <i className="fas fa-ellipsis-v"></i>
-                        </button>
                     </div>
                     <div className="card-body">
-                        <div className="traffic-bars-visual">
-                            {trafficSources.map((source, index) => (
-                                <div
-                                    key={index}
-                                    className="traffic-bar-item"
-                                    style={{
-                                        height: `${source.percentage * 2.5}px`,
-                                        backgroundColor: source.color
-                                    }}
-                                >
-                                    <span className="traffic-bar-label">{source.percentage}%</span>
-                                </div>
-                            ))}
-                        </div>
+                        {/* Static Traffic Sources */}
                         <div className="traffic-list-compact">
                             {trafficSources.map((source, index) => (
                                 <div key={index} className="traffic-item-compact">
@@ -413,14 +351,12 @@ const AdminDashboard = () => {
                                         <th>No</th>
                                         <th>Order ID</th>
                                         <th>Customer</th>
-                                        <th>Product</th>
-                                        <th>Qty</th>
                                         <th>Total</th>
                                         <th>Status</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {recentOrders.map((order, index) => (
+                                    {recentOrdersList.map((order, index) => (
                                         <tr key={index}>
                                             <td>{index + 1}</td>
                                             <td>
@@ -428,29 +364,20 @@ const AdminDashboard = () => {
                                             </td>
                                             <td>
                                                 <div className="customer-cell-compact">
-                                                    <div className="customer-avatar-sm">
-                                                        {order.customer.charAt(0)}
-                                                    </div>
-                                                    <span>{order.customer}</span>
+                                                    <span>{order.userId ? order.userId.substring(0, 8) + '...' : 'Guest'}</span>
                                                 </div>
                                             </td>
                                             <td>
-                                                <div className="product-cell-compact">
-                                                    <span className="product-icon-sm">{order.productImage}</span>
-                                                    <span>{order.product}</span>
-                                                </div>
-                                            </td>
-                                            <td>{order.qty}</td>
-                                            <td>
-                                                <span className="order-total">{order.total}</span>
+                                                <span className="order-total">{formatCurrency(order.totalPrice)}</span>
                                             </td>
                                             <td>
-                                                <span className={`status-badge-sm status-${order.statusColor}`}>
-                                                    {order.status}
+                                                <span className={`status-badge-sm status-${order.orderStatus ? order.orderStatus.toLowerCase() : 'default'}`}>
+                                                    {order.orderStatus}
                                                 </span>
                                             </td>
                                         </tr>
                                     ))}
+                                    {recentOrdersList.length === 0 && <tr><td colSpan="5" className="text-center">No recent orders</td></tr>}
                                 </tbody>
                             </table>
                         </div>
@@ -460,9 +387,6 @@ const AdminDashboard = () => {
                 <div className="card activity-card">
                     <div className="card-header">
                         <h3 className="card-title">Recent Activity</h3>
-                        <button className="btn-menu">
-                            <i className="fas fa-ellipsis-v"></i>
-                        </button>
                     </div>
                     <div className="card-body">
                         <div className="activity-list">

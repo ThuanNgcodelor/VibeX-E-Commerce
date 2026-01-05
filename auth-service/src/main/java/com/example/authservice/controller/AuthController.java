@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestParam;
+import com.example.authservice.request.RefreshTokenRequest;
 
 import java.util.Map;
 
@@ -33,14 +34,14 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<RegisterDto> register(@Valid  @RequestBody RegisterRequest request) {
+    public ResponseEntity<RegisterDto> register(@Valid @RequestBody RegisterRequest request) {
         return ResponseEntity.ok(authService.register(request));
     }
 
     @PostMapping("/forgotPassword")
     public ResponseEntity<?> forgotPassword(@Valid @RequestBody ForgotPassword request) {
         authService.forgotPassword(request);
-            return ResponseEntity.ok(Map.of("ok", true, "message", "OTP sent to your email"));
+        return ResponseEntity.ok(Map.of("ok", true, "message", "OTP sent to your email"));
     }
 
     @PostMapping("/verifyOtp")
@@ -59,8 +60,7 @@ public class AuthController {
             return ResponseEntity.ok(Map.of("ok", true, "message", "Password updated successfully"));
         }
         return ResponseEntity.badRequest().body(
-                Map.of("ok", false, "message", "OTP not verified or verification expired")
-        );
+                Map.of("ok", false, "message", "OTP not verified or verification expired"));
     }
 
     @PostMapping("/login/role")
@@ -68,6 +68,29 @@ public class AuthController {
             @RequestBody LoginRequest request,
             @RequestParam String role) {
         return ResponseEntity.ok(authService.loginWithRoleSelection(request, role));
+    }
+
+    @PostMapping("/sendUserUpdateEmail")
+    public ResponseEntity<?> sendUserUpdateEmail(@Valid @RequestBody SendUserUpdateEmailRequest request) {
+        boolean sent = authService.sendUserUpdateEmail(request);
+        if (sent) {
+            return ResponseEntity.ok(Map.of("success", true, "message", "Email sent successfully"));
+        }
+        return ResponseEntity.status(500).body(Map.of("success", false, "message", "Failed to send email"));
+    }
+
+    @PostMapping("/sendUserLockStatusEmail")
+    public ResponseEntity<?> sendUserLockStatusEmail(@Valid @RequestBody SendUserLockStatusEmailRequest request) {
+        boolean sent = authService.sendUserLockStatusEmail(request);
+        if (sent) {
+            return ResponseEntity.ok(Map.of("success", true, "message", "Email sent successfully"));
+        }
+        return ResponseEntity.status(500).body(Map.of("success", false, "message", "Failed to send email"));
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<TokenDto> refreshToken(@RequestBody RefreshTokenRequest request) {
+        return ResponseEntity.ok(authService.refreshToken(request));
     }
 
 }
