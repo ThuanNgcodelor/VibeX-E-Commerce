@@ -336,7 +336,7 @@ export function CheckoutPage({
         paymentMethod: paymentMethod || "COD",
         voucherId: appliedVoucher?.voucherId || null,
         voucherDiscount: voucherDiscount || 0,
-        shippingFee: shippingFee || 0,
+        shippingFee: totalShippingFee || 0,
       };
 
       Swal.fire({
@@ -351,7 +351,7 @@ export function CheckoutPage({
       if (paymentMethod === "VNPAY" || paymentMethod === "CARD" || paymentMethod === "MOMO") {
         try {
           // Calculate final total with shipping and voucher discount
-          const totalWithShipping = subtotal + shippingFee - voucherDiscount;
+          const totalWithShipping = subtotal + totalShippingFee - voucherDiscount;
 
           if (!userId) {
             throw new Error("Cannot get user ID");
@@ -366,7 +366,7 @@ export function CheckoutPage({
             orderDataJson: JSON.stringify({
               userId: userId,
               addressId: selectedAddressId,
-              shippingFee: shippingFee || 0,
+              shippingFee: totalShippingFee || 0,
               voucherId: appliedVoucher?.voucherId || null,
               voucherDiscount: voucherDiscount || 0,
               selectedItems: selectedItems.map((it) => ({

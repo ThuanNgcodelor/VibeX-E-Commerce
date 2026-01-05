@@ -58,7 +58,8 @@
       "returned": "Trả hàng/Hoàn tiền"
     },
     "action": "Thao tác",
-    "date": "Ngày"
+    "date": "Ngày",
+    "selectAll": "Chọn tất cả"
   },
   "header": {
     "sellerCenter": "Kênh Người Bán",
@@ -903,6 +904,27 @@
       "total": "Tổng cộng",
       "orderDate": "Ngày đặt",
       "actions": "Thao tác",
+      "cannotUpdate": "Không thể cập nhật",
+      "cannotUpdateDesc": "Một số đơn hàng không thể chuyển sang trạng thái \"{{target}}\":",
+      "order": "Đơn {{id}}... ({{current}})",
+      "andMore": "... và {{count}} đơn khác",
+      "suggestion": "Gợi ý: Chỉ PENDING → CONFIRMED → Sẵn sàng giao",
+      "partialSuccess": "Hoàn tất một phần",
+      "processing": "Đang xử lý {{count}} đơn hàng...",
+      "failedUpdate": "Cập nhật thất bại",
+      "orderNotEditable": "Đơn hàng này không thể chỉnh sửa",
+      "selectEditableInfo": "Đã chọn {{count}} đơn. {{skipped}} đơn không thể chỉnh sửa.",
+      "noEditableOrders": "Không có đơn hàng nào có thể chọn",
+      "allOrdersFiltered": "Tất cả đơn hàng trong bộ lọc hiện tại đã được giao hoặc hoàn tất.",
+      "selectedAllEditable": "✓ Đã chọn {{count}} đơn hàng có thể chỉnh sửa",
+      "selectAllError": "Không thể chọn tất cả đơn hàng",
+      "confirmUpdateTitle": "Xác nhận cập nhật",
+      "confirmBulkUpdateTitle": "Xác nhận cập nhật hàng loạt",
+      "selectAllTitle": "Chọn tất cả đơn hàng",
+      "searchResults": "Tìm thấy <strong>{{count}}</strong> đơn hàng với từ khóa \"{{query}}\"",
+      "clearSearch": "Xóa tìm kiếm",
+      "noSearchResults": "Không tìm thấy đơn hàng",
+      "selectedCount": "{{count}} đã chọn",
       "orderDetails": "Chi tiết đơn hàng",
       "productsInOrder": "Sản phẩm trong đơn hàng",
       "printOrder": "In đơn hàng",
@@ -922,7 +944,23 @@
       "paymentInfo": "Thông tin thanh toán",
       "recipient": "Người nhận",
       "id": "ID",
-      "voucher": "Voucher giảm giá"
+      "voucher": "Voucher giảm giá",
+      "ghnStatus": {
+        "ready_to_pick": "Chờ lấy hàng",
+        "picking": "Đang lấy hàng",
+        "picked": "Đã lấy hàng",
+        "storing": "Đã nhập kho",
+        "transporting": "Đang vận chuyển",
+        "sorting": "Đang phân loại",
+        "delivering": "Đang giao hàng",
+        "delivered": "Đã giao hàng",
+        "delivery_fail": "Giao thất bại",
+        "waiting_to_return": "Chờ trả hàng",
+        "return": "Đang trả hàng",
+        "returning": "Đang trả hàng",
+        "returned": "Đã trả hàng",
+        "cancel": "Đã hủy"
+      }
     },
     "returnOrder": {
       "title": "Trả hàng & Hoàn tiền",

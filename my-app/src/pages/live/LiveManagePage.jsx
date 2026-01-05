@@ -356,7 +356,7 @@ export default function LiveManagePage() {
             const room = await createLiveRoom(roomData);
             setCurrentRoom(room);
             setStep('streaming');
-        } catch  {
+        } catch {
             alert('Không thể tạo phòng live');
         }
     };
@@ -387,7 +387,7 @@ export default function LiveManagePage() {
             setCurrentRoom(null);
             setStep('list');
             fetchRooms();
-        } catch  {
+        } catch {
             alert('Không thể kết thúc live');
         }
     };
@@ -1052,9 +1052,6 @@ export default function LiveManagePage() {
                                 {/* Video Preview */}
                                 {currentRoom.status === 'LIVE' && (
                                     <div style={{
-                                        background: '#000',
-                                        borderRadius: '8px',
-                                        overflow: 'hidden',
                                         background: '#000',
                                         borderRadius: '8px',
                                         overflow: 'hidden',

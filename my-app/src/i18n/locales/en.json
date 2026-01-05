@@ -56,7 +56,8 @@
       "cancelled": "Cancelled",
       "completed": "Completed",
       "returned": "Return/Refund"
-    }
+    },
+    "selectAll": "Select All"
   },
   "header": {
     "sellerCenter": "Seller Center",
@@ -1047,6 +1048,27 @@
       "total": "Total",
       "orderDate": "Order date",
       "actions": "Actions",
+      "cannotUpdate": "Cannot Update",
+      "cannotUpdateDesc": "Some orders cannot be transitioned to status \"{{target}}\":",
+      "order": "Order {{id}}... ({{current}})",
+      "andMore": "... and {{count}} others",
+      "suggestion": "Suggestion: Only PENDING → CONFIRMED → READY_TO_SHIP",
+      "partialSuccess": "Partially Complete",
+      "processing": "Processing {{count}} orders...",
+      "failedUpdate": "Failed to update orders",
+      "orderNotEditable": "This order cannot be edited",
+      "selectEditableInfo": "Selected {{count}} orders. {{skipped}} orders cannot be edited.",
+      "noEditableOrders": "No orders available for selection",
+      "allOrdersFiltered": "All orders in current filter are delivered or completed.",
+      "selectedAllEditable": "✓ Selected {{count}} editable orders",
+      "selectAllError": "Cannot select all orders",
+      "confirmUpdateTitle": "Confirm Update",
+      "confirmBulkUpdateTitle": "Confirm Bulk Update",
+      "selectAllTitle": "Select all orders",
+      "searchResults": "Found <strong>{{count}}</strong> orders with keyword \"{{query}}\"",
+      "clearSearch": "Clear search",
+      "noSearchResults": "No orders found",
+      "selectedCount": "{{count}} selected",
       "orderDetails": "Order details",
       "productsInOrder": "Products in order",
       "printOrder": "Print order",
@@ -1066,7 +1088,23 @@
       "paymentInfo": "Payment information",
       "recipient": "Recipient",
       "id": "ID",
-      "voucher": "Voucher discount"
+      "voucher": "Voucher discount",
+      "ghnStatus": {
+        "ready_to_pick": "Ready to pick",
+        "picking": "Picking",
+        "picked": "Picked",
+        "storing": "Storing",
+        "transporting": "Transporting",
+        "sorting": "Sorting",
+        "delivering": "Delivering",
+        "delivered": "Delivered",
+        "delivery_fail": "Delivery failed",
+        "waiting_to_return": "Waiting to return",
+        "return": "Returning",
+        "returning": "Returning",
+        "returned": "Returned",
+        "cancel": "Cancelled"
+      }
     },
     "dashboard": {
       "title": "Seller Centre",
@@ -1608,57 +1646,6 @@
       "saleProducts": "Products on sale",
       "productPrice": "... product price",
       "today": "What day is today?"
-    }
-  },
-  "tracking": {
-    "backButton": "← BACK",
-    "orderId": "ORDER ID",
-    "orderStatus": {
-      "pending": "Pending",
-      "confirmed": "Confirmed",
-      "shipped": "Shipping",
-      "delivered": "Delivered",
-      "completed": "Completed",
-      "cancelled": "Cancelled",
-      "returned": "Returned"
-    },
-    "steps": {
-      "orderPlaced": "Order Placed",
-      "paymentConfirmedVNPAY": "Payment Confirmed",
-      "paymentConfirmedCOD": "Order Confirmed",
-      "handedToShipper": "Handed to Carrier",
-      "delivered": "Delivered",
-      "completed": "Completed"
-    },
-    "timeline": {
-      "statusUpdate": "Status Update",
-      "orderPlaced": "Order Placed Successfully",
-      "orderPlacedDesc": "Your order has been placed successfully",
-      "confirmed": "Order Confirmed",
-      "confirmedDesc": "Your order has been confirmed by the shop",
-      "handedToCarrier": "Handed to Carrier",
-      "handedToCarrierDesc": "Your order has been handed to GHN",
-      "delivered": "Delivered",
-      "deliveredDesc": "Delivery successful",
-      "completed": "Completed",
-      "completedDesc": "Order completed"
-    },
-    "thankYouMessage": "Thank you for shopping!",
-    "buttons": {
-      "buyAgain": "Buy Again",
-      "contactSeller": "Contact Seller"
-    },
-    "address": {
-      "title": "Delivery Address",
-      "updating": "Updating..."
-    },
-    "priceBreakdown": {
-      "subtotal": "Subtotal",
-      "shippingFee": "Shipping Fee",
-      "shippingDiscount": "Shipping Discount",
-      "voucherDiscount": "Voucher Discount",
-      "total": "Total Payment",
-      "paymentMethod": "Payment Method"
     }
   }
 }

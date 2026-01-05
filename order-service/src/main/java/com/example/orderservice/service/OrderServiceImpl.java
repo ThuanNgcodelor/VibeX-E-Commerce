@@ -1334,6 +1334,73 @@ public class OrderServiceImpl implements OrderService {
         return firstOrder;
     }
 
+    // Helper method to calculate shipping fee for a specific shop
+    private java.math.BigDecimal calculateShopShippingFee(String addressId, String shopOwnerId, List<com.example.orderservice.dto.SelectedItemDto> items) {
+        try {
+            // 1. Get customer address
+            com.example.orderservice.dto.AddressDto customerAddress = userServiceClient.getAddressById(addressId).getBody();
+            if (customerAddress == null || customerAddress.getDistrictId() == null || customerAddress.getWardCode() == null) {
+                log.warn("[SHIPPING-CALC] Invalid customer address: {}", addressId);
+                return java.math.BigDecimal.valueOf(30000); // Fallback
+            }
+
+            // 2. Get shop owner address
+            com.example.orderservice.dto.ShopOwnerDto shopOwner = userServiceClient.getShopOwnerByUserId(shopOwnerId).getBody();
+            if (shopOwner == null || shopOwner.getDistrictId() == null || shopOwner.getWardCode() == null) {
+                log.warn("[SHIPPING-CALC] Shop owner address not configured: {}", shopOwnerId);
+                return java.math.BigDecimal.valueOf(30000); // Fallback
+            }
+
+            // 3. Calculate weight
+            int weight = 0;
+            for (com.example.orderservice.dto.SelectedItemDto item : items) {
+                try {
+                     com.example.orderservice.dto.SizeDto size = stockServiceClient.getSizeById(item.getSizeId()).getBody();
+                     int itemWeight = (size != null && size.getWeight() != null && size.getWeight() > 0) ? size.getWeight() : 500;
+                     weight += item.getQuantity() * itemWeight;
+                } catch (Exception e) {
+                    weight += item.getQuantity() * 500;
+                }
+            }
+            if (weight == 0) weight = 1000;
+
+            // 4. Get available services
+            Integer serviceTypeId = 2; // Default Standard/Light
+             try {
+                com.example.orderservice.dto.GhnAvailableServicesResponse servicesResponse = ghnApiClient.getAvailableServices(
+                        shopOwner.getDistrictId(),
+                        customerAddress.getDistrictId());
+                if (servicesResponse != null && servicesResponse.getData() != null) {
+                    boolean hasType2 = servicesResponse.getData().stream().anyMatch(s -> s.getServiceTypeId() == 2);
+                     if (!hasType2 && !servicesResponse.getData().isEmpty()) {
+                         serviceTypeId = servicesResponse.getData().get(0).getServiceTypeId();
+                     }
+                }
+            } catch (Exception e) {
+                 log.warn("[SHIPPING-CALC] Failed to get available services: {}", e.getMessage());
+            }
+
+            // 5. Calculate Fee
+            com.example.orderservice.dto.GhnCalculateFeeRequest req = com.example.orderservice.dto.GhnCalculateFeeRequest.builder()
+                    .fromDistrictId(shopOwner.getDistrictId())
+                    .fromWardCode(shopOwner.getWardCode())
+                    .toDistrictId(customerAddress.getDistrictId())
+                    .toWardCode(customerAddress.getWardCode())
+                    .weight(weight)
+                    .length(20).width(15).height(10)
+                    .serviceTypeId(serviceTypeId)
+                    .build();
+
+            com.example.orderservice.dto.GhnCalculateFeeResponse res = ghnApiClient.calculateFee(req);
+            if (res != null && res.getCode() == 200 && res.getData() != null) {
+                return java.math.BigDecimal.valueOf(res.getData().getTotal());
+            }
+        } catch (Exception e) {
+            log.error("[SHIPPING-CALC] Failed to calculate fee for shop {}: {}", shopOwnerId, e.getMessage());
+        }
+        return java.math.BigDecimal.valueOf(30000); // Final fallback
+    }
+
     @KafkaListener(topics = "#{@orderTopic.name}", groupId = "order-service-checkout", containerFactory = "checkoutListenerFactory")
     @Transactional
     public void consumeCheckout(CheckOutKafkaRequest msg) {
@@ -1406,7 +1473,8 @@ public class OrderServiceImpl implements OrderService {
         log.info("[CONSUMER] Splitting order into {} separate orders by shop", totalShops);
 
         // Calculate shipping fee per shop (divide equally if multiple shops)
-        double shippingFeePerShop = (msg.getShippingFee() != null ? msg.getShippingFee() : 0.0) / totalShops;
+        // double shippingFeePerShop = (msg.getShippingFee() != null ? msg.getShippingFee() : 0.0) / totalShops;
+        // NOTE: We now recalculate fee per shop inside the loop for accuracy
 
         // Determine which shop the voucher belongs to (if any)
         String voucherShopOwnerId = null;
@@ -1442,8 +1510,9 @@ public class OrderServiceImpl implements OrderService {
                 log.info("[CONSUMER] Applying voucher {} to order for shop {}", msg.getVoucherId(), shopOwnerId);
             }
 
-            // Set shipping fee (divided equally among shops)
-            order.setShippingFee(BigDecimal.valueOf(shippingFeePerShop));
+            // Recalculate shipping fee for this shop (Backend calculation for accuracy)
+            java.math.BigDecimal shopShippingFee = calculateShopShippingFee(msg.getAddressId(), shopOwnerId, shopItems);
+            order.setShippingFee(shopShippingFee);
 
             // 2) Items + decrease stock (skip decrease stock cho test products)
             List<OrderItem> items = toOrderItemsFromSelectedForCheckout(shopItems, order);

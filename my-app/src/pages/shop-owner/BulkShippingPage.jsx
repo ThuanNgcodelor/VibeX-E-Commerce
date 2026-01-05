@@ -3,6 +3,8 @@ import Swal from 'sweetalert2';
 import { useSearchParams } from 'react-router-dom';
 import { getShopOwnerOrders, updateOrderStatusForShopOwner, getAllShopOwnerOrders, getShippingByOrderId, bulkUpdateOrderStatus, searchOrders, getAllOrderIds, getShopOwnerOrderById } from '../../api/order';
 import { getUserById } from '../../api/user';
+import { fetchImageById } from '../../api/image';
+import { fetchProductById } from '../../api/product';
 import { getImageUrl } from '../../api/image';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n/config';
@@ -10,20 +12,20 @@ import '../../components/shop-owner/ShopOwnerLayout.css';
 
 // GHN status to Vietnamese mapping
 const GHN_STATUS_MAP = {
-    'ready_to_pick': { title: 'Chờ lấy hàng', color: '#ff9800' },
-    'picking': { title: 'Đang lấy hàng', color: '#ff9800' },
-    'picked': { title: 'Đã lấy hàng', color: '#2196f3' },
-    'storing': { title: 'Đã nhập kho', color: '#2196f3' },
-    'transporting': { title: 'Đang vận chuyển', color: '#2196f3' },
-    'sorting': { title: 'Đang phân loại', color: '#2196f3' },
-    'delivering': { title: 'Đang giao hàng', color: '#4caf50' },
-    'delivered': { title: 'Đã giao hàng', color: '#26aa99' },
-    'delivery_fail': { title: 'Giao thất bại', color: '#f44336' },
-    'waiting_to_return': { title: 'Chờ trả hàng', color: '#f44336' },
-    'return': { title: 'Đang trả hàng', color: '#e91e63' },
-    'returning': { title: 'Đang trả hàng', color: '#e91e63' },
-    'returned': { title: 'Đã trả hàng', color: '#9c27b0' },
-    'cancel': { title: 'Đã hủy', color: '#9e9e9e' }
+    'ready_to_pick': { titleKey: 'shopOwner.manageOrder.ghnStatus.ready_to_pick', color: '#ff9800' },
+    'picking': { titleKey: 'shopOwner.manageOrder.ghnStatus.picking', color: '#ff9800' },
+    'picked': { titleKey: 'shopOwner.manageOrder.ghnStatus.picked', color: '#2196f3' },
+    'storing': { titleKey: 'shopOwner.manageOrder.ghnStatus.storing', color: '#2196f3' },
+    'transporting': { titleKey: 'shopOwner.manageOrder.ghnStatus.transporting', color: '#2196f3' },
+    'sorting': { titleKey: 'shopOwner.manageOrder.ghnStatus.sorting', color: '#2196f3' },
+    'delivering': { titleKey: 'shopOwner.manageOrder.ghnStatus.delivering', color: '#4caf50' },
+    'delivered': { titleKey: 'shopOwner.manageOrder.ghnStatus.delivered', color: '#4caf50' },
+    'delivery_fail': { titleKey: 'shopOwner.manageOrder.ghnStatus.delivery_fail', color: '#f44336' },
+    'waiting_to_return': { titleKey: 'shopOwner.manageOrder.ghnStatus.waiting_to_return', color: '#ff9800' },
+    'return': { titleKey: 'shopOwner.manageOrder.ghnStatus.return', color: '#ff9800' },
+    'returning': { titleKey: 'shopOwner.manageOrder.ghnStatus.returning', color: '#ff9800' },
+    'returned': { titleKey: 'shopOwner.manageOrder.ghnStatus.returned', color: '#9e9e9e' },
+    'cancel': { titleKey: 'shopOwner.manageOrder.ghnStatus.cancel', color: '#f44336' }
 };
 
 // Format datetime helper
@@ -53,7 +55,123 @@ export default function BulkShippingPage() {
     const [pageSize] = useState(10);
     const [usernames, setUsernames] = useState({});
     const [selectedOrders, setSelectedOrders] = useState(new Set());
-    const [bulkStatus, setBulkStatus] = useState('');
+
+    const [imageUrls, setImageUrls] = useState({});
+    const [productDetails, setProductDetails] = useState({}); // Store fetched product info (name, size)
+
+    useEffect(() => {
+        if (orders.length === 0) return;
+
+        let isActive = true;
+        const urls = {};
+        const details = {};
+        const productCache = new Map();
+
+        const loadImagesAndDetails = async () => {
+            const promises = [];
+
+            orders.forEach((order) => {
+                (order.orderItems || []).forEach((item) => {
+                    const itemKey = item.id || `${item.productId}-${item.sizeId}`;
+                    let imageId = item.imageId || item.productImage;
+
+                    // If name looks like ID (number or UUID) or is missing, we should try to fetch it
+                    // Simple check: if it's purely numeric or looks like UUID
+                    const needsNameDetails = !item.productName || /^\d+$/.test(item.productName);
+
+                    if ((!imageId && item.productId) || needsNameDetails) {
+                        promises.push(
+                            (async () => {
+                                try {
+                                    let product = productCache.get(item.productId);
+                                    if (!product) {
+                                        const prodRes = await fetchProductById(item.productId);
+                                        product = prodRes?.data;
+                                        if (product) productCache.set(item.productId, product);
+                                    }
+
+                                    // Handle Image
+                                    if (!imageId) {
+                                        imageId = product?.imageId || null;
+                                        if (imageId && !urls[imageId]) {
+                                            try {
+                                                const res = await fetchImageById(imageId);
+                                                const blob = new Blob([res.data], {
+                                                    type: res.headers["content-type"] || "image/jpeg",
+                                                });
+                                                const url = URL.createObjectURL(blob);
+                                                urls[imageId] = url;
+                                                urls[itemKey] = url;
+                                            } catch {
+                                                urls[imageId] = null;
+                                                urls[itemKey] = null;
+                                            }
+                                        } else {
+                                            urls[itemKey] = urls[imageId] || null;
+                                        }
+                                    }
+
+                                    // Handle Details
+                                    if (product) {
+                                        // Find size name if we have sizeId
+                                        let sizeName = null;
+                                        if (item.sizeId && product.sizes) {
+                                            const sizeObj = product.sizes.find(s => s.id === item.sizeId);
+                                            if (sizeObj) sizeName = sizeObj.name;
+                                        }
+
+                                        details[itemKey] = {
+                                            productName: product.name,
+                                            sizeName: sizeName
+                                        };
+                                        details[item.productId] = { productName: product.name }; // fallback
+                                    }
+                                } catch (e) {
+                                    console.error("Failed to load details for item", item.productId, e);
+                                    urls[itemKey] = null;
+                                }
+                            })()
+                        );
+                    } else if (imageId && !urls[imageId]) {
+                        // Just fetch image
+                        promises.push(
+                            fetchImageById(imageId)
+                                .then((res) => {
+                                    const blob = new Blob([res.data], {
+                                        type: res.headers["content-type"] || "image/jpeg",
+                                    });
+                                    const url = URL.createObjectURL(blob);
+                                    urls[imageId] = url;
+                                    urls[itemKey] = url;
+                                })
+                                .catch(() => {
+                                    urls[imageId] = null;
+                                    urls[itemKey] = null;
+                                })
+                        );
+                    } else if (imageId && urls[imageId]) {
+                        urls[itemKey] = urls[imageId];
+                    }
+                });
+            });
+
+            await Promise.all(promises);
+
+            if (isActive) {
+                setImageUrls(prev => ({ ...prev, ...urls }));
+                setProductDetails(prev => ({ ...prev, ...details }));
+            }
+        };
+
+        loadImagesAndDetails();
+
+        return () => {
+            isActive = false;
+            // Note: we don't revoke here aggressively to avoid flickering if re-rendering, 
+            // but in a real app we should track created URLs to revoke on unmount.
+            // For now, relying on browser cleanup or existing logic.
+        };
+    }, [orders]);
     const [shippingData, setShippingData] = useState({}); // Shipping data per order
     const [loadingShipping, setLoadingShipping] = useState({});
     const [showTrackingModal, setShowTrackingModal] = useState(null); // orderId for modal
@@ -220,7 +338,7 @@ export default function BulkShippingPage() {
 
     const handleStatusUpdate = async (orderId, newStatus) => {
         const result = await Swal.fire({
-            title: t('shopOwner.manageOrder.confirmUpdateTitle', 'Xác nhận cập nhật'),
+            title: t('shopOwner.manageOrder.confirmUpdateTitle'),
             text: t('shopOwner.manageOrder.confirmUpdate', { status: getStatusLabel(newStatus) }),
             icon: 'question',
             showCancelButton: true,
@@ -288,21 +406,21 @@ export default function BulkShippingPage() {
         if (invalidOrders.length > 0) {
             Swal.fire({
                 icon: 'error',
-                title: 'Không thể cập nhật',
-                html: `<p>Một số đơn hàng không thể chuyển sang trạng thái "${getStatusLabel(bulkStatus)}":</p>
+                title: t('shopOwner.manageOrder.cannotUpdate'),
+                html: `<p>${t('shopOwner.manageOrder.cannotUpdateDesc', { target: getStatusLabel(bulkStatus) })}</p>
                        <ul style="text-align: left; max-height: 200px; overflow-y: auto;">
                          ${invalidOrders.slice(0, 5).map(o =>
-                    `<li>Đơn ${o.id.substring(0, 8)}... (${o.current})</li>`
+                    `<li>${t('shopOwner.manageOrder.order', { id: o.id.substring(0, 8), current: o.current })}</li>`
                 ).join('')}
-                         ${invalidOrders.length > 5 ? `<li>... và ${invalidOrders.length - 5} đơn khác</li>` : ''}
+                         ${invalidOrders.length > 5 ? `<li>${t('shopOwner.manageOrder.andMore', { count: invalidOrders.length - 5 })}</li>` : ''}
                        </ul>
-                       <p class="mt-2 small text-muted">Gợi ý: Chỉ PENDING → CONFIRMED → Sẵn sàng giao</p>`
+                       <p class="mt-2 small text-muted">${t('shopOwner.manageOrder.suggestion')}</p>`
             });
             return;
         }
 
         const result = await Swal.fire({
-            title: t('shopOwner.manageOrder.confirmBulkUpdateTitle', 'Xác nhận cập nhật hàng loạt'),
+            title: t('shopOwner.manageOrder.confirmBulkUpdateTitle'),
             text: t('shopOwner.manageOrder.confirmBulkUpdate', { count: selectedOrders.size, status: getStatusLabel(bulkStatus) }),
             icon: 'warning',
             showCancelButton: true,
@@ -329,8 +447,8 @@ export default function BulkShippingPage() {
             if (response.rejected > 0) {
                 Swal.fire({
                     icon: 'warning',
-                    title: 'Hoàn tất một phần',
-                    text: `${message}\n${response.rejected} đơn bị từ chối.`
+                    title: t('shopOwner.manageOrder.partialSuccess'),
+                    text: `${message}\n${response.rejected} đơn bị từ chối.` // Note: Backend response might be strict string?
                 });
             } else {
                 Swal.fire({
@@ -370,7 +488,7 @@ export default function BulkShippingPage() {
             });
             Toast.fire({
                 icon: 'warning',
-                title: 'Đơn hàng này không thể chỉnh sửa'
+                title: t('shopOwner.manageOrder.orderNotEditable')
             });
             return;
         }
@@ -410,7 +528,7 @@ export default function BulkShippingPage() {
                 });
                 Toast.fire({
                     icon: 'info',
-                    title: `Đã chọn ${editableOrders.length} đơn. ${skippedCount} đơn không thể chỉnh sửa.`
+                    title: t('shopOwner.manageOrder.selectEditableInfo', { count: editableOrders.length, skipped: skippedCount })
                 });
             }
         }
@@ -439,8 +557,8 @@ export default function BulkShippingPage() {
             if (editableStatuses.length === 0) {
                 Swal.fire({
                     icon: 'info',
-                    title: 'Không có đơn hàng nào có thể chọn',
-                    text: 'Tất cả đơn hàng trong bộ lọc hiện tại đã được giao hoặc hoàn tất.'
+                    title: t('shopOwner.manageOrder.noEditableOrders'),
+                    text: t('shopOwner.manageOrder.allOrdersFiltered')
                 });
                 return;
             }
@@ -458,14 +576,14 @@ export default function BulkShippingPage() {
             });
             Toast.fire({
                 icon: 'success',
-                title: `✓ Đã chọn ${allOrderIds.length} đơn hàng có thể chỉnh sửa`
+                title: t('shopOwner.manageOrder.selectedAllEditable', { count: allOrderIds.length })
             });
         } catch (err) {
             console.error('Error selecting all orders:', err);
             Swal.fire({
                 icon: 'error',
-                title: 'Lỗi',
-                text: 'Không thể chọn tất cả đơn hàng'
+                title: t('common.error'),
+                text: t('shopOwner.manageOrder.selectAllError')
             });
         }
     };
@@ -525,17 +643,14 @@ export default function BulkShippingPage() {
 
     const getStatusLabel = (status) => {
         const normalized = normalizeStatus(status);
-        const statusMap = {
-            PENDING: 'Chờ xác nhận',
-            CONFIRMED: 'Đã xác nhận',
-            READY_TO_SHIP: 'Sẵn sàng giao',
-            SHIPPED: 'Đang giao',
-            DELIVERED: 'Đã giao',
-            COMPLETED: 'Hoàn thành',
-            CANCELLED: 'Đã hủy',
-            RETURNED: 'Đã hoàn'
-        };
-        return statusMap[normalized] || normalized || 'N/A';
+        // Use i18n keys for status
+        const labelKey = `common.status.${normalized.toLowerCase()}`;
+        // Fallback or explicit check if needed, but common.status should cover it.
+        // If keys are uppercase in common.status, adjust accordingly.
+        // Assuming common.status has lowercase keys like 'pending', 'confirmed'.
+        // Let's check vi.json. vi.json has "pending", "confirmed" etc (lowercase keys? or uppercase?).
+        // In Step 299: "common": { "status": { "pending": ... } }
+        return t(`common.status.${normalized.toLowerCase()}`, normalized);
     };
 
     const getNextStatus = (currentStatus) => {
@@ -732,7 +847,7 @@ export default function BulkShippingPage() {
                 const total = order.totalPrice || (subtotal + shipping - voucher);
                 const date = new Date(order.creationTimestamp).toLocaleDateString('vi-VN');
 
-                // Use cached username if available, else just userId or fetch?
+                // Use cached username if available, else just userId or placeholder.
                 // For speed, let's use what we have or placeholder.
                 const customerName = usernames[order.userId] || `User: ${order.userId}`;
 
@@ -851,15 +966,15 @@ export default function BulkShippingPage() {
                         </div>
                         {/* Select All Across Pages Button */}
                         <button
-                            className="btn btn-outline-primary"
+                            className={`btn btn-outline-primary d-flex align-items-center gap-2 ${selectedOrders.size === orders.length && orders.length > 0 ? 'active' : ''}`}
                             onClick={handleSelectAllAcrossPages}
-                            title="Chọn tất cả đơn hàng"
+                            title={t('shopOwner.manageOrder.selectAllTitle')}
                         >
-                            <i className="fas fa-check-double"></i> Chọn tất cả
+                            <i className="fas fa-check-double"></i> {t('common.selectAll')}
                         </button>
                         {selectedOrders.size > 0 && (
                             <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                                <span className="badge bg-secondary">{selectedOrders.size} đã chọn</span>
+                                <span className="badge bg-secondary">{t('shopOwner.manageOrder.selectedCount', { count: selectedOrders.size })}</span>
                                 <select
                                     className="form-select"
                                     value={bulkStatus}
@@ -913,30 +1028,31 @@ export default function BulkShippingPage() {
                                     />
                                 </th>
                                 <th style={{ width: '12%' }}>{t('shopOwner.manageOrder.ghnOrderCode', 'GHN Code')}</th>
-                                <th style={{ width: '15%' }}>{t('shopOwner.analytics.product', 'Products')}</th>
+                                <th style={{ width: '12%' }}>{t('shopOwner.manageOrder.recipient')}</th>
                                 <th style={{ width: '10%' }}>{t('shopOwner.manageOrder.subtotal')}</th>
                                 <th style={{ width: '10%' }}>{t('shopOwner.manageOrder.shipping')}</th>
                                 <th style={{ width: '10%' }}>{t('shopOwner.manageOrder.total')}</th>
                                 <th style={{ width: '12%' }}>{t('shopOwner.manageOrder.orderDate')}</th>
-                                <th style={{ width: '12%' }}>{t('common.status.title')}</th>
-                                <th style={{ width: '15%' }}>{t('shopOwner.manageOrder.actions')}</th>
+                                <th style={{ width: '12%' }}>{t('shopOwner.manageOrder.status', 'Status')}</th>
+                                <th style={{ width: '10%' }}>{t('shopOwner.manageOrder.actions')}</th>
+                                <th style={{ width: '5%' }}></th>
                             </tr>
                         </thead>
                         <tbody>
                             {/* Search Results Info */}
                             {searchResults !== null && (
                                 <tr>
-                                    <td colSpan="9" className="bg-info bg-opacity-10 py-2 px-3">
+                                    <td colSpan="10" className="bg-info bg-opacity-10 py-2 px-3">
                                         <i className="fas fa-search me-2"></i>
-                                        Tìm thấy <strong>{searchResults.length}</strong> đơn hàng với từ khóa "{searchQuery}"
-                                        <button className="btn btn-link btn-sm" onClick={clearSearch}>Xóa tìm kiếm</button>
+                                        <span dangerouslySetInnerHTML={{ __html: t('shopOwner.manageOrder.searchResults', { count: searchResults.length, query: searchQuery }) }} />
+                                        <button className="btn btn-link btn-sm" onClick={clearSearch}>{t('shopOwner.manageOrder.clearSearch')}</button>
                                     </td>
                                 </tr>
                             )}
                             {(searchResults || orders).length === 0 ? (
                                 <tr>
-                                    <td colSpan="9" className="text-center py-4">
-                                        <p className="text-muted">{searchResults !== null ? 'Không tìm thấy đơn hàng' : t('shopOwner.manageOrder.noOrders')}</p>
+                                    <td colSpan="10" className="text-center py-4">
+                                        <p className="text-muted">{searchResults !== null ? t('shopOwner.manageOrder.noSearchResults') : t('shopOwner.manageOrder.noOrders')}</p>
                                     </td>
                                 </tr>
                             ) : (
@@ -970,7 +1086,7 @@ export default function BulkShippingPage() {
                                                         checked={isSelected}
                                                         onChange={() => toggleOrderSelection(order.id)}
                                                         disabled={!canEditOrder(order.orderStatus)}
-                                                        title={!canEditOrder(order.orderStatus) ? 'Đơn hàng này không thể chỉnh sửa' : ''}
+                                                        title={!canEditOrder(order.orderStatus) ? t('shopOwner.manageOrder.orderNotEditable') : ''}
                                                     />
                                                 </td>
                                                 <td>
@@ -978,19 +1094,12 @@ export default function BulkShippingPage() {
                                                         {shippingData[order.id]?.ghnOrderCode || order.ghnOrderCode || '-'}
                                                     </span>
                                                 </td>
-                                                <td style={{ maxWidth: '200px' }}>
-                                                    <div className="text-truncate" title={order.orderItems?.map(item => `${item.productName || 'Product'} x${item.quantity}`).join(', ')}>
-                                                        {order.orderItems?.length > 0
-                                                            ? order.orderItems.map((item, i) => (
-                                                                <span key={i} className="d-block small">
-                                                                    {item.productName || `Product ${item.productId}`} x{item.quantity}
-                                                                </span>
-                                                            )).slice(0, 2)
-                                                            : 'N/A'
-                                                        }
-                                                        {order.orderItems?.length > 2 && <span className="text-muted small">+{order.orderItems.length - 2} more</span>}
-                                                    </div>
+                                                <td>
+                                                    <span className="fw-medium text-dark" style={{ fontSize: '0.85rem' }}>
+                                                        {order.recipientName || usernames[order.userId] || 'N/A'}
+                                                    </span>
                                                 </td>
+
                                                 <td>
                                                     <strong style={{ color: '#555' }}>
                                                         {formatPrice(subtotal)}
@@ -1033,247 +1142,252 @@ export default function BulkShippingPage() {
                                                     </div>
                                                 </td>
                                             </tr>
-                                            {isExpanded && order.orderItems && order.orderItems.length > 0 && (
-                                                <tr>
-                                                    <td colSpan="10" className="p-0 border-bottom">
-                                                        <div className="bg-light p-4">
-                                                            <div className="bg-white rounded shadow-sm p-4 border" style={{ borderLeft: '4px solid #ee4d2d' }}>
-                                                                <div className="d-flex justify-content-between align-items-start mb-4 border-bottom pb-3">
-                                                                    <div>
-                                                                        <h5 className="fw-bold text-dark mb-1">
-                                                                            {t('shopOwner.manageOrder.orderDetails')} #{order.id.substring(0, 8)}...
-                                                                        </h5>
-                                                                        <span className="text-muted small">
-                                                                            {t('common.status.title')}: <span className={`badge ${statusInfo.class}`}>{statusInfo.label}</span>
-                                                                        </span>
+                                            {
+                                                isExpanded && order.orderItems && order.orderItems.length > 0 && (
+                                                    <tr>
+                                                        <td colSpan="11" className="p-0 border-bottom">
+                                                            <div className="bg-light p-4">
+                                                                <div className="bg-white rounded shadow-sm p-4 border" style={{ borderLeft: '4px solid #ee4d2d' }}>
+                                                                    <div className="d-flex justify-content-between align-items-start mb-4 border-bottom pb-3">
+                                                                        <div>
+                                                                            <h5 className="fw-bold text-dark mb-1">
+                                                                                {t('shopOwner.manageOrder.orderDetails')} #{order.id.substring(0, 8)}...
+                                                                            </h5>
+                                                                            <span className="text-muted small">
+                                                                                {t('common.status.title')}: <span className={`badge ${statusInfo.class}`}>{statusInfo.label}</span>
+                                                                            </span>
+                                                                        </div>
+                                                                        <div className="text-end">
+                                                                            <div className="text-muted small mb-1">{t('shopOwner.manageOrder.orderDate')}</div>
+                                                                            <div className="fw-bold text-dark">{formatDate(order.creationTimestamp)}</div>
+                                                                        </div>
                                                                     </div>
-                                                                    <div className="text-end">
-                                                                        <div className="text-muted small mb-1">{t('shopOwner.manageOrder.orderDate')}</div>
-                                                                        <div className="fw-bold text-dark">{formatDate(order.creationTimestamp)}</div>
-                                                                    </div>
-                                                                </div>
 
-                                                                <div className="row g-4 mb-4">
-                                                                    <div className="col-md-4">
-                                                                        <div className="p-3 bg-light rounded h-100">
-                                                                            <h6 className="text-muted text-uppercase small fw-bold mb-3 border-bottom pb-2">
-                                                                                <i className="fas fa-user mb-1 me-2"></i>{t('shopOwner.manageOrder.customer')}
-                                                                            </h6>
-                                                                            <div className="fw-bold text-dark mb-1">{usernames[order.userId] || 'N/A'}</div>
-                                                                            <div className="text-muted small">{t('shopOwner.manageOrder.customer')} ID: {order.userId}</div>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div className="col-md-4">
-                                                                        <div className="p-3 bg-light rounded h-100">
-                                                                            <h6 className="text-muted text-uppercase small fw-bold mb-3 border-bottom pb-2">
-                                                                                <i className="fas fa-truck mb-1 me-2"></i>{t('shopOwner.manageOrder.deliveryInfo')}
-                                                                            </h6>
-                                                                            <div className="mb-2">
-                                                                                <span className="text-muted small d-block">{t('shopOwner.manageOrder.recipient')}:</span>
-                                                                                <span className="fw-medium text-dark">{order.recipientName || usernames[order.userId] || 'N/A'}</span>
-                                                                            </div>
-                                                                            <div className="mb-2">
-                                                                                <span className="text-muted small d-block">{t('shopOwner.manageOrder.phone')}:</span>
-                                                                                <span className="fw-medium text-dark">{order.recipientPhone || 'N/A'}</span>
-                                                                            </div>
-                                                                            <div>
-                                                                                <span className="text-muted small d-block">{t('shopOwner.manageOrder.address')}:</span>
-                                                                                <span className="fw-medium text-dark" style={{ lineHeight: '1.4' }}>
-                                                                                    {order.fullAddress || order.shippingAddress || 'N/A'}
-                                                                                </span>
+                                                                    <div className="row g-4 mb-4">
+                                                                        <div className="col-md-4">
+                                                                            <div className="p-3 bg-light rounded h-100">
+                                                                                <h6 className="text-muted text-uppercase small fw-bold mb-3 border-bottom pb-2">
+                                                                                    <i className="fas fa-user mb-1 me-2"></i>{t('shopOwner.manageOrder.customer')}
+                                                                                </h6>
+                                                                                <div className="fw-bold text-dark mb-1">{order.recipientName || usernames[order.userId] || 'N/A'}</div>
+                                                                                <div className="text-muted small">{t('shopOwner.manageOrder.customer')} ID: {order.userId}</div>
                                                                             </div>
                                                                         </div>
-                                                                    </div>
-                                                                    <div className="col-md-4">
-                                                                        <div className="p-3 bg-light rounded h-100">
-                                                                            <h6 className="text-muted text-uppercase small fw-bold mb-3 border-bottom pb-2">
-                                                                                <i className="fas fa-receipt mb-1 me-2"></i>{t('shopOwner.manageOrder.paymentInfo')}
-                                                                            </h6>
-                                                                            <div className="d-flex justify-content-between mb-2">
-                                                                                <span className="text-muted small">{t('shopOwner.manageOrder.subtotal')}:</span>
-                                                                                <span className="fw-medium">{formatPrice(subtotal)}</span>
-                                                                            </div>
-                                                                            <div className="d-flex justify-content-between mb-2">
-                                                                                <span className="text-muted small">{t('shopOwner.manageOrder.shippingFee')}:</span>
-                                                                                <span className="fw-medium">{formatPrice(shippingFee)}</span>
-                                                                            </div>
-                                                                            {voucherDiscount > 0 && (
-                                                                                <div className="d-flex justify-content-between mb-2">
-                                                                                    <span className="text-muted small">{t('shopOwner.manageOrder.voucher')}:</span>
-                                                                                    <span className="fw-medium text-success">-{formatPrice(voucherDiscount)}</span>
+                                                                        <div className="col-md-4">
+                                                                            <div className="p-3 bg-light rounded h-100">
+                                                                                <h6 className="text-muted text-uppercase small fw-bold mb-3 border-bottom pb-2">
+                                                                                    <i className="fas fa-truck mb-1 me-2"></i>{t('shopOwner.manageOrder.deliveryInfo')}
+                                                                                </h6>
+                                                                                <div className="mb-2">
+                                                                                    <span className="text-muted small d-block">{t('shopOwner.manageOrder.recipient')}:</span>
+                                                                                    <span className="fw-medium text-dark">{order.recipientName || usernames[order.userId] || 'N/A'}</span>
                                                                                 </div>
-                                                                            )}
-                                                                            <div className="d-flex justify-content-between pt-2 border-top mt-2">
-                                                                                <span className="fw-bold text-dark">{t('shopOwner.manageOrder.total')}:</span>
-                                                                                <span className="fw-bold fs-5" style={{ color: '#ee4d2d' }}>
-                                                                                    {formatPrice(total)}
-                                                                                </span>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-
-                                                                <div className="mb-4">
-                                                                    <h6 className="text-muted text-uppercase small fw-bold mb-3">
-                                                                        <i className="fas fa-box-open me-2"></i>{t('shopOwner.manageOrder.productsInOrder')}
-                                                                    </h6>
-                                                                    <div className="table-responsive border rounded">
-                                                                        <table className="table table-hover mb-0 align-middle">
-                                                                            <thead className="bg-light">
-                                                                                <tr>
-                                                                                    <th className="ps-3 py-3 border-0" style={{ width: '50px' }}>#</th>
-                                                                                    <th className="py-3 border-0">{t('shopOwner.analytics.product')}</th>
-                                                                                    <th className="py-3 border-0 text-center">{t('shopOwner.product.form.quantity')}</th>
-                                                                                    <th className="py-3 border-0 text-center">{t('shopOwner.product.form.sizeName')}</th>
-                                                                                    <th className="py-3 border-0 text-end">{t('shopOwner.product.form.price')}</th>
-                                                                                    <th className="pe-3 py-3 border-0 text-end">{t('shopOwner.manageOrder.subtotal')}</th>
-                                                                                </tr>
-                                                                            </thead>
-                                                                            <tbody>
-                                                                                {order.orderItems.map((item, itemIndex) => (
-                                                                                    <tr key={itemIndex}>
-                                                                                        <td className="ps-3 text-muted small">{itemIndex + 1}</td>
-                                                                                        <td>
-                                                                                            <div className="d-flex align-items-center">
-                                                                                                {item.imageId || item.productImage ? (
-                                                                                                    <img
-                                                                                                        src={getImageUrl(item.imageId || item.productImage)}
-                                                                                                        alt={item.productName}
-                                                                                                        className="rounded me-3"
-                                                                                                        style={{ width: '50px', height: '50px', objectFit: 'cover' }}
-                                                                                                        onError={(e) => {
-                                                                                                            e.target.style.display = 'none';
-                                                                                                            e.target.nextSibling.style.display = 'flex';
-                                                                                                        }}
-                                                                                                    />
-                                                                                                ) : null}
-                                                                                                <div
-                                                                                                    className="bg-light rounded d-flex align-items-center justify-content-center me-3"
-                                                                                                    style={{
-                                                                                                        width: '50px',
-                                                                                                        height: '50px',
-                                                                                                        display: (item.imageId || item.productImage) ? 'none' : 'flex'
-                                                                                                    }}
-                                                                                                >
-                                                                                                    <i className="fas fa-image text-secondary opacity-50"></i>
-                                                                                                </div>
-                                                                                                <div>
-                                                                                                    <div className="fw-medium text-dark">{item.productName || `Product ${item.productId}`}</div>
-                                                                                                </div>
-                                                                                            </div>
-                                                                                        </td>
-                                                                                        <td className="text-center">{item.quantity}</td>
-                                                                                        <td className="text-center"><span className="badge bg-light text-dark border">{item.sizeName || 'N/A'}</span></td>
-                                                                                        <td className="text-end text-muted">{formatPrice(item.price || item.unitPrice || 0)}</td>
-                                                                                        <td className="pe-3 text-end fw-medium">{formatPrice((item.price || item.unitPrice || 0) * (item.quantity))}</td>
-                                                                                    </tr>
-                                                                                ))}
-                                                                            </tbody>
-                                                                        </table>
-                                                                    </div>
-                                                                </div>
-
-                                                                {/* Tracking Section */}
-                                                                <div className="mb-4">
-                                                                    <h6 className="text-muted text-uppercase small fw-bold mb-3">
-                                                                        <i className="fas fa-shipping-fast me-2"></i>{t('shopOwner.manageOrder.trackingShipping')}
-                                                                    </h6>
-                                                                    {loadingShipping[order.id] ? (
-                                                                        <div className="text-center py-3">
-                                                                            <i className="fas fa-spinner fa-spin me-2"></i>{t('common.loading')}
-                                                                        </div>
-                                                                    ) : shippingData[order.id] ? (
-                                                                        <div className="border rounded p-3 bg-light">
-                                                                            {/* GHN Order Code */}
-                                                                            <div className="d-flex justify-content-between align-items-center mb-3">
-                                                                                <span className="text-muted small">{t('shopOwner.manageOrder.ghnOrderCode')}:</span>
-                                                                                <span className="fw-bold text-primary">{shippingData[order.id].ghnOrderCode || 'N/A'}</span>
-                                                                            </div>
-
-                                                                            {/* Current Status */}
-                                                                            {shippingData[order.id].status && (
-                                                                                <div className="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
-                                                                                    <span className="text-muted small">{t('shopOwner.manageOrder.currentStatus')}:</span>
-                                                                                    <span
-                                                                                        className="badge"
-                                                                                        style={{
-                                                                                            backgroundColor: GHN_STATUS_MAP[shippingData[order.id].status?.toLowerCase()]?.color || '#555',
-                                                                                            color: 'white'
-                                                                                        }}
-                                                                                    >
-                                                                                        {GHN_STATUS_MAP[shippingData[order.id].status?.toLowerCase()]?.title || shippingData[order.id].status}
+                                                                                <div className="mb-2">
+                                                                                    <span className="text-muted small d-block">{t('shopOwner.manageOrder.phone')}:</span>
+                                                                                    <span className="fw-medium text-dark">{order.recipientPhone || 'N/A'}</span>
+                                                                                </div>
+                                                                                <div>
+                                                                                    <span className="text-muted small d-block">{t('shopOwner.manageOrder.address')}:</span>
+                                                                                    <span className="fw-medium text-dark" style={{ lineHeight: '1.4' }}>
+                                                                                        {order.fullAddress || order.shippingAddress || 'N/A'}
                                                                                     </span>
                                                                                 </div>
-                                                                            )}
-
-                                                                            {/* Tracking Timeline */}
-                                                                            {shippingData[order.id].trackingHistory ? (() => {
-                                                                                try {
-                                                                                    const history = typeof shippingData[order.id].trackingHistory === 'string'
-                                                                                        ? JSON.parse(shippingData[order.id].trackingHistory)
-                                                                                        : shippingData[order.id].trackingHistory;
-
-                                                                                    if (Array.isArray(history) && history.length > 0) {
-                                                                                        const isVietnamese = i18n.language === 'vi';
-                                                                                        return (
-                                                                                            <div className="mt-3">
-                                                                                                <div className="small fw-bold text-muted mb-2">{t('shopOwner.manageOrder.shippingHistory')}:</div>
-                                                                                                <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                                                                                                    {history.slice().reverse().map((entry, idx) => (
-                                                                                                        <div key={idx} className="d-flex align-items-start mb-2" style={{ paddingLeft: '16px', borderLeft: idx === 0 ? '3px solid #26aa99' : '3px solid #e0e0e0' }}>
-                                                                                                            <div>
-                                                                                                                <div className={`small ${idx === 0 ? 'fw-bold text-success' : 'text-muted'}`}>
-                                                                                                                    {formatTrackingTime(entry.ts)}
-                                                                                                                </div>
-                                                                                                                <div className={`${idx === 0 ? 'fw-bold' : ''}`}>
-                                                                                                                    {isVietnamese ? (entry.titleVi || entry.title) : (entry.titleEn || entry.title)}
-                                                                                                                </div>
-                                                                                                                {(isVietnamese ? entry.descVi : entry.descEn) || entry.description ? (
-                                                                                                                    <div className="small text-muted">
-                                                                                                                        {isVietnamese ? (entry.descVi || entry.description) : (entry.descEn || entry.description)}
-                                                                                                                    </div>
-                                                                                                                ) : null}
-                                                                                                            </div>
-                                                                                                        </div>
-                                                                                                    ))}
-                                                                                                </div>
-                                                                                            </div>
-                                                                                        );
-                                                                                    }
-                                                                                    return <div className="text-muted small">{t('shopOwner.manageOrder.noShippingHistory')}</div>;
-                                                                                } catch (e) {
-                                                                                    return <div className="text-muted small">{t('shopOwner.manageOrder.cannotDisplayHistory')}</div>;
-                                                                                }
-                                                                            })() : (
-                                                                                <div className="text-muted small">{t('shopOwner.manageOrder.noShippingHistory')}</div>
-                                                                            )}
+                                                                            </div>
                                                                         </div>
-                                                                    ) : (
-                                                                        <div className="text-muted small">{t('shopOwner.manageOrder.noShippingInfo')}</div>
-                                                                    )}
-                                                                </div>
+                                                                        <div className="col-md-4">
+                                                                            <div className="p-3 bg-light rounded h-100">
+                                                                                <h6 className="text-muted text-uppercase small fw-bold mb-3 border-bottom pb-2">
+                                                                                    <i className="fas fa-receipt mb-1 me-2"></i>{t('shopOwner.manageOrder.paymentInfo')}
+                                                                                </h6>
+                                                                                <div className="d-flex justify-content-between mb-2">
+                                                                                    <span className="text-muted small">{t('shopOwner.manageOrder.subtotal')}:</span>
+                                                                                    <span className="fw-medium">{formatPrice(subtotal)}</span>
+                                                                                </div>
+                                                                                <div className="d-flex justify-content-between mb-2">
+                                                                                    <span className="text-muted small">{t('shopOwner.manageOrder.shippingFee')}:</span>
+                                                                                    <span className="fw-medium">{formatPrice(shippingFee)}</span>
+                                                                                </div>
+                                                                                {voucherDiscount > 0 && (
+                                                                                    <div className="d-flex justify-content-between mb-2">
+                                                                                        <span className="text-muted small">{t('shopOwner.manageOrder.voucher')}:</span>
+                                                                                        <span className="fw-medium text-success">-{formatPrice(voucherDiscount)}</span>
+                                                                                    </div>
+                                                                                )}
+                                                                                <div className="d-flex justify-content-between pt-2 border-top mt-2">
+                                                                                    <span className="fw-bold text-dark">{t('shopOwner.manageOrder.total')}:</span>
+                                                                                    <span className="fw-bold fs-5" style={{ color: '#ee4d2d' }}>
+                                                                                        {formatPrice(total)}
+                                                                                    </span>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
 
-                                                                <div className="d-flex justify-content-end gap-2 pt-3 border-top">
-                                                                    <button
-                                                                        className="btn btn-light border text-muted"
-                                                                        onClick={() => handlePrintOrder(order)}
-                                                                    >
-                                                                        <i className="fas fa-print me-2"></i>{t('shopOwner.manageOrder.printOrder')}
-                                                                    </button>
-                                                                    {nextStatus && (
+                                                                    <div className="mb-4">
+                                                                        <h6 className="text-muted text-uppercase small fw-bold mb-3">
+                                                                            <i className="fas fa-box-open me-2"></i>{t('shopOwner.manageOrder.productsInOrder')}
+                                                                        </h6>
+                                                                        <div className="table-responsive border rounded">
+                                                                            <table className="table table-hover mb-0 align-middle">
+                                                                                <thead className="bg-light">
+                                                                                    <tr>
+                                                                                        <th className="ps-3 py-3 border-0" style={{ width: '50px' }}>#</th>
+                                                                                        <th className="py-3 border-0">{t('shopOwner.analytics.product')}</th>
+                                                                                        <th className="py-3 border-0 text-center">{t('shopOwner.product.form.quantity')}</th>
+                                                                                        <th className="py-3 border-0 text-center">{t('shopOwner.product.form.sizeName')}</th>
+                                                                                        <th className="py-3 border-0 text-end">{t('shopOwner.product.form.price')}</th>
+                                                                                        <th className="pe-3 py-3 border-0 text-end">{t('shopOwner.manageOrder.subtotal')}</th>
+                                                                                    </tr>
+                                                                                </thead>
+                                                                                <tbody>
+                                                                                    {order.orderItems.map((item, itemIndex) => (
+                                                                                        <tr key={itemIndex}>
+                                                                                            <td className="ps-3 text-muted small">{itemIndex + 1}</td>
+                                                                                            <td>
+                                                                                                <div className="d-flex align-items-center">
+                                                                                                    {(() => {
+                                                                                                        const imgUrl = imageUrls[item.imageId] || imageUrls[item.productImage] || imageUrls[item.id] || imageUrls[`${item.productId}-${item.sizeId}`];
+                                                                                                        const hasImage = !!imgUrl;
+                                                                                                        return (
+                                                                                                            <>
+                                                                                                                {hasImage ? (
+                                                                                                                    <img
+                                                                                                                        src={imgUrl}
+                                                                                                                        alt={item.productName}
+                                                                                                                        className="rounded me-3"
+                                                                                                                        style={{ width: '50px', height: '50px', objectFit: 'cover' }}
+                                                                                                                        onError={(e) => {
+                                                                                                                            e.target.style.display = 'none';
+                                                                                                                            // Show placeholder if image fails
+                                                                                                                            e.target.nextSibling.style.display = 'flex';
+                                                                                                                        }}
+                                                                                                                    />
+                                                                                                                ) : null}
+                                                                                                            </>
+                                                                                                        );
+                                                                                                    })()}
+                                                                                                    <div>
+                                                                                                        <h6 className="mb-0 text-dark small">{
+                                                                                                            productDetails[item.id || `${item.productId}-${item.sizeId}`]?.productName ||
+                                                                                                            productDetails[item.productId]?.productName ||
+                                                                                                            item.productName
+                                                                                                        }</h6>
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                            </td>
+                                                                                            <td className="text-center">{item.quantity}</td>
+                                                                                            <td className="text-center"><span className="badge bg-light text-dark border">{item.sizeName || 'N/A'}</span></td>
+                                                                                            <td className="text-end text-muted">{formatPrice(item.price || item.unitPrice || 0)}</td>
+                                                                                            <td className="pe-3 text-end fw-medium">{formatPrice((item.price || item.unitPrice || 0) * (item.quantity))}</td>
+                                                                                        </tr>
+                                                                                    ))}
+                                                                                </tbody>
+                                                                            </table>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    {/* Tracking Section */}
+                                                                    <div className="mb-4">
+                                                                        <h6 className="text-muted text-uppercase small fw-bold mb-3">
+                                                                            <i className="fas fa-shipping-fast me-2"></i>{t('shopOwner.manageOrder.trackingShipping')}
+                                                                        </h6>
+                                                                        {loadingShipping[order.id] ? (
+                                                                            <div className="text-center py-3">
+                                                                                <i className="fas fa-spinner fa-spin me-2"></i>{t('common.loading')}
+                                                                            </div>
+                                                                        ) : shippingData[order.id] ? (
+                                                                            <div className="border rounded p-3 bg-light">
+                                                                                {/* GHN Order Code */}
+                                                                                <div className="d-flex justify-content-between align-items-center mb-3">
+                                                                                    <span className="text-muted small">{t('shopOwner.manageOrder.ghnOrderCode')}:</span>
+                                                                                    <span className="fw-bold text-primary">{shippingData[order.id].ghnOrderCode || 'N/A'}</span>
+                                                                                </div>
+
+                                                                                {/* Current Status */}
+                                                                                {shippingData[order.id].status && (
+                                                                                    <div className="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                                                                                        <span className="text-muted small">{t('shopOwner.manageOrder.currentStatus')}:</span>
+                                                                                        <span
+                                                                                            className="badge"
+                                                                                            style={{
+                                                                                                backgroundColor: GHN_STATUS_MAP[shippingData[order.id].status?.toLowerCase()]?.color || '#555',
+                                                                                                color: 'white'
+                                                                                            }}
+                                                                                        >
+                                                                                            {t(GHN_STATUS_MAP[shippingData[order.id].status?.toLowerCase()]?.titleKey) || shippingData[order.id].status}
+                                                                                        </span>
+                                                                                    </div>
+                                                                                )}
+
+                                                                                {/* Tracking Timeline */}
+                                                                                {shippingData[order.id].trackingHistory ? (() => {
+                                                                                    try {
+                                                                                        const history = typeof shippingData[order.id].trackingHistory === 'string'
+                                                                                            ? JSON.parse(shippingData[order.id].trackingHistory)
+                                                                                            : shippingData[order.id].trackingHistory;
+
+                                                                                        if (Array.isArray(history) && history.length > 0) {
+                                                                                            const isVietnamese = i18n.language === 'vi';
+                                                                                            return (
+                                                                                                <div className="mt-3">
+                                                                                                    <div className="small fw-bold text-muted mb-2">{t('shopOwner.manageOrder.shippingHistory')}:</div>
+                                                                                                    <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                                                                                                        {history.slice().reverse().map((entry, idx) => (
+                                                                                                            <div key={idx} className="d-flex align-items-start mb-2" style={{ paddingLeft: '16px', borderLeft: idx === 0 ? '3px solid #26aa99' : '3px solid #e0e0e0' }}>
+                                                                                                                <div>
+                                                                                                                    <div className={`small ${idx === 0 ? 'fw-bold text-success' : 'text-muted'}`}>
+                                                                                                                        {formatTrackingTime(entry.ts)}
+                                                                                                                    </div>
+                                                                                                                    <div className={`${idx === 0 ? 'fw-bold' : ''}`}>
+                                                                                                                        {isVietnamese ? (entry.titleVi || entry.title) : (entry.titleEn || entry.title)}
+                                                                                                                    </div>
+                                                                                                                    {(isVietnamese ? entry.descVi : entry.descEn) || entry.description ? (
+                                                                                                                        <div className="small text-muted">
+                                                                                                                            {isVietnamese ? (entry.descVi || entry.description) : (entry.descEn || entry.description)}
+                                                                                                                        </div>
+                                                                                                                    ) : null}
+                                                                                                                </div>
+                                                                                                            </div>
+                                                                                                        ))}
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                            );
+                                                                                        }
+                                                                                        return <div className="text-muted small">{t('shopOwner.manageOrder.noShippingHistory')}</div>;
+                                                                                    } catch (e) {
+                                                                                        return <div className="text-muted small">{t('shopOwner.manageOrder.cannotDisplayHistory')}</div>;
+                                                                                    }
+                                                                                })() : (
+                                                                                    <div className="text-muted small">{t('shopOwner.manageOrder.noShippingHistory')}</div>
+                                                                                )}
+                                                                            </div>
+                                                                        ) : (
+                                                                            <div className="text-muted small">{t('shopOwner.manageOrder.noShippingInfo')}</div>
+                                                                        )}
+                                                                    </div>
+
+                                                                    <div className="d-flex justify-content-end gap-2 pt-3 border-top">
                                                                         <button
-                                                                            className="btn btn-primary-shop text-white"
-                                                                            onClick={() => handleStatusUpdate(order.id, nextStatus)}
+                                                                            className="btn btn-light border text-muted"
+                                                                            onClick={() => handlePrintOrder(order)}
                                                                         >
-                                                                            {t('shopOwner.manageOrder.updateStatus')} <i className="fas fa-arrow-right ms-2"></i>
+                                                                            <i className="fas fa-print me-2"></i>{t('shopOwner.manageOrder.printOrder')}
                                                                         </button>
-                                                                    )}
+                                                                        {nextStatus && (
+                                                                            <button
+                                                                                className="btn btn-primary-shop text-white"
+                                                                                onClick={() => handleStatusUpdate(order.id, nextStatus)}
+                                                                            >
+                                                                                {t('shopOwner.manageOrder.updateStatus')} <i className="fas fa-arrow-right ms-2"></i>
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
                                                                 </div>
                                                             </div>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            )}
+                                                        </td>
+                                                    </tr>
+                                                )
+                                            }
                                         </React.Fragment>
                                     );
                                 })
@@ -1323,6 +1437,6 @@ export default function BulkShippingPage() {
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 }
