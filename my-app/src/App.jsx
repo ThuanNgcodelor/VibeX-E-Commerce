@@ -8,6 +8,7 @@ import ShopPage from "./pages/client/ShopPage.jsx";
 import CartPage from "./pages/client/CartPage.jsx";
 import CheckoutPage from "./pages/client/CheckoutPage.jsx";
 import GoogleCallback from "./pages/client/GoogleCallback.jsx";
+import OAuthCallback from "./pages/client/OAuthCallback.jsx";
 import VnpayReturnPage from "./pages/client/VnpayReturnPage.jsx";
 import MomoReturnPage from "./pages/client/MomoReturnPage.jsx";
 import ForgotPasswordPage from "./pages/client/ForgotPasswordPage.jsx";
@@ -125,7 +126,7 @@ export default function App() {
           <Route path="/shop" element={<ShopPage />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
-          <Route path="/oauth2/callback" element={<GoogleCallback />} />
+          <Route path="/oauth2/callback" element={<OAuthCallback />} />
           <Route path="/payment/vnpay/return" element={<VnpayReturnPage />} />
           <Route path="/payment/momo/return" element={<MomoReturnPage />} />
           <Route path="/forgot" element={<ForgotPasswordPage />} />

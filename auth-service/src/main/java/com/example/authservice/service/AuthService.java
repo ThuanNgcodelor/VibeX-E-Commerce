@@ -33,6 +33,7 @@ public class AuthService {
     private final RedisTemplate<String, String> redisTemplate;
     private final EmailService emailService;
     private final GoogleOAuth2Service googleOAuth2Service;
+    private final FacebookOAuth2Service facebookOAuth2Service;
 
     private static final String OTP_KEY_PREFIX = "otp:";
     private static final String OTP_COOLDOWN_PREFIX = "otp:cooldown:";
@@ -274,6 +275,57 @@ public class AuthService {
         }
     }
 
+    public TokenDto loginWithFacebook(String code) {
+        try {
+            var fbUser = facebookOAuth2Service.getUserInfoFromCode(code);
+            final String email = fbUser.getEmail().trim().toLowerCase();
+
+            AuthUserDto user = null;
+
+            try {
+                var resp = userServiceClient.getUserByEmail(email);
+                if (resp != null && resp.getBody() != null) {
+                    user = resp.getBody();
+                    if (user.getRole() == null && user.getRoles() != null && !user.getRoles().isEmpty()) {
+                        user.setRole(user.getRoles().iterator().next());
+                    }
+                }
+            } catch (FeignException.NotFound e) {
+                log.info("User with email {} not found, will create new user", email);
+            }
+
+            if (user == null) {
+                try {
+                    final var req = getRegisterRequestFromFacebook(email, fbUser);
+                    var reg = userServiceClient.save(req);
+                    var created = reg.getBody();
+                    if (created == null) {
+                        throw new RuntimeException("Failed to create user - no response body");
+                    }
+
+                    user = new AuthUserDto();
+                    user.setEmail(created.getEmail());
+                    user.setId(created.getId());
+                    user.setUsername(created.getUsername());
+                    user.setRole(Role.USER);
+                    user.addRole(Role.USER);
+
+                } catch (Exception createEx) {
+                    String errorMsg = createEx.getMessage();
+                    throw new RuntimeException("Failed to create user: " + errorMsg, createEx);
+                }
+            }
+
+            return TokenDto.builder()
+                    .token(jwtService.generateToken(user.getEmail()))
+                    .refreshToken(jwtService.generateRefreshToken(user.getEmail()))
+                    .build();
+
+        } catch (Exception e) {
+            throw new RuntimeException("Facebook login failed: " + e.getMessage(), e);
+        }
+    }
+
     public TokenDto loginWithRoleSelection(LoginRequest loginRequest, String selectedRole) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword()));
@@ -306,6 +358,24 @@ public class AuthService {
 
         req.setUsername(username);
         req.setPassword("Google1234");
+        return req;
+    }
+
+    private static RegisterRequest getRegisterRequestFromFacebook(String email,
+            FacebookOAuth2Service.FacebookUserInfo fbUser) {
+        RegisterRequest req = new RegisterRequest();
+        req.setEmail(email);
+
+        String username = fbUser.getName();
+        if (username == null || username.length() < 6) {
+            String prefix = email.split("@")[0];
+            username = prefix + "_facebook";
+        }
+        // Ensure username is clean
+        username = username.replaceAll("[^a-zA-Z0-9._-]", "");
+
+        req.setUsername(username);
+        req.setPassword("Facebook1234");
         return req;
     }
 

@@ -37,6 +37,7 @@ public class AuthConfig {
                                 "/v1/auth/verifyOtp",
                                 "/v1/auth/updatePassword",
                                 "/v1/auth/login/google",
+                                "/v1/auth/login/facebook",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
                                 "/v3/api-docs/**",
