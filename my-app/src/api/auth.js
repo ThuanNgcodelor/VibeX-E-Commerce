@@ -208,7 +208,7 @@ export const getUserRole = () => {
         )];
 
         return normalized;
-    } catch (error) {
+    } catch {
         return [];
     }
 };

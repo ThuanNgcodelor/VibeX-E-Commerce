@@ -57,7 +57,11 @@ public class JwtAuthenticationFilter implements GatewayFilter {
                 "/v1/user/ads/active",
                 "/v1/stock/analytics/view/",
                 "/v1/stock/analytics/visit",
-                "/v1/stock/analytics/cart-add");
+                "/v1/stock/analytics/cart-add",
+                "/v1/user/banner/getAllBanner",
+                "/v1/user/banner/active",
+                "/v1/stock/category/getAll"
+        );
 
         Predicate<ServerHttpRequest> isApiSecured = r -> apiEndpoints.stream()
                 .noneMatch(uri -> r.getURI().getPath().startsWith(uri));
