@@ -249,7 +249,7 @@ public class AIChatService {
             List<ProductSuggestionDto> productSuggestions = ContextualSuggestTool.getLastProducts();
 
             if (productSuggestions != null && !productSuggestions.isEmpty()) {
-                log.info("✅ Retrieved {} product suggestions from ThreadLocal", productSuggestions.size());
+                log.info("Retrieved {} product suggestions from ThreadLocal", productSuggestions.size());
                 return AIChatResponse.builder()
                         .message(aiResponse)
                         .conversationId(conversationId)

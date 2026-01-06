@@ -553,15 +553,6 @@ export function Cart({
                 <span style={{ fontSize: '14px' }}>
                   {t('cart2.selectAll')} ({items.length})
                 </span>
-                <a style={{ color: '#333', textDecoration: 'none', fontSize: '14px', marginLeft: '20px' }}>
-                  {t('cart2.delete')}
-                </a>
-                <a style={{ color: '#333', textDecoration: 'none', fontSize: '14px', marginLeft: '20px' }}>
-                  {t('cart2.removeInactive')}
-                </a>
-                <a style={{ color: '#333', textDecoration: 'none', fontSize: '14px', marginLeft: '20px' }}>
-                  {t('cart2.saveToFavorites')}
-                </a>
               </div>
               <div className="cart2-bottom-right">
                 <div className="cart2-total">

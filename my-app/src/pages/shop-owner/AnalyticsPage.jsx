@@ -246,7 +246,6 @@ export default function AnalyticsPage() {
         };
     }, [stats, loading]);
 
-    // NEW: Initialize/Update Funnel Chart (Phase 4)
     useEffect(() => {
         if (loading || !funnelChartRef.current || !behaviorStats.conversionFunnel) return;
 

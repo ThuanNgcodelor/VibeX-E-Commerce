@@ -548,7 +548,6 @@ export default function ProductDetailPage() {
                                                                 <span className="text-decoration-line-through text-muted">
                                                                     {((product.originalPrice || 0) + sizeModifier).toLocaleString("vi-VN")} ₫
                                                                 </span>
-                                                                <span className="badge" style={{ backgroundColor: '#ee4d2d' }}>-{product.discountPercent}%</span>
                                                             </>
                                                         ) : (
                                                             <span className="fs-4 fw-bold" style={{ color: '#ee4d2d' }}>
