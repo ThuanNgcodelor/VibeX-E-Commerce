@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { getUserRole, isAuthenticated, login, register } from "../../api/auth.js";
 import { checkEmailExists } from "../../api/user.js";
-import { GOOGLE_CLIENT_ID, GOOGLE_REDIRECT_URI } from "../../config/config.js";
+import { GOOGLE_CLIENT_ID, GOOGLE_REDIRECT_URI, FACEBOOK_CLIENT_ID, FACEBOOK_REDIRECT_URI } from "../../config/config.js";
 
 export default function Auth() {
     const { t } = useTranslation();
@@ -38,6 +38,19 @@ export default function Auth() {
         });
 
         window.location.href = `${googleAuthUrl}?${params.toString()}`;
+    };
+
+    const handleFacebookLogin = () => {
+        const facebookAuthUrl = "https://www.facebook.com/v19.0/dialog/oauth";
+        const params = new URLSearchParams({
+            client_id: FACEBOOK_CLIENT_ID,
+            redirect_uri: FACEBOOK_REDIRECT_URI,
+            state: "facebook",
+            response_type: "code",
+            scope: "email,public_profile"
+        });
+
+        window.location.href = `${facebookAuthUrl}?${params.toString()}`;
     };
     useEffect(() => {
         if (isAuthenticated()) {
@@ -265,9 +278,11 @@ export default function Auth() {
                                                     color: "#444",
                                                     border: "1px solid #ddd",
                                                     borderRadius: "4px",
-                                                    padding: "8px 113px",
+                                                    padding: "8px 15px",
                                                     cursor: "pointer",
-                                                    fontWeight: "bold"
+                                                    fontWeight: "bold",
+                                                    flex: 1,
+                                                    justifyContent: "center"
                                                 }}
                                                 onClick={handleGoogleLogin}
                                             >
@@ -277,6 +292,26 @@ export default function Auth() {
                                                     style={{ width: 26, height: 10, marginRight: 10 }}
                                                 />
                                                 {t('auth.login.googleLogin')}
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                style={{
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    backgroundColor: "#1877F2",
+                                                    color: "#fff",
+                                                    border: "none",
+                                                    borderRadius: "4px",
+                                                    padding: "8px 15px",
+                                                    cursor: "pointer",
+                                                    fontWeight: "bold",
+                                                    flex: 1,
+                                                    justifyContent: "center"
+                                                }}
+                                                onClick={handleFacebookLogin}
+                                            >
+                                                Facebook
                                             </button>
 
 

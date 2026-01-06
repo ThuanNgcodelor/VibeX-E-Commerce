@@ -61,6 +61,36 @@ export const login = async (data) => {
 };
 
 /**
+ * Đăng nhập bằng Facebook
+ * @param {string} token - Facebook OAuth Code
+ * @returns {Promise} - Promise trả về thông tin người dùng và token
+ */
+export const facebookLogin = async (token) => {
+    const response = await api.post("/login/facebook", { code: token });
+    const { token: accessToken, refreshToken } = response.data;
+
+    // Lưu accessToken
+    Cookies.set("accessToken", accessToken, {
+        expires: 1, // 1 ngày
+        path: '/',
+        sameSite: 'lax',
+        secure: window.location.protocol === 'https:'
+    });
+
+    // Lưu refreshToken nếu có
+    if (refreshToken) {
+        Cookies.set("refreshToken", refreshToken, {
+            expires: 7, // 7 ngày
+            path: '/',
+            sameSite: 'lax',
+            secure: window.location.protocol === 'https:'
+        });
+    }
+
+    return response.data;
+};
+
+/**
  * Đăng nhập bằng Google
  * @param {string} token - Google OAuth Code
  * @returns {Promise} - Promise trả về thông tin người dùng và token

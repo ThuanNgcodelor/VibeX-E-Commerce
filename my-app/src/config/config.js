@@ -22,3 +22,6 @@ export const LOCAL_BASE_URL = 'http://localhost:8080'
 export const NOTIFICATION_WS_URL = import.meta.env.VITE_NOTIFICATION_WS_URL || 'http://localhost:8080'
 export const GOOGLE_REDIRECT_URI = getGoogleRedirectUri()
 export const GOOGLE_CLIENT_ID = '941069814660-or8vut20mcc30h2lp3lgdrfqd48j4qkc.apps.googleusercontent.com'
+
+export const FACEBOOK_CLIENT_ID = '1394221255578112'
+export const FACEBOOK_REDIRECT_URI = GOOGLE_REDIRECT_URI // Reuse callback URI logic for now
