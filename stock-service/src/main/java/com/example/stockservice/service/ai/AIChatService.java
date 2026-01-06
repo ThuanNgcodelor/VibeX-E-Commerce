@@ -3,6 +3,7 @@ package com.example.stockservice.service.ai;
 import com.example.stockservice.dto.AIChatRequest;
 import com.example.stockservice.dto.AIChatResponse;
 import com.example.stockservice.dto.ProductSuggestionDto;
+import com.example.stockservice.repository.CategoryRepository;
 import com.example.stockservice.service.product.ProductService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -26,7 +27,7 @@ public class AIChatService {
 
     private final ChatClient chatClient;
     private final LanguageFilter languageFilter;
-    private final ProductService productService;
+    private final CategoryRepository categoryRepository;
 
     // Lưu conversation history (conversationId -> list of messages)
     private final Map<String, List<ChatMessage>> conversationHistory = new ConcurrentHashMap<>();
@@ -39,20 +40,28 @@ public class AIChatService {
             ROLE:
             Bạn là VIBE AI, trợ lý mua sắm thông minh của VIBE E-commerce.
             Bạn thân thiện, hữu ích và chuyên nghiệp.
-
+            
             CONTEXT:
             - Thời gian hiện tại: {current_time}
             - Ngày: {current_date} ({day_of_week})
             - Ngôn ngữ ưu tiên: {language}
             - User ID: {user_id}
-
+            
+            PRODUCT INVENTORY CONTEXT (DANH MỤC SẢN PHẨM CÓ SẴN):
+            Cửa hàng hiện đang kinh doanh các danh mục sản phẩm sau:
+            [{available_categories}]
+            
+            KHI SUY LUẬN SẢN PHẨM (INFER KEYWORDS), HÃY ƯU TIÊN CÁC SẢN PHẨM THUỘC CÁC DANH MỤC TRÊN!
+            Ví dụ: Nếu user hỏi "cầu lông", nhưng shop chỉ có "Sport & Outdoor" (quần áo, giày) mà không bán "Vợt", 
+            thì hãy tìm "giày thể thao, quần áo thể thao" thay vì "vợt".
+            
             CẢNH BÁO QUAN TRỌNG - ĐỌC KỸ
-
+            
             BẠN TUYỆT ĐỐI KHÔNG ĐƯỢC TỰ BỊA DỮ LIỆU!
             BẠN BẮT BUỘC PHẢI GỌI TOOL VÀ COPY CHÍNH XÁC KẾT QUẢ!
-
+            
             AVAILABLE TOOLS VÀ CÁCH DÙNG:
-
+            
             PRODUCT TOOLS:
             - "tìm sản phẩm X" → searchProducts(keyword="X")
             - "giá sản phẩm X" → getProductPrice(productName="X")
@@ -61,17 +70,31 @@ public class AIChatService {
             CONTEXTUAL SUGGESTIONS (TỰ ĐỘNG GỌI):
             Khi user đề cập đến hoạt động/scenario, BẠN PHẢI TỰ ĐỘNG GỌI suggestProductsByScenario:
             
-            Vietnamese:
-            - "đi biển" / "ra biển" / "beach" → suggestProductsByScenario(scenario="đồ bơi,kính râm,kem chống nắng,nón")
-            - "đi party" / "tiệc" → suggestProductsByScenario(scenario="váy,áo,giày cao gót,trang sức")
-            - "đi gym" / "tập gym" → suggestProductsByScenario(scenario="quần thể thao,áo thể thao,giày thể thao")
-            - "đi du lịch" → suggestProductsByScenario(scenario="ba lô,mũ,kem chống nắng,túi xách")
+            AI PHẢI TỰ SUY LUẬN (INFER) KEYWORDS TỪ HOẠT ĐỘNG:
             
-            English:
-            - "go to beach" / "going beach" / "beach trip" → suggestProductsByScenario(scenario="swimsuit,sunglasses,sunscreen,hat")
-            - "party" / "go to party" → suggestProductsByScenario(scenario="dress,shoes,jewelry,accessories")
-            - "gym" / "workout" → suggestProductsByScenario(scenario="sports wear,sneakers,sports bra")
-            - "travel" / "trip" → suggestProductsByScenario(scenario="backpack,hat,sunscreen,travel bag")
+            Quy tắc:
+            1. PHÂN TÍCH hoạt động/scenario user muốn.
+            2. ĐỐI CHIẾU với [PRODUCT INVENTORY CONTEXT] ở trên.
+            3. TỰ SUY LUẬN các sản phẩm cần thiết (keywords) MÀ SHOP CÓ THỂ CÓ.
+            4. GỌI suggestProductsByScenario với keywords đó.
+            
+            Ví dụ (Examples):
+            - "đi biển" → suggestProductsByScenario(scenario="đồ bơi,kính râm,kem chống nắng,nón")
+            - "đá bóng" → suggestProductsByScenario(scenario="giày đá bóng,quần áo thể thao,bóng đá,tất")
+            - "chơi cầu lông" → suggestProductsByScenario(scenario="vợt cầu lông,giày cầu lông,áo thể thao")
+            - "đi leo núi" → suggestProductsByScenario(scenario="giày leo núi,ba lô,gậy leo núi,áo khoác")
+            - "đi picnic" → suggestProductsByScenario(scenario="thảm trải,đồ ăn nhanh,nước uống,lều")
+            - "đi tiệc/party" → suggestProductsByScenario(scenario="váy dạ hội,giày cao gót,túi xách,trang sức")
+            - "đi học" → suggestProductsByScenario(scenario="ba lô,sách,vở,bút,laptop")
+            
+            English Examples:
+            - "soccer/football" → suggestProductsByScenario(scenario="soccer shoes,jersey,shorts,socks")
+            - "hiking" → suggestProductsByScenario(scenario="hiking boots,backpack,jacket,water bottle")
+            - "camping" → suggestProductsByScenario(scenario="tent,sleeping bag,lantern,camping chair")
+            - "badminton" → suggestProductsByScenario(scenario="racket,shuttlecock,sport shoes")
+            
+            QUAN TRỌNG: 
+            - Với các hoạt động chưa có trong ví dụ, HÃY TỰ SUY LUẬN ít nhất 3-4 keywords liên quan nhất.
             
             QUAN TRỌNG: 
             - KHÔNG HỎI LẠI USER, TỰ ĐỘNG GỌI FUNCTION NGAY!
@@ -84,22 +107,23 @@ public class AIChatService {
             - "chi tiêu tháng này" → getSpendingStats(userId="{user_id}", period="month")
             - "chi tiêu tuần này" → getSpendingStats(userId="{user_id}", period="week")
             - "tổng đã chi" → getSpendingStats(userId="{user_id}", period="all")
-
+            
             QUAN TRỌNG: Message từ tool đã được format sẵn, bạn CHỈ CẦN COPY và hiển thị.
             KHÔNG ĐƯỢC thêm, bớt, hoặc thay đổi dữ liệu từ tool.
-
+            
             QUY TẮC NGÔN NGỮ:
             - Tiếng Việt → trả lời tiếng Việt
             - English → reply in English
             - KHÔNG dùng tiếng Trung, Nhật, Hàn
-
+            
             {conversation_history}
             """;
 
-    public AIChatService(ChatModel chatModel, LanguageFilter languageFilter, ProductTools productTools, ProductService productService) {
+    public AIChatService(ChatModel chatModel, LanguageFilter languageFilter, ProductTools productTools, ProductService productService, CategoryRepository categoryRepository, ContextualSuggestTool contextualSuggestTool) {
         this.languageFilter = languageFilter;
+        this.categoryRepository = categoryRepository;
 
-        // Build ChatClient với các tools (Product + Order)
+        // Build ChatClient với các tools
         this.chatClient = ChatClient.builder(chatModel)
                 .defaultFunctions(
                         // Product tools
@@ -114,7 +138,17 @@ public class AIChatService {
                         "getSpendingStats",
                         "suggestProductsByScenario")
                 .build();
-        this.productService = productService;
+    }
+
+    private String getAvailableCategories() {
+        try {
+            return this.categoryRepository.findAll().stream()
+                    .map(category -> category.getName())
+                    .collect(java.util.stream.Collectors.joining(", "));
+        } catch (Exception e) {
+            log.error("Failed to fetch categories context", e);
+            return "Fashion, Electronics, Home & Living"; // Fallback
+        }
     }
 
     public AIChatResponse chat(AIChatRequest request) {
@@ -135,6 +169,9 @@ public class AIChatService {
             // 2. Determine language
             boolean isVietnamese = languageFilter.isVietnamese(userMessage);
             String language = isVietnamese ? "Tiếng Việt" : "English";
+
+            // 3. Get available categories context
+            String categoriesContext = getAvailableCategories();
 
             // 3. Get or create conversation ID
             String conversationId = request.getConversationId();
@@ -179,6 +216,7 @@ public class AIChatService {
                     .replace("{day_of_week}", dayOfWeek)
                     .replace("{language}", language)
                     .replace("{user_id}", userId)
+                    .replace("{available_categories}", categoriesContext)
                     .replace("{conversation_history}", historyBuilder.toString());
 
             log.info("Processing: '{}' (ConvId: {}, UserId: {}, History: {} msgs)",
@@ -209,7 +247,7 @@ public class AIChatService {
 
             // 9. Check if contextual products were suggested (stored in ThreadLocal by tool)
             List<ProductSuggestionDto> productSuggestions = ContextualSuggestTool.getLastProducts();
-            
+
             if (productSuggestions != null && !productSuggestions.isEmpty()) {
                 log.info("✅ Retrieved {} product suggestions from ThreadLocal", productSuggestions.size());
                 return AIChatResponse.builder()
@@ -243,29 +281,5 @@ public class AIChatService {
     public void clearConversation(String conversationId) {
         conversationHistory.remove(conversationId);
         log.info("Cleared conversation: {}", conversationId);
-    }
-    
-    /**
-     * Simple helper to extract value from JSON string
-     * Format: "key":"value"
-     */
-    private String extractJsonValue(String json, String key) {
-        String searchKey = "\"" + key + "\":\"";
-        int startIdx = json.indexOf(searchKey);
-        if (startIdx == -1) {
-            // Try without quotes for number values
-            searchKey = "\"" + key + "\":";
-            startIdx = json.indexOf(searchKey);
-            if (startIdx == -1) return null;
-            startIdx += searchKey.length();
-            int endIdx = json.indexOf(",", startIdx);
-            if (endIdx == -1) endIdx = json.indexOf("}", startIdx);
-            if (endIdx == -1) return null;
-            return json.substring(startIdx, endIdx).trim();
-        }
-        startIdx += searchKey.length();
-        int endIdx = json.indexOf("\"", startIdx);
-        if (endIdx == -1) return null;
-        return json.substring(startIdx, endIdx);
     }
 }

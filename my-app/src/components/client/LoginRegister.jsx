@@ -46,8 +46,7 @@ export default function Auth() {
             client_id: FACEBOOK_CLIENT_ID,
             redirect_uri: FACEBOOK_REDIRECT_URI,
             state: "facebook",
-            response_type: "code",
-            scope: "email,public_profile"
+            response_type: "code",scope: "public_profile"
         });
 
         window.location.href = `${facebookAuthUrl}?${params.toString()}`;
