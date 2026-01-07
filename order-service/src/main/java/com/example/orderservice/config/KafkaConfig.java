@@ -157,9 +157,14 @@ public class KafkaConfig {
         props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, false);
         props.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
 
-        // TỐI ƯU
-        props.put(ConsumerConfig.FETCH_MIN_BYTES_CONFIG, 1024);
-        props.put(ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG, 500);
+        // CHIẾN THUẬT XE BUÝT
+        // 1. Chờ tối đa 100ms (0.1 giây) rồi chạy → Khách lẻ không bị đợi lâu
+        props.put(ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG, 100);
+        
+        // 2. Hoặc nếu gom đủ 10KB (khoảng 10-20 đơn) thì chạy ngay → Không cần chờ hết 100ms
+        props.put(ConsumerConfig.FETCH_MIN_BYTES_CONFIG, 10240);
+        
+        // 3. Mỗi lần xe chở tối đa 500 khách → Để Batch Insert DB hiệu quả nhất
         props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 500);
 
         return new DefaultKafkaConsumerFactory<>(props);
@@ -178,9 +183,9 @@ public class KafkaConfig {
         props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, false);
         props.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
 
-        // TỐI ƯU
-        props.put(ConsumerConfig.FETCH_MIN_BYTES_CONFIG, 1024);
-        props.put(ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG, 500);
+        // TỐI ƯU HÓA HIỆU NĂNG (THEO CHIẾN THUẬT XE BUÝT)
+        props.put(ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG, 100);
+        props.put(ConsumerConfig.FETCH_MIN_BYTES_CONFIG, 10240);
         props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 500);
 
         return new DefaultKafkaConsumerFactory<>(props);
@@ -213,6 +218,10 @@ public class KafkaConfig {
         ConcurrentKafkaListenerContainerFactory<String, CheckOutKafkaRequest> factory = new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(checkoutConsumerFactory());
         factory.setConcurrency(10); // 10 threads cho 10 partitions
+        
+        // Bật Batch Listener → Để Listener nhận List<> thay vì Object
+        factory.setBatchListener(true);
+        
         return factory;
     }
 
@@ -222,6 +231,10 @@ public class KafkaConfig {
         ConcurrentKafkaListenerContainerFactory<String, PaymentEvent> factory = new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(paymentConsumerFactory());
         factory.setConcurrency(10); // 10 threads cho 10 partitions
+        
+        //Bật Batch Listener → Để Listener nhận List<> thay vì Object
+        factory.setBatchListener(true);
+        
         return factory;
     }
 

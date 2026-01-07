@@ -151,6 +151,7 @@ public class AIChatService {
         }
     }
 
+    // Product IN Stock
     public AIChatResponse chat(AIChatRequest request) {
         try {
             String userMessage = request.getMessage();

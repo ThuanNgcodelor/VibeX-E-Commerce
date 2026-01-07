@@ -17,4 +17,5 @@ public class ProductSuggestionDto {
     private double originalPrice;
     private double discountPercent;
     private String imageUrl;
+    private String status;
 }

@@ -1,6 +1,7 @@
 package com.example.stockservice.service.ai;
 
 import com.example.stockservice.dto.ProductSuggestionDto;
+import com.example.stockservice.enums.ProductStatus;
 import com.example.stockservice.model.Product;
 import com.example.stockservice.service.product.ProductService;
 import com.fasterxml.jackson.annotation.JsonClassDescription;
@@ -87,6 +88,7 @@ public class ContextualSuggestTool {
                                     .price(p.getPrice())
                                     .originalPrice(p.getOriginalPrice())
                                     .discountPercent(p.getDiscountPercent())
+                                    .status(ProductStatus.IN_STOCK.name())
                                     .imageUrl(p.getImageId() != null && !p.getImageId().isEmpty()
                                             ? p.getImageId()  // ← Image ID here (not product ID!)
                                             : null)

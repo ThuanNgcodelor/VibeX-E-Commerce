@@ -55,8 +55,10 @@ public class Order extends BaseEntity {
     @Column(name = "voucher_discount", precision = 15, scale = 2)
     private BigDecimal voucherDiscount;
 
+    // ⚡ CRITICAL: NO CASCADE - Manual save for batch insert
+    // Cascade prevents Hibernate from batching inserts
     @JsonManagedReference
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "order", orphanRemoval = true)
     @Builder.Default
     private List<OrderItem> orderItems = new ArrayList<>();
 }

@@ -28,7 +28,7 @@ public class GhnStatusPollingScheduler {
     /**
      * Poll GHN API every 30 seconds (30000 ms) for active shipping orders
      */
-    @Scheduled(fixedRate = 30000)
+    @Scheduled(fixedRate = 15000)
     public void pollGhnStatus() {
         try {
             List<ShippingOrder> activeOrders = shippingOrderRepository.findActiveShippingOrders();
