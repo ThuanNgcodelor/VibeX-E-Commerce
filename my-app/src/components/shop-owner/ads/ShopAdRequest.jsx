@@ -343,8 +343,6 @@ export default function ShopAdRequest() {
                                         onChange={e => setFormData({ ...formData, adType: e.target.value })}
                                     >
                                         <option value="BANNER">Banner Hình ảnh</option>
-
-                                        <option value="VIDEO">Video</option>
                                     </select>
                                 </div>
 

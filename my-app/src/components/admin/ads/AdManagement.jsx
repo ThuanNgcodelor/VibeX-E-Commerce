@@ -325,7 +325,6 @@ export default function AdManagement() {
                                 <select className="form-select" value={newAd.adType} onChange={e => setNewAd({ ...newAd, adType: e.target.value })}>
                                     <option value="POPUP">Popup (Hộp thoại)</option> {/* Prioritized */}
                                     <option value="BANNER">Banner</option>
-                                    <option value="VIDEO">Video</option>
                                 </select>
                             </div>
                             <div className="col-md-6 mb-3">
