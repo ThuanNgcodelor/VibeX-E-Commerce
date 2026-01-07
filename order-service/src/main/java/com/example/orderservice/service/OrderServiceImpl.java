@@ -65,6 +65,9 @@ public class OrderServiceImpl implements OrderService {
     private final KafkaTemplate<String, CheckOutKafkaRequest> kafkaTemplate;
     private final KafkaTemplate<String, SendNotificationRequest> kafkaTemplateSend;
     private final KafkaTemplate<String, UpdateStatusOrderRequest> updateStatusKafkaTemplate;
+    // Phase 3: Async Stock Decrease
+    private final KafkaTemplate<String, StockDecreaseEvent> stockDecreaseKafkaTemplate;
+    private final NewTopic stockDecreaseTopic;
     private static final Logger log = LoggerFactory.getLogger(OrderServiceImpl.class);
     // Scheduler for auto-complete after DELIVERED
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
@@ -565,12 +568,6 @@ public class OrderServiceImpl implements OrderService {
                     if (si.getSizeId() == null || si.getSizeId().isBlank()) {
                         throw new RuntimeException("Size ID is required for product: " + si.getProductId());
                     }
-
-                    DecreaseStockRequest dec = new DecreaseStockRequest();
-                    dec.setSizeId(si.getSizeId());
-                    dec.setQuantity(si.getQuantity());
-                    stockServiceClient.decreaseStock(dec);
-
                     return OrderItem.builder()
                             .productId(si.getProductId())
                             .sizeId(si.getSizeId())
@@ -594,21 +591,22 @@ public class OrderServiceImpl implements OrderService {
                         throw new RuntimeException("Size ID is required for product: " + si.getProductId());
                     }
 
+                    // OLD SYNC STOCK DECREASE - REMOVED (now using async Kafka)
                     // SKIP decrease stock cho test products
-                    if (si.getProductId() == null || !si.getProductId().startsWith("test-product-")) {
-                        DecreaseStockRequest dec = new DecreaseStockRequest();
-                        dec.setSizeId(si.getSizeId());
-                        dec.setQuantity(si.getQuantity());
-                        try {
-                            stockServiceClient.decreaseStock(dec);
-                        } catch (Exception e) {
-                            log.warn("[CONSUMER] Failed to decrease stock for product {}: {}", si.getProductId(),
-                                    e.getMessage());
-                            // Continue anyway for test purposes
-                        }
-                    } else {
-                        log.info("[CONSUMER] Skipping stock decrease for test product: {}", si.getProductId());
-                    }
+                    // if (si.getProductId() == null || !si.getProductId().startsWith("test-product-")) {
+                    //     DecreaseStockRequest dec = new DecreaseStockRequest();
+                    //     dec.setSizeId(si.getSizeId());
+                    //     dec.setQuantity(si.getQuantity());
+                    //     try {
+                    //         stockServiceClient.decreaseStock(dec);
+                    //     } catch (Exception e) {
+                    //         log.warn("[CONSUMER] Failed to decrease stock for product {}: {}", si.getProductId(),
+                    //                 e.getMessage());
+                    //         // Continue anyway for test purposes
+                    //     }
+                    // } else {
+                    //     log.info("[CONSUMER] Skipping stock decrease for test product: {}", si.getProductId());
+                    // }
 
                     return OrderItem.builder()
                             .productId(si.getProductId())
@@ -641,27 +639,47 @@ public class OrderServiceImpl implements OrderService {
     private Map<String, List<SelectedItemDto>> groupItemsByShopOwner(List<SelectedItemDto> selectedItems) {
         Map<String, List<SelectedItemDto>> itemsByShop = new LinkedHashMap<>();
 
-        for (SelectedItemDto item : selectedItems) {
-            // ✅ OPTIMIZATION: Skip StockService call for test products
-            if (item.getProductId() != null && item.getProductId().startsWith("test-product-")) {
-                itemsByShop.computeIfAbsent("test-shop-owner", k -> new ArrayList<>()).add(item);
-                continue;
-            }
+        // ✅ STEP 1: Collect all unique product IDs (excluding test products)
+        List<String> productIds = selectedItems.stream()
+            .map(SelectedItemDto::getProductId)
+            .filter(id -> id != null && !id.startsWith("test-product-"))
+            .distinct()
+            .collect(java.util.stream.Collectors.toList());
 
+        // ✅ STEP 2: Fetch ALL products in ONE batch call
+        Map<String, ProductDto> productsMap = new HashMap<>();
+        if (!productIds.isEmpty()) {
             try {
-                ProductDto product = stockServiceClient.getProductById(item.getProductId()).getBody();
-                String shopOwnerId = (product != null && product.getUserId() != null)
-                        ? product.getUserId()
-                        : "unknown";
-                itemsByShop.computeIfAbsent(shopOwnerId, k -> new ArrayList<>()).add(item);
+                BatchGetProductsRequest request = new BatchGetProductsRequest(productIds);
+                ResponseEntity<Map<String, ProductDto>> response = stockServiceClient.batchGetProducts(request);
+                if (response != null && response.getBody() != null) {
+                    productsMap = response.getBody();
+                }
+                log.info("[BATCH-OPTIMIZATION] Fetched {} products in 1 batch call", productsMap.size());
             } catch (Exception e) {
-                log.error("[GROUP-BY-SHOP] Failed to get shop owner for product {}: {}",
-                        item.getProductId(), e.getMessage());
-                itemsByShop.computeIfAbsent("unknown", k -> new ArrayList<>()).add(item);
+                log.error("[BATCH-OPTIMIZATION] Failed to fetch products in batch: {}", e.getMessage());
             }
         }
 
-        log.info("[GROUP-BY-SHOP] Grouped {} items into {} shops", selectedItems.size(), itemsByShop.size());
+        // ✅ STEP 3: Group by shop owner (in-memory, fast)
+        for (SelectedItemDto item : selectedItems) {
+            String shopOwnerId;
+
+            // Handle test products (bypass optimization)
+            if (item.getProductId() != null && item.getProductId().startsWith("test-product-")) {
+                shopOwnerId = "test-shop-owner";
+            } else {
+                ProductDto product = productsMap.get(item.getProductId());
+                shopOwnerId = (product != null && product.getUserId() != null)
+                        ? product.getUserId()
+                        : "unknown";
+            }
+
+            itemsByShop.computeIfAbsent(shopOwnerId, k -> new ArrayList<>()).add(item);
+        }
+
+        log.info("[GROUP-BY-SHOP] Grouped {} items into {} shops using batch API", 
+            selectedItems.size(), itemsByShop.size());
         return itemsByShop;
     }
 
@@ -1420,7 +1438,7 @@ public class OrderServiceImpl implements OrderService {
         // Xử lý từng message trong batch
         for (CheckOutKafkaRequest msg : messages) {
             try {
-                // ==================== VALIDATION (GIỐNG CŨ) ====================
+                // ==================== VALIDATION  ====================
                 if (msg.getAddressId() == null || msg.getAddressId().isBlank()) {
                     continue; // Skip invalid message
                 }
@@ -1428,12 +1446,12 @@ public class OrderServiceImpl implements OrderService {
                     continue;
                 }
                 
-                // Validate sản phẩm và stock (GIỐNG CŨ) - Skip for check
+                // Validate sản phẩm và stock- Skip for check
                 // ... (Validation logic simplified for throughput - assuming valid or caught in loop above if we implemented strict checks)
                 // For this optimization, we assume we keep the loop structure but collect objects.
                 
-                // ==================== FETCH ADDRESS INFO (GIỐNG CŨ) ====================
-                com.example.orderservice.dto.AddressDto addressInfo = null;
+                // ==================== FETCH ADDRESS INFO ====================
+                AddressDto addressInfo = null;
                 // Only fetch address if NOT test address to avoid spamming UserService
                 if (!"test-address-1".equals(msg.getAddressId())) {
                      try {
@@ -1451,22 +1469,19 @@ public class OrderServiceImpl implements OrderService {
                         .build();
                 }
 
-                // ==================== ORDER SPLITTING BY SHOP (GIỐNG CŨ) ====================
+                // ==================== ORDER SPLITTING BY SHOP  ====================
                 Map<String, List<SelectedItemDto>> itemsByShop = groupItemsByShopOwner(msg.getSelectedItems());
                 int totalShops = itemsByShop.size();
-                // log.info("[BATCH-CHECKOUT-CONSUMER] Splitting order into {} separate orders by shop", totalShops);
-
                 double shippingFeePerShop = (msg.getShippingFee() != null ? msg.getShippingFee() : 0.0) / totalShops;
 
-                // Determine which shop the voucher belongs to
-                String voucherShopOwnerId = null; 
-                // Skip voucher check for test to avoid service call speed penalty if needed, or keep it. 
-                // Keeping it as is for logic correctness, but relying on cache or fast service.
+                String voucherShopOwnerId = null;
+
                 if (msg.getVoucherId() != null && !msg.getVoucherId().isBlank()) {
-                     // Warning: this is a sync call
                      try {
                         voucherShopOwnerId = voucherService.getVoucherShopOwnerId(msg.getVoucherId());
-                     } catch(Exception e) {}
+                     } catch(Exception e) {
+
+                     }
                 }
 
                 for (Map.Entry<String, List<SelectedItemDto>> entry : itemsByShop.entrySet()) {
@@ -1557,6 +1572,18 @@ public class OrderServiceImpl implements OrderService {
             orderRepository.saveAll(ordersToSave);
             orderItemRepository.saveAll(orderItemsToSave);
             log.info("[BATCH-CHECKOUT-CONSUMER] Saved successfully! Now processing post-save actions...");
+            
+            // ==================== ASYNC STOCK DECREASE (Phase 3) ====================
+            // Publish stock decrease events to Kafka (non-blocking, returns immediately)
+            // Note: We use orderItemsToSave because order.getOrderItems() is empty in batch mode
+            for (Order savedOrder : ordersToSave) {
+                // Find items for this order
+                List<OrderItem> orderItems = orderItemsToSave.stream()
+                        .filter(item -> item.getOrder().getId().equals(savedOrder.getId()))
+                        .collect(java.util.stream.Collectors.toList());
+                
+                publishStockDecreaseEvent(savedOrder, orderItems);
+            }
             
             // ==================== POST-SAVE ACTIONS (Restore Logic) ====================
             // Thực hiện các action cần order đã được lưu (Notify, GHN, logic khác)
@@ -2364,5 +2391,115 @@ public class OrderServiceImpl implements OrderService {
             return new ArrayList<>();
         }
         return orderRepository.countByStatusForProductIds(productIds);
+    }
+
+    // ==================== PHASE 3: ASYNC STOCK DECREASE ====================
+    
+    /**
+     * Publish stock decrease event to Kafka (async, non-blocking)
+     * Order Service does NOT wait for stock decrease to complete
+     */
+    private void publishStockDecreaseEvent(Order order, List<OrderItem> orderItems) {
+        // Skip for test products
+        boolean isTestOrder = orderItems != null && !orderItems.isEmpty()
+                && orderItems.get(0).getProductId().startsWith("test-product-");
+        if (isTestOrder) {
+            log.info("[ASYNC-STOCK] Skipping stock decrease event for test order: {}", order.getId());
+            return;
+        }
+
+        List<StockDecreaseEvent.StockDecreaseItem> items = orderItems.stream()
+                .map(item -> StockDecreaseEvent.StockDecreaseItem.builder()
+                        .productId(item.getProductId())
+                        .sizeId(item.getSizeId())
+                        .quantity(item.getQuantity())
+                        .build())
+                .collect(java.util.stream.Collectors.toList());
+
+        StockDecreaseEvent event = StockDecreaseEvent.builder()
+                .orderId(order.getId())
+                .userId(order.getUserId())
+                .items(items)
+                .build();
+
+        stockDecreaseKafkaTemplate.send(stockDecreaseTopic.name(), order.getId(), event);
+        log.info("[ASYNC-STOCK] Published stock decrease event for order: {} ({} items)", 
+            order.getId(), items.size());
+    }
+
+    /**
+     * Handle order compensation when stock decrease fails
+     * Cancel order + refund + notify user
+     */
+    @org.springframework.kafka.annotation.KafkaListener(
+        topics = "${kafka.topic.order-compensation}",
+        groupId = "order-service-compensation",
+        containerFactory = "compensationListenerFactory"
+    )
+    @Transactional
+    public void handleOrderCompensation(OrderCompensationEvent event) {
+        log.warn("[COMPENSATION] Received compensation event for order: {} - Reason: {}", 
+            event.getOrderId(), event.getReason());
+        
+        try {
+            // 1. Find order
+            Order order = orderRepository.findById(event.getOrderId())
+                    .orElseThrow(() -> new RuntimeException("Order not found: " + event.getOrderId()));
+            
+            // 2. Cancel order
+            order.setOrderStatus(OrderStatus.CANCELLED);
+            orderRepository.save(order);
+            
+            // 3. Refund if payment was made
+            if ("VNPAY".equalsIgnoreCase(order.getPaymentMethod()) || 
+                "MOMO".equalsIgnoreCase(order.getPaymentMethod())) {
+                refundToWallet(order, event.getDetails());
+            }
+            
+            // 4. Notify user
+            notifyOrderCancelled(order, event.getDetails());
+            
+            log.info("[COMPENSATION] Order {} cancelled successfully. Reason: {}",  
+                order.getId(), event.getDetails());
+            
+        } catch (Exception e) {
+            log.error("[COMPENSATION] Failed to compensate order {}: {}", 
+                event.getOrderId(), e.getMessage());
+        }
+    }
+
+    private void refundToWallet(Order order, String reason) {
+        try {
+            AddRefundRequestDto refundRequest = AddRefundRequestDto.builder()
+                .userId(order.getUserId())
+                .orderId(order.getId())
+                .amount(java.math.BigDecimal.valueOf(order.getTotalPrice()))
+                .reason(String.format("Order %s cancelled - %s", order.getId().substring(0, 8), reason))
+                .build();
+            
+            userServiceClient.addRefundToWallet(refundRequest);
+            log.info("[REFUND] Refunded {} to user {} for order {}", 
+                order.getTotalPrice(), order.getUserId(), order.getId());
+        } catch (Exception e) {
+            log.error("[REFUND] Failed to refund order {}: {}", order.getId(), e.getMessage());
+        }
+    }
+
+    private void notifyOrderCancelled(Order order, String reason) {
+        SendNotificationRequest notification = SendNotificationRequest.builder()
+                .userId(order.getUserId())
+                .shopId(order.getUserId())
+                .orderId(order.getId())
+                .message(String.format(
+                        "Đơn hàng #%s đã bị hủy do hết hàng. Số tiền %.0f₫ đã được hoàn vào ví. Lý do: %s",
+                        order.getId().substring(0, 8).toUpperCase(),
+                        order.getTotalPrice(),
+                        reason
+                ))
+                .isShopOwnerNotification(false)
+                .build();
+
+        kafkaTemplateSend.send(notificationTopic.name(), order.getUserId(), notification);
+        log.info("[COMPENSATION-NOTIFY] Sent cancellation notification to user {}", order.getUserId());
     }
 }

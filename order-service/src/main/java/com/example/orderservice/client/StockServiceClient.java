@@ -1,9 +1,7 @@
 package com.example.orderservice.client;
 
 import com.example.orderservice.config.FeignConfig;
-import com.example.orderservice.dto.CartDto;
-import com.example.orderservice.dto.ProductDto;
-import com.example.orderservice.dto.SizeDto;
+import com.example.orderservice.dto.*;
 import com.example.orderservice.request.DecreaseStockRequest;
 import com.example.orderservice.request.RemoveCartItemRequest;
 import com.example.orderservice.request.RemoveCartItemByUserIdRequest;
@@ -61,4 +59,13 @@ public interface StockServiceClient {
 
     @GetMapping(value = "/analytics/system/cart-adds", headers = "X-Internal-Call=true")
     ResponseEntity<Long> getSystemAddToCart();
+
+    // Batch API methods for performance optimization
+    @PostMapping(value = "/product/batch-get", headers = "X-Internal-Call=true")
+    ResponseEntity<java.util.Map<String, ProductDto>> batchGetProducts(
+        @RequestBody BatchGetProductsRequest request);
+
+    @PostMapping(value = "/product/batch-decrease", headers = "X-Internal-Call=true")
+    ResponseEntity<java.util.Map<String, Boolean>> batchDecreaseStock(
+        @RequestBody BatchDecreaseStockRequest request);
 }

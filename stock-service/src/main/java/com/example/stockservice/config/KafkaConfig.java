@@ -1,7 +1,9 @@
 package com.example.stockservice.config;
 
 import com.example.stockservice.dto.analytics.BehaviorEventDto;
+import com.example.stockservice.event.OrderCompensationEvent;
 import com.example.stockservice.event.ProductUpdateKafkaEvent;
+import com.example.stockservice.event.StockDecreaseEvent;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -32,6 +34,12 @@ public class KafkaConfig {
 
     @Value("${spring.kafka.consumer.group-id}")
     private String groupId;
+
+    @Value("${kafka.topic.stock-decrease}")
+    private String stockDecreaseTopic;
+
+    @Value("${kafka.topic.order-compensation}")
+    private String orderCompensationTopic;
 
     @Bean
     public NewTopic productUpdatesTopic() {
@@ -121,5 +129,51 @@ public class KafkaConfig {
         factory.setConsumerFactory(analyticsConsumerFactory());
         factory.setConcurrency(10);  // 10 concurrent consumers for high throughput
         return factory;
+    }
+
+    // ==================== PHASE 3: ASYNC STOCK DECREASE ====================
+
+    // Consumer Factory for StockDecreaseEvent
+    @Bean
+    public ConsumerFactory<String, com.example.stockservice.event.StockDecreaseEvent> stockDecreaseConsumerFactory() {
+        Map<String, Object> props = new HashMap<>();
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId + "-stock-decrease");
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
+        props.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
+        props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, com.example.stockservice.event.StockDecreaseEvent.class);
+        props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, false); // CRITICAL: Ignore producer's type header
+        // Batch processing
+        props.put(ConsumerConfig.FETCH_MIN_BYTES_CONFIG, 10240);
+        props.put(ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG, 100);
+        props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 500);
+        return new DefaultKafkaConsumerFactory<>(props);
+    }
+
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, com.example.stockservice.event.StockDecreaseEvent> 
+        stockDecreaseListenerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, StockDecreaseEvent> factory =
+                new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(stockDecreaseConsumerFactory());
+        factory.setConcurrency(10);
+        factory.setBatchListener(true); // Batch processing
+        return factory;
+    }
+
+    // Producer Factory for OrderCompensationEvent
+    @Bean
+    public ProducerFactory<String, OrderCompensationEvent> compensationProducerFactory() {
+        Map<String, Object> configProps = new HashMap<>();
+        configProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        configProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+        configProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
+        return new DefaultKafkaProducerFactory<>(configProps);
+    }
+
+    @Bean
+    public KafkaTemplate<String, com.example.stockservice.event.OrderCompensationEvent> compensationKafkaTemplate() {
+        return new KafkaTemplate<>(compensationProducerFactory());
     }
 }

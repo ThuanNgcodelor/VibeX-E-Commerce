@@ -35,4 +35,8 @@ public interface ProductRepository extends JpaRepository<Product, String> {
 
     @Query("SELECT p.category.name, COUNT(p) FROM products p WHERE p.userId = :userId GROUP BY p.category.name")
     List<Object[]> countProductsByCategory(@Param("userId") String userId);
+
+    // Batch API: Fetch multiple products in one query
+    @Query("SELECT p FROM products p LEFT JOIN FETCH p.sizes WHERE p.id IN :ids")
+    List<Product> findAllByIdIn(@Param("ids") List<String> ids);
 }

@@ -1,5 +1,7 @@
 package com.example.stockservice.controller;
 
+import com.example.stockservice.dto.BatchDecreaseStockRequest;
+import com.example.stockservice.dto.BatchGetProductsRequest;
 import com.example.stockservice.dto.ProductDto;
 import com.example.stockservice.jwt.JwtUtil;
 import com.example.stockservice.model.FlashSaleProduct;
@@ -283,6 +285,37 @@ public class ProductController {
             map.put("count", row[1]);
             return map;
         }).collect(Collectors.toList());
+        return ResponseEntity.ok(result);
+    }
+
+    // ==================== BATCH API ENDPOINTS ====================
+    
+    /**
+     * Batch get products by IDs
+     * Optimized for Order Service to fetch multiple products in one call
+     * 
+     * @param request List of product IDs
+     * @return Map of productId -> ProductDto
+     */
+    @PostMapping("/batch-get")
+    public ResponseEntity<Map<String, ProductDto>> batchGetProducts(
+            @RequestBody BatchGetProductsRequest request) {
+        Map<String, ProductDto> result =
+            productService.batchGetProducts(request.getProductIds());
+        return ResponseEntity.ok(result);
+    }
+    
+    /**
+     * Batch decrease stock for multiple products
+     * Optimized for Order Service to process multiple items in one transaction
+     * 
+     * @param request List of items with productId, sizeId, quantity
+     * @return Map of productId -> success/failure
+     */
+    @PostMapping("/batch-decrease")
+    public ResponseEntity<Map<String, Boolean>> batchDecreaseStock(
+            @RequestBody BatchDecreaseStockRequest request) {
+        Map<String, Boolean> result = productService.batchDecreaseStock(request.getItems());
         return ResponseEntity.ok(result);
     }
 

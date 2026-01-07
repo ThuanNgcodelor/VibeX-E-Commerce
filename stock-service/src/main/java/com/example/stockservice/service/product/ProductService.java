@@ -1,5 +1,6 @@
 package com.example.stockservice.service.product;
 
+import com.example.stockservice.dto.BatchDecreaseStockRequest;
 import com.example.stockservice.model.Product;
 import com.example.stockservice.request.product.ProductCreateRequest;
 import com.example.stockservice.request.product.ProductUpdateRequest;
@@ -44,4 +45,9 @@ public interface ProductService {
     long countProductsByUserIdAndStatus(String userId, com.example.stockservice.enums.ProductStatus status);
 
     List<Object[]> getProductsByCategory(String userId);
+
+    // Batch API methods for performance optimization
+    java.util.Map<String, com.example.stockservice.dto.ProductDto> batchGetProducts(List<String> productIds);
+    
+    java.util.Map<String, Boolean> batchDecreaseStock(List<BatchDecreaseStockRequest.DecreaseStockItem> items);
 }
