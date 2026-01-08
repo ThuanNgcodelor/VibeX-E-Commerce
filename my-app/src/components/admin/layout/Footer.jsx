@@ -18,6 +18,7 @@ const Footer = () => {
                   PetCare Team
                 </a>
               </b>
+              <span id="version-ruangadmin" style={{ display: 'none' }}></span>
             </span>
           </div>
         </div>

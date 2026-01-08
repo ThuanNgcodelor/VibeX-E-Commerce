@@ -23,9 +23,9 @@ public class LedgerReconciliationService {
      * Periodically check for COMPLETED orders that might have been missed by the
      * event triggers
      * (e.g. direct DB updates or failures).
-     * Runs every 60 seconds.
+     * Runs every 10 seconds.
      */
-    @Scheduled(fixedRate = 60000)
+    @Scheduled(fixedRate = 10000)
     @Transactional
     public void reconcileMissedEarnings() {
         log.info("[Ledger Reconciliation] Starting reconciliation scan...");

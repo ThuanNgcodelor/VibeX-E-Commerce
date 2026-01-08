@@ -61,6 +61,7 @@ import AdminFlashSale from "./components/admin/flashsale/AdminFlashSale.jsx";
 import FlashSale from "./components/client/FlashSale.jsx";
 import ShopFlashSale from "./components/shop-owner/flashsale/ShopFlashSale.jsx";
 import ShopDecorationPage from "./pages/shop-owner/ShopDecorationPage.jsx";
+import AdminWalletPage from "./pages/admin/AdminWalletPage.jsx";
 
 // Component to scroll to top on route change
 function ScrollToTop() {
@@ -166,6 +167,7 @@ export default function App() {
             <Route path="subscription" element={<SubscriptionPlanManagementPage />} />
             <Route path="ads" element={<AdManagement />} />
             <Route path="coins" element={<CoinManagement />} />
+            <Route path="wallet" element={<AdminWalletPage />} />
             <Route path="suspicious-activity" element={<SuspiciousActivityPage />} />
             <Route path="logout" element={<Logout />} />
           </Route>

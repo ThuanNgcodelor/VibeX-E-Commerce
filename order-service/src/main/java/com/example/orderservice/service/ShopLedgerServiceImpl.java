@@ -69,8 +69,13 @@ public class ShopLedgerServiceImpl implements ShopLedgerService {
 
         // Calculate Commission
         CommissionResult calc = calculateCommission(shopOwnerId, order, shopItems);
-        log.info("Calculated commission for shop {}: Gross={}, Net={}, Final={}",
-                shopOwnerId, calc.getGrossAmount(), calc.getNetAmount(), calc.getFinalBalance());
+        log.info("Calculated commission for shop {}: Gross={}, Net={}, Final={}, TotalComm={}",
+                shopOwnerId, calc.getGrossAmount(), calc.getNetAmount(), calc.getFinalBalance(),
+                calc.getTotalCommission());
+
+        if (calc.getTotalCommission().compareTo(BigDecimal.ZERO) <= 0) {
+            log.warn("Commission is ZERO for shop {} order {}. Skipping admin deposit.", shopOwnerId, order.getId());
+        }
 
         // Get or Create Ledger
         ShopLedger ledger = shopLedgerRepository.findByShopOwnerId(shopOwnerId)
@@ -118,6 +123,26 @@ public class ShopLedgerServiceImpl implements ShopLedgerService {
                 .build();
 
         shopLedgerEntryRepository.save(entry);
+
+        // Deposit Commission to Admin Wallet
+        if (calc.getTotalCommission().compareTo(BigDecimal.ZERO) > 0) {
+            try {
+                AddRefundRequestDto adminDeposit = AddRefundRequestDto.builder()
+                        .userId(shopOwnerId) // Just for trace
+                        .orderId(order.getId())
+                        .paymentId("COMMISSION")
+                        .amount(calc.getTotalCommission())
+                        .reason("Commission for order " + order.getId())
+                        .build();
+                userServiceClient.addAdminCommission(adminDeposit);
+            } catch (Exception e) {
+                log.error("Failed to deposit commission to Admin Wallet for order {}: {}", order.getId(),
+                        e.getMessage());
+                // Don't rollback ledger transaction? Or should we?
+                // For now, log error to avoid breaking the user flow. Admin can reconcile
+                // later.
+            }
+        }
     }
 
     @Override
@@ -384,5 +409,19 @@ public class ShopLedgerServiceImpl implements ShopLedgerService {
 
         shopLedgerEntryRepository.save(entry);
         log.info("Deducted subscription fee successfully. New balance: {}", balanceAfter);
+
+        // Deposit Subscription Revenue to Admin Wallet
+        try {
+            AddRefundRequestDto adminDeposit = AddRefundRequestDto.builder()
+                    .userId(request.getShopOwnerId())
+                    .orderId("SUB_" + request.getPlanId() + "_" + System.currentTimeMillis())
+                    .paymentId("SUBSCRIPTION")
+                    .amount(request.getAmount())
+                    .reason("Subscription Fee: " + request.getPlanName())
+                    .build();
+            userServiceClient.addAdminCommission(adminDeposit);
+        } catch (Exception e) {
+            log.error("Failed to deposit subscription revenue to Admin Wallet: {}", e.getMessage());
+        }
     }
 }

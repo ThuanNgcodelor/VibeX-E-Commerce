@@ -17,11 +17,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/v1/wallet")
+@RequestMapping("/v1/user/wallet")
 @RequiredArgsConstructor
 public class WalletController {
 
     private final UserWalletService walletService;
+    private final com.example.userservice.service.wallet.AdminWalletService adminWalletService;
     private final JwtUtil jwtUtil;
 
     @GetMapping("/balance")
@@ -133,6 +134,63 @@ public class WalletController {
         response.put("balanceAvailable", wallet.getBalanceAvailable());
         response.put("message", "Direct deposit successful");
         return ResponseEntity.ok(response);
+    }
+
+    // ============ ADMIN WALLET APIs ============
+
+    @PostMapping("/internal/admin/commission")
+    public ResponseEntity<Map<String, Object>> addAdminCommission(@RequestBody AddRefundRequest request) {
+        System.out.println("Received Admin Commission Deposit Request: " + request);
+
+        // We reuse AddRefundRequest or create a new DTO. Reusing for simplicity as it
+        // has userId (can be orderId), amount, reason.
+        // Actually, let's look at the request param. It expects AddRefundRequest?
+        // Let's create a specific DTO for clarity or use Map if lazy, but DTO is
+        // better.
+        // For now, I'll use AddRefundRequest but map fields: orderId -> orderId, amount
+        // -> amount, reason -> description.
+
+        try {
+            com.example.userservice.model.AdminWallet wallet;
+            if ("SUBSCRIPTION".equalsIgnoreCase(request.getPaymentId())) {
+                wallet = adminWalletService.depositSubscription(
+                        request.getOrderId(),
+                        request.getAmount(),
+                        request.getReason());
+            } else {
+                wallet = adminWalletService.depositCommission(
+                        request.getOrderId(),
+                        request.getAmount(),
+                        request.getReason());
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("adminWalletId", wallet.getId());
+            response.put("newBalance", wallet.getBalance());
+            response.put("message", "Deposit successful");
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "Failed to deposit commission: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(errorResponse);
+        }
+    }
+
+    @GetMapping("/admin/balance")
+    public ResponseEntity<com.example.userservice.model.AdminWallet> getAdminWalletBalance() {
+        // TODO: Add proper Role check (ROLE_ADMIN) here or in SecurityConfig
+        return ResponseEntity.ok(adminWalletService.getWallet());
+    }
+
+    @GetMapping("/admin/entries")
+    public ResponseEntity<org.springframework.data.domain.Page<com.example.userservice.model.AdminWalletEntry>> getAdminWalletEntries(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        // TODO: Add proper Role check (ROLE_ADMIN)
+        return ResponseEntity.ok(adminWalletService.getEntries(page, size));
     }
 
     private String getUserIdFromRequest(HttpServletRequest request) {

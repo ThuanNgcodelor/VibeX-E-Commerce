@@ -165,6 +165,17 @@ const Sidebar = () => {
                     <span>Subscription</span>
                 </Link>
             </li>
+
+            {/* Wallet */}
+            <li className="nav-item-ezmart">
+                <Link
+                    className={`nav-link-ezmart ${isActive("/admin/wallet") ? "active" : ""}`}
+                    to="/admin/wallet"
+                >
+                    <i className="fas fa-wallet"></i>
+                    <span>Wallet</span>
+                </Link>
+            </li>
             {/* Logout */}
             <li className="nav-item-ezmart">
                 <Link

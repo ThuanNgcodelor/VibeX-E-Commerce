@@ -27,7 +27,7 @@ public interface UserServiceClient {
         @GetMapping("/user/shop-owners/{userId}")
         ResponseEntity<ShopOwnerDto> getShopOwnerByUserId(@PathVariable String userId);
 
-        @PostMapping("/wallet/internal/refund")
+        @PostMapping("/user/wallet/internal/refund")
         ResponseEntity<Map<String, Object>> addRefundToWallet(
                         @RequestBody AddRefundRequestDto request);
 
@@ -37,4 +37,7 @@ public interface UserServiceClient {
 
         @GetMapping("/user/stats/count")
         ResponseEntity<Long> countActiveUsers();
+
+        @PostMapping("/user/wallet/internal/admin/commission")
+        ResponseEntity<Map<String, Object>> addAdminCommission(@RequestBody AddRefundRequestDto request);
 }

@@ -1,6 +1,6 @@
 import createApiInstance from "./createApiInstance.js";
 
-const API_URL = "/v1/wallet";
+const API_URL = "/v1/user/wallet";
 const api = createApiInstance(API_URL);
 
 export const getUserWallet = async () => {
