@@ -16,4 +16,5 @@ public interface FileStorageClient {
 
     @GetMapping("/get/{id}")
     ResponseEntity<byte[]> getImageById(@PathVariable String id);
+
 }

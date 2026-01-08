@@ -4,7 +4,10 @@ import Header from '../../components/client/Header';
 import Footer from '../../components/client/Footer';
 import { getLiveRooms } from '../../api/live';
 
+import { useTranslation } from 'react-i18next'; // Added import
+
 export default function LiveListPage() {
+    const { t } = useTranslation(); // Added hook
     const [liveRooms, setLiveRooms] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -44,7 +47,7 @@ export default function LiveListPage() {
                             🔴 Shopee Live
                         </h1>
                         <p style={{ margin: '10px 0 0', opacity: 0.9 }}>
-                            Xem livestream và mua sắm cùng các shop yêu thích
+                            {t('liveStream.list.subtitle')}
                         </p>
                     </div>
 
@@ -69,7 +72,7 @@ export default function LiveListPage() {
                                 <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#ee4d2d' }}>
                                     {liveRooms.length}
                                 </div>
-                                <div style={{ fontSize: '12px', color: '#666' }}>Đang Live</div>
+                                <div style={{ fontSize: '12px', color: '#666' }}>{t('liveStream.list.liveNow')}</div>
                             </div>
                         </div>
                     </div>
@@ -85,7 +88,7 @@ export default function LiveListPage() {
                             <div className="spinner-border text-danger" role="status">
                                 <span className="visually-hidden">Loading...</span>
                             </div>
-                            <p style={{ marginTop: '10px', color: '#666' }}>Đang tải...</p>
+                            <p style={{ marginTop: '10px', color: '#666' }}>{t('liveStream.list.loading')}</p>
                         </div>
                     ) : liveRooms.length === 0 ? (
                         <div style={{
@@ -96,10 +99,10 @@ export default function LiveListPage() {
                         }}>
                             <div style={{ fontSize: '60px', marginBottom: '20px' }}>📺</div>
                             <h3 style={{ color: '#333', marginBottom: '10px' }}>
-                                Chưa có shop nào đang live
+                                {t('liveStream.list.emptyTitle')}
                             </h3>
                             <p style={{ color: '#666' }}>
-                                Hãy quay lại sau nhé!
+                                {t('liveStream.list.emptySubtitle')}
                             </p>
                         </div>
                     ) : (
@@ -121,6 +124,7 @@ export default function LiveListPage() {
 }
 
 function LiveRoomCard({ room }) {
+    const { t } = useTranslation();
     return (
         <Link
             to={`/live/${room.id}`}
@@ -203,7 +207,7 @@ function LiveRoomCard({ room }) {
                         alignItems: 'center',
                         gap: '5px'
                     }}>
-                        👁 {room.viewerCount || 0} đang xem
+                        {t('liveStream.list.viewerCount', { count: room.viewerCount || 0 })}
                     </div>
                 </div>
 

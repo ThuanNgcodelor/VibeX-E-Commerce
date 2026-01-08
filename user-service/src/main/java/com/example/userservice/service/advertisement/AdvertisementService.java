@@ -103,8 +103,14 @@ public class AdvertisementService {
     }
 
     public List<Advertisement> getActiveAds(String placement) {
-        List<Advertisement> approvedAds = advertisementRepository.findByPlacementAndStatus(placement,
-                AdvertisementStatus.APPROVED);
+        List<Advertisement> approvedAds;
+        if (placement == null || placement.isEmpty() || "ALL".equalsIgnoreCase(placement)
+                || "BANNER".equalsIgnoreCase(placement)) {
+            // If placement is generic or ALL, fetch ALL approved ads to randomize
+            approvedAds = advertisementRepository.findByStatus(AdvertisementStatus.APPROVED);
+        } else {
+            approvedAds = advertisementRepository.findByPlacementAndStatus(placement, AdvertisementStatus.APPROVED);
+        }
         LocalDateTime now = LocalDateTime.now();
         return approvedAds.stream()
                 .filter(ad -> ad.getEndDate() == null || ad.getEndDate().isAfter(now))

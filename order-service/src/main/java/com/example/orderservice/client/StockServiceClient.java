@@ -60,6 +60,9 @@ public interface StockServiceClient {
     @GetMapping(value = "/analytics/system/cart-adds", headers = "X-Internal-Call=true")
     ResponseEntity<Long> getSystemAddToCart();
 
+    @GetMapping(value = "/flash-sale/available-stock/{productId}", headers = "X-Internal-Call=true")
+    int getFlashSaleStock(@PathVariable String productId);
+
     // Batch API methods for performance optimization
     @PostMapping(value = "/product/batch-get", headers = "X-Internal-Call=true")
     ResponseEntity<java.util.Map<String, ProductDto>> batchGetProducts(

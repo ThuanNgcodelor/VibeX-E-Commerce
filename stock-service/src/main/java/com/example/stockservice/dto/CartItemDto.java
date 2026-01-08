@@ -15,16 +15,18 @@ public class CartItemDto {
     private String productName;
     private String imageId;
     private String cartId;
-    private String sizeId;     
+    private String sizeId;
     private String sizeName;
-    
+
     private ProductDto product;
     private SizeDto size;
-    
+
     // Data sync fields - Refresh on View
-    private Boolean priceChanged;       // Flag giá đã thay đổi
-    private Double oldPrice;            // Giá cũ (khi priceChanged = true)
-    private Integer availableStock;     // Số lượng còn trong kho
-    private Boolean productAvailable;   // Sản phẩm còn tồn tại không
-    private Boolean sizeAvailable;      // Size còn tồn tại không
+    private Boolean priceChanged; // Flag giá đã thay đổi
+    private Double oldPrice; // Giá cũ (khi priceChanged = true)
+    private Integer availableStock; // Số lượng còn trong kho
+    private Boolean productAvailable; // Sản phẩm còn tồn tại không
+    private Boolean sizeAvailable; // Size còn tồn tại không
+    @com.fasterxml.jackson.annotation.JsonProperty("isFlashSale")
+    private Boolean flashSale;
 }

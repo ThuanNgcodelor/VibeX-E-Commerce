@@ -1,0 +1,64 @@
+{
+    "content":  [
+                    {
+                        "id":  "043a44d6-d0c5-46b8-9eb5-b2ee4246cf01",
+                        "name":  "B??m Ph??m ROG",
+                        "description":  "\u003cp\u003e123\u003c/p\u003e",
+                        "price":  1000000.0,
+                        "originalPrice":  1550000.0,
+                        "discountPercent":  35.48,
+                        "status":  "IN_STOCK",
+                        "imageId":  "eb7d3503-430b-4c31-87f1-b7162739a467",
+                        "imageIds":  [
+                                         "eb7d3503-430b-4c31-87f1-b7162739a467",
+                                         "aad8805f-9c36-4fad-95e3-86f57cebdb6f",
+                                         "ff1273a0-421a-461a-bab7-484d643d08eb"
+                                     ],
+                        "userId":  "c0539065-6112-44fa-b40c-eec6a39577c8",
+                        "category":  {
+                                         "id":  "c976159b-e1ca-47c6-bd42-ac5f714548ab",
+                                         "name":  "B??m Ph??m",
+                                         "description":  "????? c??ng ngh???"
+                                     },
+                        "categoryName":  "B??m Ph??m",
+                        "categoryId":  "c976159b-e1ca-47c6-bd42-ac5f714548ab",
+                        "sizes":  [
+                                      {
+                                          "id":  "28561689-a200-4dc1-bcfb-d9e8f847da2a",
+                                          "name":  "M??u ??en",
+                                          "description":  "123",
+                                          "stock":  10,
+                                          "priceModifier":  1000000.0,
+                                          "weight":  500
+                                      }
+                                  ],
+                        "totalStock":  10,
+                        "attributeJson":  "{}",
+                        "attributes":  {
+
+                                       },
+                        "createdAt":  "2025-12-26T20:26:04.251918"
+                    }
+                ],
+    "pageable":  {
+                     "pageNumber":  0,
+                     "pageSize":  1,
+                     "sort":  [
+
+                              ],
+                     "offset":  0,
+                     "paged":  true,
+                     "unpaged":  false
+                 },
+    "last":  false,
+    "totalElements":  7,
+    "totalPages":  7,
+    "size":  1,
+    "number":  0,
+    "sort":  [
+
+             ],
+    "numberOfElements":  1,
+    "first":  true,
+    "empty":  false
+}

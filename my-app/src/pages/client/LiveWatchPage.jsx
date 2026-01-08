@@ -11,8 +11,10 @@ import { fetchProductById } from '../../api/product';
 import { getUser } from '../../api/user';
 import { LOCAL_BASE_URL } from '../../config/config.js';
 
+import { useTranslation } from 'react-i18next'; // Added import
+
 export default function LiveWatchPage() {
-    const { roomId } = useParams();
+    const { t } = useTranslation(); // Added hook
     const navigate = useNavigate();
     const videoRef = useRef(null);
     const chatContainerRef = useRef(null);
@@ -154,7 +156,7 @@ export default function LiveWatchPage() {
                         console.error('HLS Error:', data);
                         // Don't show error if stream just hasn't started yet
                         if (room.status === 'LIVE') {
-                            setError('Không thể kết nối đến stream. Vui lòng thử lại.');
+                            setError(t('liveStream.watch.connectError'));
                         }
                     }
                 });
@@ -172,7 +174,7 @@ export default function LiveWatchPage() {
             setRoom(data);
             setViewerCount(data.viewerCount || 0);
         } catch (err) {
-            setError('Không tìm thấy phòng live');
+            setError(t('liveStream.watch.roomNotFound'));
         } finally {
             setLoading(false);
         }
@@ -212,7 +214,7 @@ export default function LiveWatchPage() {
     // Open Size Modal
     const handleOpenSizeModal = async (product) => {
         if (!isLoggedIn) {
-            alert('Vui lòng đăng nhập để mua hàng');
+            alert(t('liveStream.watch.loginRequired'));
             return;
         }
         setSelectedLiveProduct(product);
@@ -240,7 +242,7 @@ export default function LiveWatchPage() {
     // Confirm Add to Cart
     const handleConfirmAddToCart = async () => {
         if (!selectedSizeId) {
-            alert("Vui lòng chọn phân loại hàng");
+            alert(t('liveStream.watch.selectVariation'));
             return;
         }
         if (!selectedLiveProduct) return;
@@ -256,12 +258,12 @@ export default function LiveWatchPage() {
                 livePrice: selectedLiveProduct.livePrice,
                 originalPrice: selectedLiveProduct.originalPrice
             });
-            alert('Đã thêm vào giỏ hàng!');
+            alert(t('liveStream.watch.addedToCart'));
             setShowSizeModal(false);
             // navigate('/cart'); // Optional: user might want to stay in live stream
         } catch (err) {
             console.error('Error adding to cart:', err);
-            alert('Không thể thêm vào giỏ hàng');
+            alert(t('liveStream.watch.addToCartError'));
         } finally {
             setAddingToCart(null);
         }
@@ -364,9 +366,9 @@ export default function LiveWatchPage() {
                     height: '60vh'
                 }}>
                     <div style={{ fontSize: '60px', marginBottom: '20px' }}>😢</div>
-                    <h2>{error || 'Không tìm thấy phòng live'}</h2>
+                    <h2>{error || t('liveStream.watch.roomNotFound')}</h2>
                     <Link to="/live" className="btn btn-danger mt-3">
-                        ← Quay lại danh sách Live
+                        {t('liveStream.watch.backToList')}
                     </Link>
                 </div>
                 <Footer />
@@ -450,7 +452,7 @@ export default function LiveWatchPage() {
                                 fontSize: '13px',
                                 zIndex: 10
                             }}>
-                                👁 {viewerCount} đang xem
+                                {t('liveStream.watch.viewerCount', { count: viewerCount })}
                             </div>
 
                             {/* Floating Reactions Overlay */}
@@ -529,7 +531,7 @@ export default function LiveWatchPage() {
                                         to={`/shop/${room.shopOwnerId}`}
                                         style={{ color: '#ee4d2d', fontSize: '13px' }}
                                     >
-                                        Xem Shop →
+                                        {t('liveStream.watch.viewShop')}
                                     </Link>
                                 </div>
                             </div>
@@ -554,7 +556,7 @@ export default function LiveWatchPage() {
                                 marginTop: '15px'
                             }}>
                                 <h3 style={{ color: 'white', fontSize: '16px', margin: '0 0 15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    🛍️ Sản phẩm đang Live
+                                    {t('liveStream.watch.productsLive')}
                                     <span style={{ background: '#ee4d2d', color: 'white', fontSize: '11px', padding: '2px 8px', borderRadius: '10px' }}>
                                         {products.length}
                                     </span>
@@ -602,7 +604,7 @@ export default function LiveWatchPage() {
                                                         borderRadius: '3px',
                                                         fontWeight: '600'
                                                     }}>
-                                                        HOT
+                                                        {t('liveStream.watch.hot')}
                                                     </div>
                                                 )}
                                                 {product.discountPercent > 0 && (
@@ -636,7 +638,7 @@ export default function LiveWatchPage() {
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
                                                     {product.isOutOfStock ? (
                                                         <span style={{ color: '#999', fontSize: '13px', fontWeight: '600' }}>
-                                                            ❌ Hết hàng
+                                                            {t('liveStream.watch.outOfStock')}
                                                         </span>
                                                     ) : (
                                                         <>
@@ -658,7 +660,7 @@ export default function LiveWatchPage() {
                                                 {/* Remaining Quantity */}
                                                 {!product.isOutOfStock && product.remainingQuantity != null && (
                                                     <div style={{ fontSize: '11px', color: '#ffc107', marginBottom: '10px' }}>
-                                                        Còn lại: {product.remainingQuantity}/{product.quantityLimit}
+                                                        {t('liveStream.watch.remaining', { count: product.remainingQuantity, limit: product.quantityLimit })}
                                                     </div>
                                                 )}
                                                 <button
@@ -702,7 +704,7 @@ export default function LiveWatchPage() {
                             color: 'white',
                             fontWeight: '600'
                         }}>
-                            💬 Chat trực tiếp
+                            {t('liveStream.watch.chatHeader')}
                         </div>
 
 
@@ -725,7 +727,7 @@ export default function LiveWatchPage() {
                                     textAlign: 'center',
                                     marginTop: '50px'
                                 }}>
-                                    Chưa có tin nhắn nào
+                                    {t('liveStream.watch.noMessages')}
                                 </div>
                             ) : (
                                 messages.map((msg, index) => (
@@ -774,7 +776,7 @@ export default function LiveWatchPage() {
                                         value={chatInput}
                                         onChange={(e) => setChatInput(e.target.value)}
                                         onKeyPress={(e) => e.key === 'Enter' && sendChat()}
-                                        placeholder="Nhập bình luận..."
+                                        placeholder={t('liveStream.watch.chatPlaceholder')}
                                         style={{
                                             flex: 1,
                                             background: '#444',
@@ -800,7 +802,7 @@ export default function LiveWatchPage() {
                                             fontWeight: '600'
                                         }}
                                     >
-                                        Gửi
+                                        {t('liveStream.watch.send')}
                                     </button>
                                 </div>
                             ) : (
@@ -817,7 +819,7 @@ export default function LiveWatchPage() {
                                         textAlign: 'center'
                                     }}
                                 >
-                                    Đăng nhập để chat...
+                                    {t('liveStream.watch.loginToChat')}
                                 </Link>
                             )}
                         </div>
@@ -854,7 +856,7 @@ export default function LiveWatchPage() {
                         background: '#333', padding: '20px', borderRadius: '8px',
                         width: '90%', maxWidth: '400px', color: 'white'
                     }}>
-                        <h3 style={{ marginTop: 0 }}>Chọn phân loại hàng</h3>
+                        <h3 style={{ marginTop: 0 }}>{t('liveStream.watch.selectSizeTitle')}</h3>
 
                         <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
                             {selectedLiveProduct.productImageUrl && (
@@ -867,7 +869,7 @@ export default function LiveWatchPage() {
                         </div>
 
                         {loadingSizes ? (
-                            <div>Đang tải thông tin...</div>
+                            <div>{t('liveStream.watch.loadingInfo')}</div>
                         ) : (
                             <div style={{ marginBottom: '20px' }}>
                                 <div style={{ marginBottom: '8px', fontSize: '14px', color: '#ccc' }}>Kích thước:</div>
@@ -907,7 +909,7 @@ export default function LiveWatchPage() {
                                     color: 'white', cursor: 'pointer'
                                 }}
                             >
-                                Hủy
+                                {t('liveStream.watch.cancel')}
                             </button>
                             <button
                                 onClick={handleConfirmAddToCart}
@@ -920,7 +922,7 @@ export default function LiveWatchPage() {
                                     fontWeight: 'bold'
                                 }}
                             >
-                                {addingToCart ? 'Đang thêm...' : 'Thêm vào giỏ'}
+                                {addingToCart ? t('liveStream.watch.adding') : t('liveStream.watch.addToCart')}
                             </button>
                         </div>
                     </div>
@@ -988,7 +990,7 @@ function ChatMessage({ message }) {
                                 borderRadius: '3px',
                                 fontWeight: '600'
                             }}>
-                                CHỦ SHOP
+                                {t('liveStream.watch.shopOwner')}
                             </span>
                         )}
                     </div>

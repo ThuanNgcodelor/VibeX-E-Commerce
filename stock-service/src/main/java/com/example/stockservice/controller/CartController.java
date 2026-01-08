@@ -231,8 +231,12 @@ public class CartController {
         dto.setOldPrice(cartItem.getOldPrice());
         dto.setAvailableStock(cartItem.getAvailableStock());
         dto.setProductAvailable(cartItem.getProductAvailable());
+        dto.setProductAvailable(cartItem.getProductAvailable());
         dto.setSizeAvailable(cartItem.getSizeAvailable());
-
+        dto.setFlashSale(cartItem.isFlashSale());
+        System.out.println("CartController mapToDto: itemId=" + cartItem.getId() +
+                ", entity.isFlashSale=" + cartItem.isFlashSale() +
+                ", dto.flashSale=" + dto.getFlashSale());
         return dto;
     }
 }

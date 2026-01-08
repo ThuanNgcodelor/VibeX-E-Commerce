@@ -214,13 +214,7 @@ const SearchProduct = () => {
         return priceMin || priceMax || selectedAreas.length > 0 || categories.length > 0;
     };
 
-    const formatSoldCount = (count) => {
-        if (!count || count === 0) return "0";
-        if (count >= 1000) {
-            return `${(count / 1000).toFixed(1)}k`.replace('.0', '');
-        }
-        return count.toString();
-    };
+
 
     const formatPrice = (price) => {
         if (!price) return "";
@@ -705,9 +699,6 @@ const SearchProduct = () => {
                                                                     ) : (
                                                                         <span style={{ color: '#d9d9d9', fontSize: '9px' }}>☆☆☆☆☆</span>
                                                                     )}
-                                                                    <span style={{ color: '#9e9e9e', marginLeft: '4px' }}>
-                                                                        {t('search.sold')} {formatSoldCount(product.soldCount || 0)}
-                                                                    </span>
                                                                 </div>
                                                                 <div style={{ fontSize: '10px', color: '#9e9e9e', marginBottom: '1px' }}>
                                                                     {t('search.freeShipping')}

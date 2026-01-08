@@ -31,7 +31,7 @@ public class FlashSaleService {
     private final NotificationClient notificationClient;
     private final ShopOwnerClient shopOwnerClient;
     private final KafkaTemplate<String, ProductUpdateKafkaEvent> kafkaTemplate;
-    
+
     @org.springframework.beans.factory.annotation.Value("${kafka.topic.product-updates}")
     private String productUpdatesTopic;
 
@@ -43,14 +43,15 @@ public class FlashSaleService {
         if (request.getEndTime().isBefore(request.getStartTime())) {
             throw new RuntimeException("Thời gian kết thúc phải sau thời gian bắt đầu!");
         }
-
-//        // Validation 2: Check for overlaps
-        List<FlashSaleSession> overlaps = sessionRepository.findOverlappingSessions(request.getStartTime(),
-                request.getEndTime());
-        if (!overlaps.isEmpty()) {
-            throw new RuntimeException(
-                    "Thời gian bị trùng với phiên Flash Sale khác! (" + overlaps.get(0).getName() + ")");
-        }
+        // Validation 2: Check for overlaps
+        // List<FlashSaleSession> overlaps =
+        // sessionRepository.findOverlappingSessions(request.getStartTime(),
+        // request.getEndTime());
+        // if (!overlaps.isEmpty()) {
+        // throw new RuntimeException(
+        // "Thời gian bị trùng với phiên Flash Sale khác! (" + overlaps.get(0).getName()
+        // + ")");
+        // }
 
         FlashSaleSession session = FlashSaleSession.builder()
                 .name(request.getName())
@@ -109,13 +110,14 @@ public class FlashSaleService {
                 .shopId(shopId)
                 .originalPrice(product.getPrice()) // Assuming base price
                 .salePrice(request.getSalePrice())
-                .flashSaleStock(request.getFlashSaleStock())
+                .flashSaleStock(
+                        product.getSizes().stream().mapToInt(com.example.stockservice.model.Size::getStock).sum())
                 .soldCount(0)
                 .status(FlashSaleStatus.PENDING)
                 .build();
 
         // Thêm hàm sendMessage giống bên 273 ProductServiceImpl
-        // 
+        //
 
         return flashSaleProductRepository.save(flashSaleProduct);
     }
@@ -128,14 +130,14 @@ public class FlashSaleService {
                 .orElseThrow(() -> new RuntimeException("Registration not found"));
         fsp.setStatus(FlashSaleStatus.APPROVED);
         FlashSaleProduct saved = flashSaleProductRepository.save(fsp);
-        
+
         // Publish event to sync cart items with flash sale price
         try {
             kafkaTemplate.send(productUpdatesTopic, new ProductUpdateKafkaEvent(saved.getProductId()));
         } catch (Exception e) {
             System.err.println("Failed to send Kafka event for flash sale approval: " + e.getMessage());
         }
-        
+
         return saved;
     }
 
@@ -146,14 +148,14 @@ public class FlashSaleService {
         fsp.setStatus(FlashSaleStatus.REJECTED);
         fsp.setRejectionReason(reason);
         FlashSaleProduct saved = flashSaleProductRepository.save(fsp);
-        
+
         // Publish event to sync cart items (revert to normal price)
         try {
             kafkaTemplate.send(productUpdatesTopic, new ProductUpdateKafkaEvent(saved.getProductId()));
         } catch (Exception e) {
             System.err.println("Failed to send Kafka event for flash sale rejection: " + e.getMessage());
         }
-        
+
         return saved;
     }
 
@@ -311,14 +313,37 @@ public class FlashSaleService {
     }
 
     @Transactional
+    public void decrementFlashSaleStock(String productId, int quantity) {
+        FlashSaleProduct fsp = findActiveFlashSaleProduct(productId);
+        if (fsp == null) {
+            throw new RuntimeException("No active flash sale found for product: " + productId);
+        }
+
+        if (fsp.getFlashSaleStock() < quantity) {
+            throw new RuntimeException("Insufficient flash sale stock. Available: " + fsp.getFlashSaleStock()
+                    + ", Requested: " + quantity);
+        }
+
+        fsp.setFlashSaleStock(fsp.getFlashSaleStock() - quantity);
+        fsp.setSoldCount(fsp.getSoldCount() + quantity);
+        flashSaleProductRepository.save(fsp);
+    }
+
+    public int getAvailableFlashSaleStock(String productId) {
+        FlashSaleProduct fsp = findActiveFlashSaleProduct(productId);
+        return fsp != null ? fsp.getFlashSaleStock() : 0;
+    }
+
+    @Transactional
     public void incrementSoldCount(String productId, int quantity) {
         FlashSaleProduct fsp = findActiveFlashSaleProduct(productId);
         if (fsp != null) {
-            if (fsp.getSoldCount() + quantity > fsp.getFlashSaleStock()) {
-                throw new RuntimeException("Flash Sale stock exceeded for product: " + productId);
-            }
+            System.out.println("Incrementing Sold Count for FlashSaleProduct: " + fsp.getId() + ", current sold: "
+                    + fsp.getSoldCount() + ", adding: " + quantity);
             fsp.setSoldCount(fsp.getSoldCount() + quantity);
             flashSaleProductRepository.save(fsp);
+        } else {
+            System.out.println("Active Flash Sale Product NOT FOUND for productId: " + productId);
         }
     }
 }

@@ -12,7 +12,12 @@ import {
 import '../../components/shop-owner/ShopOwnerLayout.css';
 
 export default function LiveStreamPage() {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
+
+    const changeLanguage = () => {
+        const newLang = i18n.language === 'en' ? 'vi' : 'en';
+        i18n.changeLanguage(newLang);
+    };
     const [rooms, setRooms] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -76,14 +81,14 @@ export default function LiveStreamPage() {
 
     const handleEndLive = async (roomId) => {
         const result = await Swal.fire({
-            title: 'Xác nhận kết thúc',
-            text: 'Bạn có chắc muốn kết thúc livestream?',
+            title: t('liveStream.alerts.confirmEnd'),
+            text: t('liveStream.alerts.confirmEnd'),
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#d33',
             cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Kết thúc ngay',
-            cancelButtonText: 'Hủy'
+            confirmButtonText: t('liveStream.actions.end'),
+            cancelButtonText: t('liveStream.createModal.cancel')
         });
 
         if (!result.isConfirmed) return;
@@ -93,7 +98,7 @@ export default function LiveStreamPage() {
             setRooms(rooms.map(r => r.id === roomId ? updated : r));
             Swal.fire({
                 icon: 'success',
-                title: 'Đã kết thúc',
+                title: t('liveStream.status.ended'),
                 showConfirmButton: false,
                 timer: 1500
             });
@@ -101,8 +106,8 @@ export default function LiveStreamPage() {
             console.error('Error ending live:', error);
             Swal.fire({
                 icon: 'error',
-                title: 'Lỗi',
-                text: 'Không thể kết thúc live.'
+                title: t('liveStream.alerts.error'),
+                text: t('liveStream.alerts.endError')
             });
         }
     };
@@ -127,18 +132,18 @@ export default function LiveStreamPage() {
             timerProgressBar: true,
         }).fire({
             icon: 'success',
-            title: 'Đã copy vào clipboard!'
+            title: t('liveStream.alerts.copied')
         });
     };
 
     const getStatusBadge = (status) => {
         switch (status) {
             case 'LIVE':
-                return <span className="badge bg-danger">🔴 LIVE</span>;
-            case 'PENDING':
-                return <span className="badge bg-warning text-dark">⏳ Chờ stream</span>;
+                return <span className="badge bg-danger">{t('liveStream.status.live')}</span>;
+            case 'CREATED':
+                return <span className="badge bg-warning text-dark">{t('liveStream.status.pending')}</span>;
             case 'ENDED':
-                return <span className="badge bg-secondary">✓ Đã kết thúc</span>;
+                return <span className="badge bg-secondary">{t('liveStream.status.ended')}</span>;
             default:
                 return <span className="badge bg-light text-dark">{status}</span>;
         }
@@ -147,14 +152,24 @@ export default function LiveStreamPage() {
     return (
         <div className="dashboard-container">
             <div className="dashboard-header d-flex justify-content-between align-items-center mb-4">
-                <h1>🎬 Quản lý Livestream</h1>
-                <button
-                    className="btn btn-danger"
-                    onClick={() => setShowCreateModal(true)}
-                >
-                    <i className="fas fa-plus me-2"></i>
-                    Tạo phòng Live
-                </button>
+                <h1>{t('liveStream.title')}</h1>
+                <div>
+                    <button
+                        className="btn btn-danger"
+                        onClick={() => setShowCreateModal(true)}
+                    >
+                        <i className="fas fa-plus me-2"></i>
+                        {t('liveStream.createRoom')}
+                    </button>
+                    <button
+                        className="btn btn-outline-secondary ms-2"
+                        onClick={changeLanguage}
+                        title="Switch Language"
+                    >
+                        <i className="fas fa-globe me-1"></i>
+                        {i18n.language === 'en' ? 'Tiếng Việt' : 'English'}
+                    </button>
+                </div>
             </div>
 
             {/* Stats Cards */}
@@ -165,7 +180,7 @@ export default function LiveStreamPage() {
                             <h3 className="text-danger mb-0">
                                 {rooms.filter(r => r.status === 'LIVE').length}
                             </h3>
-                            <small className="text-muted">Đang Live</small>
+                            <small className="text-muted">{t('liveStream.stats.live')}</small>
                         </div>
                     </div>
                 </div>
@@ -175,7 +190,7 @@ export default function LiveStreamPage() {
                             <h3 className="text-warning mb-0">
                                 {rooms.filter(r => r.status === 'PENDING').length}
                             </h3>
-                            <small className="text-muted">Chờ Stream</small>
+                            <small className="text-muted">{t('liveStream.stats.pending')}</small>
                         </div>
                     </div>
                 </div>
@@ -185,7 +200,7 @@ export default function LiveStreamPage() {
                             <h3 className="text-secondary mb-0">
                                 {rooms.filter(r => r.status === 'ENDED').length}
                             </h3>
-                            <small className="text-muted">Đã Kết Thúc</small>
+                            <small className="text-muted">{t('liveStream.stats.ended')}</small>
                         </div>
                     </div>
                 </div>
@@ -194,7 +209,7 @@ export default function LiveStreamPage() {
             {/* Room List */}
             <div className="card border-0 shadow-sm">
                 <div className="card-header bg-white">
-                    <h5 className="mb-0">Danh sách phòng Live</h5>
+                    <h5 className="mb-0">{t('liveStream.listTitle')}</h5>
                 </div>
                 <div className="card-body p-0">
                     {loading ? (
@@ -206,12 +221,12 @@ export default function LiveStreamPage() {
                     ) : rooms.length === 0 ? (
                         <div className="text-center py-5">
                             <i className="fas fa-video fa-3x text-muted mb-3"></i>
-                            <p className="text-muted">Chưa có phòng live nào</p>
+                            <p className="text-muted">{t('liveStream.empty.message')}</p>
                             <button
                                 className="btn btn-outline-danger"
                                 onClick={() => setShowCreateModal(true)}
                             >
-                                Tạo phòng đầu tiên
+                                {t('liveStream.empty.button')}
                             </button>
                         </div>
                     ) : (
@@ -219,12 +234,12 @@ export default function LiveStreamPage() {
                             <table className="table table-hover mb-0">
                                 <thead className="table-light">
                                     <tr>
-                                        <th>Tiêu đề</th>
-                                        <th>Trạng thái</th>
-                                        <th>Người xem</th>
-                                        <th>Đơn hàng</th>
-                                        <th>Doanh thu</th>
-                                        <th>Thao tác</th>
+                                        <th>{t('liveStream.table.title')}</th>
+                                        <th>{t('liveStream.table.status')}</th>
+                                        <th>{t('liveStream.table.viewers')}</th>
+                                        <th>{t('liveStream.table.orders')}</th>
+                                        <th>{t('liveStream.table.revenue')}</th>
+                                        <th>{t('liveStream.table.actions')}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -255,14 +270,14 @@ export default function LiveStreamPage() {
                                                             <button
                                                                 className="btn btn-outline-primary"
                                                                 onClick={() => handleShowStreamKey(room)}
-                                                                title="Xem Stream Key"
+                                                                title={t('liveStream.actions.viewKey')}
                                                             >
                                                                 <i className="fas fa-key"></i>
                                                             </button>
                                                             <button
                                                                 className="btn btn-success"
                                                                 onClick={() => handleStartLive(room.id)}
-                                                                title="Bắt đầu Live"
+                                                                title={t('liveStream.actions.start')}
                                                             >
                                                                 <i className="fas fa-play"></i>
                                                             </button>
@@ -273,14 +288,14 @@ export default function LiveStreamPage() {
                                                             <Link
                                                                 to={`/shop-owner/live/${room.id}`}
                                                                 className="btn btn-outline-primary"
-                                                                title="Xem Live"
+                                                                title={t('liveStream.actions.watch')}
                                                             >
                                                                 <i className="fas fa-tv"></i>
                                                             </Link>
                                                             <button
                                                                 className="btn btn-danger"
                                                                 onClick={() => handleEndLive(room.id)}
-                                                                title="Kết thúc"
+                                                                title={t('liveStream.actions.end')}
                                                             >
                                                                 <i className="fas fa-stop"></i>
                                                             </button>
@@ -288,7 +303,7 @@ export default function LiveStreamPage() {
                                                     )}
                                                     {room.status === 'ENDED' && (
                                                         <span className="text-muted small">
-                                                            Đã kết thúc lúc {room.endedAt ?
+                                                            {t('liveStream.actions.endedAt')} {room.endedAt ?
                                                                 new Date(room.endedAt).toLocaleTimeString('vi-VN') :
                                                                 '--'}
                                                         </span>
@@ -310,7 +325,7 @@ export default function LiveStreamPage() {
                     <div className="modal-dialog modal-dialog-centered">
                         <div className="modal-content">
                             <div className="modal-header">
-                                <h5 className="modal-title">🎬 Tạo phòng Live mới</h5>
+                                <h5 className="modal-title">{t('liveStream.createModal.title')}</h5>
                                 <button
                                     type="button"
                                     className="btn-close"
@@ -320,7 +335,7 @@ export default function LiveStreamPage() {
                             <form onSubmit={handleCreateRoom}>
                                 <div className="modal-body">
                                     <div className="mb-3">
-                                        <label className="form-label">Tiêu đề *</label>
+                                        <label className="form-label">{t('liveStream.createModal.roomTitle')}</label>
                                         <input
                                             type="text"
                                             className="form-control"
@@ -331,13 +346,13 @@ export default function LiveStreamPage() {
                                         />
                                     </div>
                                     <div className="mb-3">
-                                        <label className="form-label">Mô tả</label>
+                                        <label className="form-label">{t('liveStream.createModal.description')}</label>
                                         <textarea
                                             className="form-control"
                                             rows="3"
                                             value={newRoom.description}
                                             onChange={(e) => setNewRoom({ ...newRoom, description: e.target.value })}
-                                            placeholder="Mô tả về buổi livestream..."
+                                            placeholder={t('liveStream.createModal.description')}
                                         ></textarea>
                                     </div>
                                 </div>
@@ -347,11 +362,11 @@ export default function LiveStreamPage() {
                                         className="btn btn-secondary"
                                         onClick={() => setShowCreateModal(false)}
                                     >
-                                        Hủy
+                                        {t('liveStream.createModal.cancel')}
                                     </button>
                                     <button type="submit" className="btn btn-danger">
                                         <i className="fas fa-plus me-2"></i>
-                                        Tạo phòng
+                                        {t('liveStream.createModal.submit')}
                                     </button>
                                 </div>
                             </form>
@@ -366,7 +381,7 @@ export default function LiveStreamPage() {
                     <div className="modal-dialog modal-dialog-centered">
                         <div className="modal-content">
                             <div className="modal-header bg-dark text-white">
-                                <h5 className="modal-title">🔑 Stream Key</h5>
+                                <h5 className="modal-title">{t('liveStream.keyModal.title')}</h5>
                                 <button
                                     type="button"
                                     className="btn-close btn-close-white"
@@ -376,7 +391,7 @@ export default function LiveStreamPage() {
                             <div className="modal-body">
                                 <div className="alert alert-warning">
                                     <i className="fas fa-exclamation-triangle me-2"></i>
-                                    <strong>Bảo mật:</strong> Không chia sẻ Stream Key này với bất kỳ ai!
+                                    <strong>{t('liveStream.keyModal.warning')}</strong>
                                 </div>
 
                                 <div className="mb-4">
@@ -417,7 +432,7 @@ export default function LiveStreamPage() {
 
                                 <div className="card bg-light">
                                     <div className="card-body">
-                                        <h6 className="card-title">📹 Cách sử dụng với OBS:</h6>
+                                        <h6 className="card-title">{t('liveStream.keyModal.guide')}</h6>
                                         <ol className="mb-0 small">
                                             <li>Mở OBS Studio</li>
                                             <li>Vào Settings → Stream</li>
@@ -434,7 +449,7 @@ export default function LiveStreamPage() {
                                     className="btn btn-secondary"
                                     onClick={() => setShowStreamKeyModal(false)}
                                 >
-                                    Đóng
+                                    {t('liveStream.keyModal.close')}
                                 </button>
                             </div>
                         </div>

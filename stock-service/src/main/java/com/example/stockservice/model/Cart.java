@@ -34,8 +34,9 @@ public class Cart extends BaseEntity {
                 .sum();
     }
 
-    public void removeItem(CartItem cartItem){
-        if (items == null) return;
+    public void removeItem(CartItem cartItem) {
+        if (items == null)
+            return;
         cartItem.setCart(null);
         items.remove(cartItem);
         updateTotalAmount();

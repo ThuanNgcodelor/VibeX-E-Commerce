@@ -58,7 +58,7 @@ import ShopVoucherPage from "./pages/shop-owner/VoucherManagementPage.jsx";
 import AdManagement from "./components/admin/ads/AdManagement.jsx";
 import ShopAdRequest from "./components/shop-owner/ads/ShopAdRequest.jsx";
 import AdminFlashSale from "./components/admin/flashsale/AdminFlashSale.jsx";
-import FlashSale from "./components/client/FlashSale.jsx";
+import FlashSalePage from "./pages/client/FlashSalePage.jsx";
 import ShopFlashSale from "./components/shop-owner/flashsale/ShopFlashSale.jsx";
 import ShopDecorationPage from "./pages/shop-owner/ShopDecorationPage.jsx";
 
@@ -142,7 +142,7 @@ export default function App() {
           <Route path="/live" element={<LiveListPage />} />
           <Route path="/live/manage" element={<LiveManagePage />} />
           <Route path="/live/:roomId" element={<LiveWatchPage />} />
-          <Route path="/flash-sale" element={<FlashSale />} />
+          <Route path="/flash-sale" element={<FlashSalePage />} />
 
           {/* Admin routes */}
           {/* Admin routes */}
@@ -156,7 +156,6 @@ export default function App() {
           >
             <Route index element={<AdminDashboard />} />
             <Route path="tables/datatables" element={<DataTablesPage />} />
-
             <Route path="role-request" element={<RolesPage />} />
             <Route path="flash-sale" element={<AdminFlashSale />} />
             <Route path="shop-owners" element={<ShopOwnerManagementPage />} />

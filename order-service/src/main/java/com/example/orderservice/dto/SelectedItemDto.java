@@ -19,4 +19,7 @@ public class SelectedItemDto {
 
     @NotNull
     private String sizeId;
+
+    @com.fasterxml.jackson.annotation.JsonProperty("isFlashSale")
+    private Boolean isFlashSale;
 }

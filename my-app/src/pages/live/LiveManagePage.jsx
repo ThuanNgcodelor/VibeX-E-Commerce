@@ -23,8 +23,12 @@ import imgFallback from '../../assets/images/shop/6.png';
 import { uploadImage } from '../../api/image';
 
 export default function LiveManagePage() {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const navigate = useNavigate();
+    const changeLanguage = () => {
+        const newLang = i18n.language === 'en' ? 'vi' : 'en';
+        i18n.changeLanguage(newLang);
+    };
     const videoRef = useRef(null);
 
     const [step, setStep] = useState('list'); // list, create, streaming
@@ -54,6 +58,7 @@ export default function LiveManagePage() {
     const [addingProducts, setAddingProducts] = useState(false);
 
     // Chat and viewer states
+    const [isMuted, setIsMuted] = useState(true); // Added state
     const [viewerCount, setViewerCount] = useState(0);
     const [likeCount, setLikeCount] = useState(0);
     const [chatMessages, setChatMessages] = useState([]);
@@ -446,6 +451,20 @@ export default function LiveManagePage() {
                         </div>
                         <span style={{ fontSize: '14px' }}>Shop của bạn</span>
                     </div>
+                    <button
+                        onClick={changeLanguage}
+                        style={{
+                            padding: '6px 12px',
+                            border: '1px solid #ddd',
+                            borderRadius: '4px',
+                            background: 'white',
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            color: '#333'
+                        }}
+                    >
+                        🌐 {i18n.language === 'en' ? 'VI' : 'EN'}
+                    </button>
                 </div>
             </header>
 
@@ -453,323 +472,326 @@ export default function LiveManagePage() {
             <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '30px 20px' }}>
 
                 {/* Step: List Rooms */}
-                {step === 'list' && (
-                    <div style={{ background: 'white', borderRadius: '8px', padding: '30px' }}>
-                        <div style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            marginBottom: '30px'
-                        }}>
-                            <h1 style={{ fontSize: '24px', margin: 0 }}>Quản lý Livestream</h1>
-                            <button
-                                onClick={() => setStep('create')}
-                                style={{
-                                    background: '#ee4d2d',
-                                    color: 'white',
-                                    border: 'none',
-                                    padding: '12px 24px',
-                                    borderRadius: '4px',
-                                    cursor: 'pointer',
-                                    fontSize: '14px',
-                                    fontWeight: '500'
-                                }}
-                            >
-                                + Tạo Livestream mới
-                            </button>
-                        </div>
-
-                        {loading ? (
-                            <div style={{ textAlign: 'center', padding: '60px' }}>Loading...</div>
-                        ) : rooms.length === 0 ? (
-                            <div style={{ textAlign: 'center', padding: '60px', color: '#999' }}>
-                                <div style={{ fontSize: '48px', marginBottom: '20px' }}>📺</div>
-                                <p>Chưa có phòng live nào</p>
+                {
+                    step === 'list' && (
+                        <div style={{ background: 'white', borderRadius: '8px', padding: '30px' }}>
+                            <div style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                marginBottom: '30px'
+                            }}>
+                                <h1 style={{ fontSize: '24px', margin: 0 }}>{t('liveStream.title')}</h1>
+                                <button
+                                    onClick={() => setStep('create')}
+                                    style={{
+                                        background: '#ee4d2d',
+                                        color: 'white',
+                                        border: 'none',
+                                        padding: '12px 24px',
+                                        borderRadius: '4px',
+                                        cursor: 'pointer',
+                                        fontSize: '14px',
+                                        fontWeight: '500'
+                                    }}
+                                >
+                                    + {t('liveStream.createRoom')}
+                                </button>
                             </div>
-                        ) : (
-                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                                <thead>
-                                    <tr style={{ borderBottom: '2px solid #eee' }}>
-                                        <th style={{ padding: '12px', textAlign: 'left' }}>Tiêu đề</th>
-                                        <th style={{ padding: '12px', textAlign: 'left' }}>Trạng thái</th>
-                                        <th style={{ padding: '12px', textAlign: 'center' }}>Thao tác</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {rooms.map(room => (
-                                        <tr key={room.id} style={{ borderBottom: '1px solid #eee' }}>
-                                            <td style={{ padding: '12px' }}>{room.title}</td>
-                                            <td style={{ padding: '12px' }}>
-                                                {room.status === 'LIVE' && <span style={{ color: '#ee4d2d' }}>🔴 LIVE</span>}
-                                                {room.status === 'PENDING' && <span style={{ color: '#ffc107' }}>⏳ Chờ</span>}
-                                                {room.status === 'ENDED' && <span style={{ color: '#999' }}>✓ Đã kết thúc</span>}
-                                            </td>
-                                            <td style={{ padding: '12px', textAlign: 'center' }}>
-                                                {room.status !== 'ENDED' && (
-                                                    <button
-                                                        onClick={() => handleSelectRoom(room)}
-                                                        style={{
-                                                            background: '#ee4d2d',
-                                                            color: 'white',
-                                                            border: 'none',
-                                                            padding: '8px 16px',
-                                                            borderRadius: '4px',
-                                                            cursor: 'pointer'
-                                                        }}
-                                                    >
-                                                        Vào phòng
-                                                    </button>
-                                                )}
-                                            </td>
+
+                            {loading ? (
+                                <div style={{ textAlign: 'center', padding: '60px' }}>Loading...</div>
+                            ) : rooms.length === 0 ? (
+                                <div style={{ textAlign: 'center', padding: '60px', color: '#999' }}>
+                                    <div style={{ fontSize: '48px', marginBottom: '20px' }}>📺</div>
+                                    <p>{t('liveStream.empty.message')}</p>
+                                </div>
+                            ) : (
+                                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                    <thead>
+                                        <tr style={{ borderBottom: '2px solid #eee' }}>
+                                            <th style={{ padding: '12px', textAlign: 'left' }}>{t('liveStream.table.title')}</th>
+                                            <th style={{ padding: '12px', textAlign: 'left' }}>{t('liveStream.table.status')}</th>
+                                            <th style={{ padding: '12px', textAlign: 'center' }}>{t('liveStream.table.actions')}</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        )}
-                    </div>
-                )}
+                                    </thead>
+                                    <tbody>
+                                        {rooms.map(room => (
+                                            <tr key={room.id} style={{ borderBottom: '1px solid #eee' }}>
+                                                <td style={{ padding: '12px' }}>{room.title}</td>
+                                                <td style={{ padding: '12px' }}>
+                                                    {room.status === 'LIVE' && <span style={{ color: '#ee4d2d' }}>{t('liveStream.status.live')}</span>}
+                                                    {room.status === 'PENDING' && <span style={{ color: '#ffc107' }}>{t('liveStream.status.pending')}</span>}
+                                                    {room.status === 'ENDED' && <span style={{ color: '#999' }}>{t('liveStream.status.ended')}</span>}
+                                                </td>
+                                                <td style={{ padding: '12px', textAlign: 'center' }}>
+                                                    {room.status !== 'ENDED' && (
+                                                        <button
+                                                            onClick={() => handleSelectRoom(room)}
+                                                            style={{
+                                                                background: '#ee4d2d',
+                                                                color: 'white',
+                                                                border: 'none',
+                                                                padding: '8px 16px',
+                                                                borderRadius: '4px',
+                                                                cursor: 'pointer'
+                                                            }}
+                                                        >
+                                                            {t('liveStream.actions.start')}
+                                                        </button>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            )}
+                        </div>
+                    )
+                }
 
                 {/* Step: Create Room */}
-                {step === 'create' && (
-                    <div style={{ background: 'white', borderRadius: '8px', padding: '30px', maxWidth: '600px', margin: '0 auto' }}>
-                        <h2 style={{ marginBottom: '30px' }}>Tạo Livestream</h2>
+                {
+                    step === 'create' && (
+                        <div style={{ background: 'white', borderRadius: '8px', padding: '30px', maxWidth: '600px', margin: '0 auto' }}>
+                            <h2 style={{ marginBottom: '30px' }}>{t('liveStream.createModal.title')}</h2>
 
-                        <form onSubmit={handleCreateRoom}>
-                            <div style={{ marginBottom: '20px' }}>
-                                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                                    <span style={{ color: 'red' }}>*</span> Tiêu đề
-                                </label>
-                                <input
-                                    type="text"
-                                    value={newRoom.title}
-                                    onChange={(e) => setNewRoom({ ...newRoom, title: e.target.value })}
-                                    placeholder="Nhập tiêu đề livestream"
-                                    style={{
-                                        width: '100%',
-                                        padding: '12px',
-                                        border: '1px solid #ddd',
-                                        borderRadius: '4px',
-                                        fontSize: '14px'
-                                    }}
-                                    required
-                                />
-                                <div style={{ fontSize: '12px', color: '#999', marginTop: '4px' }}>
-                                    Không nên vượt quá 20 ký tự.
-                                </div>
-                            </div>
-
-                            <div style={{ marginBottom: '20px' }}>
-                                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                                    Mô tả
-                                </label>
-                                <textarea
-                                    value={newRoom.description}
-                                    onChange={(e) => setNewRoom({ ...newRoom, description: e.target.value })}
-                                    placeholder="Mô tả về buổi livestream"
-                                    rows={4}
-                                    style={{
-                                        width: '100%',
-                                        padding: '12px',
-                                        border: '1px solid #ddd',
-                                        borderRadius: '4px',
-                                        fontSize: '14px',
-                                        resize: 'vertical'
-                                    }}
-                                />
-                                <div style={{ fontSize: '12px', color: '#999', marginTop: '4px', textAlign: 'right' }}>
-                                    {newRoom.description.length}/200
-                                </div>
-                            </div>
-
-                            {/* Thumbnail Upload */}
-                            <div style={{ marginBottom: '20px' }}>
-                                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                                    Ảnh bìa (Thumbnail)
-                                </label>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                                    <div style={{
-                                        width: '160px',
-                                        height: '90px', // 16:9
-                                        background: '#f5f5f5',
-                                        border: '1px dashed #ddd',
-                                        borderRadius: '4px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        overflow: 'hidden',
-                                        position: 'relative'
-                                    }}>
-                                        {thumbnailPreview ? (
-                                            <img
-                                                src={thumbnailPreview}
-                                                alt="Preview"
-                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                            />
-                                        ) : (
-                                            <span style={{ color: '#999', fontSize: '12px' }}>Chưa có ảnh</span>
-                                        )}
+                            <form onSubmit={handleCreateRoom}>
+                                <div style={{ marginBottom: '20px' }}>
+                                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                                        <span style={{ color: 'red' }}>*</span> {t('liveStream.createModal.roomTitle')}
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={newRoom.title}
+                                        onChange={(e) => setNewRoom({ ...newRoom, title: e.target.value })}
+                                        placeholder={t('liveStream.createModal.roomTitlePlaceholder')}
+                                        style={{
+                                            width: '100%',
+                                            padding: '12px',
+                                            border: '1px solid #ddd',
+                                            borderRadius: '4px',
+                                            fontSize: '14px'
+                                        }}
+                                        required
+                                    />
+                                    <div style={{ fontSize: '12px', color: '#999', marginTop: '4px' }}>
+                                        {t('liveStream.createModal.titleLimit')}
                                     </div>
-                                    <div>
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            onChange={(e) => {
-                                                const file = e.target.files[0];
-                                                if (file) {
-                                                    setThumbnailFile(file);
-                                                    const reader = new FileReader();
-                                                    reader.onloadend = () => setThumbnailPreview(reader.result);
-                                                    reader.readAsDataURL(file);
-                                                }
-                                            }}
-                                            style={{ display: 'none' }}
-                                            id="thumbnail-upload"
-                                        />
-                                        <label
-                                            htmlFor="thumbnail-upload"
-                                            style={{
-                                                background: 'white',
-                                                border: '1px solid #ddd',
-                                                padding: '8px 16px',
-                                                borderRadius: '4px',
-                                                cursor: 'pointer',
-                                                fontSize: '14px',
-                                                display: 'inline-block'
-                                            }}
-                                        >
-                                            Chọn ảnh
-                                        </label>
-                                        <div style={{ fontSize: '12px', color: '#999', marginTop: '4px' }}>
-                                            Kích thước khuyến nghị: 1280x720 (16:9). Max 5MB.
+                                </div>
+
+                                <div style={{ marginBottom: '20px' }}>
+                                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                                        {t('liveStream.createModal.description')}
+                                    </label>
+                                    <textarea
+                                        value={newRoom.description}
+                                        onChange={(e) => setNewRoom({ ...newRoom, description: e.target.value })}
+                                        placeholder={t('liveStream.createModal.descriptionPlaceholder')}
+                                        rows={4}
+                                        style={{
+                                            width: '100%',
+                                            padding: '12px',
+                                            border: '1px solid #ddd',
+                                            borderRadius: '4px',
+                                            fontSize: '14px',
+                                            resize: 'vertical'
+                                        }}
+                                    />
+                                    <div style={{ fontSize: '12px', color: '#999', marginTop: '4px', textAlign: 'right' }}>
+                                        {newRoom.description.length}/200
+                                    </div>
+                                </div>
+
+                                {/* Thumbnail Upload */}
+                                <div style={{ marginBottom: '20px' }}>
+                                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                                        {t('liveStream.createModal.thumbnail')}
+                                    </label>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                        <div style={{
+                                            width: '160px',
+                                            height: '90px', // 16:9
+                                            background: '#f5f5f5',
+                                            border: '1px dashed #ddd',
+                                            borderRadius: '4px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            overflow: 'hidden',
+                                            position: 'relative'
+                                        }}>
+                                            {thumbnailPreview ? (
+                                                <img
+                                                    src={thumbnailPreview}
+                                                    alt="Preview"
+                                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                />
+                                            ) : (
+                                                <span style={{ color: '#999', fontSize: '12px' }}>{t('liveStream.createModal.noImage')}</span>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={(e) => {
+                                                    const file = e.target.files[0];
+                                                    if (file) {
+                                                        setThumbnailFile(file);
+                                                        const reader = new FileReader();
+                                                        reader.onloadend = () => setThumbnailPreview(reader.result);
+                                                        reader.readAsDataURL(file);
+                                                    }
+                                                }}
+                                                style={{ display: 'none' }}
+                                                id="thumbnail-upload"
+                                            />
+                                            <label
+                                                htmlFor="thumbnail-upload"
+                                                style={{
+                                                    background: 'white',
+                                                    border: '1px solid #ddd',
+                                                    padding: '8px 16px',
+                                                    borderRadius: '4px',
+                                                    cursor: 'pointer',
+                                                    fontSize: '14px',
+                                                    display: 'inline-block'
+                                                }}
+                                            >
+                                                {t('liveStream.createModal.selectImage')}
+                                            </label>
+                                            <div style={{ fontSize: '12px', color: '#999', marginTop: '4px' }}>
+                                                {t('liveStream.createModal.imageNote')}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            {/* Product Selection Section */}
-                            <div style={{ marginBottom: '20px', paddingTop: '20px', borderTop: '1px solid #eee' }}>
-                                <label style={{ display: 'block', marginBottom: '12px', fontWeight: '500' }}>
-                                    Sản phẩm liên quan
-                                </label>
+                                {/* Product Selection Section */}
+                                <div style={{ marginBottom: '20px', paddingTop: '20px', borderTop: '1px solid #eee' }}>
+                                    <label style={{ display: 'block', marginBottom: '12px', fontWeight: '500' }}>
+                                        {t('liveStream.createModal.relatedProducts')}
+                                    </label>
 
-                                {/* Selected Products Grid */}
-                                {selectedProducts.length > 0 && (
-                                    <div style={{
-                                        display: 'flex',
-                                        flexWrap: 'wrap',
-                                        gap: '10px',
-                                        marginBottom: '12px'
-                                    }}>
-                                        {selectedProducts.slice(0, 8).map(product => (
-                                            <div key={product.id} style={{
-                                                width: '60px',
-                                                height: '60px',
-                                                borderRadius: '4px',
-                                                overflow: 'hidden',
-                                                position: 'relative',
-                                                border: '1px solid #ddd'
-                                            }}>
-                                                <img
-                                                    src={productImageUrls[product.id] || imgFallback}
-                                                    onError={(e) => { e.currentTarget.src = imgFallback; }}
-                                                    alt={product.name}
-                                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                                />
-                                                <button
-                                                    type="button"
-                                                    onClick={() => toggleProductSelection(product)}
-                                                    style={{
-                                                        position: 'absolute',
-                                                        top: '-6px',
-                                                        right: '-6px',
-                                                        width: '18px',
-                                                        height: '18px',
-                                                        borderRadius: '50%',
-                                                        background: '#333',
-                                                        color: 'white',
-                                                        border: 'none',
-                                                        cursor: 'pointer',
-                                                        fontSize: '10px',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center'
-                                                    }}
-                                                >×</button>
-                                            </div>
-                                        ))}
-                                        {selectedProducts.length > 8 && (
-                                            <div style={{
-                                                width: '60px',
-                                                height: '60px',
-                                                borderRadius: '4px',
-                                                background: '#f5f5f5',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                fontSize: '13px',
-                                                color: '#666'
-                                            }}>
-                                                +{selectedProducts.length - 8}
-                                            </div>
-                                        )}
+                                    {/* Selected Products Grid */}
+                                    {selectedProducts.length > 0 && (
+                                        <div style={{
+                                            display: 'flex',
+                                            flexWrap: 'wrap',
+                                            gap: '10px',
+                                            marginBottom: '12px'
+                                        }}>
+                                            {selectedProducts.slice(0, 8).map(product => (
+                                                <div key={product.id} style={{
+                                                    width: '60px',
+                                                    height: '60px',
+                                                    borderRadius: '4px',
+                                                    overflow: 'hidden',
+                                                    position: 'relative',
+                                                    border: '1px solid #ddd'
+                                                }}>
+                                                    <img
+                                                        src={productImageUrls[product.id] || imgFallback}
+                                                        onError={(e) => { e.currentTarget.src = imgFallback; }}
+                                                        alt={product.name}
+                                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => toggleProductSelection(product)}
+                                                        style={{
+                                                            position: 'absolute',
+                                                            top: '-6px',
+                                                            right: '-6px',
+                                                            width: '18px',
+                                                            height: '18px',
+                                                            borderRadius: '50%',
+                                                            background: '#333',
+                                                            color: 'white',
+                                                            border: 'none',
+                                                            cursor: 'pointer',
+                                                            fontSize: '10px',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center'
+                                                        }}
+                                                    >×</button>
+                                                </div>
+                                            ))}
+                                            {selectedProducts.length > 8 && (
+                                                <div style={{
+                                                    width: '60px',
+                                                    height: '60px',
+                                                    borderRadius: '4px',
+                                                    background: '#f5f5f5',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    fontSize: '13px',
+                                                    color: '#666'
+                                                }}>
+                                                    +{selectedProducts.length - 8}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Add Product Button */}
+                                    <button
+                                        type="button"
+                                        onClick={handleOpenProductModal}
+                                        style={{
+                                            background: 'white',
+                                            border: '1px dashed #ee4d2d',
+                                            borderRadius: '4px',
+                                            padding: '12px 20px',
+                                            color: '#ee4d2d',
+                                            cursor: 'pointer',
+                                            fontSize: '14px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '6px'
+                                        }}
+                                    >
+                                        + {t('liveStream.createModal.addProduct')} ({selectedProducts.length}/500)
+                                    </button>
+                                    <div style={{ fontSize: '12px', color: '#999', marginTop: '6px' }}>
+                                        {t('liveStream.createModal.productSelectionNote')}
                                     </div>
-                                )}
-
-                                {/* Add Product Button */}
-                                <button
-                                    type="button"
-                                    onClick={handleOpenProductModal}
-                                    style={{
-                                        background: 'white',
-                                        border: '1px dashed #ee4d2d',
-                                        borderRadius: '4px',
-                                        padding: '12px 20px',
-                                        color: '#ee4d2d',
-                                        cursor: 'pointer',
-                                        fontSize: '14px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '6px'
-                                    }}
-                                >
-                                    + Thêm sản phẩm liên quan ({selectedProducts.length}/500)
-                                </button>
-                                <div style={{ fontSize: '12px', color: '#999', marginTop: '6px' }}>
-                                    Thêm sản phẩm từ Shop của bạn và các sản phẩm bạn thích vào Livestream
                                 </div>
-                            </div>
 
-                            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                                <button
-                                    type="button"
-                                    onClick={() => setStep('list')}
-                                    style={{
-                                        padding: '12px 24px',
-                                        border: '1px solid #ddd',
-                                        borderRadius: '4px',
-                                        background: 'white',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    Hủy
-                                </button>
-                                <button
-                                    type="submit"
-                                    style={{
-                                        padding: '12px 24px',
-                                        border: 'none',
-                                        borderRadius: '4px',
-                                        background: '#ee4d2d',
-                                        color: 'white',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    Tiếp tục
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                )
+                                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                                    <button
+                                        type="button"
+                                        onClick={() => setStep('list')}
+                                        style={{
+                                            padding: '12px 24px',
+                                            border: '1px solid #ddd',
+                                            borderRadius: '4px',
+                                            background: 'white',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        {t('liveStream.createModal.cancel')}
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        style={{
+                                            padding: '12px 24px',
+                                            border: 'none',
+                                            borderRadius: '4px',
+                                            background: '#ee4d2d',
+                                            color: 'white',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        {t('liveStream.createModal.continue')}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    )
                 }
 
                 {/* Step: Streaming Room */}
@@ -806,16 +828,6 @@ export default function LiveManagePage() {
                                             {selectedProducts.length}
                                         </div>
                                     )}
-                                </div>
-                                <div style={{
-                                    textAlign: 'center',
-                                    padding: '12px 8px',
-                                    borderRadius: '8px',
-                                    background: '#f9f9f9',
-                                    cursor: 'pointer'
-                                }}>
-                                    <div style={{ fontSize: '28px', marginBottom: '4px' }}>�</div>
-                                    <div style={{ fontSize: '11px', color: '#333' }}>Khuyến mãi</div>
                                 </div>
                             </div>
 
@@ -858,7 +870,7 @@ export default function LiveManagePage() {
                                                     cursor: 'pointer'
                                                 }}
                                             >
-                                                Bắt đầu
+                                                {t('liveStream.actions.start')}
                                             </button>
                                         )}
                                         {currentRoom.status === 'LIVE' && (
@@ -873,7 +885,7 @@ export default function LiveManagePage() {
                                                     cursor: 'pointer'
                                                 }}
                                             >
-                                                Kết thúc
+                                                {t('liveStream.actions.end')}
                                             </button>
                                         )}
                                     </div>
@@ -887,7 +899,7 @@ export default function LiveManagePage() {
                                     marginBottom: '20px'
                                 }}>
                                     <h3 style={{ color: 'white', marginBottom: '25px', textAlign: 'center' }}>
-                                        Liên kết phát trực tiếp với OBS
+                                        {t('liveStream.obs.title')}
                                     </h3>
 
                                     {/* Steps Diagram */}
@@ -897,19 +909,19 @@ export default function LiveManagePage() {
                                         gap: '30px',
                                         marginBottom: '30px'
                                     }}>
-                                        <StepBox number={1} title="Sao chép URL và" subtitle="Khóa bên dưới" color="#ee4d2d" />
+                                        <StepBox number={1} title={t('liveStream.obs.step1')} subtitle={t('liveStream.obs.step1sub')} color="#ee4d2d" />
                                         <Arrow />
-                                        <StepBox number={2} title="Điền vào chỗ trống" subtitle="trong OBS bằng URL và Khóa" color="#ee4d2d" />
+                                        <StepBox number={2} title={t('liveStream.obs.step2')} subtitle={t('liveStream.obs.step2sub')} color="#ee4d2d" />
                                         <Arrow />
-                                        <StepBox number={3} title="Nhấp vào Bắt đầu" subtitle="Phát trực tiếp trên OBS" color="#28a745" />
+                                        <StepBox number={3} title={t('liveStream.obs.step3')} subtitle={t('liveStream.obs.step3sub')} color="#28a745" />
                                         <Arrow />
-                                        <StepBox number={4} title="Làm mới để xem" subtitle="trước video trực tiếp" color="#ee4d2d" />
+                                        <StepBox number={4} title={t('liveStream.obs.step4')} subtitle={t('liveStream.obs.step4sub')} color="#ee4d2d" />
                                     </div>
 
                                     {/* URL and Key */}
                                     <div style={{ maxWidth: '600px', margin: '0 auto' }}>
                                         <div style={{ marginBottom: '15px' }}>
-                                            <label style={{ color: '#999', fontSize: '12px', display: 'block', marginBottom: '5px' }}>URL</label>
+                                            <label style={{ color: '#999', fontSize: '12px', display: 'block', marginBottom: '5px' }}>{t('liveStream.obs.url')}</label>
                                             <div style={{ display: 'flex', gap: '10px' }}>
                                                 <input
                                                     type="text"
@@ -943,11 +955,11 @@ export default function LiveManagePage() {
                                         </div>
 
                                         <div>
-                                            <label style={{ color: '#999', fontSize: '12px', display: 'block', marginBottom: '5px' }}>Key</label>
+                                            <label style={{ color: '#999', fontSize: '12px', display: 'block', marginBottom: '5px' }}>{t('liveStream.obs.key')}</label>
                                             <div style={{ display: 'flex', gap: '10px' }}>
                                                 <input
                                                     type="text"
-                                                    value={currentRoom.streamKey || 'Loading...'}
+                                                    value={currentRoom.streamKey || t('liveStream.loading')}
                                                     readOnly
                                                     style={{
                                                         flex: 1,
@@ -987,19 +999,19 @@ export default function LiveManagePage() {
                                         borderTop: '1px solid #eee'
                                     }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                                            <h3 style={{ margin: 0, fontSize: '18px' }}>Sản phẩm đang bán ({liveProducts.length})</h3>
+                                            <h3 style={{ margin: 0, fontSize: '18px' }}>{t('liveStream.obs.activeProducts')} ({liveProducts.length})</h3>
                                             <button
                                                 onClick={handleOpenProductModal}
                                                 style={{
                                                     background: '#ee4d2d', color: 'white', border: 'none',
                                                     padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px'
                                                 }}
-                                            >+ Thêm</button>
+                                            >+ {t('liveStream.obs.add')}</button>
                                         </div>
 
                                         {liveProducts.length === 0 ? (
                                             <div style={{ color: '#999', textAlign: 'center', padding: '20px', background: '#f9f9f9', borderRadius: '4px' }}>
-                                                Chưa có sản phẩm nào được ghim.
+                                                {t('liveStream.obs.noActiveProducts')}
                                             </div>
                                         ) : (
                                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '15px' }}>
@@ -1014,7 +1026,7 @@ export default function LiveManagePage() {
                                                             />
                                                             <div style={{ overflow: 'hidden' }}>
                                                                 <div style={{ fontSize: '14px', fontWeight: '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                                                    {p.productName || 'Đang cập nhật...'}
+                                                                    {p.productName || t('liveStream.obs.updating')}
                                                                 </div>
                                                                 <div style={{ color: '#ee4d2d', fontWeight: 'bold', fontSize: '14px' }}>
                                                                     ₫{p.livePrice?.toLocaleString()}
@@ -1039,7 +1051,7 @@ export default function LiveManagePage() {
                                                                     cursor: 'pointer', fontSize: '12px', fontWeight: '600'
                                                                 }}
                                                             >
-                                                                Gỡ bỏ
+                                                                {t('liveStream.obs.remove')}
                                                             </button>
                                                         </div>
                                                     </div>
@@ -1086,11 +1098,86 @@ export default function LiveManagePage() {
                                         </div>
                                         <video
                                             ref={videoRef}
-                                            controls
                                             autoPlay
                                             muted
-                                            style={{ width: '100%', height: '100%' }}
+                                            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                                         />
+
+                                        {/* Custom Controls */}
+                                        <div style={{
+                                            position: 'absolute',
+                                            bottom: 0,
+                                            left: 0,
+                                            right: 0,
+                                            background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)',
+                                            padding: '10px',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            gap: '5px'
+                                        }}>
+                                            {/* Red Live Progress Bar - Static */}
+                                            <div style={{
+                                                width: '100%',
+                                                height: '4px',
+                                                background: '#444',
+                                                borderRadius: '2px',
+                                                overflow: 'hidden',
+                                                marginBottom: '5px'
+                                            }}>
+                                                <div style={{
+                                                    width: '100%',
+                                                    height: '100%',
+                                                    background: '#ee4d2d', // Red color
+                                                    boxShadow: '0 0 10px #ee4d2d'
+                                                }}></div>
+                                            </div>
+
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'white' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+
+
+                                                    {/* Volume */}
+                                                    <button
+                                                        onClick={() => {
+                                                            if (videoRef.current) {
+                                                                videoRef.current.muted = !videoRef.current.muted;
+                                                                setIsMuted(videoRef.current.muted);
+                                                            }
+                                                        }}
+                                                        style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: 0, fontSize: '20px' }}
+                                                    >
+                                                        {isMuted ? '🔇' : '🔊'}
+                                                    </button>
+
+                                                    <div style={{
+                                                        background: '#ee4d2d',
+                                                        padding: '2px 6px',
+                                                        borderRadius: '4px',
+                                                        fontSize: '11px',
+                                                        fontWeight: 'bold',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '4px'
+                                                    }}>
+                                                        <div style={{ width: '6px', height: '6px', background: 'white', borderRadius: '50%' }}></div>
+                                                        LIVE
+                                                    </div>
+                                                </div>
+
+                                                {/* Fullscreen */}
+                                                <button
+                                                    onClick={() => {
+                                                        if (videoRef.current) {
+                                                            if (videoRef.current.requestFullscreen) videoRef.current.requestFullscreen();
+                                                            else if (videoRef.current.webkitRequestFullscreen) videoRef.current.webkitRequestFullscreen();
+                                                        }
+                                                    }}
+                                                    style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: 0, fontSize: '16px' }}
+                                                >
+                                                    ⛶
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
                                 )}
                             </div>

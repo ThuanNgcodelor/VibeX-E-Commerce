@@ -331,6 +331,7 @@ export function CheckoutPage({
           sizeId: it.sizeId,
           quantity: it.quantity,
           unitPrice: it.unitPrice || it.price,
+          isFlashSale: it.isFlashSale
         })),
         addressId: selectedAddressId,
         paymentMethod: paymentMethod || "COD",
@@ -369,11 +370,12 @@ export function CheckoutPage({
               shippingFee: totalShippingFee || 0,
               voucherId: appliedVoucher?.voucherId || null,
               voucherDiscount: voucherDiscount || 0,
-              selectedItems: selectedItems.map((it) => ({
+              selectedItems: selectedItems.map(it => ({
                 productId: it.productId || it.id,
                 sizeId: it.sizeId,
                 quantity: it.quantity,
                 unitPrice: it.unitPrice || it.price,
+                isFlashSale: it.isFlashSale
               })),
             }),
           };

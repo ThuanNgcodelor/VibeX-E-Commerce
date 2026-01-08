@@ -1,19 +1,20 @@
 package com.example.stockservice.dto;
 
+import com.example.stockservice.enums.ProductStatus;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
-@JsonInclude(JsonInclude.Include.NON_NULL)
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ProductDto {
     private String id;
     private String name;
@@ -21,20 +22,31 @@ public class ProductDto {
     private double price;
     private double originalPrice;
     private double discountPercent;
-    private String imageId; // Main image (backward compatibility)
-    private List<String> imageIds; // Multiple images/videos
-    private String status;
+    private ProductStatus status;
+    private String imageId;
+    private List<String> imageIds;
+    private String userId;
+    private CategoryDto category;
+
+    // Flattened Category Info
     private String categoryName;
     private String categoryId;
-    private String userId;
+
     private List<SizeDto> sizes;
-    private Integer totalStock;
-    private LocalDateTime createdAt;
+    private int totalStock;
+
+    private String attributeJson;
     private java.util.Map<String, String> attributes;
 
+    // Flash Sale Info
     private Integer flashSaleRemaining;
     
-    // Analytics fields
-    private Integer soldCount;           // Total số lượng đã bán
-    private Double averageRating;        // Đánh giá trung bình (1-5 sao)
+    private Integer soldCount;
+    private Double averageRating;
+
+    private LocalDateTime createdDate;
+    private LocalDateTime createdAt; // Maps to createdTimestamp in controller usage
+    private LocalDateTime lastModifiedDate;
+    private String createdBy;
+    private String lastModifiedBy;
 }

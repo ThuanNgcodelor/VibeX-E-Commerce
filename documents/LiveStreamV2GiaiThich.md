@@ -52,6 +52,81 @@ Chuẩn mực công nghiệp: Hầu hết các phần mềm quay phát (OBS, vMi
 Ổn định: RTMP được thiết kế chuyên biệt cho việc gửi các gói tin Audio/Video theo thời gian thực. Ít bị hiện tượng "rớt gói" gây vỡ hình hơn so với các giao thức truyền file thông thường.
 
 
+
+
+
+1. Luồng xử lý (Flow) hoạt động như thế nào?
+Hệ thống Live Stream này hoạt động dựa trên mô hình tách biệt giữa Xử lý Video (Media Server) và Xử lý Nghiệp vụ (Backend Spring Boot).
+
+Bước 1: Tạo Phòng Live (Trên Web App)
+Shop Owner (Người bán) vào trang quản trị, bấm nút "Tạo phiên Live".
+Backend Spring Boot sẽ tạo ra một bản ghi 
+LiveRoom
+ trong Database.
+Quan trọng: Backend tự động sinh ra một chuỗi bí mật gọi là Stream Key.
+Bước 2: Chuẩn bị Stream (Trên OBS)
+Shop Owner copy Stream Key từ Web App.
+Shop Owner mở phần mềm OBS Studio, dán Stream Key vào phần cài đặt Stream (URL: rtmp://[server-ip]:1935/live).
+Bước 3: Bắt đầu phát (OBS -> Nginx Server)
+Khi bấm "Start Streaming" trên OBS, video từ camera sẽ được bắn theo giao thức RTMP lên máy chủ Media (thường là Nginx có cài module RTMP).
+Nginx Server nhận video và bắt đầu xử lý (thường là chuyển đổi sang chuẩn HLS .m3u8 để người xem có thể xem trên trình duyệt).
+Bước 4: Đồng bộ trạng thái
+Khi Nginx nhận được tín hiệu stream, nó sẽ gọi ngược lại (Callback) một API của Backend Spring Boot (/callback/start) để báo: "Ê, phòng này đang phát rồi nhé".
+Backend cập nhật trạng thái phòng sang LIVE và thông báo cho mọi người xem (Viewers) qua WebSocket.
+Bước 5: Người xem tương tác
+Người xem mở Web -> Video được tải từ Nginx (qua HLS URL).
+Chat, Mua hàng, thả tim -> Gửi qua WebSocket tới Backend Spring Boot -> Lưu vào Redis/MySQL.
+2. Hệ thống cần "cái gì" để chạy?
+Để hệ thống này hoạt động, bạn cần 3 thành phần chính chạy song song:
+
+Backend App (Spring Boot - Notification Service): Để quản lý thông tin phòng, user, chat, bán hàng, đơn hàng. Đây là phần logic nghiệp vụ.
+Media Server (Nginx-RTMP): Đây là thành phần bắt buộc riêng biệt (hoặc chạy trong Docker) để chịu tải video. Backend Java bình thường không nên trực tiếp xử lý dữ liệu video RTMP nặng nề.
+OBS Studio (Phần mềm Client): Cài trên máy tính của người bán hàng để quay phim và đẩy tín hiệu lên.
+3. Giải thích về Key (Stream Key) kết nối với OBS
+"Key" này là gì?
+Nó giống như một "Mật khẩu phòng". Hãy tưởng tượng Media Server như một khách sạn có ngàn phòng. Khi bạn gửi video lên, server cần biết video này chiếu vào phòng nào. Stream Key chính là định danh duy nhất cho phiên live đó.
+
+Tại sao nó lại tạo ra được?
+Trong mã nguồn Java (
+LiveRoom.java
+), Stream Key được hệ thống tự động sinh ra ngay khi bạn lưu phòng live vào Database:
+
+java
+// Trong file LiveRoom.java
+@PrePersist
+protected void onCreate() {
+    if (streamKey == null) {
+        // Tự động tạo một chuỗi ngẫu nhiên, ví dụ: "550e8400e29b41d4a716446655440000"
+        streamKey = UUID.randomUUID().toString().replace("-", "");
+    }
+}
+Lý do cần tạo ở Backend mà không để User tự nhập:
+
+Tính Duy Nhất: Code dùng thuật toán UUID đảm bảo không bao giờ có 2 phòng bị trùng Key. Nếu trùng, video của người này sẽ hiện đè lên phòng người kia -> Thảm họa.
+Bảo Mật: Key phải đủ dài và ngẫu nhiên để người lạ không đoán được. Nếu ai đó biết Stream Key của bạn, họ có thể dùng OBS của họ để phát video bậy bạ vào kênh bán hàng của bạn.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 **Cách hoạt động:**
 ```
 Client                          Server

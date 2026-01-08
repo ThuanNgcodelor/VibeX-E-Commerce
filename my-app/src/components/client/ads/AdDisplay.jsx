@@ -4,6 +4,7 @@ import './AdDisplay.css';
 
 export default function AdDisplay({ placement }) {
     const [ads, setAds] = useState([]);
+    const [isVisible, setIsVisible] = useState(true);
 
     useEffect(() => {
         const fetchAds = async () => {
@@ -17,20 +18,25 @@ export default function AdDisplay({ placement }) {
         fetchAds();
     }, [placement]);
 
+    useEffect(() => {
+        if (placement === 'POPUP') {
+            const hasShown = sessionStorage.getItem('adPopupShown');
+            if (hasShown) {
+                setIsVisible(false);
+            }
+        }
+    }, [placement]);
+
     if (!ads || ads.length === 0) return null;
 
     // Render based on placement type logic
-    // Render based on placement type logic
     if (placement === 'POPUP') {
-        // Check if popup has already been shown in this session
-        const hasShown = sessionStorage.getItem('adPopupShown');
-
-        if (hasShown) return null;
+        if (!isVisible) return null;
 
         const ad = ads[0]; // Show only one popup
 
-        const handleClose = (e) => {
-            e.target.closest('.ad-popup-overlay').style.display = 'none';
+        const handleClose = () => {
+            setIsVisible(false);
             sessionStorage.setItem('adPopupShown', 'true');
         };
 

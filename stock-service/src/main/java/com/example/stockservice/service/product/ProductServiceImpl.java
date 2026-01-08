@@ -466,11 +466,11 @@ public class ProductServiceImpl implements ProductService {
     }
 
     // ==================== BATCH API METHODS ====================
-    
+
     /**
      * Batch fetch products by IDs
      * Optimized to fetch multiple products in a single DB query
-     * 
+     *
      * @param productIds List of product IDs to fetch
      * @return Map of productId -> ProductDto
      */
@@ -479,10 +479,10 @@ public class ProductServiceImpl implements ProductService {
         if (productIds == null || productIds.isEmpty()) {
             return new java.util.HashMap<>();
         }
-        
+
         // Single DB query for all products
         List<Product> products = productRepository.findAllByIdIn(productIds);
-        
+
         // Convert to DTO and create Map for O(1) lookup
         return products.stream()
             .collect(java.util.stream.Collectors.toMap(
@@ -499,12 +499,12 @@ public class ProductServiceImpl implements ProductService {
                     dto.setImageId(product.getImageId());
                     dto.setUserId(product.getUserId());
                     dto.setImageIds(product.getImageIds());
-                    
+
                     if (product.getCategory() != null) {
                         dto.setCategoryId(product.getCategory().getId());
                         dto.setCategoryName(product.getCategory().getName());
                     }
-                    
+
                     if (product.getSizes() != null) {
                         List<SizeDto> sizeDtos = product.getSizes().stream()
                             .map(size -> {
@@ -520,16 +520,16 @@ public class ProductServiceImpl implements ProductService {
                             .collect(java.util.stream.Collectors.toList());
                         dto.setSizes(sizeDtos);
                     }
-                    
+
                     return dto;
                 }
             ));
     }
-    
+
     /**
      * Batch decrease stock for multiple products
      * Processes all items in a single transaction
-     * 
+     *
      * @param items List of items to decrease stock for
      * @return Map of productId -> success/failure
      */
@@ -537,32 +537,32 @@ public class ProductServiceImpl implements ProductService {
     @org.springframework.transaction.annotation.Transactional
     public java.util.Map<String, Boolean> batchDecreaseStock(
             List<BatchDecreaseStockRequest.DecreaseStockItem> items) {
-        
+
         java.util.Map<String, Boolean> results = new java.util.HashMap<>();
-        
+
         if (items == null || items.isEmpty()) {
             return results;
         }
-        
+
         for (BatchDecreaseStockRequest.DecreaseStockItem item : items) {
             try {
                 // Find size
                 Size size = sizeRepository.findById(item.getSizeId())
                     .orElseThrow(() -> new RuntimeException("Size not found: " + item.getSizeId()));
-                
+
                 // Check stock
                 if (size.getStock() < item.getQuantity()) {
                     results.put(item.getProductId(), false);
                     continue;
                 }
-                
+
                 // Decrease stock
                 size.setStock(size.getStock() - item.getQuantity());
                 sizeRepository.save(size);
-                
+
                 // Update product status
                 checkAndUpdateProductStatus(size.getProduct());
-                
+
                 // Inventory log
                 try {
                     inventoryService.logStockChange(
@@ -577,16 +577,16 @@ public class ProductServiceImpl implements ProductService {
                     // Log error but don't fail transaction
                     System.err.println("Failed to log inventory change: " + e.getMessage());
                 }
-                
+
                 results.put(item.getProductId(), true);
-                
+
             } catch (Exception e) {
-                System.err.println("Failed to decrease stock for product " + 
+                System.err.println("Failed to decrease stock for product " +
                     item.getProductId() + ": " + e.getMessage());
                 results.put(item.getProductId(), false);
             }
         }
-        
+
         return results;
     }
 }

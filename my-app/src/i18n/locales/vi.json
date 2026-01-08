@@ -1585,6 +1585,81 @@
         "perProduct": "mỗi sản phẩm",
         "contactSupport": "Liên hệ hỗ trợ để biết thêm chi tiết"
       }
+    },
+    "flashSale": {
+      "title": "Chương trình Flash Sale của Shop",
+      "description": "Đăng ký sản phẩm của bạn vào các khung giờ Flash Sale để tăng doanh số bán hàng.",
+      "registerTitle": "Đăng ký Flash Sale",
+      "registerDescription": "Chọn khung giờ và sản phẩm để tham gia Flash Sale",
+      "backButton": "Quay lại",
+      "registerButton": "Đăng ký tham gia",
+      "registrationInfo": "Thông tin đăng ký",
+      "selectSessionRequired": "Chọn khung giờ",
+      "selectSessionPlaceholder": "-- Chọn khung giờ Flash Sale --",
+      "selectProductRequired": "Chọn sản phẩm",
+      "selectProductPlaceholder": "-- Chọn sản phẩm --",
+      "originalPrice": "Giá gốc",
+      "stockAvailable": "Tồn kho",
+      "salePrice": "Giá khuyến mãi",
+      "priceWarning": "Lưu ý: Giá sale phải thấp hơn giá gốc!",
+      "stock": "Số lượng khuyến mãi",
+      "invalidStock": "Số lượng không được vượt quá tồn kho hiện tại!",
+      "confirmHeader": "Xác nhận",
+      "confirmText": "Vui lòng kiểm tra kỹ thông tin trước khi đăng ký. Sau khi đăng ký, bạn cần chờ Admin duyệt.",
+      "loading": "Đang xử lý...",
+      "submitRegister": "Gửi đăng ký",
+      "cancel": "Hủy",
+      "historyTitle": "Lịch sử đăng ký Flash Sale",
+      "noRegistrations": "Bạn chưa đăng ký sản phẩm nào tham gia Flash Sale.",
+      "product": "Sản phẩm",
+      "program": "Chương trình",
+      "status": "Trạng thái",
+      "approved": "Đã duyệt",
+      "rejected": "Từ chối",
+      "pending": "Chờ duyệt",
+      "successMessage": "Đăng ký thành công!",
+      "errorMessage": "Lỗi: {{message}}"
+    },
+    "ads": {
+      "title": "Quản lý Chiến dịch Quảng cáo",
+      "tableTitle": "Tất cả quảng cáo",
+      "createButton": "Tạo Quảng Cáo Mới",
+      "addTitle": "Thêm Quảng Cáo Mới",
+      "addSubtitle": "Tạo chiến dịch quảng cáo để tiếp cận nhiều khách hàng hơn",
+      "back": "Quay lại",
+      "deleteConfirm": "Bạn muốn xóa yêu cầu này?",
+      "noAds": "Chưa có quảng cáo nào. Hãy tạo mới!",
+      "uploadFailed": "Upload ảnh thất bại: ",
+      "createSuccess": "Đã gửi yêu cầu quảng cáo thành công! Admin sẽ duyệt sớm.",
+      "createFailed": "Gửi yêu cầu thất bại",
+      "deleteFailed": "Xóa thất bại",
+      "cannotDeleteApproved": "Không thể xóa quảng cáo đã được phê duyệt!",
+      "noShopId": "Không tìm thấy thông tin Shop. Vui lòng thử lại.",
+      "autoFill": "Tự động điền Link Shop của tôi",
+      "table": {
+        "campaign": "Chiến dịch / Tiêu đề",
+        "image": "Hình ảnh",
+        "type": "Loại",
+        "duration": "Thời gian",
+        "status": "Trạng thái",
+        "placement": "Vị trí",
+        "action": "Hành động"
+      },
+      "form": {
+        "basicInfo": "Thông tin cơ bản",
+        "campaignName": "Tên Chiến dịch",
+        "description": "Mô tả chi tiết",
+        "imageInfo": "Hình ảnh Quảng cáo",
+        "uploadImage": "Upload ảnh",
+        "imageNote": "Định dạng hỗ trợ: JPG, PNG. Kích thước tối ưu: 1200x400px (Banner)",
+        "settings": "Cài đặt Chiến dịch",
+        "adType": "Loại Quảng cáo",
+        "duration": "Thời gian chạy (Ngày)",
+        "targetUrl": "Link Đích",
+        "targetUrlNote": "Link khi khách hàng click vào quảng cáo.",
+        "submit": "Gửi Yêu Cầu Duyệt",
+        "submitting": "Đang xử lý..."
+      }
     }
   },
   "tracking": {
@@ -1728,5 +1803,125 @@
     "viewShop": "Xem Shop",
     "loadingShopInfo": "Đang tải thông tin cửa hàng...",
     "within": "trong"
+  },
+  "liveStream": {
+    "title": "Quản lý Livestream",
+    "listTitle": "Danh sách phòng Live",
+    "createRoom": "Tạo phòng Live",
+    "stats": {
+      "live": "Đang Live",
+      "pending": "Chờ Stream",
+      "ended": "Đã Kết Thúc"
+    },
+    "table": {
+      "title": "Tiêu đề",
+      "status": "Trạng thái",
+      "viewers": "Người xem",
+      "orders": "Đơn hàng",
+      "revenue": "Doanh thu",
+      "actions": "Thao tác"
+    },
+    "empty": {
+      "message": "Chưa có phòng live nào",
+      "button": "Tạo phòng đầu tiên"
+    },
+    "status": {
+      "live": "🔴 LIVE",
+      "pending": "⏳ Chờ stream",
+      "ended": "✓ Đã kết thúc"
+    },
+    "actions": {
+      "viewKey": "Xem Stream Key",
+      "start": "Bắt đầu Live",
+      "watch": "Xem Live",
+      "end": "Kết thúc",
+      "endedAt": "Đã kết thúc lúc"
+    },
+    "createModal": {
+      "title": "🎬 Tạo phòng Live mới",
+      "roomTitle": "Tiêu đề *",
+      "description": "Mô tả",
+      "cancel": "Hủy",
+      "submit": "Tạo phòng",
+      "roomTitlePlaceholder": "Nhập tiêu đề livestream",
+      "titleLimit": "Không nên vượt quá 20 ký tự.",
+      "descriptionPlaceholder": "Mô tả về buổi livestream",
+      "thumbnail": "Ảnh bìa (Thumbnail)",
+      "noImage": "Chưa có ảnh",
+      "selectImage": "Chọn ảnh",
+      "imageNote": "Kích thước khuyến nghị: 1280x720 (16:9). Max 5MB.",
+      "relatedProducts": "Sản phẩm liên quan",
+      "addProduct": "Thêm sản phẩm liên quan",
+      "productSelectionNote": "Thêm sản phẩm từ Shop của bạn và các sản phẩm bạn thích vào Livestream",
+      "continue": "Tiếp tục"
+    },
+    "keyModal": {
+      "title": "🔑 Stream Key",
+      "warning": "Bảo mật: Không chia sẻ Stream Key này với bất kỳ ai!",
+      "guide": "📹 Cách sử dụng với OBS:",
+      "close": "Đóng"
+    },
+    "obs": {
+      "title": "Liên kết phát trực tiếp với OBS",
+      "step1": "Sao chép URL và",
+      "step1sub": "Khóa bên dưới",
+      "step2": "Điền vào chỗ trống",
+      "step2sub": "trong OBS bằng URL và Khóa",
+      "step3": "Nhấp vào Bắt đầu",
+      "step3sub": "Phát trực tiếp trên OBS",
+      "step4": "Làm mới để xem",
+      "step4sub": "trước video trực tiếp",
+      "url": "URL",
+      "key": "Key",
+      "copy": "Copy",
+      "activeProducts": "Sản phẩm đang bán",
+      "add": "Thêm",
+      "noActiveProducts": "Chưa có sản phẩm nào được ghim.",
+      "remove": "Gỡ bỏ",
+      "updating": "Đang cập nhật..."
+    },
+    "watch": {
+      "viewerCount": "👁 {{count}} đang xem",
+      "viewShop": "Xem Shop →",
+      "productsLive": "🛍️ Sản phẩm đang Live",
+      "hot": "HOT",
+      "outOfStock": "❌ Hết hàng",
+      "remaining": "Còn lại: {{count}}/{{limit}}",
+      "addToCart": "🛒 Thêm vào giỏ",
+      "adding": "Đang thêm...",
+      "chatHeader": "💬 Chat trực tiếp",
+      "noMessages": "Chưa có tin nhắn nào",
+      "chatPlaceholder": "Nhập bình luận...",
+      "loginToChat": "Đăng nhập để chat...",
+      "send": "Gửi",
+      "selectSizeTitle": "Chọn phân loại hàng",
+      "loadingInfo": "Đang tải thông tin...",
+      "sizeLabel": "Kích thước:",
+      "cancel": "Hủy",
+      "shopOwner": "CHỦ SHOP",
+      "loginRequired": "Vui lòng đăng nhập để mua hàng",
+      "selectVariation": "Vui lòng chọn phân loại hàng",
+      "addedToCart": "Đã thêm vào giỏ hàng!",
+      "addToCartError": "Không thể thêm vào giỏ hàng",
+      "roomNotFound": "Không tìm thấy phòng live",
+      "connectError": "Không thể kết nối đến stream. Vui lòng thử lại.",
+      "backToList": "← Quay lại danh sách Live"
+    },
+    "list": {
+      "subtitle": "Xem livestream và mua sắm cùng các shop yêu thích",
+      "liveNow": "Đang Live",
+      "loading": "Đang tải...",
+      "emptyTitle": "Chưa có shop nào đang live",
+      "emptySubtitle": "Hãy quay lại sau nhé!",
+      "viewerCount": "👁 {{count}} đang xem"
+    },
+    "alerts": {
+      "error": "Lỗi",
+      "createError": "Không thể tạo phòng live. Vui lòng thử lại!",
+      "startError": "Không thể bắt đầu live.",
+      "endError": "Không thể kết thúc live.",
+      "confirmEnd": "Bạn có chắc muốn kết thúc livestream?",
+      "copied": "Đã copy vào clipboard!"
+    }
   }
 }

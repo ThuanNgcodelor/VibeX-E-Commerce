@@ -5,7 +5,10 @@ import { uploadImage } from '../../../api/image';
 import { API_BASE_URL } from '../../../config/config';
 import '../ShopOwnerLayout.css'; // Import shared styles
 
+import { useTranslation } from 'react-i18next';
+
 export default function ShopAdRequest() {
+    const { t } = useTranslation();
     const [ads, setAds] = useState([]);
     const [loading, setLoading] = useState(false);
     const [viewMode, setViewMode] = useState('LIST'); // 'LIST' or 'ADD'
@@ -42,7 +45,7 @@ export default function ShopAdRequest() {
             }
 
             if (!sId) {
-                alert("Không tìm thấy thông tin Shop/User. Vui lòng đăng nhập lại.");
+                alert(t('shopOwner.ads.noShopId'));
                 return;
             }
 
@@ -75,7 +78,7 @@ export default function ShopAdRequest() {
             const fullUrl = `${API_BASE_URL}/v1/file-storage/get/${imageId}`;
             setFormData(prev => ({ ...prev, imageUrl: fullUrl }));
         } catch (error) {
-            alert("Upload ảnh thất bại: " + (error.message || "Lỗi không xác định"));
+            alert(t('shopOwner.ads.uploadFailed') + (error.message || "Error"));
         } finally {
             setUploading(false);
         }
@@ -96,29 +99,29 @@ export default function ShopAdRequest() {
             const link = `${origin}/shop/${currentShopId}`;
             setFormData(prev => ({ ...prev, targetUrl: link }));
         } else {
-            alert("Không lấy được Shop ID. Hãy thử tải lại trang.");
+            alert(t('shopOwner.ads.noShopId'));
         }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!shopId) {
-            alert("Lỗi: Không xác định được Shop ID. Vui lòng tải lại trang.");
+            alert(t('shopOwner.ads.noShopId'));
             return;
         }
 
         try {
             if (!formData.imageUrl) {
-                alert("Vui lòng upload ảnh quảng cáo!");
+                alert(t('shopOwner.ads.form.uploadImage')); // Should use a validation message key really
                 return;
             }
             if (!formData.title) {
-                alert("Vui lòng nhập tiêu đề!");
+                alert(t('shopOwner.ads.form.campaignName') + " required");
                 return;
             }
 
             await adAPI.createRequest({ ...formData, shopId });
-            alert("Đã gửi yêu cầu quảng cáo thành công! Admin sẽ duyệt sớm.");
+            alert(t('shopOwner.ads.createSuccess'));
             setViewMode('LIST');
             fetchAds(shopId);
             // Reset form
@@ -131,22 +134,22 @@ export default function ShopAdRequest() {
                 durationDays: 7
             });
         } catch (error) {
-            const msg = error.response?.data?.message || "Gửi yêu cầu thất bại";
-            alert(`Lỗi: ${msg}`);
+            const msg = error.response?.data?.message || t('shopOwner.ads.createFailed');
+            alert(`Error: ${msg}`);
         }
     };
 
     const handleDelete = async (ad) => {
         if (ad.status === 'APPROVED') {
-            alert("Không thể xóa quảng cáo đã được phê duyệt!");
+            alert(t('shopOwner.ads.cannotDeleteApproved'));
             return;
         }
-        if (window.confirm("Bạn muốn xóa yêu cầu này?")) {
+        if (window.confirm(t('shopOwner.ads.deleteConfirm'))) {
             try {
                 await adAPI.deleteAd(ad.id);
                 fetchAds(shopId);
             } catch (error) {
-                alert("Xóa thất bại");
+                alert(t('shopOwner.ads.deleteFailed'));
             }
         }
     };
@@ -156,15 +159,15 @@ export default function ShopAdRequest() {
     const renderListView = () => (
         <div className="dashboard-container">
             <div className="dashboard-header">
-                <h1>Quản lý Chiến dịch Quảng cáo</h1>
+                <h1>{t('shopOwner.ads.title')}</h1>
             </div>
 
             <div className="orders-table">
                 <div className="table-header">
-                    <div className="table-title">Tất cả quảng cáo</div>
+                    <div className="table-title">{t('shopOwner.ads.tableTitle')}</div>
                     <div className="table-actions">
                         <button className="btn btn-primary-shop" onClick={() => setViewMode('ADD')}>
-                            <i className="fas fa-plus"></i> Tạo Quảng Cáo Mới
+                            <i className="fas fa-plus"></i> {t('shopOwner.ads.createButton')}
                         </button>
                     </div>
                 </div>
@@ -172,70 +175,72 @@ export default function ShopAdRequest() {
                 <div className="table-responsive">
                     <table className="table table-hover">
                         <thead>
-                        <tr>
-                            <th>Chiến dịch / Tiêu đề</th>
-                            <th>Hình ảnh</th>
-                            <th>Loại</th>
-                            <th>Thời gian</th>
-                            <th>Trạng thái</th>
-                            <th>Vị trí</th>
-                            <th>Hành động</th>
-                        </tr>
+                            <tr>
+                                <th>{t('shopOwner.ads.table.campaign')}</th>
+                                <th>{t('shopOwner.ads.table.image')}</th>
+                                <th>{t('shopOwner.ads.table.type')}</th>
+                                <th>{t('shopOwner.ads.table.duration')}</th>
+                                <th>{t('shopOwner.ads.table.status')}</th>
+                                <th>{t('shopOwner.ads.table.placement')}</th>
+                                <th>{t('shopOwner.ads.table.action')}</th>
+                            </tr>
                         </thead>
                         <tbody>
-                        {loading ? (
-                            <tr>
-                                <td colSpan="7" className="text-center p-4">
-                                    <i className="fas fa-spinner fa-spin me-2"></i> Đang tải...
-                                </td>
-                            </tr>
-                        ) : ads.length === 0 ? (
-                            <tr>
-                                <td colSpan="7" className="text-center p-5">
-                                    <i className="fas fa-ad fa-3x text-muted mb-3"></i>
-                                    <p className="text-muted">Chưa có quảng cáo nào. Hãy tạo mới!</p>
-                                </td>
-                            </tr>
-                        ) : (
-                            ads.map(ad => (
-                                <tr key={ad.id}>
-                                    <td>
-                                        <div className="fw-bold">{ad.title}</div>
-                                        <small className="text-muted">{ad.description}</small>
-                                    </td>
-                                    <td>
-                                        {ad.imageUrl && (
-                                            <img
-                                                src={ad.imageUrl}
-                                                alt="Ad"
-                                                style={{ width: '60px', height: '40px', objectFit: 'cover', borderRadius: '4px' }}
-                                            />
-                                        )}
-                                    </td>
-                                    <td>{ad.adType}</td>
-                                    <td>{ad.durationDays} ngày</td>
-                                    <td>
-                                            <span className={`badge ${ad.status === 'APPROVED' ? 'bg-success' :
-                                                ad.status === 'REJECTED' ? 'bg-danger' : 'bg-warning'
-                                            }`}>
-                                                {ad.status}
-                                            </span>
-                                        {ad.status === 'REJECTED' && <div className="text-danger small mt-1">{ad.rejectionReason}</div>}
-                                    </td>
-                                    <td>{ad.placement || '-'}</td>
-                                    <td>
-                                        <button
-                                            className="btn btn-sm btn-outline-danger"
-                                            disabled={ad.status === 'APPROVED'}
-                                            onClick={() => handleDelete(ad)}
-                                            title="Xóa yêu cầu"
-                                        >
-                                            <i className="fas fa-trash"></i>
-                                        </button>
+                            {loading ? (
+                                <tr>
+                                    <td colSpan="7" className="text-center p-4">
+                                        <i className="fas fa-spinner fa-spin me-2"></i> {t('shopOwner.header.loading')}
                                     </td>
                                 </tr>
-                            ))
-                        )}
+                            ) : ads.length === 0 ? (
+                                <tr>
+                                    <td colSpan="7" className="text-center p-5">
+                                        <i className="fas fa-ad fa-3x text-muted mb-3"></i>
+                                        <p className="text-muted">{t('shopOwner.ads.noAds')}</p>
+                                    </td>
+                                </tr>
+                            ) : (
+                                ads.map(ad => (
+                                    <tr key={ad.id}>
+                                        <td>
+                                            <div className="fw-bold">{ad.title}</div>
+                                            <small className="text-muted">{ad.description}</small>
+                                        </td>
+                                        <td>
+                                            {ad.imageUrl && (
+                                                <img
+                                                    src={ad.imageUrl}
+                                                    alt="Ad"
+                                                    style={{ width: '60px', height: '40px', objectFit: 'cover', borderRadius: '4px' }}
+                                                />
+                                            )}
+                                        </td>
+                                        <td>{ad.adType}</td>
+                                        <td>{ad.durationDays} ngày</td>
+                                        <td>
+                                            <span className={`badge ${ad.status === 'APPROVED' ? 'bg-success' :
+                                                ad.status === 'REJECTED' ? 'bg-danger' : 'bg-warning'
+                                                }`}>
+                                                {ad.status === 'APPROVED' ? t('shopOwner.flashSale.approved') :
+                                                    ad.status === 'REJECTED' ? t('shopOwner.flashSale.rejected') :
+                                                        t('shopOwner.flashSale.pending')}
+                                            </span>
+                                            {ad.status === 'REJECTED' && <div className="text-danger small mt-1">{ad.rejectionReason}</div>}
+                                        </td>
+                                        <td>{ad.placement || '-'}</td>
+                                        <td>
+                                            <button
+                                                className="btn btn-sm btn-outline-danger"
+                                                disabled={ad.status === 'APPROVED'}
+                                                onClick={() => handleDelete(ad)}
+                                                title="Xóa yêu cầu"
+                                            >
+                                                <i className="fas fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
                         </tbody>
                     </table>
                 </div>
@@ -248,11 +253,11 @@ export default function ShopAdRequest() {
             <div className="dashboard-header">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                        <h1>Thêm Quảng Cáo Mới</h1>
-                        <p className="text-muted">Tạo chiến dịch quảng cáo để tiếp cận nhiều khách hàng hơn</p>
+                        <h1>{t('shopOwner.ads.addTitle')}</h1>
+                        <p className="text-muted">{t('shopOwner.ads.addSubtitle')}</p>
                     </div>
                     <button className="btn btn-secondary-shop" onClick={() => setViewMode('LIST')}>
-                        <i className="fas fa-arrow-left"></i> Quay lại
+                        <i className="fas fa-arrow-left"></i> {t('shopOwner.ads.back')}
                     </button>
                 </div>
             </div>
@@ -263,29 +268,29 @@ export default function ShopAdRequest() {
                     <div className="col-md-8">
                         <div className="card mb-4">
                             <div className="card-header">
-                                <h5><i className="fas fa-info-circle"></i> Thông tin cơ bản</h5>
+                                <h5><i className="fas fa-info-circle"></i> {t('shopOwner.ads.form.basicInfo')}</h5>
                             </div>
                             <div className="card-body">
                                 <div className="mb-3">
-                                    <label className="form-label">Tên Chiến dịch <span className="text-danger">*</span></label>
+                                    <label className="form-label">{t('shopOwner.ads.form.campaignName')} <span className="text-danger">*</span></label>
                                     <input
                                         type="text"
                                         className="form-control"
                                         required
                                         value={formData.title}
                                         onChange={e => setFormData({ ...formData, title: e.target.value })}
-                                        placeholder="Nhập tên chiến dịch quảng cáo..."
+                                        placeholder={t('shopOwner.ads.form.campaignName')}
                                     />
                                 </div>
 
                                 <div className="mb-3">
-                                    <label className="form-label">Mô tả chi tiết</label>
+                                    <label className="form-label">{t('shopOwner.ads.form.description')}</label>
                                     <textarea
                                         className="form-control"
                                         rows="4"
                                         value={formData.description}
                                         onChange={e => setFormData({ ...formData, description: e.target.value })}
-                                        placeholder="Mô tả nội dung quảng cáo..."
+                                        placeholder={t('shopOwner.ads.form.description')}
                                     ></textarea>
                                 </div>
                             </div>
@@ -293,11 +298,11 @@ export default function ShopAdRequest() {
 
                         <div className="card mb-4">
                             <div className="card-header">
-                                <h5><i className="fas fa-image"></i> Hình ảnh Quảng cáo</h5>
+                                <h5><i className="fas fa-image"></i> {t('shopOwner.ads.form.imageInfo')}</h5>
                             </div>
                             <div className="card-body">
                                 <div className="mb-3">
-                                    <label className="form-label">Upload ảnh <span className="text-danger">*</span></label>
+                                    <label className="form-label">{t('shopOwner.ads.form.uploadImage')} <span className="text-danger">*</span></label>
                                     <input
                                         type="file"
                                         className="form-control"
@@ -305,10 +310,10 @@ export default function ShopAdRequest() {
                                         onChange={handleImageUpload}
                                         disabled={uploading}
                                     />
-                                    <small className="text-muted">Định dạng hỗ trợ: JPG, PNG. Kích thước tối ưu: 1200x400px (Banner)</small>
+                                    <small className="text-muted">{t('shopOwner.ads.form.imageNote')}</small>
                                 </div>
 
-                                {uploading && <div className="text-info"><i className="fas fa-spinner fa-spin"></i> Đang tải lên...</div>}
+                                {uploading && <div className="text-info"><i className="fas fa-spinner fa-spin"></i> {t('shopOwner.ads.form.submitting')}</div>}
 
                                 {formData.imageUrl && (
                                     <div className="mt-3 p-2 border rounded bg-light text-center">
@@ -327,24 +332,22 @@ export default function ShopAdRequest() {
                     <div className="col-md-4">
                         <div className="card mb-4" style={{ position: 'sticky', top: '20px' }}>
                             <div className="card-header">
-                                <h5><i className="fas fa-cog"></i> Cài đặt Chiến dịch</h5>
+                                <h5><i className="fas fa-cog"></i> {t('shopOwner.ads.form.settings')}</h5>
                             </div>
                             <div className="card-body">
                                 <div className="mb-3">
-                                    <label className="form-label">Loại Quảng cáo</label>
+                                    <label className="form-label">{t('shopOwner.ads.form.adType')}</label>
                                     <select
                                         className="form-select"
                                         value={formData.adType}
                                         onChange={e => setFormData({ ...formData, adType: e.target.value })}
                                     >
                                         <option value="BANNER">Banner Hình ảnh</option>
-
-                                        <option value="VIDEO">Video</option>
                                     </select>
                                 </div>
 
                                 <div className="mb-3">
-                                    <label className="form-label">Thời gian chạy (Ngày)</label>
+                                    <label className="form-label">{t('shopOwner.ads.form.duration')}</label>
                                     <div className="input-group">
                                         <input
                                             type="number"
@@ -359,7 +362,7 @@ export default function ShopAdRequest() {
                                 </div>
 
                                 <div className="mb-3">
-                                    <label className="form-label">Link Đích</label>
+                                    <label className="form-label">{t('shopOwner.ads.form.targetUrl')}</label>
                                     <div className="input-group">
                                         <input
                                             type="text"
@@ -372,12 +375,12 @@ export default function ShopAdRequest() {
                                             className="btn btn-outline-secondary"
                                             type="button"
                                             onClick={handleAutoFillShopLink}
-                                            title="Tự động điền Link Shop của tôi"
+                                            title={t('shopOwner.ads.autoFill')}
                                         >
                                             <i className="fas fa-magic"></i>
                                         </button>
                                     </div>
-                                    <small className="text-muted">Link khi khách hàng click vào quảng cáo.</small>
+                                    <small className="text-muted">{t('shopOwner.ads.form.targetUrlNote')}</small>
                                 </div>
 
                                 <hr />
@@ -388,9 +391,9 @@ export default function ShopAdRequest() {
                                         className="btn btn-primary-shop"
                                         disabled={uploading}
                                     >
-                                        {uploading ? 'Đang xử lý...' : (
+                                        {uploading ? t('shopOwner.ads.form.submitting') : (
                                             <>
-                                                <i className="fas fa-paper-plane"></i> Gửi Yêu Cầu Duyệt
+                                                <i className="fas fa-paper-plane"></i> {t('shopOwner.ads.form.submit')}
                                             </>
                                         )}
                                     </button>

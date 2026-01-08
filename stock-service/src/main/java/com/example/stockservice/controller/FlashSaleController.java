@@ -100,4 +100,11 @@ public class FlashSaleController {
             @PathVariable String id) {
         return ResponseEntity.ok(flashSaleService.getApprovedProductsBySession(id));
     }
+
+    // --- Internal Endpoint for Order Service ---
+
+    @GetMapping(value = "/available-stock/{productId}", headers = "X-Internal-Call=true")
+    public int getAvailableFlashSaleStock(@PathVariable String productId) {
+        return flashSaleService.getAvailableFlashSaleStock(productId);
+    }
 }

@@ -6,4 +6,6 @@ import lombok.Data;
 public class DecreaseStockRequest {
     private String sizeId;
     private int quantity;
+    @com.fasterxml.jackson.annotation.JsonProperty("isFlashSale")
+    private Boolean isFlashSale;
 }

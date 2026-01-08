@@ -365,6 +365,7 @@ export default function CartPage() {
         productName: productNames[pid] || item.productName || pid,
       };
     });
+    console.log("CartPage Navigate Payload:", itemsWithShopOwner);
     navigate("/checkout", {
       state: {
         selectedItems: itemsWithShopOwner,

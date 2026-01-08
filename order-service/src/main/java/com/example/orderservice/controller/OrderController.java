@@ -209,6 +209,13 @@ public class OrderController {
             }
 
             // COD - use async Kafka
+            System.out.println("Received order request: " + request);
+            if (request.getSelectedItems() != null) {
+                request.getSelectedItems().forEach(item -> System.out.println("Item: productId=" + item.getProductId() +
+                        ", sizeId=" + item.getSizeId() +
+                        ", quantity=" + item.getQuantity() +
+                        ", isFlashSale=" + item.getIsFlashSale()));
+            }
             orderService.orderByKafka(request, httpRequest);
             return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
                     "message", "Order has been sent to Kafka.",
