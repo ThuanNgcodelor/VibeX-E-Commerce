@@ -158,7 +158,6 @@ export default function ChatBotWidget() {
     });
   }, []);
 
-  // Listen for external events to open chat with a specific product
   React.useEffect(() => {
     const handleOpenChat = async (event) => {
       const { shopOwnerId, productId } = event.detail || {};
@@ -172,14 +171,11 @@ export default function ChatBotWidget() {
         setOpen(true);
         setMinimized(false);
 
-        // Reload conversations to get the latest list
         await loadConversations();
 
         // Select the conversation
         setSelectedChat(conversation);
 
-        // Auto-send PRODUCT_LINK message if productId is provided
-        // This creates clear history showing which product user is asking about
         if (productId && conversation?.id) {
           try {
             // Send automatic product link message

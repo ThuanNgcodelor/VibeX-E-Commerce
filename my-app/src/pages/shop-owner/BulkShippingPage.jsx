@@ -379,7 +379,7 @@ export default function BulkShippingPage() {
             console.error('Error updating order status:', err);
             Swal.fire({
                 icon: 'error',
-                title: 'Failed to update order status',
+                title: t('shopOwner.manageOrder.failedUpdate'),
                 text: err.message
             });
         }
@@ -456,13 +456,13 @@ export default function BulkShippingPage() {
             );
 
             // Show processing message (async - results come via notification)
-            const message = response.message || `Đang xử lý ${response.accepted} đơn hàng...`;
+            const message = response.message || `Processing ${response.accepted} orders...`;
 
             if (response.rejected > 0) {
                 Swal.fire({
                     icon: 'warning',
                     title: t('shopOwner.manageOrder.partialSuccess'),
-                    text: `${message}\n${response.rejected} đơn bị từ chối.` // Note: Backend response might be strict string?
+                    text: `${message}\n${response.rejected} The application was rejected.` // Note: Backend response might be strict string?
                 });
             } else {
                 Swal.fire({
@@ -661,19 +661,12 @@ export default function BulkShippingPage() {
 
     const getStatusLabel = (status) => {
         const normalized = normalizeStatus(status);
-        // Use i18n keys for status
         const labelKey = `common.status.${normalized.toLowerCase()}`;
-        // Fallback or explicit check if needed, but common.status should cover it.
-        // If keys are uppercase in common.status, adjust accordingly.
-        // Assuming common.status has lowercase keys like 'pending', 'confirmed'.
-        // Let's check vi.json. vi.json has "pending", "confirmed" etc (lowercase keys? or uppercase?).
-        // In Step 299: "common": { "status": { "pending": ... } }
         return t(`common.status.${normalized.toLowerCase()}`, normalized);
     };
 
     const getNextStatus = (currentStatus) => {
         const cur = normalizeStatus(currentStatus);
-        // New flow: PENDING → CONFIRMED → READY_TO_SHIP (shipper picks up → SHIPPED auto)
         const statusFlow = {
             PENDING: 'CONFIRMED',
             CONFIRMED: 'READY_TO_SHIP'
@@ -794,10 +787,12 @@ export default function BulkShippingPage() {
         if (!dateString) return 'N/A';
         try {
             const date = new Date(dateString);
-            return date.toLocaleDateString('vi-VN', {
+            return date.toLocaleString('vi-VN', {
                 year: 'numeric',
                 month: '2-digit',
-                day: '2-digit'
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
             });
         } catch {
             return dateString;
@@ -1057,7 +1052,6 @@ export default function BulkShippingPage() {
                                 <th style={{ width: '12%' }} className="text-center">{t('shopOwner.manageOrder.orderDate')}</th>
                                 <th style={{ width: '12%' }} className="text-center">{t('shopOwner.manageOrder.status', 'Status')}</th>
                                 <th style={{ width: '10%' }} className="text-center">{t('shopOwner.manageOrder.actions')}</th>
-                                <th style={{ width: '5%' }}></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1174,7 +1168,7 @@ export default function BulkShippingPage() {
                                                                     <div className="d-flex justify-content-between align-items-start mb-4 border-bottom pb-3">
                                                                         <div>
                                                                             <h5 className="fw-bold text-dark mb-1">
-                                                                                {t('shopOwner.manageOrder.orderDetails')} #{order.id.substring(0, 8)}...
+                                                                                {t('shopOwner.manageOrder.orderDetails')}: {order.id}
                                                                             </h5>
                                                                             <span className="text-muted small">
                                                                                 {t('common.status.title')}: <span className={`badge ${statusInfo.class}`}>{statusInfo.label}</span>
@@ -1436,16 +1430,52 @@ export default function BulkShippingPage() {
                                         <i className="fas fa-chevron-left"></i>
                                     </button>
                                 </li>
-                                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                                    <li key={page} className={`page-item ${currentPage === page ? 'active' : ''}`}>
-                                        <button
-                                            className="page-link"
-                                            onClick={() => setCurrentPage(page)}
-                                        >
-                                            {page}
-                                        </button>
-                                    </li>
-                                ))}
+                                {(() => {
+                                    const delta = 2;
+                                    const left = currentPage - delta;
+                                    const right = currentPage + delta + 1;
+                                    let range = [];
+                                    let rangeWithDots = [];
+                                    let l;
+
+                                    for (let i = 1; i <= totalPages; i++) {
+                                        if (i === 1 || i === totalPages || (i >= left && i < right)) {
+                                            range.push(i);
+                                        }
+                                    }
+
+                                    for (let i of range) {
+                                        if (l) {
+                                            if (i - l === 2) {
+                                                rangeWithDots.push(l + 1);
+                                            } else if (i - l !== 1) {
+                                                rangeWithDots.push('...');
+                                            }
+                                        }
+                                        rangeWithDots.push(i);
+                                        l = i;
+                                    }
+
+                                    return rangeWithDots.map((page, index) => {
+                                        if (page === '...') {
+                                            return (
+                                                <li key={`ellipsis-${index}`} className="page-item disabled">
+                                                    <span className="page-link">...</span>
+                                                </li>
+                                            );
+                                        }
+                                        return (
+                                            <li key={page} className={`page-item ${currentPage === page ? 'active' : ''}`}>
+                                                <button
+                                                    className="page-link"
+                                                    onClick={() => setCurrentPage(page)}
+                                                >
+                                                    {page}
+                                                </button>
+                                            </li>
+                                        );
+                                    });
+                                })()}
                                 <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
                                     <button
                                         className="page-link"
