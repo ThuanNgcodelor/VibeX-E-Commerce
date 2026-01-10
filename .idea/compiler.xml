@@ -13,8 +13,8 @@
         <module name="order-service" />
         <module name="user-service" />
         <module name="eureka-server" />
-        <module name="gateway" />
         <module name="notification-service" />
+        <module name="gateway" />
         <module name="file-storage" />
       </profile>
       <profile name="Annotation profile for payment-service" enabled="true">

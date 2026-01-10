@@ -190,7 +190,16 @@ export default function ProductDetailPage() {
         if (!product) return "";
         const { price, originalPrice, discountPercent } = product;
 
-        const finalPrice = (price || 0) + sizeModifier;
+        // Find selected size
+        const selectedSize = product.sizes?.find(s => s.id === selectedSizeId);
+
+        let finalPrice = (price || 0) + sizeModifier;
+
+        // OVERRIDE: If Flash Sale is active and this size has a specific Flash Sale Price
+        if (isFlashSale && selectedSize?.flashSalePrice) {
+            finalPrice = selectedSize.flashSalePrice;
+        }
+
         const finalOriginal = (originalPrice || 0) + sizeModifier;
 
         if (discountPercent && discountPercent > 0 && originalPrice && originalPrice > price) {
@@ -211,7 +220,7 @@ export default function ProductDetailPage() {
                 {finalPrice.toLocaleString("vi-VN")} ₫
             </span>
         );
-    }, [product, sizeModifier]);
+    }, [product, sizeModifier, isFlashSale, selectedSizeId]); // Added dependencies
 
     const onAddToCart = async () => {
         if (!product) return;
@@ -499,22 +508,14 @@ export default function ProductDetailPage() {
                                                         color: isFlashSale ? '#fff' : '#ee4d2d'
                                                     }}
                                                 >
-                                                    {product.flashSaleRemaining <= 0 && <div style={{ position: 'absolute', top: 0, right: 0, background: '#333', color: '#fff', fontSize: '10px', padding: '2px 6px' }}>Hết suất</div>}
-                                                    <div className="fw-bold"><i className="fas fa-bolt me-1"></i>Flash Sale</div>
+                                                    {product.flashSaleRemaining <= 0 && <div style={{ position: 'absolute', top: 0, right: 0, background: '#333', color: '#fff', fontSize: '10px', padding: '2px 6px' }}>{t('product.soldOut')}</div>}
+                                                    <div className="fw-bold"><i className="fas fa-bolt me-1"></i>{t('product.flashSale')}</div>
                                                     <div style={{ fontSize: '0.9em' }}>{product.price?.toLocaleString("vi-VN")}₫</div>
-                                                    <div style={{ fontSize: '0.75em' }}>Còn: {product.flashSaleRemaining}</div>
-                                                </button>
-                                                <button
-                                                    className={`btn ${!isFlashSale ? 'btn-primary' : 'btn-outline-primary'}`}
-                                                    onClick={() => setIsFlashSale(false)}
-                                                    style={{ flex: 1 }}
-                                                >
-                                                    <div className="fw-bold">Giá Thường</div>
-                                                    <div style={{ fontSize: '0.9em' }}>{product.originalPrice?.toLocaleString("vi-VN")}₫</div>
-                                                    <div style={{ fontSize: '0.75em' }}>Có sẵn</div>
+                                                    <div style={{ fontSize: '0.75em' }}>{t('product.remaining')} {product.flashSaleRemaining}</div>
                                                 </button>
                                             </div>
                                         )}
+
 
                                         {/* Price Display */}
                                         <div className="mb-4" style={{ padding: '16px', background: '#fafafa', borderRadius: '8px' }}>
@@ -522,7 +523,14 @@ export default function ProductDetailPage() {
                                                 <div>
                                                     <div className="d-flex align-items-center gap-2">
                                                         <span className="fs-4 fw-bold" style={{ color: '#ee4d2d' }}>
-                                                            {((product.price || 0) + sizeModifier).toLocaleString("vi-VN")} ₫
+                                                            {(() => {
+                                                                // Calculate specific FS price
+                                                                const size = product.sizes?.find(s => s.id === selectedSizeId);
+                                                                if (size?.flashSalePrice) {
+                                                                    return size.flashSalePrice.toLocaleString("vi-VN");
+                                                                }
+                                                                return ((product.price || 0) + sizeModifier).toLocaleString("vi-VN");
+                                                            })()} ₫
                                                         </span>
                                                         <span className="text-decoration-line-through text-muted ms-2">
                                                             {((product.originalPrice || 0) + sizeModifier).toLocaleString("vi-VN")} ₫
@@ -533,15 +541,15 @@ export default function ProductDetailPage() {
                                                     <div className="mt-2 pt-2 border-top" style={{ borderColor: '#e0e0e0' }}>
                                                         <div className="d-flex align-items-center justify-content-between mt-1">
                                                             <span style={{ fontSize: '0.85rem', color: '#555' }}>
-                                                                Số lượng khuyến mãi:
+                                                                {t('product.promotionQuantity')}
                                                             </span>
                                                             {/* Badge "Đã bán" removed as requested */}
                                                         </div>
                                                         <div className="d-flex justify-content-between align-items-center mt-1">
-                                                            <span style={{ fontSize: '0.8rem', color: '#ee4d2d' }}>Còn {Math.min(product.flashSaleRemaining, totalStock)}</span>
+                                                            <span style={{ fontSize: '0.8rem', color: '#ee4d2d' }}>{t('product.remaining')} {Math.min(product.flashSaleRemaining, totalStock)}</span>
                                                         </div>
                                                         <small className="text-muted d-block mt-1 fst-italic" style={{ fontSize: '0.75rem' }}>
-                                                            (Giá sẽ trở về mức gốc khi hết số lượng khuyến mãi)
+                                                            {t('product.priceRevertWarning')}
                                                         </small>
                                                     </div>
                                                 </div>
@@ -565,7 +573,7 @@ export default function ProductDetailPage() {
                                                         )}
                                                         {/* Show "Giá gốc" label when user explicitly chose regular price over flash sale */}
                                                         {isFlashSale === false && product.flashSaleRemaining !== undefined && (
-                                                            <span className="text-muted" style={{ fontSize: '0.8rem' }}>(Giá gốc)</span>
+                                                            <span className="text-muted" style={{ fontSize: '0.8rem' }}>{t('product.regularPrice', '(Regular Price)')}</span>
                                                         )}
                                                     </div>
                                                 </div>
@@ -593,7 +601,7 @@ export default function ProductDetailPage() {
                                         {product.sizes && product.sizes.length > 0 && (
                                             <div className="mb-4">
                                                 <label className="form-label fw-bold mb-2" style={{ fontSize: '1rem' }}>
-                                                    Select Size:
+                                                    {t('product.selectSize')}
                                                 </label>
                                                 <div className="d-flex flex-wrap gap-2">
                                                     {product.sizes.map((size) => {
@@ -634,10 +642,10 @@ export default function ProductDetailPage() {
                                                             >
                                                                 <div>{size.name}</div>
                                                                 <small style={{ fontSize: '0.7rem', display: 'block', marginTop: '2px', color: isSelected ? '#fff' : '#666' }}>
-                                                                    {isOutOfStock ? 'Out of stock' :
-                                                                        (isFlashSale && product.flashSaleRemaining !== undefined)
-                                                                            ? `Stock: ${Math.min(size.stock, product.flashSaleRemaining)}`
-                                                                            : `Stock: ${size.stock}`
+                                                                    {isOutOfStock ? t('product.outOfStock') :
+                                                                        (isFlashSale && size.flashSaleStock !== undefined && size.flashSaleStock !== null)
+                                                                            ? `${t('product.stock')} ${size.flashSaleStock}`
+                                                                            : `${t('product.stock')} ${size.stock}`
                                                                     }
                                                                 </small>
                                                             </button>
@@ -679,12 +687,12 @@ export default function ProductDetailPage() {
                                         <div className="mt-auto">
                                             <div className="d-flex align-items-center gap-3 mb-3">
                                                 <label className="form-label fw-bold mb-0" style={{ fontSize: '1rem', minWidth: '80px' }}>
-                                                    Quantity:
+                                                    {t('product.quantity')}
                                                 </label>
                                                 <div className="d-flex align-items-center gap-2">
                                                     <button
                                                         type="button"
-                                                        className="btn btn-outline-secondary"
+                                                        className="btn btn-outline-dark"
                                                         style={{ width: '36px', height: '36px', padding: 0 }}
                                                         onClick={() => setQty(Math.max(1, qty - 1))}
                                                         disabled={qty <= 1}
@@ -710,7 +718,7 @@ export default function ProductDetailPage() {
                                                     />
                                                     <button
                                                         type="button"
-                                                        className="btn btn-outline-secondary"
+                                                        className="btn btn-outline-dark"
                                                         style={{ width: '36px', height: '36px', padding: 0 }}
                                                         onClick={() => {
                                                             const maxQty = selectedSizeId
@@ -743,12 +751,12 @@ export default function ProductDetailPage() {
                                                     {posting ? (
                                                         <>
                                                             <i className="fa fa-spinner fa-spin me-2"></i>
-                                                            Adding...
+                                                            {t('product.adding')}
                                                         </>
                                                     ) : (
                                                         <>
                                                             <i className="fa fa-shopping-cart me-2"></i>
-                                                            ADD TO CART
+                                                            {t('product.addToCart')}
                                                         </>
                                                     )}
                                                 </button>
@@ -763,7 +771,7 @@ export default function ProductDetailPage() {
                                                     onClick={async () => {
                                                         if (!product) return;
                                                         if (product.sizes && product.sizes.length > 0 && !selectedSizeId) {
-                                                            setError("Please select a size before buying.");
+                                                            setError(t('product.selectSizeRequired'));
                                                             return;
                                                         }
 
@@ -771,7 +779,7 @@ export default function ProductDetailPage() {
                                                         if (isFlashSale && product.flashSaleRemaining !== undefined) {
                                                             const maxLimit = Math.min(product.flashSaleRemaining, totalStock);
                                                             if (Number(qty) > maxLimit) {
-                                                                setError(`Chỉ được mua tối đa ${maxLimit} sản phẩm Flash Sale.`);
+                                                                setError(t('product.flashSaleLimitReached', { limit: maxLimit }));
                                                                 return;
                                                             }
                                                         }

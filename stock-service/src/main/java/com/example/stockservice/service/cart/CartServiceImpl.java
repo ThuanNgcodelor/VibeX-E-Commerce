@@ -3,11 +3,13 @@ package com.example.stockservice.service.cart;
 import com.example.stockservice.enums.ProductStatus;
 import com.example.stockservice.model.Cart;
 import com.example.stockservice.model.CartItem;
+import com.example.stockservice.model.FlashSaleProduct;
 import com.example.stockservice.model.Product;
 import com.example.stockservice.model.Size;
 import com.example.stockservice.repository.CartItemRepository;
 import com.example.stockservice.repository.CartRepository;
 import com.example.stockservice.repository.SizeRepository;
+import com.example.stockservice.service.flashsale.FlashSaleService;
 import com.example.stockservice.service.product.ProductService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +27,7 @@ public class CartServiceImpl implements CartService {
     private final CartItemRepository cartItemRepository;
     private final ProductService productService;
     private final SizeRepository sizeRepository;
+    private final FlashSaleService flashSaleService;
 
     @Override
     public Cart getCartByUserId(String userId) {
@@ -38,7 +41,8 @@ public class CartServiceImpl implements CartService {
 
     /**
      * Refresh cart items with current product/size availability and stock info.
-     * Sets transient fields: productAvailable, sizeAvailable, availableStock, priceChanged, oldPrice
+     * Sets transient fields: productAvailable, sizeAvailable, availableStock,
+     * priceChanged, oldPrice
      */
     private void refreshCartItems(Cart cart) {
         for (CartItem item : cart.getItems()) {
@@ -65,14 +69,15 @@ public class CartServiceImpl implements CartService {
                     // Product was deleted
                     item.setProductAvailable(false);
                     item.setAvailableStock(0);
-                    log.warn("Product {} no longer exists", item.getProduct() != null ? item.getProduct().getId() : "unknown");
+                    log.warn("Product {} no longer exists",
+                            item.getProduct() != null ? item.getProduct().getId() : "unknown");
                     continue;
                 }
 
                 // Check product status (BANNED, SUSPENDED, OUT_OF_STOCK)
-                if (product.getStatus() == ProductStatus.BANNED || 
-                    product.getStatus() == ProductStatus.SUSPENDED ||
-                    product.getStatus() == ProductStatus.OUT_OF_STOCK) {
+                if (product.getStatus() == ProductStatus.BANNED ||
+                        product.getStatus() == ProductStatus.SUSPENDED ||
+                        product.getStatus() == ProductStatus.OUT_OF_STOCK) {
                     item.setProductAvailable(false);
                     item.setAvailableStock(0);
                     log.info("Product {} is {}", product.getId(), product.getStatus());
@@ -86,7 +91,7 @@ public class CartServiceImpl implements CartService {
                 if (item.getSize() != null) {
                     // Has size - get size info
                     Size size = sizeRepository.findById(item.getSize().getId()).orElse(null);
-                    
+
                     if (size == null) {
                         // Size was deleted
                         item.setSizeAvailable(false);
@@ -94,7 +99,7 @@ public class CartServiceImpl implements CartService {
                         log.warn("Size {} no longer exists for product {}", item.getSize().getId(), product.getId());
                         continue;
                     }
-                    
+
                     item.setSizeAvailable(true);
                     currentPrice = product.getPrice() + size.getPriceModifier();
                     currentStock = size.getStock();
@@ -115,7 +120,7 @@ public class CartServiceImpl implements CartService {
                 if (Math.abs(item.getUnitPrice() - currentPrice) > 0.01) {
                     item.setOldPrice(item.getUnitPrice());
                     item.setPriceChanged(true);
-                    log.info("Price changed for product {}: {} -> {}", 
+                    log.info("Price changed for product {}: {} -> {}",
                             product.getId(), item.getUnitPrice(), currentPrice);
                     // Note: We don't update the stored unitPrice here, just flag it
                     // The user can see the change and decide to update or remove
@@ -125,7 +130,7 @@ public class CartServiceImpl implements CartService {
                 }
 
             } catch (Exception e) {
-                log.error("Error refreshing cart item for product {}: {}", 
+                log.error("Error refreshing cart item for product {}: {}",
                         item.getProduct() != null ? item.getProduct().getId() : "unknown", e.getMessage());
                 // Keep available=true on error to not block user
             }
@@ -160,7 +165,8 @@ public class CartServiceImpl implements CartService {
     @Override
     public Cart getUserCart(String userId, String cartId) {
         Cart cart = cartRepository.findByIdAndUserId(cartId, userId)
-                .orElseThrow(() -> new RuntimeException("Cart not found for user: " + userId + " and cartId: " + cartId));
+                .orElseThrow(
+                        () -> new RuntimeException("Cart not found for user: " + userId + " and cartId: " + cartId));
         if (cart.getItems() != null) {
             refreshCartItems(cart);
         }
@@ -193,14 +199,14 @@ public class CartServiceImpl implements CartService {
     public void removeCartItemsAndUpdateCart(String userId, List<String> productIds) {
         Cart cart = cartRepository.findByUserId(userId)
                 .orElseThrow(() -> new RuntimeException("Cart not found for user: " + userId));
-        
+
         cartItemRepository.deleteByCart_IdAndProduct_IdIn(cart.getId(), productIds);
-        
+
         // Refresh cart items and recalculate total
         cart.getItems().removeIf(item -> productIds.contains(item.getProduct().getId()));
         cart.updateTotalAmount();
         cartRepository.save(cart);
-        
+
         log.info("Removed {} products from cart for user: {}", productIds.size(), userId);
     }
 
@@ -208,10 +214,10 @@ public class CartServiceImpl implements CartService {
     @Transactional
     public void syncCartItemsForProduct(String productId) {
         log.info("Proactive sync: Updating cart items for product {}", productId);
-        
+
         Product product = productService.getProductById(productId);
         List<CartItem> affectedItems = cartItemRepository.findAllByProduct_Id(productId);
-        
+
         if (affectedItems.isEmpty()) {
             log.info("No cart items found for product {}", productId);
             return;
@@ -230,28 +236,60 @@ public class CartServiceImpl implements CartService {
             }
 
             // Check if product is still available
-            if (product.getStatus() == ProductStatus.BANNED || 
-                product.getStatus() == ProductStatus.SUSPENDED ||
-                product.getStatus() == ProductStatus.OUT_OF_STOCK) {
+            if (product.getStatus() == ProductStatus.BANNED ||
+                    product.getStatus() == ProductStatus.SUSPENDED ||
+                    product.getStatus() == ProductStatus.OUT_OF_STOCK) {
                 // Product unavailable - nothing to update, refreshCartItems will handle display
-                log.info("Product {} is {}, cart item {} will show as unavailable", 
+                log.info("Product {} is {}, cart item {} will show as unavailable",
                         productId, product.getStatus(), item.getId());
                 continue;
             }
 
             // Calculate new price
             double newUnitPrice = product.getPrice();
-            if (item.getSize() != null) {
+            Double newOriginalPrice = null;
+            boolean shouldBeFlashSale = false;
+
+            // Check if Flash Sale is active for this product
+            FlashSaleProduct fsProduct = flashSaleService.findActiveFlashSaleProduct(productId);
+            if (fsProduct != null) {
+                int remaining = fsProduct.getFlashSaleStock() - fsProduct.getSoldCount();
+                if (remaining > 0) {
+                    shouldBeFlashSale = true;
+                    newUnitPrice = fsProduct.getSalePrice();
+                    newOriginalPrice = fsProduct.getOriginalPrice();
+
+                    // Check for size-specific Flash Sale price
+                    if (item.getSize() != null && fsProduct.getProductSizes() != null) {
+                        for (com.example.stockservice.model.FlashSaleProductSize fpSize : fsProduct.getProductSizes()) {
+                            if (fpSize.getSizeId().equals(item.getSize().getId())
+                                    && fpSize.getFlashSalePrice() != null) {
+                                newUnitPrice = fpSize.getFlashSalePrice();
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // If not Flash Sale, check regular size modifier
+            if (!shouldBeFlashSale && item.getSize() != null) {
                 Size size = sizeRepository.findById(item.getSize().getId()).orElse(null);
                 if (size != null) {
                     newUnitPrice = product.getPrice() + size.getPriceModifier();
                 }
             }
 
-            // Update price if changed
-            if (Math.abs(item.getUnitPrice() - newUnitPrice) > 0.01) {
-                log.info("Updating cart item {} price: {} -> {}", item.getId(), item.getUnitPrice(), newUnitPrice);
+            // Update price and Flash Sale flag if changed
+            boolean priceChanged = Math.abs(item.getUnitPrice() - newUnitPrice) > 0.01;
+            boolean flashSaleChanged = !java.util.Objects.equals(item.isFlashSale(), shouldBeFlashSale);
+
+            if (priceChanged || flashSaleChanged) {
+                log.info("Updating cart item {} - price: {} -> {}, isFlashSale: {} -> {}",
+                        item.getId(), item.getUnitPrice(), newUnitPrice, item.isFlashSale(), shouldBeFlashSale);
                 item.setUnitPrice(newUnitPrice);
+                item.setOriginalPrice(newOriginalPrice);
+                item.setFlashSale(shouldBeFlashSale);
                 item.setTotalPrice(newUnitPrice * item.getQuantity());
                 cartItemRepository.save(item);
 

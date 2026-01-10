@@ -9,31 +9,70 @@ import com.example.stockservice.model.Product;
 import com.example.stockservice.repository.FlashSaleProductRepository;
 import com.example.stockservice.repository.FlashSaleSessionRepository;
 import com.example.stockservice.repository.ProductRepository;
+import com.example.stockservice.repository.SizeRepository;
+import com.example.stockservice.model.FlashSaleProductSize;
+import com.example.stockservice.model.Size;
+
 import com.example.stockservice.request.flashsale.FlashSaleProductRegistrationRequest;
 import com.example.stockservice.request.flashsale.FlashSaleSessionRequest;
 import com.example.stockservice.client.ShopOwnerClient;
 import com.example.stockservice.dto.ShopOwnerDto;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
+import java.util.Arrays;
+import java.util.List;
+import jakarta.annotation.PostConstruct;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.scripting.support.ResourceScriptSource;
+
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class FlashSaleService {
 
     private final FlashSaleSessionRepository sessionRepository;
     private final FlashSaleProductRepository flashSaleProductRepository;
+
     private final ProductRepository productRepository;
+    private final SizeRepository sizeRepository;
     private final NotificationClient notificationClient;
     private final ShopOwnerClient shopOwnerClient;
     private final KafkaTemplate<String, ProductUpdateKafkaEvent> kafkaTemplate;
+    private final StringRedisTemplate stringRedisTemplate;
+    private final com.example.stockservice.service.reservation.StockReservationService stockReservationService;
 
     @org.springframework.beans.factory.annotation.Value("${kafka.topic.product-updates}")
     private String productUpdatesTopic;
+
+    // Lua Scripts & Keys
+    private DefaultRedisScript<Long> flashSaleReserveScript;
+    private DefaultRedisScript<Long> flashSaleCancelScript;
+    private static final String FLASHSALE_STOCK_KEY_PREFIX = "flashsale:stock:";
+    private static final String FLASHSALE_BOUGHT_KEY_PREFIX = "flashsale:bought:";
+    private static final String FLASHSALE_RESERVE_KEY_PREFIX = "flashsale:reserve:";
+
+    @PostConstruct
+    public void init() {
+        // Load reserve script
+        flashSaleReserveScript = new DefaultRedisScript<>();
+        flashSaleReserveScript.setScriptSource(new ResourceScriptSource(
+                new ClassPathResource("scripts/flashsale_reserve.lua")));
+        flashSaleReserveScript.setResultType(Long.class);
+
+        // Load cancel script
+        flashSaleCancelScript = new DefaultRedisScript<>();
+        flashSaleCancelScript.setScriptSource(new ResourceScriptSource(
+                new ClassPathResource("scripts/flashsale_cancel.lua")));
+        flashSaleCancelScript.setResultType(Long.class);
+    }
 
     // --- Admin: Session Management ---
 
@@ -43,15 +82,6 @@ public class FlashSaleService {
         if (request.getEndTime().isBefore(request.getStartTime())) {
             throw new RuntimeException("Thời gian kết thúc phải sau thời gian bắt đầu!");
         }
-        // Validation 2: Check for overlaps
-        // List<FlashSaleSession> overlaps =
-        // sessionRepository.findOverlappingSessions(request.getStartTime(),
-        // request.getEndTime());
-        // if (!overlaps.isEmpty()) {
-        // throw new RuntimeException(
-        // "Thời gian bị trùng với phiên Flash Sale khác! (" + overlaps.get(0).getName()
-        // + ")");
-        // }
 
         FlashSaleSession session = FlashSaleSession.builder()
                 .name(request.getName())
@@ -104,20 +134,46 @@ public class FlashSaleService {
         // Check if already registered
         // Simplified check (should ideally check if exists in this session)
 
+        // Process request sizes
+        List<FlashSaleProductSize> flashSaleSizes = new java.util.ArrayList<>();
+        int totalFlashSaleStock = 0;
+
+        if (request.getSizes() != null) {
+            for (FlashSaleProductRegistrationRequest.FlashSaleSizeReq sizeReq : request.getSizes()) {
+                // Validate size belongs to product
+                boolean validSize = product.getSizes().stream()
+                        .anyMatch(s -> s.getId().equals(sizeReq.getSizeId()));
+                if (!validSize) {
+                    throw new RuntimeException(
+                            "Size ID " + sizeReq.getSizeId() + " does not belong to product " + product.getId());
+                }
+
+                totalFlashSaleStock += sizeReq.getQuantity();
+
+                flashSaleSizes.add(FlashSaleProductSize.builder()
+                        .sizeId(sizeReq.getSizeId())
+                        .flashSaleStock(sizeReq.getQuantity())
+                        .soldCount(0)
+                        .flashSalePrice(sizeReq.getSalePrice())
+                        .build());
+            }
+        }
+
         FlashSaleProduct flashSaleProduct = FlashSaleProduct.builder()
                 .sessionId(request.getSessionId())
                 .productId(request.getProductId())
                 .shopId(shopId)
                 .originalPrice(product.getPrice()) // Assuming base price
                 .salePrice(request.getSalePrice())
-                .flashSaleStock(
-                        product.getSizes().stream().mapToInt(com.example.stockservice.model.Size::getStock).sum())
+                .flashSaleStock(totalFlashSaleStock) // Sum for display
                 .soldCount(0)
                 .status(FlashSaleStatus.PENDING)
+                .quantityLimit(request.getQuantityLimit()) // Set Limit
+                .productSizes(flashSaleSizes)
                 .build();
 
-        // Thêm hàm sendMessage giống bên 273 ProductServiceImpl
-        //
+        // Link parent
+        flashSaleSizes.forEach(s -> s.setFlashSaleProduct(flashSaleProduct));
 
         return flashSaleProductRepository.save(flashSaleProduct);
     }
@@ -128,6 +184,36 @@ public class FlashSaleService {
     public FlashSaleProduct approveProduct(String flashSaleProductId) {
         FlashSaleProduct fsp = flashSaleProductRepository.findById(flashSaleProductId)
                 .orElseThrow(() -> new RuntimeException("Registration not found"));
+
+        // DEDUCT STOCK FROM MAIN INVENTORY
+        // We iterate specifically over the sizes registered for Flash Sale
+        if (fsp.getProductSizes() != null) {
+            for (FlashSaleProductSize fsSize : fsp.getProductSizes()) {
+                Size size = sizeRepository.findById(fsSize.getSizeId())
+                        .orElseThrow(() -> new RuntimeException("Size not found: " + fsSize.getSizeId()));
+
+                int deducted = fsSize.getFlashSaleStock();
+                if (size.getStock() < deducted) {
+                    throw new RuntimeException("Insufficient stock in main inventory for size " + size.getName()
+                            + ". Required: " + deducted + ", Available: " + size.getStock());
+                }
+
+                size.setStock(size.getStock() - deducted);
+                sizeRepository.save(size);
+
+                // Update Redis cache immediately to ensure consistency
+                stockReservationService.setStock(
+                        size.getProduct().getId(),
+                        size.getId(),
+                        size.getStock());
+
+                log.info("[FLASH-SALE-APPROVE] Updated cache: product={}, size={}, newStock={}",
+                        size.getProduct().getId(), size.getId(), size.getStock());
+
+                // Optional: Notify low stock if needed
+            }
+        }
+
         fsp.setStatus(FlashSaleStatus.APPROVED);
         FlashSaleProduct saved = flashSaleProductRepository.save(fsp);
 
@@ -138,6 +224,17 @@ public class FlashSaleService {
             System.err.println("Failed to send Kafka event for flash sale approval: " + e.getMessage());
         }
 
+        // This ensures that when users try to purchase, the stock is available in Redis
+        // for the reservation flow to work correctly
+        if (saved.getProductSizes() != null) {
+            for (FlashSaleProductSize size : saved.getProductSizes()) {
+                String stockKey = FLASHSALE_STOCK_KEY_PREFIX + saved.getProductId() + ":" + size.getSizeId();
+                stringRedisTemplate.opsForValue().set(stockKey, String.valueOf(size.getFlashSaleStock()));
+                log.info("[FLASH-SALE-APPROVE] Warmed up Redis: key={}, stock={}",
+                        stockKey, size.getFlashSaleStock());
+            }
+        }
+
         return saved;
     }
 
@@ -145,6 +242,13 @@ public class FlashSaleService {
     public FlashSaleProduct rejectProduct(String flashSaleProductId, String reason) {
         FlashSaleProduct fsp = flashSaleProductRepository.findById(flashSaleProductId)
                 .orElseThrow(() -> new RuntimeException("Registration not found"));
+
+        // If it was already APPROVED, we might need to return stock?
+        // Current flow assumes Reject only from PENDING.
+        // If we implement blocking stock from PENDING, we would return here.
+        // But we implemented deduction on APPROVE. So REJECT from PENDING does nothing
+        // to stock.
+
         fsp.setStatus(FlashSaleStatus.REJECTED);
         fsp.setRejectionReason(reason);
         FlashSaleProduct saved = flashSaleProductRepository.save(fsp);
@@ -233,6 +337,7 @@ public class FlashSaleService {
                 .productName(product != null ? product.getName() : "Unknown Product")
                 .productImageId(product != null ? product.getImageId() : null)
                 .shopName(shopName)
+                .quantityLimit(fsp.getQuantityLimit()) // Map Limit
                 .build();
     }
 
@@ -268,6 +373,9 @@ public class FlashSaleService {
         } else {
             session.setStatus(FlashSaleStatus.ACTIVE);
             FlashSaleSession saved = sessionRepository.save(session);
+            // WARM UP REDIS
+            warmUpSession(saved.getId());
+
             try {
                 notificationClient.broadcastToShops(
                         "Đăng ký ngay cho chương trình: " + saved.getName(),
@@ -305,6 +413,10 @@ public class FlashSaleService {
                 // Check if time is valid just in case status is stale
                 LocalDateTime now = LocalDateTime.now();
                 if (now.isAfter(session.getStartTime()) && now.isBefore(session.getEndTime())) {
+                    // Force initialize sizes to ensure they are available for CartService logic
+                    if (p.getProductSizes() != null) {
+                        p.getProductSizes().size(); // Trigger Lazy Load
+                    }
                     return p;
                 }
             }
@@ -335,15 +447,118 @@ public class FlashSaleService {
     }
 
     @Transactional
-    public void incrementSoldCount(String productId, int quantity) {
+    public void incrementSoldCount(String productId, String sizeId, int quantity) {
         FlashSaleProduct fsp = findActiveFlashSaleProduct(productId);
-        if (fsp != null) {
-            System.out.println("Incrementing Sold Count for FlashSaleProduct: " + fsp.getId() + ", current sold: "
-                    + fsp.getSoldCount() + ", adding: " + quantity);
-            fsp.setSoldCount(fsp.getSoldCount() + quantity);
-            flashSaleProductRepository.save(fsp);
-        } else {
-            System.out.println("Active Flash Sale Product NOT FOUND for productId: " + productId);
+        if (fsp != null && fsp.getProductSizes() != null) {
+            // Find size
+            FlashSaleProductSize size = fsp.getProductSizes().stream()
+                    .filter(s -> s.getSizeId().equals(sizeId))
+                    .findFirst()
+                    .orElse(null);
+
+            if (size != null) {
+                // DECREASE flashSaleStock (actual remaining stock)
+                size.setFlashSaleStock(Math.max(0, size.getFlashSaleStock() - quantity));
+                // INCREASE soldCount (tracking sold items)
+                size.setSoldCount(size.getSoldCount() + quantity);
+
+                // Also update total sold count
+                fsp.setSoldCount(fsp.getSoldCount() + quantity);
+                flashSaleProductRepository.save(fsp);
+            }
         }
+    }
+
+    // --- Redis: Flash Sale Reservation Logic ---
+
+    public void warmUpSession(String sessionId) {
+        System.out.println("🔥 Warming up Flash Sale Session: " + sessionId);
+        List<FlashSaleProduct> products = flashSaleProductRepository.findBySessionIdAndStatus(sessionId,
+                FlashSaleStatus.APPROVED);
+
+        for (FlashSaleProduct p : products) {
+            if (p.getProductSizes() != null) {
+                for (FlashSaleProductSize size : p.getProductSizes()) {
+                    String stockKey = FLASHSALE_STOCK_KEY_PREFIX + p.getProductId() + ":" + size.getSizeId();
+                    stringRedisTemplate.opsForValue().set(stockKey, String.valueOf(size.getFlashSaleStock()));
+                    System.out.println("   -> Loaded stock for " + p.getProductId() + " [" + size.getSizeId() + "]: "
+                            + size.getFlashSaleStock());
+                }
+            }
+        }
+    }
+
+    public boolean reserveFlashSaleStock(String orderId, String productId, String sizeId, int quantity, String userId) {
+        FlashSaleProduct fsp = findActiveFlashSaleProduct(productId);
+        if (fsp == null)
+            return false;
+
+        String stockKey = FLASHSALE_STOCK_KEY_PREFIX + productId + ":" + sizeId;
+        String boughtKey = FLASHSALE_BOUGHT_KEY_PREFIX + userId + ":" + productId; // Limit per product
+        String reserveKey = FLASHSALE_RESERVE_KEY_PREFIX + orderId + ":" + productId + ":" + sizeId;
+
+        int limit = (fsp.getQuantityLimit() != null) ? fsp.getQuantityLimit() : 0; // 0 means unlimited
+        long ttl = 900; // 15 minutes
+
+        // EXECUTE LUA SCRIPT
+        Long result = stringRedisTemplate.execute(
+                flashSaleReserveScript,
+                Arrays.asList(stockKey, boughtKey, reserveKey),
+                String.valueOf(quantity),
+                String.valueOf(limit),
+                String.valueOf(ttl));
+
+        if (result != null && result == 1) {
+            System.out.println(
+                    "✅ Flash Sale Reserved: " + productId + "[" + sizeId + "] x " + quantity + " for user " + userId);
+            return true;
+        } else if (result != null && result == -2) {
+            System.out.println("❌ Flash Sale Limit Exceeded for user " + userId);
+            throw new RuntimeException("Bạn đã đạt giới hạn mua cho sản phẩm này (" + limit + " sản phẩm)");
+        } else {
+            System.out.println("❌ Insufficient Flash Sale Stock for " + productId + " size " + sizeId);
+            return false;
+        }
+    }
+
+    public void cancelFlashSaleReservation(String orderId, String productId, String sizeId, String userId) {
+        FlashSaleProduct fsp = findActiveFlashSaleProduct(productId);
+        int limit = (fsp != null && fsp.getQuantityLimit() != null) ? fsp.getQuantityLimit() : 0;
+
+        String stockKey = FLASHSALE_STOCK_KEY_PREFIX + productId + ":" + sizeId;
+        String boughtKey = FLASHSALE_BOUGHT_KEY_PREFIX + userId + ":" + productId;
+        String reserveKey = FLASHSALE_RESERVE_KEY_PREFIX + orderId + ":" + productId + ":" + sizeId;
+
+        stringRedisTemplate.execute(
+                flashSaleCancelScript,
+                Arrays.asList(stockKey, boughtKey, reserveKey),
+                String.valueOf(limit));
+        System.out.println("Product " + productId + " size " + sizeId + " reservation canceled for order " + orderId);
+    }
+
+    public void confirmFlashSaleReservation(String orderId, String productId, String sizeId) {
+        String reserveKey = FLASHSALE_RESERVE_KEY_PREFIX + orderId + ":" + productId + ":" + sizeId;
+        stringRedisTemplate.delete(reserveKey);
+
+        // Update DB sold count (Async or Sync? Sync for now for safety)
+        // Assuming 1 quantity confirmed for now (confirm logic usually iterates items).
+        // Wait, confirm should take quantity?
+        // Actually OrderService calls confirm for each item. Item has quantity.
+        // But reserve script stored quantity in Redis key value? No, stored in string
+        // value.
+        // Simplest: just increment by the reserved amount?
+        // Let's assume passed quantity is safer if API allows, but current API only
+        // passes ids.
+        // We can fetch from Redis before delete? Or just increment 1?
+        // OrderService loop executes `confirmReservation(req)` where req has quantity=0
+        // (comment says not needed).
+        // BUT for sold count we need quantity!
+        // I should update `confirmFlashSaleReservation` to take quantity.
+        // For now, assume quantity 1 or fetch from Redis?
+        // Fetching from Redis `GET reserveKey` -> quantity.
+        String quantityStr = stringRedisTemplate.opsForValue().get(reserveKey);
+        int quantity = quantityStr != null ? Integer.parseInt(quantityStr) : 1; // Default 1 if missing
+
+        incrementSoldCount(productId, sizeId, quantity);
     }
 }

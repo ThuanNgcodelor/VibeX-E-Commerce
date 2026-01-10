@@ -4,7 +4,9 @@ import com.example.stockservice.dto.BatchDecreaseStockRequest;
 import com.example.stockservice.dto.BatchGetProductsRequest;
 import com.example.stockservice.dto.ProductDto;
 import com.example.stockservice.jwt.JwtUtil;
+import com.example.stockservice.dto.SizeDto;
 import com.example.stockservice.model.FlashSaleProduct;
+
 import com.example.stockservice.model.Product;
 import com.example.stockservice.model.Size;
 import com.example.stockservice.repository.ReviewRepository;
@@ -289,7 +291,7 @@ public class ProductController {
     }
 
     // ==================== BATCH API ENDPOINTS ====================
-    
+
     /**
      * Batch get products by IDs
      * Optimized for Order Service to fetch multiple products in one call
@@ -300,11 +302,10 @@ public class ProductController {
     @PostMapping("/batch-get")
     public ResponseEntity<Map<String, ProductDto>> batchGetProducts(
             @RequestBody BatchGetProductsRequest request) {
-        Map<String, ProductDto> result =
-            productService.batchGetProducts(request.getProductIds());
+        Map<String, ProductDto> result = productService.batchGetProducts(request.getProductIds());
         return ResponseEntity.ok(result);
     }
-    
+
     /**
      * Batch decrease stock for multiple products
      * Optimized for Order Service to process multiple items in one transaction
@@ -363,6 +364,20 @@ public class ProductController {
                         dto.setDiscountPercent(Math.round(discount * 10.0) / 10.0); // Round to 1 decimal
                     }
                     dto.setFlashSaleRemaining(remaining);
+
+                    // Map specific size prices AND stock
+                    if (dto.getSizes() != null && fsProduct.getProductSizes() != null) {
+                        for (SizeDto sDto : dto.getSizes()) {
+                            fsProduct.getProductSizes().stream()
+                                    .filter(fpSize -> fpSize.getSizeId().equals(sDto.getId()))
+                                    .findFirst()
+                                    .ifPresent(fpSize -> {
+                                        sDto.setFlashSalePrice(fpSize.getFlashSalePrice());
+                                        // flashSaleStock now represents actual remaining stock (already decremented)
+                                        sDto.setFlashSaleStock(fpSize.getFlashSaleStock());
+                                    });
+                        }
+                    }
                 }
             }
         } catch (Exception e) {

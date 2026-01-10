@@ -179,16 +179,33 @@ public class CartController {
                         int remaining = fsProduct.getFlashSaleStock() - fsProduct.getSoldCount();
 
                         if (remaining > 0 && cartItem.getQuantity() <= remaining) {
-                            productDto.setPrice(fsProduct.getSalePrice());
+                            double finalSalePrice = fsProduct.getSalePrice();
+
+                            // Check for size specific price
+                            if (cartItem.getSize() != null && fsProduct.getProductSizes() != null) {
+                                for (com.example.stockservice.model.FlashSaleProductSize fps : fsProduct
+                                        .getProductSizes()) {
+                                    if (fps.getSizeId().equals(cartItem.getSize().getId())
+                                            && fps.getFlashSalePrice() != null) {
+                                        finalSalePrice = fps.getFlashSalePrice();
+                                        break;
+                                    }
+                                }
+                            }
+
+                            else if (cartItem.getSize() != null) {
+                                finalSalePrice += cartItem.getSize().getPriceModifier();
+                            }
+
+                            productDto.setPrice(finalSalePrice);
                             productDto.setOriginalPrice(fsProduct.getOriginalPrice());
                             if (fsProduct.getOriginalPrice() > 0) {
-                                double discount = (1 - (fsProduct.getSalePrice() / fsProduct.getOriginalPrice())) * 100;
+                                double discount = (1 - (finalSalePrice / fsProduct.getOriginalPrice())) * 100;
                                 productDto.setDiscountPercent(Math.round(discount * 10.0) / 10.0);
                             }
 
-                            // Override CartItemDto top-level fields
-                            dto.setUnitPrice(fsProduct.getSalePrice());
-                            dto.setTotalPrice(fsProduct.getSalePrice() * cartItem.getQuantity());
+                            dto.setUnitPrice(finalSalePrice);
+                            dto.setTotalPrice(finalSalePrice * cartItem.getQuantity());
                         }
                     }
                 } catch (Exception e) {
@@ -233,10 +250,11 @@ public class CartController {
         dto.setProductAvailable(cartItem.getProductAvailable());
         dto.setProductAvailable(cartItem.getProductAvailable());
         dto.setSizeAvailable(cartItem.getSizeAvailable());
-        dto.setFlashSale(cartItem.isFlashSale());
+        // Ensure isFlashSale is never null - default to false
+        dto.setIsFlashSale(Boolean.TRUE.equals(cartItem.isFlashSale()));
         System.out.println("CartController mapToDto: itemId=" + cartItem.getId() +
                 ", entity.isFlashSale=" + cartItem.isFlashSale() +
-                ", dto.flashSale=" + dto.getFlashSale());
+                ", dto.isFlashSale=" + dto.getIsFlashSale());
         return dto;
     }
 }

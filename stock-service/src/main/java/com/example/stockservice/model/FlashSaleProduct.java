@@ -3,6 +3,7 @@ package com.example.stockservice.model;
 import com.example.stockservice.enums.FlashSaleStatus;
 import jakarta.persistence.*;
 import lombok.*;
+import java.util.List;
 
 @Entity
 @Table(name = "flash_sale_products")
@@ -41,4 +42,10 @@ public class FlashSaleProduct extends BaseEntity {
 
     // Optional: rejection reason
     private String rejectionReason;
+
+    // Optional: limit per user (null means unlimited/default to high)
+    private Integer quantityLimit;
+
+    @OneToMany(mappedBy = "flashSaleProduct", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<FlashSaleProductSize> productSizes;
 }

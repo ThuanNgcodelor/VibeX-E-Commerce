@@ -20,6 +20,7 @@ public class OrderItem extends BaseEntity {
     private double unitPrice;
     private double totalPrice;
     private String sizeId;
+    private Boolean isFlashSale; // Track if this item is from Flash Sale
 
     @ManyToOne
     @JoinColumn(name = "order_id")

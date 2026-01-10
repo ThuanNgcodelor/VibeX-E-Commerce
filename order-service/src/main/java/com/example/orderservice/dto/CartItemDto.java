@@ -19,4 +19,5 @@ public class CartItemDto {
 
     private ProductDto product;
     private SizeDto size;
+    private Boolean isFlashSale;
 }

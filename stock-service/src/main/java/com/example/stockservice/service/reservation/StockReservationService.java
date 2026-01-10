@@ -19,12 +19,10 @@ import java.util.List;
 
 /**
  * Service xử lý Pre-Reserve Pattern cho stock management.
- * 
  * Flow:
  * 1. RESERVE: Trừ stock trong Redis và tạo reservation key với TTL
  * 2. CONFIRM: Xóa reservation key (stock đã trừ rồi)
  * 3. CANCEL: Rollback stock và xóa reservation key
- * 
  * Lua scripts đảm bảo atomic operations để tránh race condition.
  */
 @Service

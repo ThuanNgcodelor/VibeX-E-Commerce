@@ -46,8 +46,8 @@ export function CheckoutPage({
   const [shopAppliedVouchers, setShopAppliedVouchers] = useState({});
 
   // Legacy states for backward compatibility
-  const [shippingFee, setShippingFee] = useState(shippingFeeProp);
-  const [calculatingShippingFee, setCalculatingShippingFee] = useState(false);
+  const [, setShippingFee] = useState(shippingFeeProp);
+  const [, setCalculatingShippingFee] = useState(false);
   const [voucherCode, setVoucherCode] = useState("");
   const [voucherDiscount, setVoucherDiscount] = useState(0);
   const [voucherLoading, setVoucherLoading] = useState(false);
@@ -170,21 +170,10 @@ export function CheckoutPage({
 
   const handleAddressSelect = (id) => setModalSelectedAddressId(id);
 
-  const handleConfirmSelection = () => {
-    if (modalSelectedAddressId) {
-      setSelectedAddressId(modalSelectedAddressId);
-      setShowAddressModal(false);
-      toast("success", t('cart.address.selected'));
-    }
-  };
 
   useEffect(() => {
     if (!showAddressModal) setModalSelectedAddressId(null);
   }, [showAddressModal]);
-
-  // =========================
-  // PER-SHOP VOUCHER HANDLERS
-  // =========================
 
   // Handle apply voucher for specific shop
   const handleApplyShopVoucher = async (shopOwnerId, shopName) => {

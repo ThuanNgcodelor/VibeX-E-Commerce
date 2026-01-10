@@ -7,8 +7,7 @@ import FlashSale from "../../components/client/FlashSale.jsx";
 import TopSearch from "../../components/client/TopSearch.jsx";
 import TodaysSuggestions from "../../components/client/TodaysSuggestions.jsx";
 import AdDisplay from "../../components/client/ads/AdDisplay.jsx";
-// Phase 2: Personalized Recommendations
-import RecentlyViewed from "../../components/client/RecentlyViewed.jsx";
+
 import PersonalizedRecommendations from "../../components/client/PersonalizedRecommendations.jsx";
 import TrendingProducts from "../../components/client/TrendingProducts.jsx";
 import { trackSiteVisit } from "../../api/analyticsApi.js";
@@ -29,9 +28,6 @@ export default function HomePage() {
 
         {/* Category Section */}
         <ShopeeCategoryGrid />
-
-        {/* Recently Viewed - Chỉ hiển thị khi đã đăng nhập và có data */}
-        <RecentlyViewed />
 
         {/* Flash Sale Section - Giữ nguyên */}
         <FlashSale />

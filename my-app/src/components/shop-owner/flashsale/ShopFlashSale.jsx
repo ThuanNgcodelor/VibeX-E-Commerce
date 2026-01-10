@@ -20,13 +20,15 @@ const ShopFlashSale = () => {
     const [selectedSessionId, setSelectedSessionId] = useState('');
     const [selectedProductId, setSelectedProductId] = useState('');
     const [salePrice, setSalePrice] = useState('');
+    const [quantityLimit, setQuantityLimit] = useState(''); // State for limit
 
     const [selectedProductData, setSelectedProductData] = useState(null);
+    const [sizeConfig, setSizeConfig] = useState({}); // { [sizeId]: { quantity: 0, salePrice: 0 } }
 
     useEffect(() => {
         const token = Cookies.get('accessToken');
         if (!token) {
-            alert("Bạn chưa đăng nhập. Vui lòng đăng nhập lại!"); // Consider translating this too if generic
+            alert("Bạn chưa đăng nhập. Vui lòng đăng nhập lại!");
             return;
         }
         fetchSessions();
@@ -39,8 +41,10 @@ const ShopFlashSale = () => {
         if (selectedProductId) {
             const product = products.find(p => p.id === selectedProductId);
             setSelectedProductData(product || null);
+            setSizeConfig({}); // Reset
         } else {
             setSelectedProductData(null);
+            setSizeConfig({});
         }
     }, [selectedProductId, products]);
 
@@ -78,19 +82,48 @@ const ShopFlashSale = () => {
 
     const handleRegister = async (e) => {
         e.preventDefault();
+
+        // Prepare sizes payload
+        // Filter sizes where quantity > 0 OR price is set (validation below will handle incomplete data)
+        const sizesPayload = Object.entries(sizeConfig)
+            .filter(([_, config]) => config.quantity > 0)
+            .map(([sizeId, config]) => ({
+                sizeId,
+                quantity: config.quantity,
+                salePrice: config.salePrice
+            }));
+
+        if (sizesPayload.length === 0) {
+            alert(t('shopOwner.flashSale.errorSizeRequired'));
+            return;
+        }
+
+        // Validate prices
+        for (const item of sizesPayload) {
+            if (!item.salePrice || item.salePrice <= 0) {
+                alert("Vui lòng nhập giá Flash Sale hợp lệ cho tất cả các size đã chọn số lượng.");
+                return;
+            }
+        }
+
+        // Calculate min price for root salePrice (display purpose)
+        const minPrice = Math.min(...sizesPayload.map(s => s.salePrice));
+
         try {
             setLoading(true);
             await flashSaleAPI.registerProduct({
                 sessionId: selectedSessionId,
                 productId: selectedProductId,
-                salePrice: parseFloat(salePrice),
-                flashSaleStock: 0
+                salePrice: minPrice,
+                sizes: sizesPayload,
+                quantityLimit: quantityLimit ? parseInt(quantityLimit) : null
             });
             alert(t('shopOwner.flashSale.successMessage'));
             fetchMyRegistrations();
-            // Reset form and go back to list
+            // Reset form
             setSalePrice('');
-
+            setQuantityLimit('');
+            setSizeConfig({});
             setSelectedProductId('');
             setIsRegistering(false);
         } catch (error) {
@@ -202,26 +235,107 @@ const ShopFlashSale = () => {
                                         </div>
                                     )}
 
+                                    {/* Size Quantities Input */}
+                                    {selectedProductData && selectedProductData.sizes && (
+                                        <div className="mb-3">
+                                            <label className="form-label">{t('shopOwner.flashSale.sizeQuantityLabel') || 'Cấu hình chi tiết theo Size'}: <span style={{ color: 'red' }}>*</span></label>
+                                            <div className="table-responsive border rounded p-2 bg-light">
+                                                <table className="table table-sm table-borderless mb-0 align-middle">
+                                                    <thead>
+                                                        <tr>
+                                                            <th style={{ width: '15%' }}>Size</th>
+                                                            <th style={{ width: '15%' }}>Kho hiện tại</th>
+                                                            <th style={{ width: '20%' }}>Giá gốc (+Mod)</th>
+                                                            <th style={{ width: '20%' }}>Flash Sale Qty</th>
+                                                            <th style={{ width: '30%' }}>Flash Sale Price</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {selectedProductData.sizes.map(size => {
+                                                            const originalPrice = (selectedProductData.price || 0) + (size.priceModifier || 0);
+                                                            return (
+                                                                <tr key={size.id}>
+                                                                    <td className="fw-bold">{size.name}</td>
+                                                                    <td>{size.stock}</td>
+                                                                    <td className="text-muted small">{originalPrice.toLocaleString()}đ</td>
+                                                                    <td>
+                                                                        <input
+                                                                            type="number"
+                                                                            className="form-control form-control-sm"
+                                                                            min="0"
+                                                                            max={size.stock}
+                                                                            placeholder="Qty"
+                                                                            value={sizeConfig[size.id]?.quantity || ''}
+                                                                            onChange={(e) => {
+                                                                                const val = parseInt(e.target.value) || 0;
+                                                                                if (val > size.stock) return;
+                                                                                setSizeConfig(prev => ({
+                                                                                    ...prev,
+                                                                                    [size.id]: {
+                                                                                        ...prev[size.id],
+                                                                                        quantity: val
+                                                                                    }
+                                                                                }));
+                                                                            }}
+                                                                        />
+                                                                    </td>
+                                                                    <td>
+                                                                        <div className="input-group input-group-sm">
+                                                                            <input
+                                                                                type="number"
+                                                                                className="form-control"
+                                                                                min="1000"
+                                                                                placeholder="Giá bán"
+                                                                                value={sizeConfig[size.id]?.salePrice || ''}
+                                                                                onChange={(e) => {
+                                                                                    const val = parseFloat(e.target.value) || 0;
+                                                                                    setSizeConfig(prev => ({
+                                                                                        ...prev,
+                                                                                        [size.id]: {
+                                                                                            ...prev[size.id],
+                                                                                            salePrice: val
+                                                                                        }
+                                                                                    }));
+                                                                                }}
+                                                                            />
+                                                                            <span className="input-group-text">đ</span>
+                                                                        </div>
+                                                                        {sizeConfig[size.id]?.salePrice > 0 && (
+                                                                            <div style={{ fontSize: '10px' }}>
+                                                                                {sizeConfig[size.id]?.salePrice >= originalPrice ? (
+                                                                                    <span className="text-danger">Cao hơn giá gốc!</span>
+                                                                                ) : (
+                                                                                    <span className="text-success">Giảm {Math.round((1 - sizeConfig[size.id].salePrice / originalPrice) * 100)}%</span>
+                                                                                )}
+                                                                            </div>
+                                                                        )}
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        })}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            <small className="text-muted">Nhập số lượng và giá bán Flash Sale cho từng size.</small>
+                                        </div>
+                                    )}
+
+                                    {/* Global Sale Price Input Removed - Handled per size */}
+                                    {/* Limit Input */}
                                     <div className="row">
                                         <div className="col-md-12">
                                             <div className="mb-3">
-                                                <label className="form-label">{t('shopOwner.flashSale.salePrice')} <span style={{ color: 'red' }}>*</span></label>
+                                                <label className="form-label">
+                                                    Giới hạn mua mỗi người <small className="text-muted">(Để trống nếu không giới hạn)</small>
+                                                </label>
                                                 <input
                                                     type="number"
                                                     className="form-control"
-                                                    value={salePrice}
-                                                    onChange={e => setSalePrice(e.target.value)}
-                                                    required
-                                                    min="1000"
-                                                    placeholder={t('shopOwner.flashSale.salePrice')} // Or specific placeholder key if needed, or just use salePrice label
+                                                    value={quantityLimit}
+                                                    onChange={e => setQuantityLimit(e.target.value)}
+                                                    min="1"
+                                                    placeholder="Ví dụ: 1, 2, 5..."
                                                 />
-                                                {selectedProductData && salePrice && (
-                                                    <small className={`d-block mt-1 ${parseFloat(salePrice) >= selectedProductData.price ? 'text-danger' : 'text-success'}`}>
-                                                        {parseFloat(salePrice) >= selectedProductData.price
-                                                            ? t('shopOwner.flashSale.priceWarning')
-                                                            : `Giảm: ${Math.round((1 - parseFloat(salePrice) / selectedProductData.price) * 100)}%`}
-                                                    </small>
-                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -310,8 +424,33 @@ const ShopFlashSale = () => {
                                                         {session ? session.name : reg.sessionId}
                                                     </td>
                                                     <td className="py-3">{product?.price?.toLocaleString()}đ</td>
-                                                    <td className="py-3 fw-bold text-danger">{reg.salePrice?.toLocaleString()}đ</td>
-                                                    <td className="py-3">{reg.flashSaleStock}</td>
+                                                    <td className="py-3 fw-bold text-danger">
+                                                        {reg.sizes && reg.sizes.length > 0 ? (
+                                                            <div style={{ fontSize: '0.85em' }}>
+                                                                {reg.sizes.map(s => (
+                                                                    <div key={s.sizeId}>
+                                                                        <span className="text-dark opacity-75">{s.sizeName}:</span> {s.flashSalePrice?.toLocaleString()}đ
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        ) : (
+                                                            <>{reg.salePrice?.toLocaleString()}đ</>
+                                                        )}
+                                                    </td>
+                                                    <td className="py-3">
+                                                        {reg.sizes && reg.sizes.length > 0 ? (
+                                                            <div style={{ fontSize: '0.85em' }}>
+                                                                {reg.sizes.map(s => (
+                                                                    <div key={s.sizeId}>
+                                                                        <span className="text-muted">{s.sizeName}:</span> {s.flashSaleStock}
+                                                                        {s.soldCount > 0 && <span className="text-success ms-1">({s.soldCount})</span>}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        ) : (
+                                                            <>{reg.flashSaleStock}</>
+                                                        )}
+                                                    </td>
                                                     <td className="py-3 text-center">
                                                         <span className={`badge rounded-pill ${reg.status === 'APPROVED' ? 'bg-success' :
                                                             reg.status === 'REJECTED' ? 'bg-danger' : 'bg-warning text-dark'
@@ -335,8 +474,9 @@ const ShopFlashSale = () => {
                         )}
                     </div>
                 </div>
-            )}
-        </div>
+            )
+            }
+        </div >
     );
 };
 

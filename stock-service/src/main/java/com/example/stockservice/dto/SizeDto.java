@@ -17,5 +17,7 @@ public class SizeDto {
     private String description;
     private int stock;
     private double priceModifier;
+    private Double flashSalePrice; // Added for Option 3
+    private Integer flashSaleStock; // Flash Sale stock for this size (if active)
     private Integer weight; // Trọng lượng tính bằng gram (g)
 }

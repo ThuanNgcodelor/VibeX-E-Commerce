@@ -22,7 +22,6 @@ public class FlashSaleController {
     private final JwtUtil jwtUtil;
 
     // --- Admin Endpoints ---
-
     @PostMapping("/session")
     public ResponseEntity<FlashSaleSession> createSession(@RequestBody FlashSaleSessionRequest request) {
         // Ideally check if user is ADMIN using PreAuthorize or Role check
@@ -106,5 +105,33 @@ public class FlashSaleController {
     @GetMapping(value = "/available-stock/{productId}", headers = "X-Internal-Call=true")
     public int getAvailableFlashSaleStock(@PathVariable String productId) {
         return flashSaleService.getAvailableFlashSaleStock(productId);
+    }
+
+    @PostMapping("/reserve")
+    public ResponseEntity<String> reserveStock(
+            @RequestParam("orderId") String orderId,
+            @RequestParam("productId") String productId,
+            @RequestParam("sizeId") String sizeId,
+            @RequestParam("quantity") int quantity,
+            @RequestParam("userId") String userId) {
+        try {
+            boolean success = flashSaleService.reserveFlashSaleStock(orderId, productId, sizeId, quantity, userId);
+            if (success) {
+                return ResponseEntity.ok("Reserved");
+            } else {
+                return ResponseEntity.badRequest().body("Insufficient stock");
+            }
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/confirm")
+    public ResponseEntity<String> confirmReservation(
+            @RequestParam("orderId") String orderId,
+            @RequestParam("productId") String productId,
+            @RequestParam("sizeId") String sizeId) {
+        flashSaleService.confirmFlashSaleReservation(orderId, productId, sizeId);
+        return ResponseEntity.ok("Confirmed");
     }
 }

@@ -6,10 +6,10 @@ import { useTranslation } from "react-i18next";
 import Swal from "sweetalert2";
 import Cookies from "js-cookie";
 import {
-  getCart,
   getAllAddress,
   getShopOwnerByUserId
 } from "../../api/user.js";
+import { getCart } from "../../api/cart.js";
 import {
   removeCartItem,
   updateCartItemQuantity,
@@ -24,7 +24,7 @@ export default function CartPage() {
   const token = Cookies.get("accessToken");
 
   const [cart, setCart] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [imageUrls, setImageUrls] = useState({});
   const [productNames, setProductNames] = useState({});
   const [shopOwners, setShopOwners] = useState({});
@@ -32,9 +32,9 @@ export default function CartPage() {
   const [selected, setSelected] = useState(() => new Set());
   const [addresses, setAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState(null);
-  const [addressLoading, setAddressLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [updatingQuantities, setUpdatingQuantities] = useState(new Set());
+  const [, setAddressLoading] = useState(false);
+  const [, setError] = useState(null);
+  const [, setUpdatingQuantities] = useState(new Set());
   const debounceTimeouts = useRef({});
   const lastClickTime = useRef({});
 
@@ -55,7 +55,7 @@ export default function CartPage() {
           setSelected(new Set([key]));
           window.history.replaceState({}, document.title);
         }
-      } catch (e) {
+      } catch {
         setError(t("product.noProductsYet"));
         setCart({ items: [] });
       } finally {
@@ -73,7 +73,7 @@ export default function CartPage() {
       const def = data.find((a) => a.isDefault);
       if (def) setSelectedAddressId(def.id);
       else if (data.length > 0) setSelectedAddressId(data[0].id);
-    } catch (e) {
+    } catch {
       setError(t("address.loadFailed"));
     } finally {
       setAddressLoading(false);
@@ -266,7 +266,7 @@ export default function CartPage() {
         });
         return next;
       });
-    } catch (e) {
+    } catch {
       Swal.fire("Error", t("cart.remove.failed"), "error");
     }
   };
@@ -358,11 +358,14 @@ export default function CartPage() {
     // Add shopOwnerName and shopOwnerId to each selected item
     const itemsWithShopOwner = selectedItems.map((item) => {
       const pid = item.productId ?? item.id;
+      const isFlashSale = item.isFlashSale;
+      console.log(`[CartPage] Item ${pid}: isFlashSale from API = ${item.isFlashSale}, sending = ${isFlashSale}`);
       return {
         ...item,
         shopOwnerName: shopOwners[pid] || 'Unknown Shop',
-        shopOwnerId: shopOwnerIds[pid] || null, // Add shopOwnerId for voucher validation
+        shopOwnerId: shopOwnerIds[pid] || null,
         productName: productNames[pid] || item.productName || pid,
+        isFlashSale: isFlashSale, // Ensure it's a boolean
       };
     });
     console.log("CartPage Navigate Payload:", itemsWithShopOwner);

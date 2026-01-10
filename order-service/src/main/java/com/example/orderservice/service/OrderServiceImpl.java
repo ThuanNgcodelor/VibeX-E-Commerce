@@ -3,6 +3,7 @@ package com.example.orderservice.service;
 import com.example.orderservice.client.GhnApiClient;
 import com.example.orderservice.client.PaymentServiceClient;
 import com.example.orderservice.client.StockServiceClient;
+import com.example.orderservice.client.FlashSaleClient;
 import com.example.orderservice.client.UserServiceClient;
 import com.example.orderservice.dto.AddRefundRequestDto;
 import com.example.orderservice.dto.PaymentDto;
@@ -52,6 +53,7 @@ public class OrderServiceImpl implements OrderService {
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
     private final StockServiceClient stockServiceClient;
+    private final FlashSaleClient flashSaleClient;
     private final UserServiceClient userServiceClient;
     private final GhnApiClient ghnApiClient;
     private final PaymentServiceClient paymentServiceClient;
@@ -573,6 +575,7 @@ public class OrderServiceImpl implements OrderService {
                             .quantity(si.getQuantity())
                             .unitPrice(si.getUnitPrice())
                             .totalPrice(si.getUnitPrice() * si.getQuantity())
+                            .isFlashSale(si.getIsFlashSale())
                             .order(order)
                             .build();
                 })
@@ -590,18 +593,17 @@ public class OrderServiceImpl implements OrderService {
                         throw new RuntimeException("Size ID is required for product: " + si.getProductId());
                     }
 
-
-
                     Double unitPrice = si.getUnitPrice();
                     // Fallback to avoid NPE if producer failed to populate price
                     if (unitPrice == null) {
                         try {
-                             ProductDto p = stockServiceClient.getProductById(si.getProductId()).getBody();
-                             SizeDto s = stockServiceClient.getSizeById(si.getSizeId()).getBody();
-                             unitPrice = computeUnitPrice(p, s);
+                            ProductDto p = stockServiceClient.getProductById(si.getProductId()).getBody();
+                            SizeDto s = stockServiceClient.getSizeById(si.getSizeId()).getBody();
+                            unitPrice = computeUnitPrice(p, s);
                         } catch (Exception e) {
-                             log.warn("[CONSUMER] Failed to fetch price for item {}, defaulting to 0", si.getProductId());
-                             unitPrice = 0.0;
+                            log.warn("[CONSUMER] Failed to fetch price for item {}, defaulting to 0",
+                                    si.getProductId());
+                            unitPrice = 0.0;
                         }
                     }
 
@@ -611,6 +613,7 @@ public class OrderServiceImpl implements OrderService {
                             .quantity(si.getQuantity())
                             .unitPrice(unitPrice)
                             .totalPrice(unitPrice * si.getQuantity())
+                            .isFlashSale(si.getIsFlashSale()) // Propagate Flash Sale flag
                             .order(order)
                             .build();
                 })
@@ -638,10 +641,10 @@ public class OrderServiceImpl implements OrderService {
 
         // ✅ STEP 1: Collect all unique product IDs (excluding test products)
         List<String> productIds = selectedItems.stream()
-            .map(SelectedItemDto::getProductId)
-            .filter(id -> id != null && !id.startsWith("test-product-"))
-            .distinct()
-            .collect(java.util.stream.Collectors.toList());
+                .map(SelectedItemDto::getProductId)
+                .filter(id -> id != null && !id.startsWith("test-product-"))
+                .distinct()
+                .collect(java.util.stream.Collectors.toList());
 
         // ✅ STEP 2: Fetch ALL products in ONE batch call
         Map<String, ProductDto> productsMap = new HashMap<>();
@@ -675,8 +678,8 @@ public class OrderServiceImpl implements OrderService {
             itemsByShop.computeIfAbsent(shopOwnerId, k -> new ArrayList<>()).add(item);
         }
 
-        log.info("[GROUP-BY-SHOP] Grouped {} items into {} shops using batch API", 
-            selectedItems.size(), itemsByShop.size());
+        log.info("[GROUP-BY-SHOP] Grouped {} items into {} shops using batch API",
+                selectedItems.size(), itemsByShop.size());
         return itemsByShop;
     }
 
@@ -686,7 +689,7 @@ public class OrderServiceImpl implements OrderService {
      * Chạy cart cleanup bất đồng bộ → Batch processing KHÔNG BỊ CHẶN
      * Throughput tăng 5-10x (từ ~100 lên 500-1000 orders/s)
      * 
-     * @param userId User ID
+     * @param userId        User ID
      * @param selectedItems Items to remove from cart
      */
     @Async
@@ -720,7 +723,7 @@ public class OrderServiceImpl implements OrderService {
                     log.info("[CONSUMER]  Skipping cart cleanup for test product: {}", item.getProductId());
                     continue;
                 }
-                
+
                 log.info("[CONSUMER] Removing cart item - productId: {}, sizeId: {}, quantity: {}",
                         item.getProductId(), item.getSizeId(), item.getQuantity());
 
@@ -745,14 +748,15 @@ public class OrderServiceImpl implements OrderService {
     }
 
     /**
-     *  CRITICAL FOR BATCH INSERT PERFORMANCE
+     * CRITICAL FOR BATCH INSERT PERFORMANCE
      * 
      * Pre-assign UUIDs to Order and OrderItems BEFORE save()
      * 
      * WHY? Hibernate can ONLY batch insert when IDs are known BEFORE persist.
      * With @PrePersist, IDs are assigned too late → No batching
      * 
-     * This method assigns UUIDs manually → Hibernate can batch 50 entities into 1-2 SQL statements
+     * This method assigns UUIDs manually → Hibernate can batch 50 entities into 1-2
+     * SQL statements
      * 
      * SAFE: @PrePersist still works as fallback for non-batch scenarios
      */
@@ -761,7 +765,7 @@ public class OrderServiceImpl implements OrderService {
         if (order.getId() == null) {
             order.setId(java.util.UUID.randomUUID().toString());
         }
-        
+
         // Assign OrderItem IDs if not set
         if (order.getOrderItems() != null) {
             for (OrderItem item : order.getOrderItems()) {
@@ -1157,12 +1161,12 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public void orderByKafka(FrontendOrderRequest orderRequest, String userId) {
         if (orderRequest.getSelectedItems() == null || orderRequest.getSelectedItems().isEmpty())
-             throw new RuntimeException("Selected items cannot be empty");
+            throw new RuntimeException("Selected items cannot be empty");
         if (orderRequest.getAddressId() == null || orderRequest.getAddressId().isBlank())
-             throw new RuntimeException("Address ID is required");
+            throw new RuntimeException("Address ID is required");
 
         for (SelectedItemDto item : orderRequest.getSelectedItems()) {
-             if (item.getSizeId() == null || item.getSizeId().isBlank()) {
+            if (item.getSizeId() == null || item.getSizeId().isBlank()) {
                 throw new RuntimeException("Size ID is required for product: " + item.getProductId());
             }
         }
@@ -1171,67 +1175,95 @@ public class OrderServiceImpl implements OrderService {
         // Generate temporary order ID for reservation tracking
         String tempOrderId = java.util.UUID.randomUUID().toString();
         java.util.List<ReservedItem> reservedItems = new java.util.ArrayList<>();
-        
+
         try {
             // Reserve stock for each item
             for (SelectedItemDto item : orderRequest.getSelectedItems()) {
-                StockServiceClient.ReserveRequest reserveReq =
-                    new StockServiceClient.ReserveRequest(
-                        tempOrderId,
-                        item.getProductId(),
-                        item.getSizeId(),
-                        item.getQuantity()
-                    );
-                
-                org.springframework.http.ResponseEntity<java.util.Map<String, Object>> response = 
-                    stockServiceClient.reserveStock(reserveReq);
-                
-                if (response.getBody() == null || 
-                    !Boolean.TRUE.equals(response.getBody().get("success"))) {
-                    
-                    // Reserve failed → Get error info
-                    String status = response.getBody() != null 
-                        ? (String) response.getBody().get("status") 
-                        : "UNKNOWN";
-                    String message = response.getBody() != null 
-                        ? (String) response.getBody().get("message") 
-                        : "Reserve failed";
-                    
-                    log.warn("[PRE-RESERVE] Failed for product {}: status={}, message={}", 
-                             item.getProductId(), status, message);
-                    
-                    // Rollback all previously reserved items
-                    rollbackReservations(tempOrderId, reservedItems);
-                    
-                    // Throw appropriate exception
-                    if ("INSUFFICIENT_STOCK".equals(status)) {
-                        throw new RuntimeException("Insufficient stock for product: " 
-                            + item.getProductId() + ", size: " + item.getSizeId());
-                    } else {
-                        throw new RuntimeException("Reserve failed: " + message);
+                // DEBUG: Log isFlashSale value
+                log.info("[DEBUG-FLASH-SALE] item.productId={}, item.getIsFlashSale()={}, Boolean.TRUE.equals={}",
+                        item.getProductId(), item.getIsFlashSale(), Boolean.TRUE.equals(item.getIsFlashSale()));
+
+                if (Boolean.TRUE.equals(item.getIsFlashSale())) {
+                    // --- FLASH SALE RESERVATION ---
+                    try {
+                        String result = flashSaleClient.reserveStock(
+                                tempOrderId, item.getProductId(), item.getSizeId(), item.getQuantity(), userId);
+
+                        // Track reserved item
+                        reservedItems.add(new ReservedItem(item.getProductId(), item.getSizeId(), true));
+                        log.info("[PRE-RESERVE] Flash Sale Reserved: product={}, qty={}",
+                                item.getProductId(), item.getQuantity());
+
+                    } catch (Exception e) {
+                        String message = e.getMessage();
+                        log.warn("[PRE-RESERVE] Flash Sale Failed for product {}: {}", item.getProductId(), message);
+                        rollbackReservations(tempOrderId, reservedItems, userId);
+
+                        if (message.contains("limit")) {
+                            throw new RuntimeException(message); // Pass limitation message directly
+                        } else {
+                            throw new RuntimeException("Flash Sale Reserve failed: " + message);
+                        }
                     }
+
+                } else {
+                    // --- REGULAR STOCK RESERVATION ---
+                    StockServiceClient.ReserveRequest reserveReq = new StockServiceClient.ReserveRequest(
+                            tempOrderId,
+                            item.getProductId(),
+                            item.getSizeId(),
+                            item.getQuantity());
+
+                    ResponseEntity<java.util.Map<String, Object>> response = stockServiceClient
+                            .reserveStock(reserveReq);
+
+                    if (response.getBody() == null ||
+                            !Boolean.TRUE.equals(response.getBody().get("success"))) {
+
+                        // Reserve failed → Get error info
+                        String status = response.getBody() != null
+                                ? (String) response.getBody().get("status")
+                                : "UNKNOWN";
+                        String message = response.getBody() != null
+                                ? (String) response.getBody().get("message")
+                                : "Reserve failed";
+
+                        log.warn("[PRE-RESERVE] Failed for product {}: status={}, message={}",
+                                item.getProductId(), status, message);
+
+                        // Rollback all previously reserved items
+                        rollbackReservations(tempOrderId, reservedItems, userId);
+
+                        // Throw appropriate exception
+                        if ("INSUFFICIENT_STOCK".equals(status)) {
+                            throw new RuntimeException("Insufficient stock for product: "
+                                    + item.getProductId() + ", size: " + item.getSizeId());
+                        } else {
+                            throw new RuntimeException("Reserve failed: " + message);
+                        }
+                    }
+
+                    // Track reserved item for potential rollback
+                    reservedItems.add(new ReservedItem(item.getProductId(), item.getSizeId(), false));
+                    log.info("[PRE-RESERVE] Reserved: product={}, size={}, qty={}",
+                            item.getProductId(), item.getSizeId(), item.getQuantity());
                 }
-                
-                // Track reserved item for potential rollback
-                reservedItems.add(new ReservedItem(item.getProductId(), item.getSizeId()));
-                log.info("[PRE-RESERVE] Reserved: product={}, size={}, qty={}", 
-                         item.getProductId(), item.getSizeId(), item.getQuantity());
             }
-            
+
         } catch (RuntimeException e) {
-            // Already rolled back in the catch block above
+            // Already rolled back in the catch block above if needed
             throw e;
         } catch (Exception e) {
             // Unexpected error → Rollback
             log.error("[PRE-RESERVE] Unexpected error: {}", e.getMessage(), e);
-            rollbackReservations(tempOrderId, reservedItems);
+            rollbackReservations(tempOrderId, reservedItems, userId);
             throw new RuntimeException("Reserve failed: " + e.getMessage());
         }
 
         // ========== ALL RESERVED → SEND TO KAFKA ==========
         CheckOutKafkaRequest kafkaRequest = CheckOutKafkaRequest.builder()
                 .userId(userId)
-                .tempOrderId(tempOrderId)  // Include tempOrderId for confirmation later
+                .tempOrderId(tempOrderId) // Include tempOrderId for confirmation later
                 .addressId(orderRequest.getAddressId())
                 .cartId(null)
                 .selectedItems(orderRequest.getSelectedItems())
@@ -1244,35 +1276,39 @@ public class OrderServiceImpl implements OrderService {
         kafkaTemplate.send(orderTopic.name(), kafkaRequest);
         log.info("[ASYNC-ORDER] Order reserved and sent to Kafka: tempOrderId={}, user={}", tempOrderId, userId);
     }
-    
+
     /**
      * Helper: Rollback all reserved items when reservation fails
      */
-    private void rollbackReservations(String tempOrderId, java.util.List<ReservedItem> reservedItems) {
+    private void rollbackReservations(String tempOrderId, java.util.List<ReservedItem> reservedItems, String userId) {
         for (ReservedItem item : reservedItems) {
             try {
-                StockServiceClient.ReserveRequest cancelReq =
-                    new StockServiceClient.ReserveRequest(
-                        tempOrderId,
-                        item.productId(),
-                        item.sizeId(),
-                        0  // quantity not needed for cancel
-                    );
-                stockServiceClient.cancelReservation(cancelReq);
-                log.info("[ROLLBACK] Cancelled reservation: product={}, size={}", 
-                         item.productId(), item.sizeId());
+                if (item.isFlashSale()) {
+                    // Flash Sale Rollback
+                    flashSaleClient.cancelReservation(tempOrderId, item.productId(), item.sizeId(), userId);
+                } else {
+                    StockServiceClient.ReserveRequest cancelReq = new StockServiceClient.ReserveRequest(
+                            tempOrderId,
+                            item.productId(),
+                            item.sizeId(),
+                            0);
+                    stockServiceClient.cancelReservation(cancelReq);
+                }
+                log.info("[ROLLBACK] Cancelled reservation: product={}, size={}, isFS={}",
+                        item.productId(), item.sizeId(), item.isFlashSale());
             } catch (Exception e) {
-                log.error("[ROLLBACK] Failed to cancel reservation: product={}, size={}, error={}", 
-                          item.productId(), item.sizeId(), e.getMessage());
+                log.error("[ROLLBACK] Failed to cancel reservation: product={}, size={}, error={}",
+                        item.productId(), item.sizeId(), e.getMessage());
             }
         }
     }
-    
+
     /**
      * Helper record for tracking reserved items
      */
-    private record ReservedItem(String productId, String sizeId) {}
-    
+    private record ReservedItem(String productId, String sizeId, boolean isFlashSale) {
+    }
+
     /**
      * Phase 3: Confirm all reservations after order saved successfully.
      * This deletes the reservation keys in Redis, finalizing the stock decrease.
@@ -1282,29 +1318,31 @@ public class OrderServiceImpl implements OrderService {
         if (tempOrderId == null || items == null) {
             return;
         }
-        
+
         for (SelectedItemDto item : items) {
             try {
-                StockServiceClient.ReserveRequest confirmReq =
-                    new StockServiceClient.ReserveRequest(
-                        tempOrderId,
-                        item.getProductId(),
-                        item.getSizeId(),
-                        0  // quantity not needed for confirm
-                    );
-                stockServiceClient.confirmReservation(confirmReq);
-                log.debug("[CONFIRM-RESERVATION] Confirmed: tempOrderId={}, product={}, size={}", 
-                         tempOrderId, item.getProductId(), item.getSizeId());
+                if (Boolean.TRUE.equals(item.getIsFlashSale())) {
+                    // Confirm Flash Sale
+                    flashSaleClient.confirmReservation(tempOrderId, item.getProductId(), item.getSizeId());
+                } else {
+                    // Confirm Regular
+                    StockServiceClient.ReserveRequest confirmReq = new StockServiceClient.ReserveRequest(
+                            tempOrderId,
+                            item.getProductId(),
+                            item.getSizeId(),
+                            0);
+                    stockServiceClient.confirmReservation(confirmReq);
+                }
+                log.debug("[CONFIRM-RESERVATION] Confirmed: tempOrderId={}, product={}, size={}",
+                        tempOrderId, item.getProductId(), item.getSizeId());
             } catch (Exception e) {
                 // Don't throw - reservation will expire naturally if confirmation fails
-                log.warn("[CONFIRM-RESERVATION] Failed to confirm reservation: tempOrderId={}, product={}, error={}", 
-                         tempOrderId, item.getProductId(), e.getMessage());
+                log.warn("[CONFIRM-RESERVATION] Failed to confirm reservation: tempOrderId={}, product={}, error={}",
+                        tempOrderId, item.getProductId(), e.getMessage());
             }
         }
         log.info("[CONFIRM-RESERVATION] Confirmed {} reservations for tempOrderId={}", items.size(), tempOrderId);
     }
-
-
 
     /**
      * Tạo order từ payment service với raw Map data
@@ -1365,7 +1403,8 @@ public class OrderServiceImpl implements OrderService {
                 })
                 .collect(java.util.stream.Collectors.toList());
 
-        log.info("[PAYMENT-ORDER] Creating order - userId: {}, addressId: {}, items: {}, shippingFee: {}, voucherId: {}",
+        log.info(
+                "[PAYMENT-ORDER] Creating order - userId: {}, addressId: {}, items: {}, shippingFee: {}, voucherId: {}",
                 userId, addressId, selectedItems.size(), shippingFee, voucherId);
 
         // 5. Delegate to existing method
@@ -1530,7 +1569,7 @@ public class OrderServiceImpl implements OrderService {
         // Xử lý từng message trong batch
         for (CheckOutKafkaRequest msg : messages) {
             try {
-                // ==================== VALIDATION  ====================
+                // ==================== VALIDATION ====================
                 if (msg.getAddressId() == null || msg.getAddressId().isBlank()) {
                     continue; // Skip invalid message
                 }
@@ -1538,7 +1577,7 @@ public class OrderServiceImpl implements OrderService {
                     continue;
                 }
 
-                // ==================== ORDER SPLITTING BY SHOP  ====================
+                // ==================== ORDER SPLITTING BY SHOP ====================
                 Map<String, List<SelectedItemDto>> itemsByShop = groupItemsByShopOwner(msg.getSelectedItems());
                 int totalShops = itemsByShop.size();
                 double shippingFeePerShop = (msg.getShippingFee() != null ? msg.getShippingFee() : 0.0) / totalShops;
@@ -1546,11 +1585,11 @@ public class OrderServiceImpl implements OrderService {
                 String voucherShopOwnerId = null;
 
                 if (msg.getVoucherId() != null && !msg.getVoucherId().isBlank()) {
-                     try {
+                    try {
                         voucherShopOwnerId = voucherService.getVoucherShopOwnerId(msg.getVoucherId());
-                     } catch(Exception e) {
+                    } catch (Exception e) {
 
-                     }
+                    }
                 }
 
                 AddressDto addressInfo = null;
@@ -1595,7 +1634,8 @@ public class OrderServiceImpl implements OrderService {
                     // Calculate total
                     double itemsTotal = calculateTotalPrice(items);
                     double ship = order.getShippingFee() != null ? order.getShippingFee().doubleValue() : 0.0;
-                    double voucher = order.getVoucherDiscount() != null ? order.getVoucherDiscount().doubleValue() : 0.0;
+                    double voucher = order.getVoucherDiscount() != null ? order.getVoucherDiscount().doubleValue()
+                            : 0.0;
                     order.setTotalPrice(itemsTotal + ship - voucher);
 
                     ensureIdsAssignedForBatchInsert(order);
@@ -1629,16 +1669,17 @@ public class OrderServiceImpl implements OrderService {
                             : failNotification.getShopId();
                     kafkaTemplateSend.send(notificationTopic.name(), partitionKey, failNotification);
                 } catch (Exception notifEx) {
-                    log.error("[BATCH-CHECKOUT-CONSUMER] Failed to send failure notification: {}", notifEx.getMessage(), notifEx);
+                    log.error("[BATCH-CHECKOUT-CONSUMER] Failed to send failure notification: {}", notifEx.getMessage(),
+                            notifEx);
                 }
                 // KHÔNG throw exception → Tiếp tục xử lý message tiếp theo
             }
         }
 
-
         // ==================== BATCH SAVE ====================
         if (!ordersToSave.isEmpty()) {
-            log.info("[BATCH-CHECKOUT-CONSUMER] Saving {} orders and {} items...", ordersToSave.size(), orderItemsToSave.size());
+            log.info("[BATCH-CHECKOUT-CONSUMER] Saving {} orders and {} items...", ordersToSave.size(),
+                    orderItemsToSave.size());
 
             try {
                 // Try Batch Save
@@ -1646,7 +1687,8 @@ public class OrderServiceImpl implements OrderService {
                 orderItemRepository.saveAll(orderItemsToSave);
 
             } catch (Exception e) {
-                log.error("[BATCH-CHECKOUT-CONSUMER] ❌ BATCH SAVE FAILED: {}. Falling back to single save...", e.getMessage());
+                log.error("[BATCH-CHECKOUT-CONSUMER] ❌ BATCH SAVE FAILED: {}. Falling back to single save...",
+                        e.getMessage());
 
                 // Fallback: Save one by one
                 for (Order order : ordersToSave) {
@@ -1655,8 +1697,8 @@ public class OrderServiceImpl implements OrderService {
 
                         // Filter items for this order
                         List<OrderItem> itemsForOrder = orderItemsToSave.stream()
-                            .filter(item -> item.getOrder().getId().equals(order.getId()))
-                            .collect(java.util.stream.Collectors.toList());
+                                .filter(item -> item.getOrder().getId().equals(order.getId()))
+                                .collect(java.util.stream.Collectors.toList());
 
                         if (!itemsForOrder.isEmpty()) {
                             orderItemRepository.saveAll(itemsForOrder);
@@ -1670,7 +1712,8 @@ public class OrderServiceImpl implements OrderService {
 
             // ==================== ASYNC STOCK DECREASE (Phase 3) ====================
             // Publish stock decrease events to Kafka (non-blocking, returns immediately)
-            // Note: We use orderItemsToSave because order.getOrderItems() is empty in batch mode
+            // Note: We use orderItemsToSave because order.getOrderItems() is empty in batch
+            // mode
             for (Order savedOrder : ordersToSave) {
                 // Find items for this order
                 List<OrderItem> orderItems = orderItemsToSave.stream()
@@ -1679,9 +1722,10 @@ public class OrderServiceImpl implements OrderService {
 
                 publishStockDecreaseEvent(savedOrder, orderItems);
             }
-            
+
             // ==================== PHASE 3: CONFIRM RESERVATIONS ====================
-            // After orders saved successfully, confirm all reservations (delete reservation keys)
+            // After orders saved successfully, confirm all reservations (delete reservation
+            // keys)
             // This is done per-message because each message has its own tempOrderId
             for (CheckOutKafkaRequest msg : messages) {
                 if (msg.getTempOrderId() != null && msg.getSelectedItems() != null) {
@@ -1693,36 +1737,38 @@ public class OrderServiceImpl implements OrderService {
             // Thực hiện các action cần order đã được lưu (Notify, GHN, logic khác)
             // Chạy loop này rất nhanh vì là in-memory logic + async calls
             for (Order savedOrder : ordersToSave) {
-                 try {
-                     // 1. Send notifications (ASYNC)
-                     CompletableFuture.runAsync(() -> {
+                try {
+                    // 1. Send notifications (ASYNC)
+                    CompletableFuture.runAsync(() -> {
                         try {
                             notifyOrderPlaced(savedOrder);
                             notifyShopOwners(savedOrder);
                         } catch (Exception e) {
-                            log.error("[ASYNC-NOTIFICATION] Failed for order {}: {}", savedOrder.getId(), e.getMessage());
+                            log.error("[ASYNC-NOTIFICATION] Failed for order {}: {}", savedOrder.getId(),
+                                    e.getMessage());
                         }
                     });
 
                     // 2. Create GHN shipping order (only if CONFIRMED)
-                    if (savedOrder.getOrderStatus() != null && savedOrder.getOrderStatus().name().equalsIgnoreCase("CONFIRMED")) {
-                         boolean isTestOrder = savedOrder.getOrderItems() != null && !savedOrder.getOrderItems().isEmpty()
-                                    && savedOrder.getOrderItems().get(0).getProductId().startsWith("test-product-");
+                    if (savedOrder.getOrderStatus() != null
+                            && savedOrder.getOrderStatus().name().equalsIgnoreCase("CONFIRMED")) {
+                        boolean isTestOrder = savedOrder.getOrderItems() != null
+                                && !savedOrder.getOrderItems().isEmpty()
+                                && savedOrder.getOrderItems().get(0).getProductId().startsWith("test-product-");
 
-                         if (!isTestOrder) {
-                             createShippingOrder(savedOrder);
-                         }
+                        if (!isTestOrder) {
+                            createShippingOrder(savedOrder);
+                        }
                     }
-                 } catch (Exception e) {
-                     log.error("[POST-SAVE] Error processing order {}: {}", savedOrder.getId(), e.getMessage());
-                 }
+                } catch (Exception e) {
+                    log.error("[POST-SAVE] Error processing order {}: {}", savedOrder.getId(), e.getMessage());
+                }
             }
         }
 
         log.info("[BATCH-CHECKOUT-CONSUMER] Batch processing complete: ✅ Processed: {} orders", ordersToSave.size());
         log.info("[BATCH-CHECKOUT-CONSUMER] ========================================");
     }
-
 
     /**
      * BATCH CONSUMER: Xử lý payment events từ Kafka (Batch Mode - High Throughput)
@@ -1765,14 +1811,16 @@ public class OrderServiceImpl implements OrderService {
                             }
                             // No need to change order status - PENDING is correct after successful payment
                         } else {
-                            log.warn("[BATCH-PAYMENT-CONSUMER] Order {} not found for payment event", event.getOrderId());
+                            log.warn("[BATCH-PAYMENT-CONSUMER] Order {} not found for payment event",
+                                    event.getOrderId());
                         }
                     } else if (event.getUserId() != null && event.getAddressId() != null
                             && event.getOrderDataJson() != null && !event.getOrderDataJson().trim().isEmpty()) {
                         // Order doesn't exist yet - create it from orderData
                         try {
                             // Parse orderDataJson to get selectedItems and shippingFee
-                            Map<String, Object> orderDataMap = objectMapper.readValue(event.getOrderDataJson(), Map.class);
+                            Map<String, Object> orderDataMap = objectMapper.readValue(event.getOrderDataJson(),
+                                    Map.class);
                             List<Map<String, Object>> selectedItemsList = (List<Map<String, Object>>) orderDataMap
                                     .get("selectedItems");
 
@@ -1793,7 +1841,8 @@ public class OrderServiceImpl implements OrderService {
                                         try {
                                             shippingFee = new BigDecimal((String) shippingFeeObj);
                                         } catch (NumberFormatException e) {
-                                            log.warn("[BATCH-PAYMENT-CONSUMER] Invalid shippingFee format: {}", shippingFeeObj);
+                                            log.warn("[BATCH-PAYMENT-CONSUMER] Invalid shippingFee format: {}",
+                                                    shippingFeeObj);
                                         }
                                     }
                                 }
@@ -1810,7 +1859,8 @@ public class OrderServiceImpl implements OrderService {
                                     voucherDiscount = ((Number) voucherDiscountObj).doubleValue();
                                 }
                             }
-                            log.info("[BATCH-PAYMENT-CONSUMER] Voucher from orderData - voucherId: {}, discount: {}", voucherId,
+                            log.info("[BATCH-PAYMENT-CONSUMER] Voucher from orderData - voucherId: {}, discount: {}",
+                                    voucherId,
                                     voucherDiscount);
 
                             // Convert to SelectedItemDto list
@@ -1824,7 +1874,8 @@ public class OrderServiceImpl implements OrderService {
                                     })
                                     .collect(java.util.stream.Collectors.toList());
 
-                            // Create order with PENDING status (payment successful, waiting for shop confirmation)
+                            // Create order with PENDING status (payment successful, waiting for shop
+                            // confirmation)
                             Order order = createOrderFromPayment(event.getUserId(), event.getAddressId(), selectedItems,
                                     shippingFee, voucherId, voucherDiscount);
 
@@ -1846,7 +1897,8 @@ public class OrderServiceImpl implements OrderService {
                                             log.info("[BATCH-PAYMENT-CONSUMER] Updated payment {} with orderId: {}",
                                                     event.getPaymentId(), order.getId());
                                         } else {
-                                            log.warn("[BATCH-PAYMENT-CONSUMER] Failed to update payment {} with orderId: {}",
+                                            log.warn(
+                                                    "[BATCH-PAYMENT-CONSUMER] Failed to update payment {} with orderId: {}",
                                                     event.getPaymentId(), order.getId());
                                         }
                                     }
@@ -1861,10 +1913,9 @@ public class OrderServiceImpl implements OrderService {
                                     "[BATCH-PAYMENT-CONSUMER] Created order {} with PENDING status and payment method {} from payment event: {}",
                                     order.getId(), order.getPaymentMethod(), event.getTxnRef());
                         } catch (Exception e) {
-                            log.error("[BATCH-PAYMENT-CONSUMER] Failed to create order from payment event: {}", e.getMessage(),
+                            log.error("[BATCH-PAYMENT-CONSUMER] Failed to create order from payment event: {}",
+                                    e.getMessage(),
                                     e);
-                            // Note: Payment is already successful, but order creation failed
-                            // Continue processing other events
                             failedCount++;
                             continue;
                         }
@@ -1877,7 +1928,8 @@ public class OrderServiceImpl implements OrderService {
                     if (event.getOrderId() != null && !event.getOrderId().trim().isEmpty()) {
                         try {
                             rollbackOrderStock(event.getOrderId());
-                            log.info("[BATCH-PAYMENT-CONSUMER] Rolled back order {} due to payment failure", event.getOrderId());
+                            log.info("[BATCH-PAYMENT-CONSUMER] Rolled back order {} due to payment failure",
+                                    event.getOrderId());
                         } catch (Exception e) {
                             log.error("[BATCH-PAYMENT-CONSUMER] Failed to rollback order {}: {}", event.getOrderId(),
                                     e.getMessage(), e);
@@ -1890,19 +1942,19 @@ public class OrderServiceImpl implements OrderService {
                                 event.getTxnRef());
                     }
                 }
-                
+
                 successCount++;
-                
+
             } catch (Exception e) {
-                // Xử lý lỗi cho TỪNG event riêng lẻ (không làm fail toàn bộ batch)
-                log.error("[BATCH-PAYMENT-CONSUMER] ❌ Error processing payment event: {}", e.getMessage(), e);
+
                 failedCount++;
                 // KHÔNG throw exception → Tiếp tục xử lý event tiếp theo
             }
         }
-        
+
         log.info("[BATCH-PAYMENT-CONSUMER] ========================================");
-        log.info("[BATCH-PAYMENT-CONSUMER] Batch processing complete: ✅ Success: {}, ❌ Failed: {}", successCount, failedCount);
+        log.info("[BATCH-PAYMENT-CONSUMER] Batch processing complete: ✅ Success: {}, ❌ Failed: {}", successCount,
+                failedCount);
         log.info("[BATCH-PAYMENT-CONSUMER]========================================");
     }
 
@@ -2055,78 +2107,57 @@ public class OrderServiceImpl implements OrderService {
     /**
      * Get i18n title and description for GHN status
      * 
-     * @return String[4] where [0] = title_vi, [1] = desc_vi, [2] = title_en, [3] = desc_en
+     * @return String[4] where [0] = title_vi, [1] = desc_vi, [2] = title_en, [3] =
+     *         desc_en
      */
     private String[] getGhnStatusInfo(String ghnStatus) {
-        switch (ghnStatus.toLowerCase()) {
-            case "ready_to_pick":
-                return new String[] { "Chờ lấy hàng", "Đơn hàng đang chờ shipper đến lấy", 
-                                     "Waiting for pickup", "Order is waiting for shipper to pick up" };
-            case "picking":
-                return new String[] { "Đang lấy hàng", "Shipper đang đến lấy hàng từ shop",
-                                     "Picking up", "Shipper is picking up from shop" };
-            case "money_collect_picking":
-                return new String[] { "Đang lấy hàng", "Shipper đang thu tiền và lấy hàng",
-                                     "Collecting & picking", "Shipper is collecting money and picking up" };
-            case "picked":
-                return new String[] { "Đã lấy hàng", "Shipper đã lấy hàng thành công",
-                                     "Picked up", "Shipper has picked up successfully" };
-            case "storing":
-                return new String[] { "Đã nhập kho", "Đơn hàng đã được nhập kho phân loại",
-                                     "In warehouse", "Order has been stored in warehouse" };
-            case "transporting":
-                return new String[] { "Đang luân chuyển", "Đơn hàng đang được vận chuyển đến kho đích",
-                                     "In transit", "Order is being transported to destination" };
-            case "sorting":
-                return new String[] { "Đang phân loại", "Đơn hàng đang được phân loại tại kho",
-                                     "Sorting", "Order is being sorted at warehouse" };
-            case "delivering":
-                return new String[] { "Đang giao hàng", "Shipper đang giao hàng đến bạn",
-                                     "Delivering", "Shipper is delivering to you" };
-            case "money_collect_delivering":
-                return new String[] { "Đang giao hàng", "Shipper đang giao hàng và thu tiền COD",
-                                     "Delivering (COD)", "Shipper is delivering and collecting COD" };
-            case "delivered":
-                return new String[] { "Đã giao hàng", "Giao hàng thành công",
-                                     "Delivered", "Delivery successful" };
-            case "delivery_fail":
-                return new String[] { "Giao thất bại", "Giao hàng không thành công, sẽ giao lại",
-                                     "Delivery failed", "Delivery failed, will retry" };
-            case "waiting_to_return":
-                return new String[] { "Chờ trả hàng", "Đơn hàng đang chờ trả về shop",
-                                     "Waiting to return", "Waiting to return to shop" };
-            case "return":
-            case "returning":
-                return new String[] { "Đang trả hàng", "Đơn hàng đang được trả về shop",
-                                     "Returning", "Order is being returned to shop" };
-            case "return_transporting":
-                return new String[] { "Đang luân chuyển trả", "Đơn hàng đang được vận chuyển trả về shop",
-                                     "Return in transit", "Order is being transported back to shop" };
-            case "return_sorting":
-                return new String[] { "Đang phân loại trả", "Đơn hàng đang được phân loại để trả về shop",
-                                     "Return sorting", "Order is being sorted for return" };
-            case "return_fail":
-                return new String[] { "Trả hàng thất bại", "Không thể trả hàng về shop",
-                                     "Return failed", "Failed to return to shop" };
-            case "returned":
-                return new String[] { "Đã trả hàng", "Đơn hàng đã được trả về shop thành công",
-                                     "Returned", "Order has been returned successfully" };
-            case "cancel":
-                return new String[] { "Đã hủy", "Đơn hàng đã bị hủy",
-                                     "Cancelled", "Order has been cancelled" };
-            case "exception":
-                return new String[] { "Có sự cố", "Đơn hàng gặp sự cố, đang xử lý",
-                                     "Exception", "Order has an exception, processing" };
-            case "damage":
-                return new String[] { "Hàng bị hư hỏng", "Hàng hóa bị hư hỏng trong quá trình vận chuyển",
-                                     "Damaged", "Package was damaged during transport" };
-            case "lost":
-                return new String[] { "Hàng bị thất lạc", "Hàng hóa bị thất lạc",
-                                     "Lost", "Package was lost" };
-            default:
-                return new String[] { "Cập nhật trạng thái", "Trạng thái: " + ghnStatus,
-                                     "Status update", "Status: " + ghnStatus };
-        }
+        return switch (ghnStatus.toLowerCase()) {
+            case "ready_to_pick" -> new String[]{"Chờ lấy hàng", "Đơn hàng đang chờ shipper đến lấy",
+                    "Waiting for pickup", "Order is waiting for shipper to pick up"};
+            case "picking" -> new String[]{"Đang lấy hàng", "Shipper đang đến lấy hàng từ shop",
+                    "Picking up", "Shipper is picking up from shop"};
+            case "money_collect_picking" -> new String[]{"Đang lấy hàng", "Shipper đang thu tiền và lấy hàng",
+                    "Collecting & picking", "Shipper is collecting money and picking up"};
+            case "picked" -> new String[]{"Đã lấy hàng", "Shipper đã lấy hàng thành công",
+                    "Picked up", "Shipper has picked up successfully"};
+            case "storing" -> new String[]{"Đã nhập kho", "Đơn hàng đã được nhập kho phân loại",
+                    "In warehouse", "Order has been stored in warehouse"};
+            case "transporting" -> new String[]{"Đang luân chuyển", "Đơn hàng đang được vận chuyển đến kho đích",
+                    "In transit", "Order is being transported to destination"};
+            case "sorting" -> new String[]{"Đang phân loại", "Đơn hàng đang được phân loại tại kho",
+                    "Sorting", "Order is being sorted at warehouse"};
+            case "delivering" -> new String[]{"Đang giao hàng", "Shipper đang giao hàng đến bạn",
+                    "Delivering", "Shipper is delivering to you"};
+            case "money_collect_delivering" -> new String[]{"Đang giao hàng", "Shipper đang giao hàng và thu tiền COD",
+                    "Delivering (COD)", "Shipper is delivering and collecting COD"};
+            case "delivered" -> new String[]{"Đã giao hàng", "Giao hàng thành công",
+                    "Delivered", "Delivery successful"};
+            case "delivery_fail" -> new String[]{"Giao thất bại", "Giao hàng không thành công, sẽ giao lại",
+                    "Delivery failed", "Delivery failed, will retry"};
+            case "waiting_to_return" -> new String[]{"Chờ trả hàng", "Đơn hàng đang chờ trả về shop",
+                    "Waiting to return", "Waiting to return to shop"};
+            case "return", "returning" -> new String[]{"Đang trả hàng", "Đơn hàng đang được trả về shop",
+                    "Returning", "Order is being returned to shop"};
+            case "return_transporting" ->
+                    new String[]{"Đang luân chuyển trả", "Đơn hàng đang được vận chuyển trả về shop",
+                            "Return in transit", "Order is being transported back to shop"};
+            case "return_sorting" -> new String[]{"Đang phân loại trả", "Đơn hàng đang được phân loại để trả về shop",
+                    "Return sorting", "Order is being sorted for return"};
+            case "return_fail" -> new String[]{"Trả hàng thất bại", "Không thể trả hàng về shop",
+                    "Return failed", "Failed to return to shop"};
+            case "returned" -> new String[]{"Đã trả hàng", "Đơn hàng đã được trả về shop thành công",
+                    "Returned", "Order has been returned successfully"};
+            case "cancel" -> new String[]{"Đã hủy", "Đơn hàng đã bị hủy",
+                    "Cancelled", "Order has been cancelled"};
+            case "exception" -> new String[]{"Có sự cố", "Đơn hàng gặp sự cố, đang xử lý",
+                    "Exception", "Order has an exception, processing"};
+            case "damage" -> new String[]{"Hàng bị hư hỏng", "Hàng hóa bị hư hỏng trong quá trình vận chuyển",
+                    "Damaged", "Package was damaged during transport"};
+            case "lost" -> new String[]{"Hàng bị thất lạc", "Hàng hóa bị thất lạc",
+                    "Lost", "Package was lost"};
+            default -> new String[]{"Cập nhật trạng thái", "Trạng thái: " + ghnStatus,
+                    "Status update", "Status: " + ghnStatus};
+        };
     }
 
     /**
@@ -2256,27 +2287,27 @@ public class OrderServiceImpl implements OrderService {
     }
 
     // ==================== BULK UPDATE STATUS PRODUCER ====================
-    
+
     @Override
     public Map<String, Object> bulkUpdateOrderStatus(String shopOwnerId, List<String> orderIds, String newStatus) {
         if (orderIds == null || orderIds.isEmpty()) {
             throw new IllegalArgumentException("Order IDs are required");
         }
-        
+
         if (newStatus == null || newStatus.isBlank()) {
             throw new IllegalArgumentException("New status is required");
         }
-        
+
         // Get shop owner's product IDs for validation
         List<String> shopProductIds = stockServiceClient.getProductIdsByShopOwner(shopOwnerId).getBody();
         if (shopProductIds == null || shopProductIds.isEmpty()) {
             throw new RuntimeException("No products found for this shop owner");
         }
-        
+
         int sent = 0;
         int rejected = 0;
         List<String> rejectedOrderIds = new ArrayList<>();
-        
+
         for (String orderId : orderIds) {
             try {
                 Order order = orderRepository.findById(orderId).orElse(null);
@@ -2285,17 +2316,17 @@ public class OrderServiceImpl implements OrderService {
                     rejectedOrderIds.add(orderId);
                     continue;
                 }
-                
+
                 // Check if order has items from this shop
                 boolean belongsToShop = order.getOrderItems().stream()
                         .anyMatch(item -> shopProductIds.contains(item.getProductId()));
-                
+
                 if (!belongsToShop) {
                     rejected++;
                     rejectedOrderIds.add(orderId);
                     continue;
                 }
-                
+
                 // Build Kafka message
                 UpdateStatusOrderRequest msg = UpdateStatusOrderRequest.builder()
                         .orderId(orderId)
@@ -2303,21 +2334,21 @@ public class OrderServiceImpl implements OrderService {
                         .newStatus(newStatus)
                         .timestamp(LocalDateTime.now())
                         .build();
-                
+
                 // Send to Kafka (async, non-blocking)
                 updateStatusKafkaTemplate.send(updateStatusOrderTopic.name(), orderId, msg);
                 sent++;
-                
+
             } catch (Exception e) {
                 log.error("[BULK-UPDATE] Failed to process order {}: {}", orderId, e.getMessage());
                 rejected++;
                 rejectedOrderIds.add(orderId);
             }
         }
-        
-        log.info("[BULK-UPDATE] Shop {} sent {} orders to Kafka, rejected {}", 
+
+        log.info("[BULK-UPDATE] Shop {} sent {} orders to Kafka, rejected {}",
                 shopOwnerId, sent, rejected);
-        
+
         Map<String, Object> response = new HashMap<>();
         response.put("accepted", sent);
         response.put("rejected", rejected);
@@ -2325,62 +2356,58 @@ public class OrderServiceImpl implements OrderService {
         if (!rejectedOrderIds.isEmpty()) {
             response.put("rejectedOrderIds", rejectedOrderIds);
         }
-        
+
         return response;
     }
 
     // ==================== SEARCH ORDERS ====================
-    
+
     @Override
     public List<Order> searchOrders(String shopOwnerId, String query) {
         if (query == null || query.trim().isEmpty()) {
             return Collections.emptyList();
         }
-        
+
         // Get shop owner's product IDs
         List<String> shopProductIds = stockServiceClient.getProductIdsByShopOwner(shopOwnerId).getBody();
         if (shopProductIds == null || shopProductIds.isEmpty()) {
             return Collections.emptyList();
         }
-        
+
         String searchQuery = query.trim().toLowerCase();
-        
+
         // Search by order ID prefix
         List<Order> allShopOrders = orderRepository.findByOrderItemsProductIdIn(shopProductIds);
-        
+
         return allShopOrders.stream()
                 .filter(order -> order.getId().toLowerCase().contains(searchQuery))
-                .limit(50)  // Limit results
+                .limit(50) // Limit results
                 .collect(Collectors.toList());
     }
 
     // ==================== BULK UPDATE STATUS CONSUMER ====================
-    
+
     /**
      * Batch consumer for update-order-topic topic
      * Processes multiple status updates in parallel for high throughput
      */
-    @KafkaListener(
-            topics = "#{@updateStatusOrderTopic.name()}",
-            groupId = "order-service-status-update",
-            containerFactory = "updateStatusListenerFactory"
-    )
+    @KafkaListener(topics = "#{@updateStatusOrderTopic.name()}", groupId = "order-service-status-update", containerFactory = "updateStatusListenerFactory")
     public void consumeBulkStatusUpdate(List<UpdateStatusOrderRequest> messages) {
         if (messages == null || messages.isEmpty()) {
             return;
         }
-        
+
         log.info("[BULK-STATUS-CONSUMER] Received batch of {} messages", messages.size());
-        
+
         int success = 0;
         int failed = 0;
         Map<String, List<String>> resultsByShopOwner = new HashMap<>();
-        
+
         for (UpdateStatusOrderRequest msg : messages) {
             try {
-                log.info("[BULK-STATUS-CONSUMER] Processing: orderId={}, newStatus={}", 
+                log.info("[BULK-STATUS-CONSUMER] Processing: orderId={}, newStatus={}",
                         msg.getOrderId(), msg.getNewStatus());
-                
+
                 // 1. Get order
                 Order order = orderRepository.findById(msg.getOrderId()).orElse(null);
                 if (order == null) {
@@ -2389,7 +2416,7 @@ public class OrderServiceImpl implements OrderService {
                     addResult(resultsByShopOwner, msg.getShopOwnerId(), "FAILED:" + msg.getOrderId());
                     continue;
                 }
-                
+
                 // 2. Update status
                 OrderStatus newStatus;
                 try {
@@ -2400,57 +2427,56 @@ public class OrderServiceImpl implements OrderService {
                     addResult(resultsByShopOwner, msg.getShopOwnerId(), "FAILED:" + msg.getOrderId());
                     continue;
                 }
-                
+
                 order.setOrderStatus(newStatus);
                 orderRepository.save(order);
-                
+
                 // 3. Side effects
                 if (newStatus == OrderStatus.CONFIRMED) {
                     try {
                         createShippingOrderForOrder(msg.getOrderId());
                     } catch (Exception e) {
-                        log.warn("[BULK-STATUS-CONSUMER] Failed to create shipping for order {}: {}", 
+                        log.warn("[BULK-STATUS-CONSUMER] Failed to create shipping for order {}: {}",
                                 msg.getOrderId(), e.getMessage());
                     }
                 }
-                
+
                 if (newStatus == OrderStatus.DELIVERED) {
                     try {
                         shopLedgerService.processOrderEarning(order);
                     } catch (Exception e) {
-                        log.warn("[BULK-STATUS-CONSUMER] Failed to process ledger for order {}: {}", 
+                        log.warn("[BULK-STATUS-CONSUMER] Failed to process ledger for order {}: {}",
                                 msg.getOrderId(), e.getMessage());
                     }
                 }
-                
+
                 success++;
                 addResult(resultsByShopOwner, msg.getShopOwnerId(), "SUCCESS:" + msg.getOrderId());
-                
-                log.info("[BULK-STATUS-CONSUMER] Successfully updated order {} to {}", 
+
+                log.info("[BULK-STATUS-CONSUMER] Successfully updated order {} to {}",
                         msg.getOrderId(), msg.getNewStatus());
-                
+
             } catch (Exception e) {
-                log.error("[BULK-STATUS-CONSUMER] Failed to process order {}: {}", 
+                log.error("[BULK-STATUS-CONSUMER] Failed to process order {}: {}",
                         msg.getOrderId(), e.getMessage(), e);
                 failed++;
                 addResult(resultsByShopOwner, msg.getShopOwnerId(), "FAILED:" + msg.getOrderId());
             }
         }
-        
+
         // 4. Send notifications to shop owners
         for (Map.Entry<String, List<String>> entry : resultsByShopOwner.entrySet()) {
             String shopOwnerId = entry.getKey();
             List<String> results = entry.getValue();
-            
+
             long successCount = results.stream().filter(r -> r.startsWith("SUCCESS:")).count();
             long failedCount = results.stream().filter(r -> r.startsWith("FAILED:")).count();
-            
+
             String message = String.format(
-                    "Đã cập nhật %d đơn hàng thành công%s", 
+                    "Đã cập nhật %d đơn hàng thành công%s",
                     successCount,
-                    failedCount > 0 ? String.format(", %d đơn thất bại", failedCount) : ""
-            );
-            
+                    failedCount > 0 ? String.format(", %d đơn thất bại", failedCount) : "");
+
             try {
                 SendNotificationRequest notification = SendNotificationRequest.builder()
                         .userId(shopOwnerId)
@@ -2461,7 +2487,7 @@ public class OrderServiceImpl implements OrderService {
                         .build();
                 kafkaTemplateSend.send(notificationTopic.name(), shopOwnerId, notification);
             } catch (Exception e) {
-                log.error("[BULK-STATUS-CONSUMER] Failed to send notification to {}: {}", 
+                log.error("[BULK-STATUS-CONSUMER] Failed to send notification to {}: {}",
                         shopOwnerId, e.getMessage());
             }
         }
@@ -2495,10 +2521,14 @@ public class OrderServiceImpl implements OrderService {
     }
 
     // ==================== PHASE 3: ASYNC STOCK DECREASE ====================
-    
+
     /**
      * Publish stock decrease event to Kafka (async, non-blocking)
      * Order Service does NOT wait for stock decrease to complete
+     * 
+     * CRITICAL: Only sends events for REGULAR items, NOT Flash Sale items.
+     * Flash Sale stock is managed separately via Redis and already deducted during
+     * approval.
      */
     private void publishStockDecreaseEvent(Order order, List<OrderItem> orderItems) {
         // Skip for test products
@@ -2509,7 +2539,18 @@ public class OrderServiceImpl implements OrderService {
             return;
         }
 
-        List<StockDecreaseEvent.StockDecreaseItem> items = orderItems.stream()
+        // FILTER OUT FLASH SALE ITEMS to prevent double deduction
+        List<OrderItem> regularItems = orderItems.stream()
+                .filter(item -> !Boolean.TRUE.equals(item.getIsFlashSale()))
+                .collect(java.util.stream.Collectors.toList());
+
+        if (regularItems.isEmpty()) {
+            log.info("[ASYNC-STOCK] Skipping stock decrease event for order {} (all items are Flash Sale)",
+                    order.getId());
+            return;
+        }
+
+        List<StockDecreaseEvent.StockDecreaseItem> items = regularItems.stream()
                 .map(item -> StockDecreaseEvent.StockDecreaseItem.builder()
                         .productId(item.getProductId())
                         .sizeId(item.getSizeId())
@@ -2524,63 +2565,60 @@ public class OrderServiceImpl implements OrderService {
                 .build();
 
         stockDecreaseKafkaTemplate.send(stockDecreaseTopic.name(), order.getId(), event);
-        log.info("[ASYNC-STOCK] Published stock decrease event for order: {} ({} items)", 
-            order.getId(), items.size());
+        log.info(
+                "[ASYNC-STOCK] Published stock decrease event for order: {} ({} regular items, {} flash sale items filtered)",
+                order.getId(), regularItems.size(), orderItems.size() - regularItems.size());
     }
 
     /**
      * Handle order compensation when stock decrease fails
      * Cancel order + refund + notify user
      */
-    @org.springframework.kafka.annotation.KafkaListener(
-        topics = "${kafka.topic.order-compensation}",
-        groupId = "order-service-compensation",
-        containerFactory = "compensationListenerFactory"
-    )
+    @KafkaListener(topics = "${kafka.topic.order-compensation}", groupId = "order-service-compensation", containerFactory = "compensationListenerFactory")
     @Transactional
     public void handleOrderCompensation(OrderCompensationEvent event) {
-        log.warn("[COMPENSATION] Received compensation event for order: {} - Reason: {}", 
-            event.getOrderId(), event.getReason());
-        
+        log.warn("[COMPENSATION] Received compensation event for order: {} - Reason: {}",
+                event.getOrderId(), event.getReason());
+
         try {
             // 1. Find order
             Order order = orderRepository.findById(event.getOrderId())
                     .orElseThrow(() -> new RuntimeException("Order not found: " + event.getOrderId()));
-            
+
             // 2. Cancel order
             order.setOrderStatus(OrderStatus.CANCELLED);
             orderRepository.save(order);
-            
+
             // 3. Refund if payment was made
-            if ("VNPAY".equalsIgnoreCase(order.getPaymentMethod()) || 
-                "MOMO".equalsIgnoreCase(order.getPaymentMethod())) {
+            if ("VNPAY".equalsIgnoreCase(order.getPaymentMethod()) ||
+                    "MOMO".equalsIgnoreCase(order.getPaymentMethod())) {
                 refundToWallet(order, event.getDetails());
             }
-            
+
             // 4. Notify user
             notifyOrderCancelled(order, event.getDetails());
-            
-            log.info("[COMPENSATION] Order {} cancelled successfully. Reason: {}",  
-                order.getId(), event.getDetails());
-            
+
+            log.info("[COMPENSATION] Order {} cancelled successfully. Reason: {}",
+                    order.getId(), event.getDetails());
+
         } catch (Exception e) {
-            log.error("[COMPENSATION] Failed to compensate order {}: {}", 
-                event.getOrderId(), e.getMessage());
+            log.error("[COMPENSATION] Failed to compensate order {}: {}",
+                    event.getOrderId(), e.getMessage());
         }
     }
 
     private void refundToWallet(Order order, String reason) {
         try {
             AddRefundRequestDto refundRequest = AddRefundRequestDto.builder()
-                .userId(order.getUserId())
-                .orderId(order.getId())
-                .amount(java.math.BigDecimal.valueOf(order.getTotalPrice()))
-                .reason(String.format("Order %s cancelled - %s", order.getId().substring(0, 8), reason))
-                .build();
-            
+                    .userId(order.getUserId())
+                    .orderId(order.getId())
+                    .amount(java.math.BigDecimal.valueOf(order.getTotalPrice()))
+                    .reason(String.format("Order %s cancelled - %s", order.getId().substring(0, 8), reason))
+                    .build();
+
             userServiceClient.addRefundToWallet(refundRequest);
-            log.info("[REFUND] Refunded {} to user {} for order {}", 
-                order.getTotalPrice(), order.getUserId(), order.getId());
+            log.info("[REFUND] Refunded {} to user {} for order {}",
+                    order.getTotalPrice(), order.getUserId(), order.getId());
         } catch (Exception e) {
             log.error("[REFUND] Failed to refund order {}: {}", order.getId(), e.getMessage());
         }
@@ -2595,8 +2633,7 @@ public class OrderServiceImpl implements OrderService {
                         "Đơn hàng #%s đã bị hủy do hết hàng. Số tiền %.0f₫ đã được hoàn vào ví. Lý do: %s",
                         order.getId().substring(0, 8).toUpperCase(),
                         order.getTotalPrice(),
-                        reason
-                ))
+                        reason))
                 .isShopOwnerNotification(false)
                 .build();
 

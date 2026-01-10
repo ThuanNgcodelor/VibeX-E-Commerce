@@ -24,7 +24,7 @@ public class ProductAnalytics {
      * Product ID - Primary key (one record per product)
      */
     @Id
-    @Column(length = 36)
+    @Column(length = 144)
     private String productId;
     
     /**

@@ -17,9 +17,22 @@ public class FlashSaleProductResponse {
     private int soldCount;
     private FlashSaleStatus status;
     private String rejectionReason;
+    private Integer quantityLimit;
 
     // Enrichment fields
     private String productName;
     private String productImageId; // Main image
     private String shopName;
+
+    private java.util.List<SizeResponse> sizes;
+
+    @Data
+    @Builder
+    public static class SizeResponse {
+        private String sizeId;
+        private String sizeName;
+        private int flashSaleStock;
+        private int soldCount;
+        private Double flashSalePrice;
+    }
 }

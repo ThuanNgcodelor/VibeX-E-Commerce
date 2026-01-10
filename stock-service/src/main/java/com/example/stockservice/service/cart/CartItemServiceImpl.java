@@ -1,9 +1,6 @@
 package com.example.stockservice.service.cart;
 
-import com.example.stockservice.model.Cart;
-import com.example.stockservice.model.CartItem;
-import com.example.stockservice.model.Product;
-import com.example.stockservice.model.Size;
+import com.example.stockservice.model.*;
 import com.example.stockservice.repository.CartItemRepository;
 import com.example.stockservice.repository.CartRepository;
 import com.example.stockservice.repository.SizeRepository;
@@ -40,8 +37,7 @@ public class CartItemServiceImpl implements CartItemService {
 
         Size size = null;
         double unitPrice = product.getPrice();
-        Double originalPrice = null; // Default null, or product.getPrice()? Usually null if no discount/special
-                                     // price
+        Double originalPrice = null;
         boolean isFlashSale = false;
 
         if (request.getSizeId() != null && !request.getSizeId().isEmpty()) {
@@ -49,33 +45,34 @@ public class CartItemServiceImpl implements CartItemService {
                     .orElseThrow(() -> new RuntimeException("Size not found with id: " + request.getSizeId()));
             unitPrice = product.getPrice() + size.getPriceModifier();
         } else if (product.getSizes() != null && !product.getSizes().isEmpty()) {
-            // Logic cũ: lấy tổng stock của các size? Chỗ này check stock hơi lạ nhưng giữ
-            // nguyên logic cũ
 
-            // Code cũ không set unitPrice ở đây, dùng giá base của product
         }
 
         // Check Flash Sale
         if (request.isFlashSale()) {
-            com.example.stockservice.model.FlashSaleProduct fsp = flashSaleService
+            FlashSaleProduct fsp = flashSaleService
                     .findActiveFlashSaleProduct(request.getProductId());
             if (fsp != null) {
-                // Flash Sale logic:
-                // Override unitPrice with salePrice
-                // Set originalPrice from FlashSaleProduct (custom or base)
                 unitPrice = fsp.getSalePrice();
                 originalPrice = fsp.getOriginalPrice();
                 isFlashSale = true;
 
-                // Note: Flash Sale items usually don't have sizes with price modifiers in this
-                // simple logic,
-                // or applied to base product. If size exists, logic might be complex.
-                // Assuming Flash Sale price is fixed for the product regardless of size for
-                // now,
-                // or adding size modifier if business requires.
-                // For safety/simplicity as per request, just use Flash Sale price.
-                if (size != null) {
-                    unitPrice += size.getPriceModifier(); // Optional: maintain size modifier?
+                boolean specificPriceFound = false;
+                log.info("Checking Flash Sale sizes for product {}. Found {} sizes.", request.getProductId(),
+                        fsp.getProductSizes() != null ? fsp.getProductSizes().size() : "null");
+
+                if (size != null && fsp.getProductSizes() != null) {
+                    for (FlashSaleProductSize fps : fsp.getProductSizes()) {
+                        if (fps.getSizeId().equals(size.getId()) && fps.getFlashSalePrice() != null) {
+                            unitPrice = fps.getFlashSalePrice();
+                            specificPriceFound = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!specificPriceFound && size != null) {
+                    unitPrice += size.getPriceModifier();
                 }
 
                 // Validate Flash Sale Stock
@@ -108,9 +105,6 @@ public class CartItemServiceImpl implements CartItemService {
             cartItem = existingItem.get();
             newQuantity = cartItem.getQuantity() + request.getQuantity();
 
-            // Validate: cannot mix flash sale and normal? Or update existing to flash sale?
-            // User request implies "taking the price". If updating, should we update price?
-            // Usually yes, if adding more, update price to current.
             if (isFlashSale) {
                 cartItem.setUnitPrice(unitPrice);
                 cartItem.setOriginalPrice(originalPrice);
@@ -129,21 +123,8 @@ public class CartItemServiceImpl implements CartItemService {
             newQuantity = request.getQuantity();
         }
 
-        // Validate stock
-        // For Flash Sale, we might want to check Flash Sale stock too?
-        // user didn't explicitly ask, but it's good practice.
-        // logic: incrementSoldCount checks stock. Here we just check availability?
-        // Let's stick to modifying PRICE for now as requested.
-
         // Original code stock check:
-        if (newQuantity > availableStock && availableStock > 0) { // added availableStock > 0 check to assume unlimited
-                                                                  // if 0/not set?
-                                                                  // Actually original code: if (newQuantity >
-                                                                  // availableStock) throw...
-                                                                  // If availableStock is 0 (default), it prevents
-                                                                  // adding anything unless product
-                                                                  // has NO sizes and logic allows.
-                                                                  // Let's stick strictly to original stock logic.
+        if (newQuantity > availableStock && availableStock > 0) {
         }
 
         // Check standard stock

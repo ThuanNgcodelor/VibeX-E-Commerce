@@ -5,17 +5,6 @@ import imgFallback from "../../../assets/images/shop/6.png";
 
 const formatVND = (n) => (Number(n) || 0).toLocaleString("vi-VN") + "₫";
 
-// Helper to open chat with shop owner
-const openChatWithShop = (shopOwnerId, productId = null) => {
-  if (!shopOwnerId) {
-    console.warn('No shop owner ID provided');
-    return;
-  }
-  window.dispatchEvent(new CustomEvent('open-chat-with-product', {
-    detail: { shopOwnerId, productId }
-  }));
-};
-
 export function Cart({
   items = [],
   imageUrls = {},
@@ -369,7 +358,6 @@ export function Cart({
                 </div>
               </div>
 
-              {/* Render items grouped by shop - sorted alphabetically to prevent jumping */}
               {Object.entries(itemsByShop)
                 .sort(([shopNameA], [shopNameB]) => shopNameA.localeCompare(shopNameB))
                 .map(([shopName, shopItems]) => (
@@ -392,24 +380,24 @@ export function Cart({
                           });
                         }}
                       />
-                      <span style={{ fontWeight: 600, marginLeft: '8px' }}>{shopName}</span>
-                      <button
-                        onClick={() => openChatWithShop(shopIdMap[shopName], shopItems[0]?.productId)}
+                      <span
                         style={{
-                          background: 'none',
-                          border: 'none',
-                          color: '#333',
+                          fontWeight: 600,
+                          marginLeft: '8px',
                           cursor: 'pointer',
-                          marginLeft: 'auto',
-                          fontSize: '13px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          padding: '4px 8px'
+                          color: '#333'
                         }}
+                        onClick={() => {
+                          const shopId = shopIdMap[shopName];
+                          if (shopId) {
+                            window.location.href = `/shop/${shopId}`;
+                          }
+                        }}
+                        onMouseEnter={(e) => e.target.style.color = '#ee4d2d'}
+                        onMouseLeave={(e) => e.target.style.color = '#333'}
                       >
-                        💬 Chat ngay
-                      </button>
+                        {shopName}
+                      </span>
                     </div>
 
                     {/* Deal Shock Section */}
@@ -452,22 +440,39 @@ export function Cart({
                               <div className="cart2-product-classification">
                                 {t('cart2.classification')}: {item.sizeName || 'N/A'}
                               </div>
+                              {(() => {
+                                const isFlashSale = item.isFlashSale === true;
+                                console.log(`[Cart Badge] Product ${item.productId}: isFlashSale=${item.isFlashSale}, showing badge=${isFlashSale}`);
+                                return isFlashSale ? (
+                                  <div style={{
+                                    display: 'inline-block',
+                                    padding: '2px 6px',
+                                    background: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%)',
+                                    color: 'white',
+                                    fontSize: '10px',
+                                    fontWeight: 600,
+                                    borderRadius: '3px',
+                                    marginTop: '4px',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.5px',
+                                    boxShadow: '0 2px 4px rgba(238, 77, 45, 0.3)'
+                                  }}>
+                                    ⚡ Flash Sale
+                                  </div>
+                                ) : null;
+                              })()}
                             </div>
                           </div>
                           <div className="cart2-price">
-                            {item.priceChanged && (
-                              <div style={{ fontSize: '11px', color: '#ffad0d', marginBottom: '4px' }}>
-                                ⚠️ Giá thay đổi
-                              </div>
-                            )}
+
                             {item.originalPrice && item.originalPrice > item.unitPrice && (
                               <span className="cart2-price-original">
                                 {formatVND(item.originalPrice)}
                               </span>
                             )}
-                            {item.priceChanged && item.oldPrice && (
+                            {item.priceChanged && item.unitPrice && (
                               <span className="cart2-price-original" style={{ textDecoration: 'line-through', color: '#888' }}>
-                                {formatVND(item.oldPrice)}
+                                {formatVND(item.unitPrice)}
                               </span>
                             )}
                             <span className="cart2-price-current">

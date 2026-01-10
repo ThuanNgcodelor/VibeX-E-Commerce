@@ -64,7 +64,6 @@ import ShopDecorationPage from "./pages/shop-owner/ShopDecorationPage.jsx";
 import GamePage from "./pages/client/GamePage.jsx";
 import AdminWalletPage from "./pages/admin/AdminWalletPage.jsx";
 
-// Component to scroll to top on route change
 function ScrollToTop() {
   const { pathname } = useLocation();
 
@@ -75,11 +74,9 @@ function ScrollToTop() {
   return null;
 }
 
-// Global Chat Widget - only show on client pages 
 function GlobalChatWidget() {
   const { pathname } = useLocation();
 
-  // Don't show chat on admin or shop-owner routes
   const isAdminRoute = pathname.startsWith('/admin');
   const isShopOwnerRoute = pathname.startsWith('/shop-owner');
   const isLiveRoute = pathname.startsWith('/live');
