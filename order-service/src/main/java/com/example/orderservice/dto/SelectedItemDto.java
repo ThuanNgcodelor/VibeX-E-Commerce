@@ -21,4 +21,7 @@ public class SelectedItemDto {
     private String sizeId;
 
     private Boolean isFlashSale;
+
+    private String shopOwnerId;
+    private String shopOwnerName;
 }

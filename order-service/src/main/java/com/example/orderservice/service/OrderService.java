@@ -52,6 +52,8 @@ public interface OrderService {
                         List<SelectedItemDto> selectedItems, BigDecimal shippingFee,
                         String voucherId, Double voucherDiscount);
 
+        Order createOrderFromWallet(FrontendOrderRequest request, String userId);
+
         Order cancelOrder(String orderId, String reason);
 
         void rollbackOrderStock(String orderId);

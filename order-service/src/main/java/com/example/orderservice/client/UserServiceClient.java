@@ -40,4 +40,7 @@ public interface UserServiceClient {
 
         @PostMapping("/user/wallet/internal/admin/commission")
         ResponseEntity<Map<String, Object>> addAdminCommission(@RequestBody AddRefundRequestDto request);
+
+        @PostMapping("/user/wallet/internal/payment")
+        ResponseEntity<Map<String, Object>> processWalletPayment(@RequestBody AddRefundRequestDto request);
 }

@@ -4,8 +4,8 @@ import { useTranslation } from "react-i18next";
 import ReactDOM from "react-dom";
 import Cookies from "js-cookie";
 import imgFallback from "../../../assets/images/shop/6.png";
-import { getAllAddress, getUser } from "../../../api/user.js";
-import { calculateShippingFee, createOrder } from "../../../api/order.js";
+import { getAllAddress, getUser, getWalletBalance } from "../../../api/user.js";
+import { calculateShippingFee, createOrder, reserveStock } from "../../../api/order.js";
 import { createVnpayPayment, createMomoPayment } from "../../../api/payment.js";
 import { validateVoucher } from "../../../api/voucher.js";
 import { trackPurchase } from "../../../api/tracking";
@@ -52,6 +52,26 @@ export function CheckoutPage({
   const [voucherDiscount, setVoucherDiscount] = useState(0);
   const [voucherLoading, setVoucherLoading] = useState(false);
   const [appliedVoucher, setAppliedVoucher] = useState(null);
+
+  // Wallet state
+  const [walletBalance, setWalletBalance] = useState(0);
+
+
+
+  // Fetch Wallet Balance
+  useEffect(() => {
+    if (userId) {
+      const fetchBalance = async () => {
+        try {
+          const response = await getWalletBalance();
+          setWalletBalance(response?.balanceAvailable || 0);
+        } catch (error) {
+          console.error("Failed to fetch wallet balance", error);
+        }
+      };
+      fetchBalance();
+    }
+  }, [userId]);
 
   const selectedItems = location.state?.selectedItems ?? selectedItemsProp;
   const imageUrls = location.state?.imageUrls ?? imageUrlsProp;
@@ -314,6 +334,37 @@ export function CheckoutPage({
 
     setOrderLoading(true);
     try {
+      // STEP 1: Reserve Flash Sale items FIRST (Option C implementation)
+      const flashSaleItems = selectedItems.filter(item => item.isFlashSale);
+      const tempOrderId = `temp_${userId}_${Date.now()}`;
+
+      if (flashSaleItems.length > 0) {
+        for (const item of flashSaleItems) {
+          try {
+            const result = await reserveStock(
+              tempOrderId,
+              item.productId || item.id,
+              item.sizeId,
+              item.quantity
+            );
+
+            if (!result.success) {
+              throw new Error(result.message || 'Flash Sale sold out!');
+            }
+          } catch (error) {
+            setOrderLoading(false);
+            Swal.fire({
+              icon: 'error',
+              title: t('checkout.flashSaleError') || 'Flash Sale Error',
+              text: error.message || 'Flash Sale item is no longer available',
+              confirmButtonText: t('common.ok'),
+            });
+            return;
+          }
+        }
+      }
+
+      // STEP 2: Build orderData with tempOrderId
       const orderData = {
         selectedItems: selectedItems.map((it) => ({
           productId: it.productId || it.id,
@@ -327,6 +378,7 @@ export function CheckoutPage({
         voucherId: appliedVoucher?.voucherId || null,
         voucherDiscount: voucherDiscount || 0,
         shippingFee: totalShippingFee || 0,
+        tempOrderId: tempOrderId, // NEW: For confirming reservations
       };
 
       Swal.fire({
@@ -1173,6 +1225,15 @@ export function CheckoutPage({
                   >
                     MoMo
                   </div>
+                  <div
+                    className={`checkout-payment-tab ${paymentMethod === 'WALLET' ? 'active' : ''}`}
+                    onClick={() => {
+                      // Allow selection even if balance is low to show error message
+                      setPaymentMethod('WALLET');
+                    }}
+                  >
+                    {t('checkout.wallet', 'Ví')} ({formatVND(walletBalance)})
+                  </div>
                 </div>
                 <div style={{ marginTop: '16px' }}>
                   <div
@@ -1194,6 +1255,29 @@ export function CheckoutPage({
                       </div>
                     </div>
                   </div>
+
+                  <div
+                    className={`checkout-payment-option ${paymentMethod === 'WALLET' ? 'selected' : ''}`}
+                    onClick={() => setPaymentMethod('WALLET')}
+                  >
+                    <input
+                      type="radio"
+                      className="checkout-payment-radio"
+                      checked={paymentMethod === 'WALLET'}
+                      onChange={() => setPaymentMethod('WALLET')}
+                    />
+                    <div className="checkout-payment-info">
+                      <div className="checkout-payment-name">
+                        {t('checkout.wallet', 'Thanh toán qua Ví')} <span style={{ color: '#ee4d2d' }}>({formatVND(walletBalance)})</span>
+                      </div>
+                      <div className="checkout-payment-details">
+                        {walletBalance < (subtotal + totalShippingFee - totalVoucherDiscount) ?
+                          <span style={{ color: 'red' }}>{t('checkout.insufficientBalance', 'Số dư không đủ')}</span>
+                          : t('checkout.walletDescription', 'Sử dụng số dư ví để thanh toán')}
+                      </div>
+                    </div>
+                  </div>
+
                   <div
                     className={`checkout-payment-option ${paymentMethod === 'VNPAY' ? 'selected' : ''}`}
                     onClick={() => setPaymentMethod('VNPAY')}

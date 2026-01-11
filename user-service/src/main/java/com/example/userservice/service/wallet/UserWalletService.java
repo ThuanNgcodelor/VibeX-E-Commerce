@@ -17,6 +17,8 @@ public interface UserWalletService {
 
     UserWallet paySubscription(String userId, BigDecimal amount, String planName);
 
+    UserWallet payOrder(String userId, BigDecimal amount, String orderId);
+
     UserWalletEntry createEntry(String userId, String orderId, String paymentId, WalletEntryType entryType,
             BigDecimal amount, String description);
 

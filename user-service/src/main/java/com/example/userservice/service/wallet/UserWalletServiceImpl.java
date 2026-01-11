@@ -202,4 +202,31 @@ public class UserWalletServiceImpl implements UserWalletService {
                 return wallet;
         }
 
+        @Override
+        @Transactional
+        public UserWallet payOrder(String userId, BigDecimal amount, String orderId) {
+                UserWallet wallet = getOrCreateWallet(userId); // Ensure wallet exists
+
+                if (wallet.getBalanceAvailable().compareTo(amount) < 0) {
+                        throw new RuntimeException("Insufficient balance. Available: " + wallet.getBalanceAvailable()
+                                        + ", Requested: " + amount);
+                }
+
+                // Create entry first
+                createEntry(userId, orderId, null, WalletEntryType.PAYMENT, amount,
+                                "Payment for order: " + orderId);
+
+                BigDecimal balanceBefore = wallet.getBalanceAvailable();
+                BigDecimal balanceAfter = balanceBefore.subtract(amount);
+
+                // Update wallet
+                wallet.setBalanceAvailable(balanceAfter);
+                wallet = walletRepository.save(wallet);
+
+                log.info("[WALLET] Paid order: userId={}, amount={}, orderId={}, balanceAfter={}",
+                                userId, amount, orderId, balanceAfter);
+
+                return wallet;
+        }
+
 }

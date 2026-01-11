@@ -363,87 +363,118 @@ public class OrderServiceImpl implements OrderService {
             throw new RuntimeException("Cannot cancel order with status: " + order.getOrderStatus());
         }
 
-        // Nếu là VNPay/MOMO và đã PAID → Refund vào wallet của client
-        if ("VNPAY".equalsIgnoreCase(order.getPaymentMethod()) || "MOMO".equalsIgnoreCase(order.getPaymentMethod())) {
-            try {
-                ResponseEntity<PaymentDto> paymentResponse = paymentServiceClient.getPaymentByOrderId(orderId);
-                if (paymentResponse != null && paymentResponse.getBody() != null) {
-                    PaymentDto payment = paymentResponse.getBody();
-                    if ("PAID".equals(payment.getStatus())) {
-                        // Tính tổng tiền cần refund = totalPrice (đã gồm ship - voucher)
-                        BigDecimal totalRefundAmount = BigDecimal.valueOf(order.getTotalPrice());
+        // Refund for VNPAY, MOMO, or WALLET payments
+        if ("VNPAY".equalsIgnoreCase(order.getPaymentMethod()) ||
+                "MOMO".equalsIgnoreCase(order.getPaymentMethod()) ||
+                "WALLET".equalsIgnoreCase(order.getPaymentMethod())) {
 
-                        // Validate userId exists
-                        if (order.getUserId() == null || order.getUserId().trim().isEmpty()) {
-                            log.error("[CANCEL] Cannot refund: userId is missing for order {}", orderId);
-                            throw new RuntimeException("UserId is missing for order: " + orderId);
-                        }
+            BigDecimal totalRefundAmount = BigDecimal.valueOf(order.getTotalPrice());
 
-                        // Refund vào wallet của client
-                        AddRefundRequestDto refundRequest = AddRefundRequestDto.builder()
-                                .userId(order.getUserId())
-                                .orderId(orderId)
-                                .paymentId(payment.getId())
-                                .amount(totalRefundAmount)
-                                .reason(reason != null ? reason : "Order cancelled by user")
-                                .build();
+            // Validate userId exists
+            if (order.getUserId() == null || order.getUserId().trim().isEmpty()) {
+                log.error("[CANCEL] Cannot refund: userId is missing for order {}", orderId);
+                throw new RuntimeException("UserId is missing for order: " + orderId);
+            }
 
-                        log.info("[CANCEL] Calling wallet service to add refund: orderId={}, userId={}, amount={}",
-                                orderId, order.getUserId(), totalRefundAmount);
+            if ("WALLET".equalsIgnoreCase(order.getPaymentMethod())) {
+                try {
+                    AddRefundRequestDto refundRequest = AddRefundRequestDto.builder()
+                            .userId(order.getUserId())
+                            .orderId(orderId)
+                            .paymentId(null)
+                            .amount(totalRefundAmount)
+                            .reason(reason != null ? reason : "Order cancelled by user")
+                            .build();
 
-                        ResponseEntity<Map<String, Object>> walletResponse = userServiceClient
-                                .addRefundToWallet(refundRequest);
-                        if (walletResponse != null && walletResponse.getBody() != null) {
-                            Map<String, Object> walletResult = walletResponse.getBody();
-                            Boolean success = (Boolean) walletResult.get("success");
-                            if (Boolean.TRUE.equals(success)) {
-                                log.info(
-                                        "[CANCEL] Refund added to wallet successfully: orderId={}, userId={}, amount={}, balance={}",
-                                        orderId, order.getUserId(), totalRefundAmount,
-                                        walletResult.get("balanceAvailable"));
-                            } else {
-                                String errorMsg = (String) walletResult.get("message");
-                                log.error("[CANCEL] Failed to add refund to wallet for order {}: {}", orderId,
-                                        errorMsg);
-                                throw new RuntimeException("Failed to add refund to wallet: " + errorMsg);
-                            }
+                    ResponseEntity<Map<String, Object>> walletResponse = userServiceClient
+                            .addRefundToWallet(refundRequest);
+                    if (walletResponse != null && walletResponse.getBody() != null) {
+                        Map<String, Object> walletResult = walletResponse.getBody();
+                        Boolean success = (Boolean) walletResult.get("success");
+                        if (Boolean.TRUE.equals(success)) {
+                            log.info(
+                                    "[CANCEL-WALLET] Refund successful: orderId={}, userId={}, amount={}, balance={}",
+                                    orderId, order.getUserId(), totalRefundAmount,
+                                    walletResult.get("balanceAvailable"));
                         } else {
-                            log.error("[CANCEL] Wallet service returned null response for order {}", orderId);
-                            throw new RuntimeException("Wallet service returned null response");
+                            String errorMsg = (String) walletResult.get("message");
+                            log.error("[CANCEL-WALLET] Failed to refund for order {}: {}", orderId, errorMsg);
+                            throw new RuntimeException("Failed to refund wallet: " + errorMsg);
                         }
                     } else {
-                        log.info("[CANCEL] Payment not PAID, skipping refund: orderId={}, paymentStatus={}", orderId,
-                                payment.getStatus());
+                        log.error("[CANCEL-WALLET] Wallet service returned null response for order {}", orderId);
+                        throw new RuntimeException("Wallet service returned null response");
                     }
-                } else {
-                    log.warn("[CANCEL] Payment response is null for order {}, skipping refund", orderId);
+                } catch (Exception e) {
+                    log.error("[CANCEL-WALLET] Failed to refund for order {}: {}", orderId, e.getMessage(), e);
+                    throw new RuntimeException("Failed to refund wallet: " + e.getMessage(), e);
                 }
-            } catch (HttpClientErrorException.NotFound e) {
-                // Payment không tồn tại - có thể là COD hoặc payment chưa được tạo
-                log.warn(
-                        "[CANCEL] Payment not found for order {} (may be COD or payment not created yet), skipping refund",
-                        orderId);
-                // Vẫn cho phép cancel order nếu payment không tồn tại
-            } catch (RuntimeException e) {
-                // Kiểm tra nếu là "Resource not found" error từ Feign
-                if (e.getMessage() != null && e.getMessage().contains("Resource not found")) {
-                    log.warn("[CANCEL] Payment not found for order {} (Resource not found), skipping refund", orderId);
-                    // Vẫn cho phép cancel order
-                } else {
-                    // Các lỗi khác (như refund fail) thì throw exception
-                    log.error("[CANCEL] Failed to refund to wallet for order {}: {}", orderId, e.getMessage(), e);
-                    throw new RuntimeException("Failed to refund to wallet: " + e.getMessage(), e);
-                }
-            } catch (Exception e) {
-                // Kiểm tra nếu là "Resource not found" error
-                String errorMsg = e.getMessage();
-                if (errorMsg != null && (errorMsg.contains("Resource not found") || errorMsg.contains("404"))) {
-                    log.warn("[CANCEL] Payment not found for order {} (404/Resource not found), skipping refund",
+            } else {
+                try {
+                    ResponseEntity<PaymentDto> paymentResponse = paymentServiceClient.getPaymentByOrderId(orderId);
+                    if (paymentResponse != null && paymentResponse.getBody() != null) {
+                        PaymentDto payment = paymentResponse.getBody();
+                        if ("PAID".equals(payment.getStatus())) {
+                            AddRefundRequestDto refundRequest = AddRefundRequestDto.builder()
+                                    .userId(order.getUserId())
+                                    .orderId(orderId)
+                                    .paymentId(payment.getId())
+                                    .amount(totalRefundAmount)
+                                    .reason(reason != null ? reason : "Order cancelled by user")
+                                    .build();
+
+                            log.info("[CANCEL] Calling wallet service to add refund: orderId={}, userId={}, amount={}",
+                                    orderId, order.getUserId(), totalRefundAmount);
+
+                            ResponseEntity<Map<String, Object>> walletResponse = userServiceClient
+                                    .addRefundToWallet(refundRequest);
+                            if (walletResponse != null && walletResponse.getBody() != null) {
+                                Map<String, Object> walletResult = walletResponse.getBody();
+                                Boolean success = (Boolean) walletResult.get("success");
+                                if (Boolean.TRUE.equals(success)) {
+                                    log.info(
+                                            "[CANCEL] Refund added to wallet successfully: orderId={}, userId={}, amount={}, balance={}",
+                                            orderId, order.getUserId(), totalRefundAmount,
+                                            walletResult.get("balanceAvailable"));
+                                } else {
+                                    String errorMsg = (String) walletResult.get("message");
+                                    log.error("[CANCEL] Failed to add refund to wallet for order {}: {}", orderId,
+                                            errorMsg);
+                                    throw new RuntimeException("Failed to add refund to wallet: " + errorMsg);
+                                }
+                            } else {
+                                log.error("[CANCEL] Wallet service returned null response for order {}", orderId);
+                                throw new RuntimeException("Wallet service returned null response");
+                            }
+                        } else {
+                            log.info("[CANCEL] Payment not PAID, skipping refund: orderId={}, paymentStatus={}",
+                                    orderId,
+                                    payment.getStatus());
+                        }
+                    } else {
+                        log.warn("[CANCEL] Payment response is null for order {}, skipping refund", orderId);
+                    }
+                } catch (HttpClientErrorException.NotFound e) {
+                    log.warn(
+                            "[CANCEL] Payment not found for order {} (may be COD or payment not created yet), skipping refund",
                             orderId);
-                    // Vẫn cho phép cancel order nếu payment không tồn tại
-                } else {
-                    log.error("[CANCEL] Failed to refund to wallet for order {}: {}", orderId, e.getMessage(), e);
-                    throw new RuntimeException("Failed to refund to wallet: " + e.getMessage(), e);
+                } catch (RuntimeException e) {
+                    if (e.getMessage() != null && e.getMessage().contains("Resource not found")) {
+                        log.warn("[CANCEL] Payment not found for order {} (Resource not found), skipping refund",
+                                orderId);
+                    } else {
+                        log.error("[CANCEL] Failed to refund to wallet for order {}: {}", orderId, e.getMessage(), e);
+                        throw new RuntimeException("Failed to refund to wallet: " + e.getMessage(), e);
+                    }
+                } catch (Exception e) {
+                    String errorMsg = e.getMessage();
+                    if (errorMsg != null && (errorMsg.contains("Resource not found") || errorMsg.contains("404"))) {
+                        log.warn("[CANCEL] Payment not found for order {} (404/Resource not found), skipping refund",
+                                orderId);
+                    } else {
+                        log.error("[CANCEL] Failed to refund to wallet for order {}: {}", orderId, e.getMessage(), e);
+                        throw new RuntimeException("Failed to refund to wallet: " + e.getMessage(), e);
+                    }
                 }
             }
         }
@@ -551,18 +582,6 @@ public class OrderServiceImpl implements OrderService {
         return userServiceClient.getAddressById(addressId).getBody();
     }
 
-    // ====== Helpers Tạo order ======
-    private Order initPendingOrder(String userId, String addressId, String paymentMethod) {
-        Order order = Order.builder()
-                .userId(userId)
-                .addressId(addressId)
-                .orderStatus(OrderStatus.PENDING)
-                .totalPrice(0.0)
-                .paymentMethod(paymentMethod != null ? paymentMethod : "COD") // Default to COD if not specified
-                .build();
-        return orderRepository.save(order);
-    }
-
     private List<OrderItem> toOrderItemsFromSelected(List<SelectedItemDto> selectedItems, Order order) {
         return selectedItems.stream()
                 .map(si -> {
@@ -639,14 +658,14 @@ public class OrderServiceImpl implements OrderService {
     private Map<String, List<SelectedItemDto>> groupItemsByShopOwner(List<SelectedItemDto> selectedItems) {
         Map<String, List<SelectedItemDto>> itemsByShop = new LinkedHashMap<>();
 
-        // ✅ STEP 1: Collect all unique product IDs (excluding test products)
+        // STEP 1: Collect all unique product IDs (excluding test products)
         List<String> productIds = selectedItems.stream()
                 .map(SelectedItemDto::getProductId)
                 .filter(id -> id != null && !id.startsWith("test-product-"))
                 .distinct()
                 .collect(java.util.stream.Collectors.toList());
 
-        // ✅ STEP 2: Fetch ALL products in ONE batch call
+        // STEP 2: Fetch ALL products in ONE batch call
         Map<String, ProductDto> productsMap = new HashMap<>();
         if (!productIds.isEmpty()) {
             try {
@@ -661,7 +680,7 @@ public class OrderServiceImpl implements OrderService {
             }
         }
 
-        // ✅ STEP 3: Group by shop owner (in-memory, fast)
+        // STEP 3: Group by shop owner (in-memory, fast)
         for (SelectedItemDto item : selectedItems) {
             String shopOwnerId;
 
@@ -685,7 +704,6 @@ public class OrderServiceImpl implements OrderService {
 
     /**
      * ⚡ ASYNC Version: Cart cleanup without blocking batch processing
-     * 
      * Chạy cart cleanup bất đồng bộ → Batch processing KHÔNG BỊ CHẶN
      * Throughput tăng 5-10x (từ ~100 lên 500-1000 orders/s)
      * 
@@ -749,15 +767,11 @@ public class OrderServiceImpl implements OrderService {
 
     /**
      * CRITICAL FOR BATCH INSERT PERFORMANCE
-     * 
      * Pre-assign UUIDs to Order and OrderItems BEFORE save()
-     * 
      * WHY? Hibernate can ONLY batch insert when IDs are known BEFORE persist.
      * With @PrePersist, IDs are assigned too late → No batching
-     * 
      * This method assigns UUIDs manually → Hibernate can batch 50 entities into 1-2
      * SQL statements
-     * 
      * SAFE: @PrePersist still works as fallback for non-batch scenarios
      */
     private void ensureIdsAssignedForBatchInsert(Order order) {
@@ -792,7 +806,7 @@ public class OrderServiceImpl implements OrderService {
 
         // Format user-friendly message
         String message = String.format(
-                "Đơn hàng #%s đã được đặt thành công! %d sản phẩm với tổng giá trị %.0f₫",
+                "Order #%s has been successfully placed! %d products with a total value of %.0f₫",
                 shortOrderId, totalItems, order.getTotalPrice());
 
         SendNotificationRequest noti = SendNotificationRequest.builder()
@@ -800,9 +814,8 @@ public class OrderServiceImpl implements OrderService {
                 .shopId(order.getUserId())
                 .orderId(order.getId())
                 .message(message)
-                .isShopOwnerNotification(false) // false = user notification
+                .isShopOwnerNotification(false)
                 .build();
-        // kafkaTemplateSend.send(notificationTopic.name(), noti);
         String partitionKey = noti.getUserId() != null ? noti.getUserId() : noti.getShopId();
         kafkaTemplateSend.send(notificationTopic.name(), partitionKey, noti);
     }
@@ -1412,6 +1425,81 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @Transactional
+    public Order createOrderFromWallet(FrontendOrderRequest request, String userId) {
+
+        List<SelectedItemDto> selectedItems = request.getSelectedItems().stream()
+                .map(item -> {
+                    SelectedItemDto dto = new SelectedItemDto();
+                    dto.setProductId(item.getProductId());
+                    dto.setSizeId(item.getSizeId());
+                    dto.setQuantity(item.getQuantity());
+                    dto.setIsFlashSale(item.getIsFlashSale());
+                    dto.setUnitPrice(item.getUnitPrice());
+                    dto.setShopOwnerId(item.getShopOwnerId());
+                    dto.setShopOwnerName(item.getShopOwnerName());
+                    return dto;
+                })
+                .collect(Collectors.toList());
+
+        BigDecimal shippingFee = BigDecimal.valueOf(request.getShippingFee());
+        String voucherId = request.getVoucherId();
+        Double voucherDiscount = request.getVoucherDiscount();
+        double totalToPay = 0.0;
+        for (SelectedItemDto item : selectedItems) {
+            ProductDto product = stockServiceClient.getProductById(item.getProductId()).getBody();
+            if (product == null)
+                throw new RuntimeException("Product not found");
+
+            // Ensure unit price
+            if (item.getUnitPrice() == null) {
+                SizeDto size = stockServiceClient.getSizeById(item.getSizeId()).getBody();
+                if (size != null) {
+                    item.setUnitPrice(computeUnitPrice(product, size));
+                }
+            }
+
+            totalToPay += item.getUnitPrice() * item.getQuantity();
+        }
+        totalToPay += shippingFee.doubleValue();
+        if (voucherDiscount != null) {
+            totalToPay -= voucherDiscount;
+        }
+
+        // 4. CALL USER SERVICE TO DEDUCT WALLET
+        AddRefundRequestDto payReq = new AddRefundRequestDto();
+        payReq.setUserId(userId);
+        payReq.setAmount(BigDecimal.valueOf(totalToPay));
+        payReq.setReason("Pay for your order using e-wallet.");
+        payReq.setOrderId("TEMP_WALLET_PAY_" + System.currentTimeMillis());
+
+        try {
+            ResponseEntity<Map<String, Object>> response = userServiceClient.processWalletPayment(payReq);
+            if (!response.getStatusCode().is2xxSuccessful()) {
+                throw new RuntimeException("Wallet payment failed: " + response.getBody());
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Wallet deduction failed: " + e.getMessage());
+        }
+
+        String tempOrderId = request.getTempOrderId();
+
+        Order mainOrder = createOrderFromPayment(userId, request.getAddressId(), selectedItems, shippingFee, voucherId,
+                voucherDiscount);
+
+        mainOrder.setOrderStatus(OrderStatus.PENDING);
+        mainOrder.setPaymentMethod("WALLET");
+        orderRepository.save(mainOrder);
+
+        // Confirm Flash Sale reservations (delete reservation keys)
+        if (tempOrderId != null && !tempOrderId.isEmpty()) {
+            confirmReservationsForOrder(tempOrderId, selectedItems);
+        }
+
+        return mainOrder;
+    }
+
+    @Override
     public Order createOrderFromPayment(String userId, String addressId, List<SelectedItemDto> selectedItems,
             BigDecimal shippingFee, String voucherId, Double voucherDiscount) {
         // Validate address
@@ -1502,6 +1590,31 @@ public class OrderServiceImpl implements OrderService {
             // Add items and decrease stock
             List<OrderItem> items = toOrderItemsFromSelected(shopItems, order);
             order.setOrderItems(items);
+            orderItemRepository.saveAll(items); // Explicitly save items as Cascade is disabled
+
+            // CRITICAL: Decrease stock for synchronous payment flows (Wallet, VNPAY
+            // callback)
+            for (OrderItem item : items) {
+                try {
+                    if (Boolean.TRUE.equals(item.getIsFlashSale())) {
+                        // Flash Sale: stock already deducted during reservation
+                        log.info(
+                                "[PAYMENT-ORDER] Flash Sale item - stock already reserved: product={}, size={}, qty={}",
+                                item.getProductId(), item.getSizeId(), item.getQuantity());
+                    } else {
+                        // Regular item: decrease stock in DB
+                        DecreaseStockRequest decreaseRequest = new DecreaseStockRequest();
+                        decreaseRequest.setSizeId(item.getSizeId());
+                        decreaseRequest.setQuantity(item.getQuantity());
+                        stockServiceClient.decreaseStock(decreaseRequest);
+                        log.info("[PAYMENT-ORDER] Decreased stock: product={}, size={}, qty={}",
+                                item.getProductId(), item.getSizeId(), item.getQuantity());
+                    }
+                } catch (Exception e) {
+                    log.error("[PAYMENT-ORDER] Failed to decrease stock for item: {}", item.getProductId(), e);
+                    throw new RuntimeException("Failed to decrease stock: " + e.getMessage());
+                }
+            }
 
             // Calculate total: items + ship - voucher
             double itemsTotal = calculateTotalPrice(items);
@@ -2112,51 +2225,52 @@ public class OrderServiceImpl implements OrderService {
      */
     private String[] getGhnStatusInfo(String ghnStatus) {
         return switch (ghnStatus.toLowerCase()) {
-            case "ready_to_pick" -> new String[]{"Chờ lấy hàng", "Đơn hàng đang chờ shipper đến lấy",
-                    "Waiting for pickup", "Order is waiting for shipper to pick up"};
-            case "picking" -> new String[]{"Đang lấy hàng", "Shipper đang đến lấy hàng từ shop",
-                    "Picking up", "Shipper is picking up from shop"};
-            case "money_collect_picking" -> new String[]{"Đang lấy hàng", "Shipper đang thu tiền và lấy hàng",
-                    "Collecting & picking", "Shipper is collecting money and picking up"};
-            case "picked" -> new String[]{"Đã lấy hàng", "Shipper đã lấy hàng thành công",
-                    "Picked up", "Shipper has picked up successfully"};
-            case "storing" -> new String[]{"Đã nhập kho", "Đơn hàng đã được nhập kho phân loại",
-                    "In warehouse", "Order has been stored in warehouse"};
-            case "transporting" -> new String[]{"Đang luân chuyển", "Đơn hàng đang được vận chuyển đến kho đích",
-                    "In transit", "Order is being transported to destination"};
-            case "sorting" -> new String[]{"Đang phân loại", "Đơn hàng đang được phân loại tại kho",
-                    "Sorting", "Order is being sorted at warehouse"};
-            case "delivering" -> new String[]{"Đang giao hàng", "Shipper đang giao hàng đến bạn",
-                    "Delivering", "Shipper is delivering to you"};
-            case "money_collect_delivering" -> new String[]{"Đang giao hàng", "Shipper đang giao hàng và thu tiền COD",
-                    "Delivering (COD)", "Shipper is delivering and collecting COD"};
-            case "delivered" -> new String[]{"Đã giao hàng", "Giao hàng thành công",
-                    "Delivered", "Delivery successful"};
-            case "delivery_fail" -> new String[]{"Giao thất bại", "Giao hàng không thành công, sẽ giao lại",
-                    "Delivery failed", "Delivery failed, will retry"};
-            case "waiting_to_return" -> new String[]{"Chờ trả hàng", "Đơn hàng đang chờ trả về shop",
-                    "Waiting to return", "Waiting to return to shop"};
-            case "return", "returning" -> new String[]{"Đang trả hàng", "Đơn hàng đang được trả về shop",
-                    "Returning", "Order is being returned to shop"};
+            case "ready_to_pick" -> new String[] { "Chờ lấy hàng", "Đơn hàng đang chờ shipper đến lấy",
+                    "Waiting for pickup", "Order is waiting for shipper to pick up" };
+            case "picking" -> new String[] { "Đang lấy hàng", "Shipper đang đến lấy hàng từ shop",
+                    "Picking up", "Shipper is picking up from shop" };
+            case "money_collect_picking" -> new String[] { "Đang lấy hàng", "Shipper đang thu tiền và lấy hàng",
+                    "Collecting & picking", "Shipper is collecting money and picking up" };
+            case "picked" -> new String[] { "Đã lấy hàng", "Shipper đã lấy hàng thành công",
+                    "Picked up", "Shipper has picked up successfully" };
+            case "storing" -> new String[] { "Đã nhập kho", "Đơn hàng đã được nhập kho phân loại",
+                    "In warehouse", "Order has been stored in warehouse" };
+            case "transporting" -> new String[] { "Đang luân chuyển", "Đơn hàng đang được vận chuyển đến kho đích",
+                    "In transit", "Order is being transported to destination" };
+            case "sorting" -> new String[] { "Đang phân loại", "Đơn hàng đang được phân loại tại kho",
+                    "Sorting", "Order is being sorted at warehouse" };
+            case "delivering" -> new String[] { "Đang giao hàng", "Shipper đang giao hàng đến bạn",
+                    "Delivering", "Shipper is delivering to you" };
+            case "money_collect_delivering" ->
+                new String[] { "Đang giao hàng", "Shipper đang giao hàng và thu tiền COD",
+                        "Delivering (COD)", "Shipper is delivering and collecting COD" };
+            case "delivered" -> new String[] { "Đã giao hàng", "Giao hàng thành công",
+                    "Delivered", "Delivery successful" };
+            case "delivery_fail" -> new String[] { "Giao thất bại", "Giao hàng không thành công, sẽ giao lại",
+                    "Delivery failed", "Delivery failed, will retry" };
+            case "waiting_to_return" -> new String[] { "Chờ trả hàng", "Đơn hàng đang chờ trả về shop",
+                    "Waiting to return", "Waiting to return to shop" };
+            case "return", "returning" -> new String[] { "Đang trả hàng", "Đơn hàng đang được trả về shop",
+                    "Returning", "Order is being returned to shop" };
             case "return_transporting" ->
-                    new String[]{"Đang luân chuyển trả", "Đơn hàng đang được vận chuyển trả về shop",
-                            "Return in transit", "Order is being transported back to shop"};
-            case "return_sorting" -> new String[]{"Đang phân loại trả", "Đơn hàng đang được phân loại để trả về shop",
-                    "Return sorting", "Order is being sorted for return"};
-            case "return_fail" -> new String[]{"Trả hàng thất bại", "Không thể trả hàng về shop",
-                    "Return failed", "Failed to return to shop"};
-            case "returned" -> new String[]{"Đã trả hàng", "Đơn hàng đã được trả về shop thành công",
-                    "Returned", "Order has been returned successfully"};
-            case "cancel" -> new String[]{"Đã hủy", "Đơn hàng đã bị hủy",
-                    "Cancelled", "Order has been cancelled"};
-            case "exception" -> new String[]{"Có sự cố", "Đơn hàng gặp sự cố, đang xử lý",
-                    "Exception", "Order has an exception, processing"};
-            case "damage" -> new String[]{"Hàng bị hư hỏng", "Hàng hóa bị hư hỏng trong quá trình vận chuyển",
-                    "Damaged", "Package was damaged during transport"};
-            case "lost" -> new String[]{"Hàng bị thất lạc", "Hàng hóa bị thất lạc",
-                    "Lost", "Package was lost"};
-            default -> new String[]{"Cập nhật trạng thái", "Trạng thái: " + ghnStatus,
-                    "Status update", "Status: " + ghnStatus};
+                new String[] { "Đang luân chuyển trả", "Đơn hàng đang được vận chuyển trả về shop",
+                        "Return in transit", "Order is being transported back to shop" };
+            case "return_sorting" -> new String[] { "Đang phân loại trả", "Đơn hàng đang được phân loại để trả về shop",
+                    "Return sorting", "Order is being sorted for return" };
+            case "return_fail" -> new String[] { "Trả hàng thất bại", "Không thể trả hàng về shop",
+                    "Return failed", "Failed to return to shop" };
+            case "returned" -> new String[] { "Đã trả hàng", "Đơn hàng đã được trả về shop thành công",
+                    "Returned", "Order has been returned successfully" };
+            case "cancel" -> new String[] { "Đã hủy", "Đơn hàng đã bị hủy",
+                    "Cancelled", "Order has been cancelled" };
+            case "exception" -> new String[] { "Có sự cố", "Đơn hàng gặp sự cố, đang xử lý",
+                    "Exception", "Order has an exception, processing" };
+            case "damage" -> new String[] { "Hàng bị hư hỏng", "Hàng hóa bị hư hỏng trong quá trình vận chuyển",
+                    "Damaged", "Package was damaged during transport" };
+            case "lost" -> new String[] { "Hàng bị thất lạc", "Hàng hóa bị thất lạc",
+                    "Lost", "Package was lost" };
+            default -> new String[] { "Cập nhật trạng thái", "Trạng thái: " + ghnStatus,
+                    "Status update", "Status: " + ghnStatus };
         };
     }
 
@@ -2520,12 +2634,9 @@ public class OrderServiceImpl implements OrderService {
         return orderRepository.countByStatusForProductIds(productIds);
     }
 
-    // ==================== PHASE 3: ASYNC STOCK DECREASE ====================
-
     /**
      * Publish stock decrease event to Kafka (async, non-blocking)
      * Order Service does NOT wait for stock decrease to complete
-     * 
      * CRITICAL: Only sends events for REGULAR items, NOT Flash Sale items.
      * Flash Sale stock is managed separately via Redis and already deducted during
      * approval.
@@ -2625,12 +2736,13 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private void notifyOrderCancelled(Order order, String reason) {
+        assert order.getId() != null;
         SendNotificationRequest notification = SendNotificationRequest.builder()
                 .userId(order.getUserId())
                 .shopId(order.getUserId())
                 .orderId(order.getId())
                 .message(String.format(
-                        "Đơn hàng #%s đã bị hủy do hết hàng. Số tiền %.0f₫ đã được hoàn vào ví. Lý do: %s",
+                        "Order #%s was cancelled due to out of stock. The amount %.0f₫ has been refunded to your wallet. Reason: %s",
                         order.getId().substring(0, 8).toUpperCase(),
                         order.getTotalPrice(),
                         reason))

@@ -60,10 +60,10 @@ public class OrderController {
 
                     // Set recipient name - FIX UNKNOWN
                     if (address.getRecipientName() != null && !address.getRecipientName().isBlank()) {
-                         dto.setRecipientName(address.getRecipientName());
+                        dto.setRecipientName(address.getRecipientName());
                     } else if (order.getRecipientName() != null) {
-                         // Fallback to Order entity if address fetch fails or has no name
-                         dto.setRecipientName(order.getRecipientName());
+                        // Fallback to Order entity if address fetch fails or has no name
+                        dto.setRecipientName(order.getRecipientName());
                     }
 
                     // Build full address string
@@ -201,7 +201,8 @@ public class OrderController {
     ResponseEntity<?> createOrderFromCart(@RequestBody FrontendOrderRequest request, HttpServletRequest httpRequest) {
         try {
             String paymentMethod = request.getPaymentMethod();
-            // Only COD uses this endpoint; VNPay/Card should go through payment-service
+            // Only COD and WALLET use this endpoint; VNPay/Card should go through
+            // payment-service
             if ("VNPAY".equalsIgnoreCase(paymentMethod) || "CARD".equalsIgnoreCase(paymentMethod)) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
                         "error", "USE_PAYMENT_SERVICE",
@@ -210,8 +211,21 @@ public class OrderController {
 
             // Extract UserID here to avoid Service having to call StockService
             String userId = jwtUtil.ExtractUserId(httpRequest);
+
+            if ("WALLET".equalsIgnoreCase(paymentMethod)) {
+                // Synchronous wallet payment
+                Order order = orderService.createOrderFromWallet(request, userId);
+
+                // Return success with Order ID (as it's already PAID)
+                return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
+                        "message", "Order paid via Wallet successfully.",
+                        "status", "CONFIRMED", // or PAID
+                        "orderId", order.getId()));
+            }
+
+            // Default COD path (Async via Kafka)
             orderService.orderByKafka(request, userId);
-            
+
             return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
                     "message", "Order has been sent to Kafka.",
                     "status", "PENDING"));

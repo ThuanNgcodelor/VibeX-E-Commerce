@@ -71,6 +71,32 @@ export const getUserOrders = async () => {
 };
 
 /**
+ * Reserve stock for Flash Sale items
+ * @param {string} orderId - Temporary order ID
+ * @param {string} productId - Product ID
+ * @param {string} sizeId - Size ID
+ * @param {number} quantity - Quantity to reserve
+ * @returns {Promise} - Promise with reservation result
+ */
+export const reserveStock = async (orderId, productId, sizeId, quantity) => {
+    try {
+        const stockApi = createApiInstance("/v1/stock");
+        const response = await stockApi.post("/reservation/reserve", {
+            orderId,
+            productId,
+            sizeId,
+            quantity
+        });
+        return response.data;
+    } catch (error) {
+        throw new Error(
+            error.response?.data?.message || "Failed to reserve Flash Sale stock"
+        );
+    }
+};
+
+
+/**
  * Lấy thông tin đơn hàng theo ID
  * @param {string} orderId - ID của đơn hàng
  * @returns {Promise} - Promise trả về thông tin đơn hàng

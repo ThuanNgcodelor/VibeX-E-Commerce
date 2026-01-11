@@ -13,13 +13,16 @@ public class FrontendOrderRequest {
 
     @NotNull(message = "Address ID is required")
     private String addressId;
-    
+
     private String paymentMethod; // VNPAY, CARD, COD
-    
+
     // Voucher fields
     private String voucherId;
     private Double voucherDiscount;
-    
+
     // Shipping fee
     private Double shippingFee;
+
+    // Temporary order ID for confirming Flash Sale reservations
+    private String tempOrderId;
 }

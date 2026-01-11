@@ -429,7 +429,7 @@ export const getMyShopDecoration = async () => {
     try {
         const res = await api.get("/shops/decoration/me");
         return res.data;
-    } catch (error) {
+    } catch{
         throw new Error("Failed to load decoration config");
     }
 };
@@ -462,4 +462,17 @@ export const uploadShopDecorationImage = async (file) => {
         },
     });
     return response.data;
+};
+
+/**
+ * Lấy số dư ví của người dùng
+ * @returns {Promise} - Promise trả về thông tin ví (bao gồm balanceAvailable)
+ */
+export const getWalletBalance = async () => {
+    try {
+        const response = await api.get("/wallet/balance");
+        return response.data;
+    } catch {
+        throw new Error("Failed to fetch wallet balance");
+    }
 };

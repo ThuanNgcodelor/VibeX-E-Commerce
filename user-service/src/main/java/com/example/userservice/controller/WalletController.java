@@ -123,6 +123,35 @@ public class WalletController {
         }
     }
 
+    @PostMapping("/internal/payment")
+    public ResponseEntity<Map<String, Object>> processPaymentInternal(@RequestBody AddRefundRequest request) {
+        // Reusing AddRefundRequest for simplicity (userId, amount, orderId)
+        if (request.getUserId() == null || request.getUserId().trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "UserId is required"));
+        }
+
+        try {
+            UserWallet wallet = walletService.payOrder(
+                    request.getUserId(),
+                    request.getAmount(),
+                    request.getOrderId() // Can be null/temp if order not created yet, but preferred to have it
+            );
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("walletId", wallet.getId());
+            response.put("balanceAvailable", wallet.getBalanceAvailable());
+            response.put("message", "Payment successful");
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", e.getMessage()); // Likely insufficient balance
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
+    }
+
     @PostMapping("/deposit/direct")
     public ResponseEntity<Map<String, Object>> depositDirect(@RequestBody AddDepositRequest request,
             HttpServletRequest httpRequest) {

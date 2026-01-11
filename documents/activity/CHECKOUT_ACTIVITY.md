@@ -1,6 +1,6 @@
 # Checkout Activity Diagrams
 
-Tài liệu mô tả Activity Diagram cho hệ thống Checkout với **3 phương thức thanh toán** và **1 module xử lý Stock riêng biệt**.
+Tài liệu mô tả Activity Diagram cho hệ thống Checkout với **Option C Flash Sale Reservation**, **Smart Cache Strategy**, **Distributed Lock**, và **Async Persistence**.
 
 ---
 
@@ -9,7 +9,8 @@ Tài liệu mô tả Activity Diagram cho hệ thống Checkout với **3 phươ
 1. [Checkout COD](#1-checkout-cod)
 2. [Checkout VNPAY](#2-checkout-vnpay)
 3. [Checkout MoMo](#3-checkout-momo)
-4. [Stock Reservation Flow](#4-stock-reservation-flow-pre-reserve-pattern)
+4. [Checkout Wallet](#4-checkout-wallet)
+5. [Smart Stock Reservation Flow](#5-smart-stock-reservation-flow)
 
 ---
 
@@ -26,52 +27,63 @@ flowchart TD
         SelectAddress --> SelectCOD[Chọn phương thức: COD]
         SelectCOD --> ReviewOrder[Xem lại đơn hàng]
         ReviewOrder --> ClickOrder[Click Đặt hàng]
+        
+        ClickOrder --> ReserveFS{Có Flash Sale?}
+        ReserveFS -->|Yes| CallReserve[Call Reserve API]
+        CallReserve --> CheckReserve{Reserved OK?}
+        CheckReserve -->|No| ShowFSError[Hiển thị: Flash Sale hết]
+        CheckReserve -->|Yes| SendCheckout
+        ReserveFS -->|No| SendCheckout[Send Checkout Request]
     end
     
     subgraph OrderService["🖥️ ORDER SERVICE"]
-        ClickOrder --> ValidateOrder{Validate}
+        SendCheckout --> ValidateOrder{Validate}
         ValidateOrder -->|Invalid| ReturnError[Return 400 Error]
-        ValidateOrder -->|Valid| StockReserve["📦 Stock Reservation Flow"]
+        ValidateOrder -->|Valid| SavePending["Save Order (PENDING)"]
         
-        StockReserve -->|Success| PublishKafka["Publish to Kafka"]
-        StockReserve -->|Failed| ReturnStockError[Return 400 Insufficient Stock]
-        
-        PublishKafka --> ReturnOK["Return 200 OK"]
+        SavePending --> SendKafka[Send to Kafka]
+        SendKafka --> ReturnOK["Return 200 OK"]
     end
     
+    subgraph StockService["📦 STOCK SERVICE"]
+        CallReserve --> FSReserve["Flash Sale Reserve (Redis)"]
+        FSReserve --> SetTTL["Set TTL 15 min"]
+    end
+
     subgraph KafkaConsumer["📨 ASYNC PROCESSING"]
-        PublishKafka -.-> Consumer[Kafka Consumer]
-        Consumer --> CreateOrder["Create Order (PENDING)"]
-        CreateOrder --> SaveDB[Batch Save to DB]
-        SaveDB --> ConfirmStock["Confirm Reservation"]
-        ConfirmStock --> ClearCart[Clear Cart Items]
-        ClearCart --> GHN[Calculate GHN Shipping]
-        GHN --> Notify[Send Notification]
+        SendKafka -.-> Consumer[Kafka Consumer]
+        Consumer --> AsyncDecr["Decrease Regular Stock"]
+        Consumer --> ConfirmFS["Confirm Flash Sale (Delete Keys)"]
+        ConfirmFS --> CreateGHN[Create GHN Order]
+        CreateGHN --> Notify[Send Notification]
     end
     
-    ReturnOK --> ShowSuccess[Hiển thị: Đang xử lý]
+    ReturnOK --> ShowSuccess[Hiển thị: Đặt hàng thành công]
     ShowSuccess --> NavigateOrders[Chuyển trang đơn hàng]
     
     ReturnError --> EndErr([End])
-    ReturnStockError --> EndStock([End])
+    ShowFSError --> EndStock([End])
     NavigateOrders --> EndOK([End])
     Notify -.-> EndAsync([End])
     
     style Client fill:#e6f3ff
     style OrderService fill:#fff5e6
     style KafkaConsumer fill:#e6ffe6
-    style StockReserve fill:#FFD700
+    style StockService fill:#ffe6f0
+    style FSReserve fill:#FFD700
+    style CallReserve fill:#FFD700
 ```
 
 ### COD Flow Summary
 
 | Bước | Mô tả | Thời gian |
 |------|-------|-----------|
-| 1 | User chọn COD và click Đặt hàng | - |
-| 2 | **Stock Reservation** (xem Section 4) | ~10ms |
-| 3 | Publish to Kafka | ~5ms |
-| 4 | Return 200 OK | **~20ms total** |
-| 5 | Async: Create Order + Notify | ~200ms (background) |
+| 1 | **Frontend**: Reserve Flash Sale items (if any) | ~10ms |
+| 2 | User chọn COD và click Đặt hàng | - |
+| 3 | Save Order (PENDING) | ~10ms |
+| 4 | Send to Kafka | ~5ms |
+| 5 | Return 200 OK | **~25ms total** |
+| 6 | Async: Decrease stock + Confirm FS + Create GHN | Background |
 
 ---
 
@@ -85,6 +97,14 @@ flowchart TD
     
     subgraph Client["👤 CLIENT"]
         SelectVNPAY --> ClickOrder[Click Đặt hàng]
+        
+        ClickOrder --> ReserveFS{Có Flash Sale?}
+        ReserveFS -->|Yes| CallReserve[Call Reserve API]
+        CallReserve --> CheckReserve{Reserved OK?}
+        CheckReserve -->|No| ShowFSError[Hiển thị: Flash Sale hết]
+        CheckReserve -->|Yes| SendCheckout
+        ReserveFS -->|No| SendCheckout[Send Checkout Request]
+        
         WaitRedirect[Chờ redirect]
         ReturnFromVNPAY[Quay về từ VNPAY]
         ReturnFromVNPAY --> CheckResult{Thanh toán OK?}
@@ -93,22 +113,31 @@ flowchart TD
         ShowSuccess --> NavigateOrders[Chuyển trang đơn hàng]
     end
     
+    subgraph StockService["📦 STOCK SERVICE"]
+        CallReserve --> FSReserve["Flash Sale Reserve (Redis)"]
+        FSReserve --> SetTTL["Set TTL 15 min"]
+    end
+    
     subgraph OrderService["🖥️ ORDER SERVICE"]
-        ClickOrder --> CreatePayment["Create Payment (PENDING)"]
-        CreatePayment --> BuildURL[Build VNPAY URL + Checksum]
-        BuildURL --> WaitRedirect
+        SendCheckout --> CreateOrder["Create Order (PENDING)"]
+        CreateOrder --> CallPayment[Call Payment Service]
+        CallPayment --> ReturnURL[Return VNPAY URL]
         
-        ReturnCallback[VNPAY Return Callback]
+        ReturnCallback[VNPAY Callback]
         ReturnCallback --> VerifySign{Verify Signature}
         VerifySign -->|Invalid| MarkFailed[Mark FAILED]
-        VerifySign -->|Valid| MarkSuccess[Mark SUCCESS]
-        
-        MarkSuccess --> StockReserve["📦 Stock Reservation Flow"]
-        StockReserve -->|Success| PublishKafka[Publish to Kafka]
-        StockReserve -->|Failed| RefundPayment[Refund to Wallet]
+        VerifySign -->|Valid| CreateFromPayment["Create Order from Payment"]
+        CreateFromPayment --> DecrStock["Decrease Regular Stock"]
+        CreateFromPayment --> ConfirmFS["Confirm Flash Sale"]
+        ConfirmFS --> MarkSuccess[Mark PAID]
+    end
+    
+    subgraph PaymentService["💳 PAYMENT SERVICE"]
+        CallPayment --> GenURL[Generate VNPAY URL]
     end
     
     subgraph VNPAY["🌐 VNPAY"]
+        ReturnURL --> WaitRedirect
         WaitRedirect --> VNPAYPage[Trang VNPAY]
         VNPAYPage --> UserPay[User nhập thẻ]
         UserPay --> ProcessPay[Xử lý thanh toán]
@@ -117,43 +146,36 @@ flowchart TD
         RedirectBack --> ReturnFromVNPAY
     end
     
-    subgraph KafkaConsumer["📨 ASYNC PROCESSING"]
-        PublishKafka -.-> Consumer[Kafka Consumer]
-        Consumer --> CreateOrder["Create Order (CONFIRMED)"]
-        CreateOrder --> SaveDB[Batch Save to DB]
-        SaveDB --> ConfirmStock[Confirm Reservation]
-        ConfirmStock --> CreateGHN[Create GHN Order]
-        CreateGHN --> Notify[Send Notification]
-    end
-    
     MarkFailed --> ShowFailed
-    RefundPayment --> ShowFailed
     ShowFailed --> EndFail([End])
+    ShowFSError --> EndFS([End])
     NavigateOrders --> EndOK([End])
-    Notify -.-> EndAsync([End])
     
     style Client fill:#e6f3ff
     style OrderService fill:#fff5e6
+    style StockService fill:#ffe6f0
     style VNPAY fill:#ffe6e6
-    style KafkaConsumer fill:#e6ffe6
-    style StockReserve fill:#FFD700
+    style PaymentService fill:#e6e6fa
+    style FSReserve fill:#FFD700
+    style CallReserve fill:#FFD700
 ```
 
 ### VNPAY Flow Summary
 
 | Bước | Mô tả |
 |------|-------|
-| 1 | User chọn VNPAY → Redirect sang trang VNPAY |
-| 2 | User thanh toán trên VNPAY |
-| 3 | VNPAY redirect về với callback |
-| 4 | Verify signature → **Stock Reservation** |
-| 5 | Publish to Kafka → Async create order |
+| 1 | **Frontend**: Reserve Flash Sale trước khi redirect |
+| 2 | Create Order (PENDING) + Generate VNPAY URL |
+| 3 | Redirect sang trang VNPAY |
+| 4 | User thanh toán thành công → Callback về Order Service |
+| 5 | **Confirm Stock**: Xóa reservation keys, decrease regular stock |
+| 6 | Update Order Status: PAID |
 
 ---
 
 ## 3. Checkout MoMo
 
-**Luồng thanh toán qua ví MoMo**
+**Luồng thanh toán qua ví MoMo (IPN)**
 
 ```mermaid
 flowchart TD
@@ -161,31 +183,46 @@ flowchart TD
     
     subgraph Client["👤 CLIENT"]
         SelectMOMO --> ClickOrder[Click Đặt hàng]
+        
+        ClickOrder --> ReserveFS{Có Flash Sale?}
+        ReserveFS -->|Yes| CallReserve[Call Reserve API]
+        CallReserve --> CheckReserve{Reserved OK?}
+        CheckReserve -->|No| ShowFSError[Hiển thị: Flash Sale hết]
+        CheckReserve -->|Yes| SendCheckout
+        ReserveFS -->|No| SendCheckout[Send Checkout Request]
+        
         WaitRedirect[Chờ redirect]
         ReturnFromMOMO[Quay về từ MoMo]
-        ReturnFromMOMO --> CheckDB{Check Payment Status}
-        CheckDB -->|FAILED| ShowFailed[Hiển thị thất bại]
-        CheckDB -->|SUCCESS| ShowSuccess[Hiển thị thành công]
+        ReturnFromMOMO --> CheckDB{Check Order Status}
+        CheckDB -->|PENDING| PollStatus[Poll Status...]
+        CheckDB -->|PAID| ShowSuccess[Hiển thị thành công]
         ShowSuccess --> NavigateOrders[Chuyển trang đơn hàng]
     end
     
+    subgraph StockService["📦 STOCK SERVICE"]
+        CallReserve --> FSReserve["Flash Sale Reserve (Redis)"]
+        FSReserve --> SetTTL["Set TTL 15 min"]
+    end
+    
     subgraph OrderService["🖥️ ORDER SERVICE"]
-        ClickOrder --> CreatePayment["Create Payment (PENDING)"]
-        CreatePayment --> BuildURL[Build MoMo URL + Signature]
-        BuildURL --> WaitRedirect
+        SendCheckout --> CreateOrder["Create Order (PENDING)"]
+        CreateOrder --> CallPayment[Call Payment Service]
         
-        IPNCallback[Nhận IPN từ MoMo]
+        IPNCallback[IPN Callback from MoMo]
         IPNCallback --> VerifyIPN{Verify Signature}
-        VerifyIPN -->|Invalid| IgnoreIPN[Ignore Request]
-        VerifyIPN -->|Valid| MarkSuccess[Mark SUCCESS]
-        
-        MarkSuccess --> StockReserve["📦 Stock Reservation Flow"]
-        StockReserve -->|Success| PublishKafka[Publish to Kafka]
-        StockReserve -->|Failed| RefundWallet[Refund to Wallet]
+        VerifyIPN -->|Valid| CreateFromPayment["Create Order from Payment"]
+        CreateFromPayment --> DecrStock["Decrease Regular Stock"]
+        CreateFromPayment --> ConfirmFS["Confirm Flash Sale"]
+        ConfirmFS --> UpdatePaid[Update PAID]
+    end
+    
+    subgraph PaymentService["💳 PAYMENT SERVICE"]
+        CallPayment --> GenMomoURL[Generate MoMo URL]
     end
     
     subgraph MoMo["🌐 MOMO"]
-        WaitRedirect --> MoMoPage[Trang/App MoMo]
+        CallPayment --> WaitRedirect
+        WaitRedirect --> MoMoPage[App MoMo]
         MoMoPage --> UserPay[User xác nhận]
         UserPay --> ProcessPay[MoMo xử lý]
         ProcessPay --> SendIPN[Gửi IPN Callback]
@@ -194,197 +231,257 @@ flowchart TD
         RedirectBack --> ReturnFromMOMO
     end
     
-    subgraph KafkaConsumer["📨 ASYNC PROCESSING"]
-        PublishKafka -.-> Consumer[Kafka Consumer]
-        Consumer --> CreateOrder["Create Order (CONFIRMED)"]
-        CreateOrder --> SaveDB[Batch Save to DB]
-        SaveDB --> ConfirmStock[Confirm Reservation]
-        ConfirmStock --> CreateGHN[Create GHN Order]
-        CreateGHN --> Notify[Send Notification]
-    end
-    
-    RefundWallet --> ShowFailed
-    IgnoreIPN --> EndIgnore([End])
-    ShowFailed --> EndFail([End])
+    ShowFSError --> EndFS([End])
     NavigateOrders --> EndOK([End])
-    Notify -.-> EndAsync([End])
     
     style Client fill:#e6f3ff
     style OrderService fill:#fff5e6
+    style StockService fill:#ffe6f0
     style MoMo fill:#ffe6e6
-    style KafkaConsumer fill:#e6ffe6
-    style StockReserve fill:#FFD700
+    style PaymentService fill:#e6e6fa
+    style FSReserve fill:#FFD700
+    style CallReserve fill:#FFD700
 ```
-
-### MoMo Flow Summary
-
-| Bước | Mô tả |
-|------|-------|
-| 1 | User chọn MoMo → Redirect sang MoMo |
-| 2 | User xác nhận trên app MoMo |
-| 3 | MoMo gửi **IPN Callback** (không đợi redirect) |
-| 4 | Verify IPN → **Stock Reservation** |
-| 5 | Publish to Kafka → Async create order |
 
 ---
 
-## 4. Stock Reservation Flow (Pre-Reserve Pattern)
+## 4. Checkout Wallet
 
-**Module xử lý trừ tồn kho - được import bởi cả 3 luồng checkout**
-
-### 4.1. Activity Diagram
+**Luồng thanh toán qua Ví điện tử (E-Wallet)**
 
 ```mermaid
 flowchart TD
-    Start([Stock Reservation Start]) --> GenTempId["Generate tempOrderId (UUID)"]
+    Start([User clicks Checkout]) --> SelectWallet[Chọn Wallet]
     
-    GenTempId --> LoopStart{For Each Item}
-    
-    subgraph ReserveLoop["🔄 RESERVE LOOP"]
-        LoopStart --> CallReserve["POST /reservation/reserve"]
+    subgraph Client["👤 CLIENT"]
+        SelectWallet --> ClickOrder[Click Đặt hàng]
         
-        CallReserve --> RedisLua["Execute Lua Script (Atomic)"]
+        ClickOrder --> ReserveFS{Có Flash Sale?}
+        ReserveFS -->|Yes| CallReserve[Call Reserve API]
+        CallReserve --> CheckReserve{Reserved OK?}
+        CheckReserve -->|No| ShowFSError[Hiển thị: Flash Sale hết]
+        CheckReserve -->|Yes| SendCheckout
+        ReserveFS -->|No| SendCheckout[Send Wallet Checkout]
         
-        subgraph Redis["📦 REDIS"]
-            RedisLua --> GetStock["GET stock:productId:sizeId"]
-            GetStock --> CheckStock{stock >= qty?}
-            CheckStock -->|No| ReturnFail["Return 0 (Insufficient)"]
-            CheckStock -->|Yes| Decrement["DECRBY stock, qty"]
-            Decrement --> SetReserve["SETEX reserve:orderId:... TTL=15m"]
-            SetReserve --> ReturnSuccess["Return 1 (Success)"]
-        end
-        
-        ReturnSuccess --> TrackItem["Track reserved item"]
-        TrackItem --> NextItem{More items?}
-        NextItem -->|Yes| LoopStart
-        
-        ReturnFail --> RollbackAll["Rollback all reserved items"]
+        SendCheckout --> WaitResponse[Chờ response]
+        WaitResponse --> CheckResult{Success?}
+        CheckResult -->|No| ShowFailed[Hiển thị: Số dư không đủ]
+        CheckResult -->|Yes| ShowSuccess[Hiển thị thành công]
+        ShowSuccess --> NavigateOrders[Chuyển trang đơn hàng]
     end
     
-    RollbackAll --> RollbackLoop{For Each Reserved}
-    RollbackLoop --> CancelCall["POST /reservation/cancel"]
-    CancelCall --> RollbackLua["Lua: INCRBY + DEL"]
-    RollbackLua --> RollbackNext{More?}
-    RollbackNext -->|Yes| RollbackLoop
-    RollbackNext -->|No| FailResult(["❌ Return: Insufficient Stock"])
+    subgraph StockService["📦 STOCK SERVICE"]
+        CallReserve --> FSReserve["Flash Sale Reserve (Redis)"]
+        FSReserve --> SetTTL["Set TTL 15 min"]
+    end
     
-    NextItem -->|No| SuccessResult(["✅ Return: All Reserved"])
+    subgraph OrderService["🖥️ ORDER SERVICE"]
+        SendCheckout --> ValidateReq{Validate Request}
+        ValidateReq -->|Invalid| ReturnError[Return 400]
+        ValidateReq -->|Valid| CallWallet[Call User Service]
+    end
     
-    style Redis fill:#FFA500
-    style ReserveLoop fill:#fff5e6
-    style SuccessResult fill:#90EE90
-    style FailResult fill:#FFB6C1
+    subgraph UserService["👤 USER SERVICE"]
+        CallWallet --> CheckBalance{Số dư đủ?}
+        CheckBalance -->|No| ReturnInsufficient[Return 400]
+        CheckBalance -->|Yes| DeductWallet[Trừ tiền từ Wallet]
+        DeductWallet --> ReturnOK[Return 200]
+    end
+    
+    subgraph OrderService2["🖥️ ORDER SERVICE (cont.)"]
+        ReturnOK --> CreateOrder["Create Order (PENDING)"]
+        CreateOrder --> DecrStock["Decrease Regular Stock"]
+        CreateOrder --> ConfirmFS["Confirm Flash Sale"]
+        ConfirmFS --> SaveOrder[Save Order]
+        SaveOrder --> ReturnSuccess[Return Order]
+    end
+    
+    ReturnInsufficient --> ShowFailed
+    ReturnError --> ShowFailed
+    ReturnSuccess --> CheckResult
+    ShowFSError --> EndFS([End])
+    ShowFailed --> EndFail([End])
+    NavigateOrders --> EndOK([End])
+    
+    style Client fill:#e6f3ff
+    style OrderService fill:#fff5e6
+    style OrderService2 fill:#fff5e6
+    style StockService fill:#ffe6f0
+    style UserService fill:#e6fff5
+    style FSReserve fill:#FFD700
+    style CallReserve fill:#FFD700
 ```
 
-### 4.2. Sequence Diagram
+### Wallet Flow Summary
+
+| Bước | Mô tả | Thời gian |
+|------|-------|-----------|
+| 1 | **Frontend**: Reserve Flash Sale items (if any) | ~10ms |
+| 2 | Send Wallet Checkout Request | - |
+| 3 | **User Service**: Validate & Deduct Wallet | ~20ms |
+| 4 | **Order Service**: Create Order + Decrease Stock + Confirm FS | ~30ms |
+| 5 | Return 200 OK | **~60ms total** |
+| 6 | User sees success immediately | Instant |
+
+**Ưu điểm:** 
+- Synchronous flow - User nhận kết quả ngay lập tức
+- Không cần redirect như VNPAY/MoMo
+- Tự động rollback nếu có lỗi (Transaction)
+
+---
+
+## 5. Smart Stock Reservation Flow
+
+**Logic xử lý tồn kho tối ưu (Flash Sale & Regular)**
+
+### 5.1. Flash Sale Reservation (Frontend-triggered)
+
+```mermaid
+flowchart TD
+    Start([Reserve Request]) --> CheckProduct{Product Type?}
+    
+    subgraph FlashSalePath["🔥 FLASH SALE PATH"]
+        CheckProduct -->|Flash Sale| CheckApproved{APPROVED?}
+        CheckApproved -->|No| ReturnNotFS[Return: Not Flash Sale]
+        CheckApproved -->|Yes| RouteFS[Route to Flash Sale Service]
+        
+        RouteFS --> CheckRedis{Redis Stock Exists?}
+        CheckRedis -->|No| LoadFromDB[Load Flash Sale Stock]
+        LoadFromDB --> SetRedis[Set Redis Key]
+        
+        CheckRedis -->|Yes| LuaFS[Execute Lua: Reserve]
+        SetRedis --> LuaFS
+        
+        LuaFS --> LuaResult{Result?}
+        LuaResult -->|1| AsyncDB["Async: Update flash_sale_product_size"]
+        LuaResult -->|0/-1/-2| ReturnFail[Return: Sold Out / Limit]
+        
+        AsyncDB --> ReturnFSSuccess["Return: Reserved (TTL 15m)"]
+    end
+    
+    subgraph RegularPath["📦 REGULAR PATH"]
+        CheckProduct -->|Regular| CheckCache{Redis Key Exists?}
+        CheckCache -->|No| DistLock{Acquire Lock?}
+        DistLock -->|No| WaitRetry[Wait & Retry]
+        WaitRetry --> CheckCache
+        
+        DistLock -->|Yes| LoadDB[Load Stock from DB]
+        LoadDB --> SetCache[Set Redis Key]
+        SetCache --> ReleaseLock[Release Lock]
+        ReleaseLock --> LuaReg
+        
+        CheckCache -->|Yes| LuaReg[Execute Lua: Reserve]
+        LuaReg --> RegResult{Result?}
+        RegResult -->|1| AsyncReg["Async: Update product_size"]
+        RegResult -->|0/-1| ReturnRegFail[Return: Out of Stock]
+        
+        AsyncReg --> ReturnRegSuccess["Return: Reserved"]
+    end
+    
+    ReturnFSSuccess --> EndOK([✅ Success])
+    ReturnRegSuccess --> EndOK
+    ReturnFail --> EndFail([❌ Failed])
+    ReturnRegFail --> EndFail
+    ReturnNotFS --> EndFail
+    
+    style FlashSalePath fill:#ffe6f0
+    style RegularPath fill:#e6f3ff
+    style LuaFS fill:#FF6347
+    style LuaReg fill:#4682B4
+    style RouteFS fill:#FFD700
+```
+
+### 5.2. Sequence Diagram (Wallet + Flash Sale)
 
 ```mermaid
 sequenceDiagram
-    participant OS as Order Service
+    participant U as User (Frontend)
     participant SS as Stock Service
+    participant OS as Order Service
+    participant US as User Service
     participant R as Redis
+    participant DB as Database
     
-    Note over OS: Generate tempOrderId = UUID
+    Note over U: 1. Click Checkout (Wallet)
     
-    loop For Each Item in Cart
-        OS->>SS: POST /reservation/reserve
-        Note right of SS: {tempOrderId, productId, sizeId, qty}
-        
-        SS->>R: Execute Lua Script
-        Note over R: ATOMIC OPERATIONS
-        R->>R: GET stock:{productId}:{sizeId}
-        R->>R: CHECK stock >= quantity
-        
-        alt Stock Sufficient
-            R->>R: DECRBY stock, quantity
-            R->>R: SETEX reserve:{orderId}:{productId}:{sizeId} TTL=900
-            R-->>SS: Return 1 (Success)
-            SS-->>OS: {success: true}
-        else Stock Insufficient
-            R-->>SS: Return 0 (Insufficient)
-            SS-->>OS: {success: false}
-            
-            Note over OS: ROLLBACK all previously reserved items
-            loop For Each Reserved Item
-                OS->>SS: POST /reservation/cancel
-                SS->>R: Lua: INCRBY + DEL
-            end
-            OS-->>OS: Throw Exception
-        end
+    U->>SS: POST /reservation/reserve (Flash Sale item)
+    activate SS
+    SS->>SS: Check if Flash Sale (APPROVED)
+    SS->>R: Check Redis Stock
+    
+    alt Cache Hit
+        SS->>R: EVAL (Lua: Reserve + TTL 15m)
+        R-->>SS: 1 (Success)
+    else Cache Miss
+        SS->>DB: Load Flash Sale Stock
+        DB-->>SS: flashSaleStock = 50
+        SS->>R: SET flashsale:stock:xxx 50
+        SS->>R: EVAL (Lua: Reserve + TTL 15m)
+        R-->>SS: 1 (Success)
     end
     
-    Note over OS: ✅ All items reserved successfully!
-```
-
-### 4.3. Redis Data Model
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    REDIS KEYS                                   │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  STOCK (Permanent, synced from DB)                             │
-│  ══════════════════════════════════                            │
-│  Key: stock:{productId}:{sizeId}                               │
-│  Value: Integer (available stock)                              │
-│                                                                 │
-│  Example: stock:prod-001:size-M = 100                          │
-│                                                                 │
-│  RESERVATION (Temporary, TTL = 15 minutes)                     │
-│  ══════════════════════════════════════════                    │
-│  Key: reserve:{orderId}:{productId}:{sizeId}                   │
-│  Value: Integer (reserved quantity)                            │
-│  TTL: 900 seconds                                              │
-│                                                                 │
-│  Example: reserve:abc-123:prod-001:size-M = 2 (TTL: 850s)      │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### 4.4. Lua Scripts
-
-**reserve_stock.lua**
-```lua
-local stock = redis.call('GET', KEYS[1])
-if not stock then return -1 end
-
-local stockNum = tonumber(stock)
-if stockNum < tonumber(ARGV[1]) then return 0 end
-
-redis.call('DECRBY', KEYS[1], ARGV[1])
-redis.call('SETEX', KEYS[2], ARGV[2], ARGV[1])
-return 1
-```
-
-**cancel_reservation.lua**
-```lua
-local reserved = redis.call('GET', KEYS[2])
-if not reserved then return 0 end
-
-redis.call('INCRBY', KEYS[1], reserved)
-redis.call('DEL', KEYS[2])
-return tonumber(reserved)
+    par Async DB Update
+        SS->>DB: UPDATE flash_sale_product_size
+    and Response
+        SS-->>U: { success: true }
+    end
+    deactivate SS
+    
+    Note over U: 2. Submit Checkout Request
+    U->>OS: POST /checkout/wallet
+    activate OS
+    
+    OS->>US: Deduct Wallet
+    activate US
+    US->>DB: BEGIN TRANSACTION
+    US->>DB: UPDATE wallet SET balance = balance - amount
+    US-->>OS: 200 OK (Deducted)
+    deactivate US
+    
+    OS->>OS: Create Order (PENDING)
+    OS->>DB: INSERT orders (PENDING)
+    
+    OS->>SS: Decrease Regular Stock (non-FS items)
+    activate SS
+    SS->>R: EVAL (Lua: Decrease)
+    SS->>DB: Async Update
+    SS-->>OS: OK
+    deactivate SS
+    
+    OS->>SS: Confirm Flash Sale Reservation
+    activate SS
+    SS->>R: DEL flashsale:reserve:xxx
+    SS-->>OS: Confirmed
+    deactivate SS
+    
+    OS->>DB: COMMIT
+    OS-->>U: 200 OK (Order Created)
+    deactivate OS
+    
+    U->>U: Show Success + Navigate
 ```
 
 ---
 
-## So Sánh 3 Phương Thức
+## Flow Comparison
 
-| Đặc Điểm | COD | VNPAY | MoMo |
-|----------|-----|-------|------|
-| **Luồng** | Order → Ship → Pay | Pay → Order | Pay → Order |
-| **Stock Reserve** | Trước Kafka | Sau verify payment | Sau IPN callback |
-| **Order Status** | PENDING | CONFIRMED | CONFIRMED |
-| **Callback** | ❌ | ✅ Return URL | ✅ IPN |
-| **Refund khi hết hàng** | ❌ (chưa trả tiền) | ✅ Wallet | ✅ Wallet |
+| Feature | COD | VNPAY | MoMo | Wallet |
+|---------|-----|-------|------|--------|
+| **Frontend Reserve FS** | ✅ Yes | ✅ Yes | ✅ Yes | ✅ Yes |
+| **Payment Flow** | None | Redirect | Redirect | Synchronous |
+| **Stock Decrease** | Async (Kafka) | Sync (Callback) | Sync (IPN) | Sync (Direct) |
+| **Order Creation** | Async | Async | Async | Sync |
+| **User Experience** | Instant | Wait redirect | Wait redirect | Instant |
+| **Response Time** | ~25ms | ~5s (redirect) | ~5s (redirect) | ~60ms |
 
 ---
 
-## Performance
+## Performance Metrics (Estimated)
 
-| Metric | Before | After Pre-Reserve |
-|--------|--------|-------------------|
-| Throughput | 100-200 req/s | **5,000-10,000 req/s** |
-| Latency | 500-2000ms | **10-50ms** |
-| Race Condition | Possible | **Impossible** |
-| Overselling | Possible | **Impossible** |
+| Metric | Legacy Logic | Smart Cache Strategy |
+|--------|--------------|----------------------|
+| **Latency** | 100-500ms (DB Hit) | **5-20ms (Redis Hit)** |
+| **Concurrency** | Low (DB Lock) | **High (Redis Atomic)** |
+| **Consistency** | Strong | **Eventual (Async DB Sync)** |
+| **Thundering Herd** | Vulnerable | **Protected (Distributed Lock)** |
+| **Flash Sale Protection** | Race Conditions | **TTL + Lua Atomic Operations** |
