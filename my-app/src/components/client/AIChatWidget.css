@@ -53,6 +53,13 @@
     overflow: hidden;
 }
 
+.ai-chat-content-wrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+}
+
 /* Header */
 .ai-chat-header {
     background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
@@ -189,12 +196,17 @@
 }
 
 /* Message Bubbles */
+
 .ai-message {
     display: flex;
     gap: 10px;
-    margin-bottom: 16px;
     align-items: flex-start;
 }
+
+.ai-message+.ai-message {
+    margin-top: 16px;
+}
+
 
 .ai-message.user {
     flex-direction: row-reverse;

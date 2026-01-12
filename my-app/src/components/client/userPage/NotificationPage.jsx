@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { 
-  getNotificationsByUserId, 
-  markNotificationAsRead, 
+import {
+  getNotificationsByUserId,
+  markNotificationAsRead,
   deleteNotification,
   deleteAllNotifications as deleteAllNotificationsAPI,
   markAllNotificationsAsRead
@@ -12,9 +12,10 @@ import { getUser } from '../../../api/user.js';
 import useWebSocketNotification from '../../../hooks/useWebSocketNotification.js';
 
 // Format time from timestamp
-const formatTimeAgo = (timestamp, t) => {
+// Format time from timestamp
+const formatTimeAgo = (timestamp, t, i18n) => {
   if (!timestamp) return t('notifications.unknown');
-  
+
   try {
     const date = new Date(timestamp);
     const now = new Date();
@@ -27,31 +28,33 @@ const formatTimeAgo = (timestamp, t) => {
     if (diffMins < 60) return diffMins === 1 ? t('notifications.minuteAgo', { count: diffMins }) : t('notifications.minutesAgo', { count: diffMins });
     if (diffHours < 24) return diffHours === 1 ? t('notifications.hourAgo', { count: diffHours }) : t('notifications.hoursAgo', { count: diffHours });
     if (diffDays < 7) return diffDays === 1 ? t('notifications.dayAgo', { count: diffDays }) : t('notifications.daysAgo', { count: diffDays });
-    
-    return date.toLocaleDateString('en-US');
+
+    // Use the current language/locale
+    const locale = i18n.language === 'vi' ? 'vi-VN' : 'en-US';
+    return date.toLocaleDateString(locale);
   } catch (error) {
     return t('notifications.unknown');
   }
 };
 
 // Format data from backend to UI format
-const formatNotification = (notification, t) => {
+const formatNotification = (notification, t, i18n) => {
   // All notifications from backend are order notifications
   const type = 'order';
   const icon = 'fa-shopping-cart';
-  
+
   // Create title from message or orderId
   let title = t('notifications.orderNotification');
   if (notification.orderId) {
-    title = `Order #${notification.orderId.substring(0, 8)}`;
+    title = t('notifications.orderTitle', { id: notification.orderId.substring(0, 8) });
   }
-  
+
   return {
     id: notification.id,
     type,
     title,
     message: notification.message || t('notifications.orderUpdated'),
-    time: formatTimeAgo(notification.creationTimestamp, t),
+    time: formatTimeAgo(notification.creationTimestamp, t, i18n),
     isRead: notification.isRead || false,
     icon,
     color: 'primary',
@@ -61,7 +64,7 @@ const formatNotification = (notification, t) => {
 };
 
 export default function NotificationPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -74,13 +77,13 @@ export default function NotificationPage() {
     type: null, // 'single' | 'all'
     targetId: null,
     message: '',
-    confirmButtonText: 'DELETE',
-    cancelButtonText: 'CANCEL'
+    confirmButtonText: t('notifications.deleteButton'),
+    cancelButtonText: t('notifications.cancelButton')
   });
-  
+
   // WebSocket for real-time notifications
   const { notifications: wsNotifications, connected: wsConnected } = useWebSocketNotification(userId, false);
-  
+
   // Fetch initial notifications from API
   useEffect(() => {
     const fetchNotifications = async () => {
@@ -91,12 +94,12 @@ export default function NotificationPage() {
         if (!user || !user.id) {
           throw new Error('Unable to get user information');
         }
-        
+
         setUserId(user.id);
         const data = await getNotificationsByUserId(user.id);
         // Only get notifications with orderId (orders)
-        const orderNotifications = Array.isArray(data) 
-          ? data.filter(n => n.orderId).map(n => formatNotification(n, t))
+        const orderNotifications = Array.isArray(data)
+          ? data.filter(n => n.orderId).map(n => formatNotification(n, t, i18n))
           : [];
         setNotifications(orderNotifications);
       } catch (err) {
@@ -117,15 +120,15 @@ export default function NotificationPage() {
       // Format WebSocket notifications
       const formattedWsNotifications = wsNotifications
         .filter(n => n.orderId) // Only order notifications
-        .map(n => formatNotification(n, t));
-      
+        .map(n => formatNotification(n, t, i18n));
+
       // Merge with existing notifications, avoiding duplicates
       setNotifications(prev => {
         const existingIds = new Set(prev.map(n => n.id));
         const newNotifications = formattedWsNotifications.filter(n => !existingIds.has(n.id));
         return [...newNotifications, ...prev];
       });
-      
+
       // Dispatch event to notify Header component
       window.dispatchEvent(new CustomEvent('notificationsUpdated'));
     }
@@ -135,48 +138,48 @@ export default function NotificationPage() {
   useEffect(() => {
     const handleNotificationUpdate = (event) => {
       const updateEvent = event.detail;
-      
+
       switch (updateEvent.updateType) {
         case 'MARKED_AS_READ':
           // Update notification to read
-          setNotifications(prev => 
-            prev.map(n => 
-              n.id === updateEvent.notificationId 
+          setNotifications(prev =>
+            prev.map(n =>
+              n.id === updateEvent.notificationId
                 ? { ...n, isRead: true }
                 : n
             )
           );
           break;
-          
+
         case 'DELETED':
           // Remove notification from list
-          setNotifications(prev => 
+          setNotifications(prev =>
             prev.filter(n => n.id !== updateEvent.notificationId)
           );
           break;
-          
+
         case 'MARKED_ALL_AS_READ':
           // Mark all as read
-          setNotifications(prev => 
+          setNotifications(prev =>
             prev.map(n => ({ ...n, isRead: true }))
           );
           break;
-          
+
         case 'DELETED_ALL':
           // Clear all notifications
           setNotifications([]);
           break;
-          
+
         default:
           break;
       }
-      
+
       // Refresh notification count in header
       window.dispatchEvent(new CustomEvent('notificationsUpdated'));
     };
 
     window.addEventListener('notificationUpdate', handleNotificationUpdate);
-    
+
     return () => {
       window.removeEventListener('notificationUpdate', handleNotificationUpdate);
     };
@@ -188,8 +191,8 @@ export default function NotificationPage() {
       const user = await getUser();
       if (user && user.id) {
         const data = await getNotificationsByUserId(user.id);
-        const orderNotifications = Array.isArray(data) 
-          ? data.filter(n => n.orderId).map(n => formatNotification(n, t))
+        const orderNotifications = Array.isArray(data)
+          ? data.filter(n => n.orderId).map(n => formatNotification(n, t, i18n))
           : [];
         setNotifications(orderNotifications);
         // Dispatch event to notify Header to refresh
@@ -202,15 +205,15 @@ export default function NotificationPage() {
 
   // Filter notifications
   const filteredNotifications = notifications.filter(notification => {
-    const matchesFilter = filter === 'all' 
-      ? true 
-      : filter === 'unread' 
-        ? !notification.isRead 
+    const matchesFilter = filter === 'all'
+      ? true
+      : filter === 'unread'
+        ? !notification.isRead
         : notification.type === filter;
-    
+
     const matchesSearch = notification.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          notification.message.toLowerCase().includes(searchQuery.toLowerCase());
-    
+      notification.message.toLowerCase().includes(searchQuery.toLowerCase());
+
     return matchesFilter && matchesSearch;
   });
 
@@ -220,7 +223,7 @@ export default function NotificationPage() {
     try {
       await markNotificationAsRead(id);
       // Update will be handled via WebSocket update event, but we can optimistically update
-      setNotifications(prev => 
+      setNotifications(prev =>
         prev.map(n => n.id === id ? { ...n, isRead: true } : n)
       );
       window.dispatchEvent(new CustomEvent('notificationsUpdated'));
@@ -252,7 +255,7 @@ export default function NotificationPage() {
       : t('notifications.deleteConfirm');
     const confirmText = type === 'all' ? t('notifications.deleteAllButton') : t('notifications.deleteButton');
     const cancelText = t('notifications.cancelButton');
-    setConfirmModal({ open: true, type, targetId, message, confirmButtonText: confirmText, cancelButtonText: cancelText });  
+    setConfirmModal({ open: true, type, targetId, message, confirmButtonText: confirmText, cancelButtonText: cancelText });
   };
 
   const closeConfirm = () => setConfirmModal({ open: false, type: null, targetId: null, message: '', confirmButtonText: t('notifications.deleteButton'), cancelButtonText: t('notifications.cancelButton') });
@@ -316,7 +319,7 @@ export default function NotificationPage() {
       <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto', textAlign: 'center' }}>
         <i className="fas fa-exclamation-triangle fa-3x" style={{ color: '#ffc107', marginBottom: '16px' }}></i>
         <p style={{ color: '#666' }}>{error}</p>
-        <button 
+        <button
           className="btn btn-primary mt-3"
           onClick={() => window.location.reload()}
         >
@@ -329,9 +332,9 @@ export default function NotificationPage() {
   return (
     <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
       {/* Header */}
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
         alignItems: 'center',
         marginBottom: '24px',
         borderBottom: '2px solid #ee4d2d',
@@ -347,21 +350,21 @@ export default function NotificationPage() {
                 {unreadCount === 1 ? t('notifications.unreadCount', { count: unreadCount }) : t('notifications.unreadCountPlural', { count: unreadCount })}
               </p>
               {wsConnected ? (
-                <span style={{ 
-                  fontSize: '10px', 
-                  color: '#28a745', 
-                  backgroundColor: '#d4edda', 
-                  padding: '2px 6px', 
+                <span style={{
+                  fontSize: '10px',
+                  color: '#28a745',
+                  backgroundColor: '#d4edda',
+                  padding: '2px 6px',
                   borderRadius: '4px',
                   fontWeight: 500
                 }}>
                 </span>
               ) : (
-                <span style={{ 
-                  fontSize: '10px', 
-                  color: '#dc3545', 
-                  backgroundColor: '#f8d7da', 
-                  padding: '2px 6px', 
+                <span style={{
+                  fontSize: '10px',
+                  color: '#dc3545',
+                  backgroundColor: '#f8d7da',
+                  padding: '2px 6px',
                   borderRadius: '4px',
                   fontWeight: 500
                 }}>
@@ -373,7 +376,7 @@ export default function NotificationPage() {
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
           {unreadCount > 0 && (
-            <button 
+            <button
               className="btn btn-sm"
               onClick={handleMarkAllAsRead}
               style={{ backgroundColor: '#ee4d2d', color: 'white', border: 'none' }}
@@ -383,7 +386,7 @@ export default function NotificationPage() {
             </button>
           )}
           {notifications.length > 0 && (
-            <button 
+            <button
               className="btn btn-sm btn-outline-danger"
               onClick={handleDeleteAll}
             >
@@ -395,17 +398,17 @@ export default function NotificationPage() {
       </div>
 
       {/* Filters */}
-      <div style={{ 
-        display: 'flex', 
-        gap: '12px', 
+      <div style={{
+        display: 'flex',
+        gap: '12px',
         marginBottom: '20px',
         flexWrap: 'wrap'
       }}>
         <button
           className="btn btn-sm"
           onClick={() => setFilter('all')}
-          style={{ 
-            backgroundColor: filter === 'all' ? '#ee4d2d' : 'white', 
+          style={{
+            backgroundColor: filter === 'all' ? '#ee4d2d' : 'white',
             color: filter === 'all' ? 'white' : '#ee4d2d',
             border: filter === 'all' ? 'none' : '1px solid #ee4d2d'
           }}
@@ -415,8 +418,8 @@ export default function NotificationPage() {
         <button
           className="btn btn-sm"
           onClick={() => setFilter('unread')}
-          style={{ 
-            backgroundColor: filter === 'unread' ? '#ee4d2d' : 'white', 
+          style={{
+            backgroundColor: filter === 'unread' ? '#ee4d2d' : 'white',
             color: filter === 'unread' ? 'white' : '#ee4d2d',
             border: filter === 'unread' ? 'none' : '1px solid #ee4d2d'
           }}
@@ -426,8 +429,8 @@ export default function NotificationPage() {
         <button
           className="btn btn-sm"
           onClick={() => setFilter('order')}
-          style={{ 
-            backgroundColor: filter === 'order' ? '#ee4d2d' : 'white', 
+          style={{
+            backgroundColor: filter === 'order' ? '#ee4d2d' : 'white',
             color: filter === 'order' ? 'white' : '#ee4d2d',
             border: filter === 'order' ? 'none' : '1px solid #ee4d2d'
           }}
@@ -498,30 +501,30 @@ export default function NotificationPage() {
                   opacity: 1
                 }}
               >
-                <i 
-                  className={`fas ${notification.icon}`} 
-                  style={{color: notification.isRead ? '#999' : '#ee4d2d', fontSize: '20px'}}
+                <i
+                  className={`fas ${notification.icon}`}
+                  style={{ color: notification.isRead ? '#999' : '#ee4d2d', fontSize: '20px' }}
                 ></i>
               </div>
-              
-              <div style={{flex: 1, minWidth: 0}}>
+
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
                   <div style={{ flex: 1 }}>
-                    <h6 style={{margin: 0, marginBottom: '4px', fontWeight: notification.isRead ? 500 : 600, color: notification.isRead ? '#333' : '#000'}}>
+                    <h6 style={{ margin: 0, marginBottom: '4px', fontWeight: notification.isRead ? 500 : 600, color: notification.isRead ? '#333' : '#000' }}>
                       {notification.title}
                     </h6>
-                    <p style={{margin: 0, color: '#666', fontSize: '14px', lineHeight: '1.5', marginBottom: '8px'}}>
+                    <p style={{ margin: 0, color: '#666', fontSize: '14px', lineHeight: '1.5', marginBottom: '8px' }}>
                       {notification.message}
                     </p>
-                    <span style={{fontSize: '12px', color: getTimeAgoColor(notification.time)}}>
+                    <span style={{ fontSize: '12px', color: getTimeAgoColor(notification.time) }}>
                       {notification.time}
                     </span>
                   </div>
                   <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
                     {notification.type === 'order' && notification.orderId && (
-                      <button 
+                      <button
                         className="btn btn-sm"
-                        style={{ 
+                        style={{
                           fontSize: '12px',
                           backgroundColor: notification.isRead ? '#6c757d' : '#ee4d2d',
                           color: 'white',
@@ -535,9 +538,9 @@ export default function NotificationPage() {
                         <i className="fas fa-eye me-1"></i> {t('notifications.viewOrder')}
                       </button>
                     )}
-                    <button 
+                    <button
                       className="btn btn-sm"
-                      style={{ 
+                      style={{
                         fontSize: '12px',
                         backgroundColor: 'transparent',
                         color: '#ee4d2d',

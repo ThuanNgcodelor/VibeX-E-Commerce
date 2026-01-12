@@ -39,82 +39,6 @@ const getInitials = (name) => {
   return name.substring(0, 2).toUpperCase();
 };
 
-// Mock data for chat conversations (fallback)
-const MOCK_CONVERSATIONS = [
-  {
-    id: 1,
-    name: "Flash Titan",
-    avatar: "FT",
-    avatarColor: "#1e3a8a",
-    lastMessage: "[Dán nhãn]",
-    date: "26/11",
-    unread: 0
-  },
-  {
-    id: 2,
-    name: "njn.official",
-    avatar: "NJN JEWELRY",
-    avatarColor: "#000000",
-    lastMessage: "dạ, nhẫn này unisex c...",
-    date: "15/09",
-    unread: 0
-  },
-  {
-    id: 3,
-    name: "Bàn Phím Univer...",
-    avatar: "UM",
-    avatarColor: "#fbbf24",
-    lastMessage: "Cảm ơn bạn đã quan t...",
-    date: "09/09",
-    unread: 0
-  },
-  {
-    id: 4,
-    name: "rem_kinh_bac",
-    avatar: "R",
-    avatarColor: "#1f2937",
-    lastMessage: "Bấm vào để xem chi ti...",
-    date: "31/08",
-    unread: 0
-  },
-  {
-    id: 5,
-    name: "Profitness Sport...",
-    avatar: "PRO FITNESS",
-    avatarColor: "#000000",
-    lastMessage: "Không bán sample ạ",
-    date: "08/07",
-    unread: 0
-  },
-  {
-    id: 6,
-    name: "hyperkeeb",
-    avatar: "HK",
-    avatarColor: "#000000",
-    lastMessage: "dạ đc á bạn ưi",
-    date: "26/05",
-    unread: 0
-  },
-  {
-    id: 7,
-    name: "Wheystore Hồ C...",
-    avatar: "W",
-    avatarColor: "#dc2626",
-    lastMessage: "[Dán nhãn]",
-    date: "25/04",
-    unread: 0
-  },
-  {
-    id: 8,
-    name: "Bao Cao Su Rẻ 69",
-    avatar: "9",
-    avatarColor: "#dc2626",
-    lastMessage: "Cảm ơn bạn đã mua h...",
-    date: "31/03",
-    unread: 0
-  }
-];
-
 export default function ChatBotWidget() {
   const { t } = useTranslation();
   // Chỉ render phía client để tránh lỗi khi SSR/ssg
@@ -645,9 +569,6 @@ export default function ChatBotWidget() {
                   >
                     <i className="fas fa-chevron-left"></i>
                   </button>
-                  <button className="shopee-chat-icon-btn" title="More options">
-                    <i className="fas fa-chevron-down"></i>
-                  </button>
                   <button
                     className="shopee-chat-icon-btn"
                     title="Close"
@@ -677,7 +598,7 @@ export default function ChatBotWidget() {
                     </svg>
                   </div>
                   <h3 className="shopee-chat-welcome-title">
-                    Chào mừng bạn đến với Shopee Chat
+                    Welcome to Vibe Chat
                   </h3>
                   <p className="shopee-chat-welcome-subtitle">
                     Start chatting with our sellers now!

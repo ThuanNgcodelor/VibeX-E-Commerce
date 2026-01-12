@@ -28,8 +28,11 @@ import org.springframework.scripting.support.ResourceScriptSource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
@@ -339,20 +342,7 @@ public class FlashSaleService {
         }
     }
 
-    @Scheduled(fixedRate = 60000)
-    @Transactional
-    public void expirePastSessions() {
-        List<FlashSaleSession> activeSessions = sessionRepository.findByStatus(FlashSaleStatus.ACTIVE);
-        LocalDateTime now = LocalDateTime.now();
 
-        for (FlashSaleSession session : activeSessions) {
-            if (session.getEndTime().isBefore(now)) {
-                session.setStatus(FlashSaleStatus.INACTIVE);
-                sessionRepository.save(session);
-                log.info("Auto-expired Flash Sale Session: {}", session.getName());
-            }
-        }
-    }
 
     public FlashSaleProduct findActiveFlashSaleProduct(String productId) {
         List<FlashSaleProduct> products = flashSaleProductRepository.findByProductIdAndStatus(productId,
@@ -375,24 +365,6 @@ public class FlashSaleService {
 
     // --- Redis: SMART Cache Strategy ---
 
-    /**
-     * SMART WARM-UP SCHEDULER: JIT Pre-loading
-     * Only warm up sessions starting in the next 30 minutes!
-     * Runs every 1 minute.
-     */
-    @Scheduled(fixedRate = 60000)
-    @Transactional
-    public void smartPreloadCache() {
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime lookAhead = now.plusMinutes(30);
-
-        List<FlashSaleSession> sessions = sessionRepository.findOpenOrUpcomingSessions(now, lookAhead);
-
-        for (FlashSaleSession session : sessions) {
-            // Warm up this session (method implements existence check)
-            warmUpSession(session.getId());
-        }
-    }
 
     /**
      * Helper to warm up a list of products in a session.

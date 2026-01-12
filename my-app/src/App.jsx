@@ -7,7 +7,6 @@ import UserPage from "./pages/client/UserPage.jsx";
 import ShopPage from "./pages/client/ShopPage.jsx";
 import CartPage from "./pages/client/CartPage.jsx";
 import CheckoutPage from "./pages/client/CheckoutPage.jsx";
-import GoogleCallback from "./pages/client/GoogleCallback.jsx";
 import OAuthCallback from "./pages/client/OAuthCallback.jsx";
 import VnpayReturnPage from "./pages/client/VnpayReturnPage.jsx";
 import MomoReturnPage from "./pages/client/MomoReturnPage.jsx";

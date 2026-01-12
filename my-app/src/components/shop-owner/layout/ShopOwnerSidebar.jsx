@@ -211,7 +211,7 @@ const ShopOwnerSidebar = ({ isOpen, onClose }) => {
                         onClick={handleLinkClick}
                     >
                         <i className="fas fa-bolt"></i>
-                        <span>{t('shopOwner.sidebar.flashSaleSidebar') || "Flash Sale"}</span>
+                        <span>{"Flash Sale"}</span>
                     </Link>
                 </div>
 

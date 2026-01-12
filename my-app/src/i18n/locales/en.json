@@ -85,7 +85,7 @@
         "downloadApp": "Download App",
         "connect": "Connect",
         "notifications": "Notifications",
-        "support": "Support",
+        "support": "AI Assistant",
         "language": "Language",
         "account": "Account",
         "signUp": "Sign Up",
@@ -655,7 +655,11 @@
         "failedToMarkRead": "Failed to mark as read",
         "failedToMarkAllRead": "Failed to mark all as read",
         "orderNotification": "Order Notification",
-        "orderUpdated": "Your order has been updated"
+        "orderUpdated": "Your order has been updated",
+        "orderTitle": "Order #{{id}}",
+        "markAllRead": "Mark all as read",
+        "viewAll": "View All",
+        "noNotifications": "No notifications yet."
     },
     "shopOwner": {
         "header": {
@@ -1447,12 +1451,6 @@
         "updateFailure": "Update failed",
         "clickToChange": "Click to change"
     },
-    "notifications": {
-        "title": "Notifications",
-        "markAllRead": "Mark all as read",
-        "viewAll": "View All",
-        "noNotifications": "No notifications yet."
-    },
     "roleRequest": {
         "title": "Shop Owner Registration",
         "description": "Fill in your shop information below to request Shop Owner role. Your request will be reviewed by administrators.",
@@ -1763,8 +1761,24 @@
             "findProducts": "Find products ...",
             "saleProducts": "Products on sale",
             "productPrice": "Product price ...",
-            "today": "What day is today?"
+            "today": "What day is today?",
+            "myOrders": "My Orders"
         }
+    },
+    "flashSale": {
+        "noFlashSale": "No Flash Sale events yet",
+        "comeBackLater": "Please come back later!",
+        "backToHome": "Back to Home",
+        "flashSale": "FLASH SALE",
+        "endingIn": "Ending in",
+        "viewAll": "View All",
+        "ongoing": "Ongoing",
+        "upcoming": "Upcoming",
+        "ended": "Ended",
+        "soldOut": "Sold Out",
+        "remaining": "Remaining:",
+        "comingSoon": "Coming Soon",
+        "noProducts": "No products in this time slot"
     },
     "liveStream": {
         "title": "Livestream Management",

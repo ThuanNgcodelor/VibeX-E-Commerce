@@ -266,7 +266,6 @@ export default function PersonalizedRecommendations() {
                                                 gap: '2px'
                                             }}
                                         >
-                                            ✨ {t('recommendations.aiPick', 'Gợi ý')}
                                         </div>
                                         {discount > 0 && (
                                             <div

@@ -337,16 +337,7 @@ export default function Header() {
                   </Link>
                 </>
               )}
-              <Link to="#" style={{ color: 'white', textDecoration: 'none', opacity: 0.9 }}>
-                {t('header.downloadApp')}
-              </Link>
-              <div className="d-flex gap-2 align-items-center">
-                <span style={{ color: 'white', opacity: 0.9 }}>{t('header.connect')}</span>
-                <a href="#" style={{ color: 'white', opacity: 0.9, fontSize: '14px' }}><i className="fa fa-facebook"></i></a>
-                <a href="#" style={{ color: 'white', opacity: 0.9, fontSize: '14px' }}><i className="fa fa-instagram"></i></a>
-              </div>
             </div>
-
             {/* Right links */}
             <div className="d-flex gap-3 align-items-center flex-wrap" style={{ fontSize: '12px' }}>
               {isAuthenticated() && (

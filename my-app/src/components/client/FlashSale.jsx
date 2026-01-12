@@ -192,8 +192,8 @@ export default function FlashSale({ isPage = false }) {
           borderRadius: '8px'
         }}>
           <i className="fa fa-bolt" style={{ fontSize: '48px', color: '#ccc', marginBottom: '16px' }}></i>
-          <h3 style={{ color: '#555', fontWeight: 500 }}>Chưa có chương trình Flash Sale nào</h3>
-          <p style={{ color: '#888' }}>Vui lòng quay lại sau nhé!</p>
+          <h3 style={{ color: '#555', fontWeight: 500 }}>{t('flashSale.noFlashSale', 'Chưa có chương trình Flash Sale nào')}</h3>
+          <p style={{ color: '#888' }}>{t('flashSale.comeBackLater', 'Vui lòng quay lại sau nhé!')}</p>
           <Link to="/" style={{
             display: 'inline-block',
             marginTop: '16px',
@@ -203,7 +203,7 @@ export default function FlashSale({ isPage = false }) {
             textDecoration: 'none',
             borderRadius: '4px'
           }}>
-            Về trang chủ
+            {t('flashSale.backToHome', 'Về trang chủ')}
           </Link>
         </div>
       );
@@ -223,14 +223,14 @@ export default function FlashSale({ isPage = false }) {
                 <div className="d-flex align-items-center gap-2">
                   <i className="fa fa-bolt" style={{ color: '#ee4d2d', fontSize: '24px' }}></i>
                   <h4 style={{ fontSize: '20px', color: '#ee4d2d', fontWeight: 700, margin: 0, textTransform: 'uppercase' }}>
-                    FLASH SALE
+                    {t('flashSale.flashSale', 'FLASH SALE')}
                   </h4>
                 </div>
 
                 {/* Countdown for Homepage view */}
                 {timeLeft && getSessionStatus(sessions.find(s => s.id === selectedSessionId)) === 'ONGOING' && (
                   <div className="d-flex align-items-center gap-2">
-                    <span style={{ color: '#333', fontSize: '14px' }}>Kết thúc trong</span>
+                    <span style={{ color: '#333', fontSize: '14px' }}>{t('flashSale.endingIn', 'Kết thúc trong')}</span>
                     <div className="d-flex gap-1">
                       <span style={{ background: 'black', color: 'white', padding: '2px 4px', borderRadius: '2px', fontWeight: 'bold' }}>{timeLeft.hours}</span>
                       <span style={{ fontWeight: 'bold' }}>:</span>
@@ -243,7 +243,7 @@ export default function FlashSale({ isPage = false }) {
               </div>
 
               <Link to="/flash-sale" style={{ color: '#ee4d2d', textDecoration: 'none', fontSize: '14px' }}>
-                Xem tất cả →
+                {t('flashSale.viewAll', 'Xem tất cả')} →
               </Link>
             </div>
           </div>
@@ -276,8 +276,8 @@ export default function FlashSale({ isPage = false }) {
                     >
                       <div style={{ fontSize: '18px', fontWeight: 600 }}>{formatTime(session.startTime)}</div>
                       <div style={{ fontSize: '12px' }}>
-                        {status === 'ONGOING' ? 'Đang diễn ra' :
-                          status === 'UPCOMING' ? 'Sắp diễn ra' : 'Đã kết thúc'}
+                        {status === 'ONGOING' ? t('flashSale.ongoing', 'Đang diễn ra') :
+                          status === 'UPCOMING' ? t('flashSale.upcoming', 'Sắp diễn ra') : t('flashSale.ended', 'Đã kết thúc')}
                       </div>
                     </div>
                   );
@@ -296,11 +296,11 @@ export default function FlashSale({ isPage = false }) {
           {isPage && timeLeft && (
             <div style={{ background: 'white', padding: '20px', borderRadius: '4px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '20px', border: '1px solid #f0f0f0' }}>
               <div style={{ fontSize: '16px', fontWeight: 500, color: '#ee4d2d', textTransform: 'uppercase' }}>
-                {getSessionStatus(sessions.find(s => s.id === selectedSessionId)) === 'ONGOING' ? 'Đang diễn ra' : 'Sắp diễn ra'}
+                {getSessionStatus(sessions.find(s => s.id === selectedSessionId)) === 'ONGOING' ? t('flashSale.ongoing', 'Đang diễn ra') : t('flashSale.upcoming', 'Sắp diễn ra')}
               </div>
               {getSessionStatus(sessions.find(s => s.id === selectedSessionId)) === 'ONGOING' && (
                 <div className="d-flex align-items-center gap-2">
-                  <span style={{ color: '#333' }}>Kết thúc trong</span>
+                  <span style={{ color: '#333' }}>{t('flashSale.endingIn', 'Kết thúc trong')}</span>
                   <div className="d-flex gap-1" style={{ fontSize: '16px' }}>
                     <span style={{ background: '#333', color: 'white', padding: '4px 8px', borderRadius: '4px', fontWeight: 'bold' }}>{timeLeft.hours}</span>
                     <span style={{ fontWeight: 'bold' }}>:</span>
@@ -338,7 +338,8 @@ export default function FlashSale({ isPage = false }) {
                         textDecoration: 'none',
                         transition: 'all 0.2s',
                         height: '100%',
-                        cursor: isUpcoming ? 'default' : 'pointer'
+                        cursor: isUpcoming ? 'default' : 'pointer',
+                        position: 'relative' // Ensure positioning context
                       }}
                       onMouseEnter={(e) => {
                         if (!isUpcoming) {
@@ -415,12 +416,28 @@ export default function FlashSale({ isPage = false }) {
                         </div>
                       </div>
 
+                      {/* Product Name */}
+                      <div style={{
+                        fontSize: '14px',
+                        color: '#333',
+                        marginBottom: '4px',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        lineHeight: '1.2em',
+                        height: '2.4em'
+                      }}>
+                        {product.productName || product.name}
+                      </div>
+
                       {/* Price info */}
-                      <div style={{ fontSize: '16px', fontWeight: 600, color: '#ee4d2d', marginBottom: '4px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '16px', fontWeight: 600, color: '#ee4d2d', marginBottom: '4px', textAlign: 'left' }}>
                         {formatVND(product.salePrice)}
                       </div>
 
-                      <div style={{ fontSize: '12px', color: '#888', textDecoration: 'line-through', marginBottom: '8px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '12px', color: '#888', textDecoration: 'line-through', marginBottom: '8px', textAlign: 'left' }}>
                         {formatVND(product.originalPrice)}
                       </div>
 
@@ -436,7 +453,7 @@ export default function FlashSale({ isPage = false }) {
                             fontSize: '12px',
                             fontWeight: 600
                           }}>
-                            Hết hàng
+                            {t('flashSale.soldOut', 'Hết hàng')}
                           </div>
                         ) : (
                           <div style={{ position: 'relative', marginTop: '8px' }}>
@@ -471,7 +488,7 @@ export default function FlashSale({ isPage = false }) {
                               textTransform: 'uppercase',
                               textShadow: '0 0 2px rgba(0,0,0,0.2)'
                             }}>
-                              Còn lại: {product.productStock || 0}
+                              {t('flashSale.remaining', 'Còn lại:')} {product.productStock || 0}
                             </div>
                           </div>
                         )
@@ -485,7 +502,7 @@ export default function FlashSale({ isPage = false }) {
                           fontSize: '12px',
                           fontWeight: 600
                         }}>
-                          Sắp mở bán
+                          {t('flashSale.comingSoon', 'Sắp mở bán')}
                         </div>
                       )}
                     </Link>
@@ -495,7 +512,7 @@ export default function FlashSale({ isPage = false }) {
             </div>
           ) : (
             <div style={{ textAlign: 'center', color: '#999', padding: '40px' }}>
-              Không có sản phẩm nào trong khung giờ này
+              {t('flashSale.noProducts', 'Không có sản phẩm nào trong khung giờ này')}
             </div>
           )}
         </div>
@@ -521,7 +538,7 @@ export default function FlashSale({ isPage = false }) {
                 e.target.style.background = 'white';
                 e.target.style.borderColor = '#e0e0e0';
               }}>
-              Xem tất cả
+              {t('flashSale.viewAll', 'Xem tất cả')}
             </Link>
           </div>
         )}

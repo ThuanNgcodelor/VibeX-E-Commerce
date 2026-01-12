@@ -291,27 +291,6 @@ export default function User() {
 
 
                                 <button
-                                    onClick={() => handleTabClick("vouchers")}
-                                    style={{
-                                        width: '100%',
-                                        padding: '14px 16px',
-                                        border: 'none',
-                                        background: activeTab === "vouchers" ? '#fff5f0' : 'transparent',
-                                        color: activeTab === "vouchers" ? '#ee4d2d' : '#222',
-                                        textAlign: 'left',
-                                        cursor: 'pointer',
-                                        fontSize: '14px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '12px',
-                                        transition: 'all 0.2s'
-                                    }}
-                                >
-                                    <i className="fa fa-ticket" style={{ width: '20px', textAlign: 'center' }}></i>
-                                    {t('user.voucherWallet')}
-                                </button>
-
-                                <button
                                     onClick={() => handleTabClick("coins")}
                                     style={{
                                         width: '100%',
@@ -349,8 +328,8 @@ export default function User() {
                                         transition: 'all 0.2s'
                                     }}
                                 >
-                                    <i className="fa fa-wallet" style={{ width: '20px', textAlign: 'center', color: '#FF5722' }}></i>
-                                    {t('wallet.menuTitle')}
+                                    <i className="fa fa-ticket" style={{ width: '20px', textAlign: 'center' }}></i>
+                                    {t('Wallet')}
                                 </button>
                             </div>
                         </div>
@@ -403,15 +382,6 @@ export default function User() {
                                     </div>
                                 )}
 
-                                {/* Vouchers Tab */}
-                                {activeTab === "vouchers" && (
-                                    <div className="p-4">
-                                        <div className="text-center py-5">
-                                            <i className="fa fa-ticket" style={{ fontSize: '48px', color: '#ddd', marginBottom: '16px' }}></i>
-                                            <p style={{ color: '#999', fontSize: '14px' }}>{t('user.noVouchersYet')}</p>
-                                        </div>
-                                    </div>
-                                )}
 
                                 {/* Coins Tab */}
                                 {activeTab === "coins" && (

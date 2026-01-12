@@ -87,7 +87,7 @@
     "downloadApp": "Tải Ứng Dụng",
     "connect": "Kết nối",
     "notifications": "Thông báo",
-    "support": "Hỗ trợ",
+    "support": "Trợ lý Ai",
     "language": "Ngôn ngữ",
     "account": "Tài khoản",
     "signUp": "Đăng ký",
@@ -682,7 +682,28 @@
     "failedToMarkRead": "Đánh dấu đã đọc thất bại",
     "failedToMarkAllRead": "Đánh dấu tất cả đã đọc thất bại",
     "orderNotification": "Thông báo đơn hàng",
-    "orderUpdated": "Đơn hàng của bạn đã được cập nhật"
+    "orderUpdated": "Đơn hàng của bạn đã được cập nhật",
+    "orderTitle": "Đơn hàng #{{id}}",
+    "insufficientBalance": {
+      "title": "Số dư không đủ",
+      "message": "Số dư khả dụng của bạn không đủ để thực hiện giao dịch rút tiền này."
+    },
+    "payoutSuccess": {
+      "title": "Yêu cầu rút tiền thành công",
+      "message": "Yêu cầu rút tiền của bạn đã được gửi thành công."
+    },
+    "payoutError": {
+      "title": "Rút tiền thất bại",
+      "message": "Không thể xử lý yêu cầu rút tiền: "
+    },
+    "exportInvoiceError": {
+      "title": "Xuất file thất bại",
+      "message": "Không thể xuất hóa đơn."
+    },
+    "exportHistoryError": {
+      "title": "Xuất file thất bại",
+      "message": "Không thể xuất lịch sử rút tiền: "
+    }
   },
   "roleRequest": {
     "title": "Đăng ký Chủ cửa hàng",
@@ -1524,28 +1545,6 @@
         "fillTemplate": "Điền mẫu",
         "cancel": "Hủy",
         "confirm": "Xác nhận"
-      },
-      "notifications": {
-        "insufficientBalance": {
-          "title": "Số dư không đủ",
-          "message": "Số dư khả dụng của bạn không đủ để thực hiện giao dịch rút tiền này."
-        },
-        "payoutSuccess": {
-          "title": "Yêu cầu rút tiền thành công",
-          "message": "Yêu cầu rút tiền của bạn đã được gửi thành công."
-        },
-        "payoutError": {
-          "title": "Rút tiền thất bại",
-          "message": "Không thể xử lý yêu cầu rút tiền: "
-        },
-        "exportInvoiceError": {
-          "title": "Xuất file thất bại",
-          "message": "Không thể xuất hóa đơn."
-        },
-        "exportHistoryError": {
-          "title": "Xuất file thất bại",
-          "message": "Không thể xuất lịch sử rút tiền: "
-        }
       }
     },
     "subscription": {
@@ -1749,8 +1748,24 @@
       "findProducts": "Tìm sản phẩm ...",
       "saleProducts": "Sản phẩm đang giảm giá",
       "productPrice": "Giá sản phẩm ...",
-      "today": "Hôm nay thứ mấy?"
+      "today": "Hôm nay thứ mấy?",
+      "myOrders": "Đơn hàng của tôi"
     }
+  },
+  "flashSale": {
+    "noFlashSale": "Chưa có chương trình Flash Sale nào",
+    "comeBackLater": "Vui lòng quay lại sau nhé!",
+    "backToHome": "Về trang chủ",
+    "flashSale": "FLASH SALE",
+    "endingIn": "Kết thúc trong",
+    "viewAll": "Xem tất cả",
+    "ongoing": "Đang diễn ra",
+    "upcoming": "Sắp diễn ra",
+    "ended": "Đã kết thúc",
+    "soldOut": "Hết hàng",
+    "remaining": "Còn lại:",
+    "comingSoon": "Sắp mở bán",
+    "noProducts": "Không có sản phẩm nào trong khung giờ này"
   },
   "shopDecoration": "Trang trí Shop",
   "shop": {
