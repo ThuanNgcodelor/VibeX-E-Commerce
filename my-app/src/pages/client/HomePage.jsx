@@ -29,16 +29,16 @@ export default function HomePage() {
         {/* Category Section */}
         <ShopeeCategoryGrid />
 
-        {/* Flash Sale Section - Giữ nguyên */}
+        {/* Flash Sale Section  */}
         <FlashSale />
 
-        {/* Personalized Recommendations - Chỉ hiển thị khi đã đăng nhập */}
+        {/* Personalized Recommendations */}
         <PersonalizedRecommendations />
 
         {/* Top Search Section */}
-        <TopSearch />
+        {/* <TopSearch /> */}
 
-        {/* Trending Products - Hiển thị cho tất cả (Guest + User) */}
+        {/* Trending Products */}
         <TrendingProducts />
 
         {/* Today's Suggestions Section */}

@@ -372,7 +372,15 @@ export default function Header() {
                   </Link>
                 </div>
               )}
-              <Link to="#" style={{ color: 'white', textDecoration: 'none', opacity: 0.9 }}>
+              <Link
+                to="#"
+                style={{ color: 'white', textDecoration: 'none', opacity: 0.9 }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  // Dispatch custom event to open AI Chat
+                  window.dispatchEvent(new CustomEvent('open-ai-chat'));
+                }}
+              >
                 {t('header.support')}
               </Link>
               <LanguageSwitcher />

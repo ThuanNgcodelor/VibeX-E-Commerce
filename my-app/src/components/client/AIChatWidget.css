@@ -55,13 +55,15 @@
 
 /* Header */
 .ai-chat-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    color: #333;
     padding: 16px 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    border-bottom: 1px solid #e0e0e0;
 }
+
 
 .ai-chat-header-title {
     display: flex;
@@ -71,8 +73,29 @@
     font-size: 16px;
 }
 
+.ai-header-icon svg {
+    fill: #EE4D2D;
+}
+
+.ai-header-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.ai-header-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #222;
+}
+
+.ai-header-status {
+    font-size: 11px;
+    color: #666;
+}
+
 .ai-chat-header-title .ai-icon {
     font-size: 24px;
+    color: #EE4D2D;
 }
 
 .ai-chat-header-actions {
@@ -80,10 +103,11 @@
     gap: 8px;
 }
 
+.ai-header-btn,
 .ai-chat-header-actions button {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(0, 0, 0, 0.04);
     border: none;
-    color: white;
+    color: #666;
     width: 32px;
     height: 32px;
     border-radius: 8px;
@@ -91,11 +115,13 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.2s;
+    transition: all 0.2s;
 }
 
+.ai-header-btn:hover,
 .ai-chat-header-actions button:hover {
-    background: rgba(255, 255, 255, 0.3);
+    background: rgba(0, 0, 0, 0.08);
+    color: #333;
 }
 
 /* Messages Area */
@@ -109,25 +135,30 @@
 /* Welcome Screen */
 .ai-chat-welcome {
     text-align: center;
-    padding: 20px;
+    padding: 40px 20px;
 }
 
-.ai-chat-welcome .ai-avatar {
-    font-size: 48px;
+.ai-welcome-icon {
     margin-bottom: 16px;
 }
 
+.ai-welcome-icon svg {
+    width: 64px;
+    height: 64px;
+}
+
 .ai-chat-welcome h3 {
-    color: #333;
+    color: #222;
     margin-bottom: 8px;
     font-size: 18px;
+    font-weight: 600;
 }
 
 .ai-chat-welcome p {
     color: #666;
     font-size: 14px;
-    line-height: 1.5;
-    margin-bottom: 20px;
+    line-height: 1.6;
+    margin-bottom: 24px;
 }
 
 /* Suggested Questions */
@@ -144,15 +175,17 @@
     padding: 8px 14px;
     border-radius: 20px;
     font-size: 13px;
-    color: #667eea;
+    color: #EE4D2D;
     cursor: pointer;
     transition: all 0.2s;
 }
 
 .ai-suggestion-chip:hover {
-    background: #667eea;
+    background: #EE4D2D;
     color: white;
-    border-color: #667eea;
+    border-color: #EE4D2D;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(238, 77, 45, 0.2);
 }
 
 /* Message Bubbles */
@@ -171,7 +204,7 @@
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #EE4D2D;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -189,7 +222,7 @@
 }
 
 .ai-message.user .ai-message-bubble {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #EE4D2D;
     color: white;
     border-bottom-right-radius: 4px;
 }
@@ -219,7 +252,7 @@
 .typing-indicator span {
     width: 8px;
     height: 8px;
-    background: #667eea;
+    background: #EE4D2D;
     border-radius: 50%;
     animation: typing 1.4s infinite ease-in-out;
 }
@@ -271,7 +304,7 @@
 }
 
 .ai-chat-input input:focus {
-    border-color: #667eea;
+    border-color: #EE4D2D;
 }
 
 .ai-chat-input input:disabled {
@@ -282,7 +315,7 @@
     width: 44px;
     height: 44px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #EE4D2D;
     color: white;
     border: none;
     cursor: pointer;
@@ -357,7 +390,7 @@
     scroll-snap-type: x mandatory;
     /* Webkit scrollbar styling */
     scrollbar-width: thin;
-    scrollbar-color: #667eea #f1f1f1;
+    scrollbar-color: #EE4D2D #f1f1f1;
 }
 
 .ai-carousel-wrapper::-webkit-scrollbar {
@@ -370,12 +403,12 @@
 }
 
 .ai-carousel-wrapper::-webkit-scrollbar-thumb {
-    background: #667eea;
+    background: #EE4D2D;
     border-radius: 3px;
 }
 
 .ai-carousel-wrapper::-webkit-scrollbar-thumb:hover {
-    background: #5568d3;
+    background: #d73d1f;
 }
 
 /* Product Card (Carousel Version) */
@@ -394,8 +427,8 @@
 
 .ai-product-card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
-    border-color: #667eea;
+    box-shadow: 0 4px 12px rgba(238, 77, 45, 0.15);
+    border-color: #EE4D2D;
 }
 
 .ai-product-image {
@@ -433,6 +466,7 @@
     overflow: hidden;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
 }
 
@@ -446,7 +480,7 @@
 .ai-product-btn {
     width: 100%;
     padding: 6px 8px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #EE4D2D;
     color: white;
     border: none;
     border-radius: 4px;
@@ -458,12 +492,12 @@
 
 .ai-product-btn:hover {
     transform: scale(1.02);
-    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 2px 8px rgba(238, 77, 45, 0.3);
 }
 
 .ai-more-products {
     font-size: 12px;
-    color: #667eea;
+    color: #EE4D2D;
     margin-top: 8px;
     text-align: center;
 }
@@ -474,7 +508,7 @@
         min-width: 120px;
         max-width: 120px;
     }
-    
+
     .ai-product-image {
         height: 120px;
     }
@@ -493,7 +527,7 @@
 }
 
 .ai-view-cart-btn {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #EE4D2D;
     color: white;
     border: none;
     padding: 8px 16px;
@@ -514,7 +548,7 @@
 }
 
 .ai-faq strong {
-    color: #667eea;
+    color: #EE4D2D;
 }
 
 /* Message content wrapper */
@@ -532,19 +566,19 @@
 
 /* Clickable Order ID Links */
 .ai-order-link {
-    color: #667eea;
+    color: #EE4D2D;
     text-decoration: underline;
     cursor: pointer;
     font-weight: 500;
     transition: all 0.2s ease;
     padding: 2px 4px;
     border-radius: 4px;
-    background: rgba(102, 126, 234, 0.1);
+    background: rgba(238, 77, 45, 0.1);
 }
 
 .ai-order-link:hover {
-    color: #764ba2;
-    background: rgba(102, 126, 234, 0.2);
+    color: #d73d1f;
+    background: rgba(238, 77, 45, 0.2);
     text-decoration: none;
 }
 

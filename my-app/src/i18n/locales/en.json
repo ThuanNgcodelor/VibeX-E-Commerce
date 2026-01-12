@@ -587,7 +587,11 @@
         "categories": "Categories",
         "flashSale": "Flash Sale",
         "seeAll": "See All",
-        "topSearch": "Top Search",
+        "viewAll": "View All →",
+        "topSearch": "TOP SEARCH",
+        "todaysSuggestions": "HOME-TODAY'S SUGGESTIONS",
+        "viewMore": "View More",
+        "top": "TOP",
         "dailyDiscover": "Daily Discover",
         "banner": {
             "slide1": "Super Deal",
@@ -596,7 +600,12 @@
         }
     },
     "recommendations": {
-        "title": "You may also like"
+        "title": "You may also like",
+        "forYou": "FOR YOU-MAYBE YOU'RE INTERESTED",
+        "because": "Because you viewed",
+        "trending": "TRENDING PRODUCTS",
+        "trendingBadge": "Trending",
+        "aiPick": "AI Pick"
     },
     "user": {
         "editProfile": "Edit Profile",

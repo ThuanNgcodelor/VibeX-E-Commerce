@@ -24,7 +24,7 @@ export default function TopSearch() {
             {t('home.viewAll')}
           </Link>
         </div>
-        
+
         <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '8px' }}>
           {topProducts.map((product) => (
             <Link
@@ -62,10 +62,10 @@ export default function TopSearch() {
                   fontSize: '10px',
                   fontWeight: 600
                 }}
-                >
-                  {t('home.top')}
-                </div>
-              
+              >
+                {t('home.top')}
+              </div>
+
               <div
                 style={{
                   width: '100%',
@@ -82,7 +82,7 @@ export default function TopSearch() {
               >
                 {product.image}
               </div>
-              
+
               <div style={{ fontSize: '12px', color: '#ee4d2d', marginBottom: '4px', fontWeight: 500 }}>
                 {t('search.sold')} {product.sales}
               </div>

@@ -181,7 +181,7 @@ export default function ChatBotWidget() {
             // Send automatic product link message
             await sendMessage(
               conversation.id,
-              'Tôi muốn hỏi về sản phẩm này:', // "I want to ask about this product"
+              'I would like to ask about this product:', // "I want to ask about this product"
               'PRODUCT_LINK',
               null, // imageId
               productId
@@ -207,7 +207,7 @@ export default function ChatBotWidget() {
     };
   }, []);
 
-  // Load conversations when chat opens
+  // Load conversations when chat opens OR in embedded mode on mount
   React.useEffect(() => {
     if (open && !minimized) {
       loadConversations();
