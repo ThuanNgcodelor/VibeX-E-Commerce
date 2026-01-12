@@ -43,9 +43,6 @@ public class FlashSaleProduct extends BaseEntity {
     // Optional: rejection reason
     private String rejectionReason;
 
-    // Optional: limit per user (null means unlimited/default to high)
-    private Integer quantityLimit;
-
     @OneToMany(mappedBy = "flashSaleProduct", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<FlashSaleProductSize> productSizes;
 }

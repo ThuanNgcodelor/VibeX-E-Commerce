@@ -15,12 +15,17 @@ import { useTranslation } from 'react-i18next'; // Added import
 
 export default function LiveWatchPage() {
     const { t } = useTranslation(); // Added hook
+    const { roomId } = useParams();
     const navigate = useNavigate();
     const videoRef = useRef(null);
+    const containerRef = useRef(null); // Added container ref
     const chatContainerRef = useRef(null);
     const stompClientRef = useRef(null);
     const [room, setRoom] = useState(null);
     const [messages, setMessages] = useState([]);
+
+    // Controls State
+    const [isMuted, setIsMuted] = useState(true);
 
     // Size Selection Modal State
     const [showSizeModal, setShowSizeModal] = useState(false);
@@ -390,19 +395,20 @@ export default function LiveWatchPage() {
                 }}>
                     {/* Video Section */}
                     <div>
-                        {/* Video Player */}
-                        <div style={{
+                        <div ref={containerRef} style={{    // Changed: Added ref here for fullscreen
                             position: 'relative',
                             background: '#000',
                             borderRadius: '8px',
                             overflow: 'hidden',
-                            paddingTop: '56.25%'
+                            paddingTop: '56.25%',
+                            // width: '100%', // Ensure width fills parent
                         }}>
                             <video
                                 ref={videoRef}
-                                controls
+                                // controls // Removed native controls
                                 autoPlay
                                 playsInline
+                                muted={isMuted}
                                 style={{
                                     position: 'absolute',
                                     top: 0,
@@ -412,7 +418,97 @@ export default function LiveWatchPage() {
                                 }}
                             />
 
-                            {/* Live Badge */}
+                            {/* Custom Controls Overlay */}
+                            <div style={{
+                                position: 'absolute',
+                                bottom: 0,
+                                left: 0,
+                                right: 0,
+                                background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)',
+                                padding: '10px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '5px',
+                                zIndex: 30, // Ensure above other overlays
+                                opacity: 1, // Always visible or use hover state if preferred
+                                transition: 'opacity 0.3s'
+                            }}>
+                                {/* Red Live Progress Bar - Static (No Seeking) */}
+                                <div style={{
+                                    width: '100%',
+                                    height: '4px',
+                                    background: '#444',
+                                    borderRadius: '2px',
+                                    overflow: 'hidden',
+                                    marginBottom: '5px'
+                                }}>
+                                    <div style={{
+                                        width: '100%',
+                                        height: '100%',
+                                        background: '#ee4d2d',
+                                        boxShadow: '0 0 10px #ee4d2d'
+                                    }}></div>
+                                </div>
+
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'white' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                        {/* Play/Pause (Optional, mostly just Pause for Live) - Skipping to keep it simple as requested "fixed" */}
+
+                                        {/* Volume */}
+                                        <button
+                                            onClick={() => {
+                                                if (videoRef.current) {
+                                                    videoRef.current.muted = !videoRef.current.muted;
+                                                    setIsMuted(videoRef.current.muted);
+                                                }
+                                            }}
+                                            style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: 0, fontSize: '20px' }}
+                                        >
+                                            {isMuted ? '🔇' : '🔊'}
+                                        </button>
+
+                                        {/* LIVE Badge */}
+                                        <div style={{
+                                            background: '#ee4d2d',
+                                            padding: '2px 6px',
+                                            borderRadius: '4px',
+                                            fontSize: '11px',
+                                            fontWeight: 'bold',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '4px'
+                                        }}>
+                                            <div style={{ width: '6px', height: '6px', background: 'white', borderRadius: '50%' }}></div>
+                                            LIVE
+                                        </div>
+
+                                        {/* Timer (Optional) */}
+                                        <span style={{ fontSize: '13px', marginLeft: '5px' }}>
+                                            {/* You can add a duration timer here if needed */}
+                                        </span>
+                                    </div>
+
+                                    {/* Fullscreen */}
+                                    <button
+                                        onClick={() => {
+                                            if (containerRef.current) {
+                                                if (!document.fullscreenElement) {
+                                                    containerRef.current.requestFullscreen().catch(err => {
+                                                        console.error(`Error attempting to enable fullscreen: ${err.message}`);
+                                                    });
+                                                } else {
+                                                    document.exitFullscreen();
+                                                }
+                                            }
+                                        }}
+                                        style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: 0, fontSize: '20px' }}
+                                    >
+                                        ⛶
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Live Badge (Top Left) - Kept existing */}
                             {room.status === 'LIVE' && (
                                 <div style={{
                                     position: 'absolute',
@@ -440,7 +536,7 @@ export default function LiveWatchPage() {
                                 </div>
                             )}
 
-                            {/* Viewer Count */}
+                            {/* Viewer Count - Kept existing */}
                             <div style={{
                                 position: 'absolute',
                                 top: '15px',
@@ -455,10 +551,10 @@ export default function LiveWatchPage() {
                                 {t('liveStream.watch.viewerCount', { count: viewerCount })}
                             </div>
 
-                            {/* Floating Reactions Overlay */}
+                            {/* Floating Reactions Overlay - Kept existing */}
                             <div style={{
                                 position: 'absolute',
-                                bottom: '20px',
+                                bottom: '60px', // Raised slightly to avoid controls
                                 right: '20px',
                                 width: '100px',
                                 height: '300px',
@@ -825,10 +921,10 @@ export default function LiveWatchPage() {
                         </div>
                     </div>
                 </div>
-            </main>
+            </main >
 
             {/* CSS */}
-            <style>{`
+            < style > {`
                 @keyframes pulse {
                     0%, 100% { opacity: 1; }
                     50% { opacity: 0.5; }
@@ -844,91 +940,93 @@ export default function LiveWatchPage() {
                     0% { transform: translateY(0) scale(1); opacity: 1; }
                     100% { transform: translateY(-200px) scale(1.5); opacity: 0; }
                 }
-            `}</style>
+            `}</style >
             {/* Size Selection Modal */}
-            {showSizeModal && selectedLiveProduct && (
-                <div style={{
-                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-                    background: 'rgba(0,0,0,0.7)', zIndex: 9999,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center'
-                }}>
+            {
+                showSizeModal && selectedLiveProduct && (
                     <div style={{
-                        background: '#333', padding: '20px', borderRadius: '8px',
-                        width: '90%', maxWidth: '400px', color: 'white'
+                        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                        background: 'rgba(0,0,0,0.7)', zIndex: 9999,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center'
                     }}>
-                        <h3 style={{ marginTop: 0 }}>{t('liveStream.watch.selectSizeTitle')}</h3>
+                        <div style={{
+                            background: '#333', padding: '20px', borderRadius: '8px',
+                            width: '90%', maxWidth: '400px', color: 'white'
+                        }}>
+                            <h3 style={{ marginTop: 0 }}>{t('liveStream.watch.selectSizeTitle')}</h3>
 
-                        <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
-                            {selectedLiveProduct.productImageUrl && (
-                                <img src={selectedLiveProduct.productImageUrl} style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '4px' }} alt="" />
-                            )}
-                            <div>
-                                <div style={{ fontWeight: 'bold' }}>{selectedLiveProduct.productName}</div>
-                                <div style={{ color: '#ee4d2d' }}>₫{selectedLiveProduct.livePrice?.toLocaleString()}</div>
-                            </div>
-                        </div>
-
-                        {loadingSizes ? (
-                            <div>{t('liveStream.watch.loadingInfo')}</div>
-                        ) : (
-                            <div style={{ marginBottom: '20px' }}>
-                                <div style={{ marginBottom: '8px', fontSize: '14px', color: '#ccc' }}>Kích thước:</div>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                                    {productSizes.map(size => {
-                                        const isSelected = selectedSizeId === size.id;
-                                        const isOutOfStock = size.stock <= 0;
-                                        return (
-                                            <button
-                                                key={size.id}
-                                                onClick={() => !isOutOfStock && setSelectedSizeId(size.id)}
-                                                disabled={isOutOfStock}
-                                                style={{
-                                                    padding: '6px 12px',
-                                                    border: isSelected ? '1px solid #ee4d2d' : '1px solid #555',
-                                                    background: isSelected ? 'rgba(238, 77, 45, 0.1)' : (isOutOfStock ? '#444' : 'transparent'),
-                                                    color: isSelected ? '#ee4d2d' : (isOutOfStock ? '#888' : 'white'),
-                                                    borderRadius: '4px',
-                                                    cursor: isOutOfStock ? 'not-allowed' : 'pointer',
-                                                    opacity: isOutOfStock ? 0.5 : 1
-                                                }}
-                                            >
-                                                {size.name}
-                                            </button>
-                                        );
-                                    })}
+                            <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+                                {selectedLiveProduct.productImageUrl && (
+                                    <img src={selectedLiveProduct.productImageUrl} style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '4px' }} alt="" />
+                                )}
+                                <div>
+                                    <div style={{ fontWeight: 'bold' }}>{selectedLiveProduct.productName}</div>
+                                    <div style={{ color: '#ee4d2d' }}>₫{selectedLiveProduct.livePrice?.toLocaleString()}</div>
                                 </div>
                             </div>
-                        )}
 
-                        <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-                            <button
-                                onClick={() => setShowSizeModal(false)}
-                                style={{
-                                    flex: 1, padding: '10px',
-                                    background: '#555', border: 'none', borderRadius: '4px',
-                                    color: 'white', cursor: 'pointer'
-                                }}
-                            >
-                                {t('liveStream.watch.cancel')}
-                            </button>
-                            <button
-                                onClick={handleConfirmAddToCart}
-                                disabled={!selectedSizeId || addingToCart}
-                                style={{
-                                    flex: 1, padding: '10px',
-                                    background: (!selectedSizeId || addingToCart) ? '#777' : '#ee4d2d',
-                                    border: 'none', borderRadius: '4px',
-                                    color: 'white', cursor: (!selectedSizeId || addingToCart) ? 'not-allowed' : 'pointer',
-                                    fontWeight: 'bold'
-                                }}
-                            >
-                                {addingToCart ? t('liveStream.watch.adding') : t('liveStream.watch.addToCart')}
-                            </button>
+                            {loadingSizes ? (
+                                <div>{t('liveStream.watch.loadingInfo')}</div>
+                            ) : (
+                                <div style={{ marginBottom: '20px' }}>
+                                    <div style={{ marginBottom: '8px', fontSize: '14px', color: '#ccc' }}>Kích thước:</div>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                                        {productSizes.map(size => {
+                                            const isSelected = selectedSizeId === size.id;
+                                            const isOutOfStock = size.stock <= 0;
+                                            return (
+                                                <button
+                                                    key={size.id}
+                                                    onClick={() => !isOutOfStock && setSelectedSizeId(size.id)}
+                                                    disabled={isOutOfStock}
+                                                    style={{
+                                                        padding: '6px 12px',
+                                                        border: isSelected ? '1px solid #ee4d2d' : '1px solid #555',
+                                                        background: isSelected ? 'rgba(238, 77, 45, 0.1)' : (isOutOfStock ? '#444' : 'transparent'),
+                                                        color: isSelected ? '#ee4d2d' : (isOutOfStock ? '#888' : 'white'),
+                                                        borderRadius: '4px',
+                                                        cursor: isOutOfStock ? 'not-allowed' : 'pointer',
+                                                        opacity: isOutOfStock ? 0.5 : 1
+                                                    }}
+                                                >
+                                                    {size.name}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+                                <button
+                                    onClick={() => setShowSizeModal(false)}
+                                    style={{
+                                        flex: 1, padding: '10px',
+                                        background: '#555', border: 'none', borderRadius: '4px',
+                                        color: 'white', cursor: 'pointer'
+                                    }}
+                                >
+                                    {t('liveStream.watch.cancel')}
+                                </button>
+                                <button
+                                    onClick={handleConfirmAddToCart}
+                                    disabled={!selectedSizeId || addingToCart}
+                                    style={{
+                                        flex: 1, padding: '10px',
+                                        background: (!selectedSizeId || addingToCart) ? '#777' : '#ee4d2d',
+                                        border: 'none', borderRadius: '4px',
+                                        color: 'white', cursor: (!selectedSizeId || addingToCart) ? 'not-allowed' : 'pointer',
+                                        fontWeight: 'bold'
+                                    }}
+                                >
+                                    {addingToCart ? t('liveStream.watch.adding') : t('liveStream.watch.addToCart')}
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 }
 

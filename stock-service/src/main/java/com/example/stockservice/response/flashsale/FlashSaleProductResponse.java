@@ -17,7 +17,6 @@ public class FlashSaleProductResponse {
     private int soldCount;
     private FlashSaleStatus status;
     private String rejectionReason;
-    private Integer quantityLimit;
 
     // Enrichment fields
     private String productName;

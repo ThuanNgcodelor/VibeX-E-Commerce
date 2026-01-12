@@ -20,7 +20,6 @@ const ShopFlashSale = () => {
     const [selectedSessionId, setSelectedSessionId] = useState('');
     const [selectedProductId, setSelectedProductId] = useState('');
     const [salePrice, setSalePrice] = useState('');
-    const [quantityLimit, setQuantityLimit] = useState(''); // State for limit
 
     const [selectedProductData, setSelectedProductData] = useState(null);
     const [sizeConfig, setSizeConfig] = useState({}); // { [sizeId]: { quantity: 0, salePrice: 0 } }
@@ -115,14 +114,12 @@ const ShopFlashSale = () => {
                 sessionId: selectedSessionId,
                 productId: selectedProductId,
                 salePrice: minPrice,
-                sizes: sizesPayload,
-                quantityLimit: quantityLimit ? parseInt(quantityLimit) : null
+                sizes: sizesPayload
             });
             alert(t('shopOwner.flashSale.successMessage'));
             fetchMyRegistrations();
             // Reset form
             setSalePrice('');
-            setQuantityLimit('');
             setSizeConfig({});
             setSelectedProductId('');
             setIsRegistering(false);
@@ -321,24 +318,7 @@ const ShopFlashSale = () => {
                                     )}
 
                                     {/* Global Sale Price Input Removed - Handled per size */}
-                                    {/* Limit Input */}
-                                    <div className="row">
-                                        <div className="col-md-12">
-                                            <div className="mb-3">
-                                                <label className="form-label">
-                                                    Giới hạn mua mỗi người <small className="text-muted">(Để trống nếu không giới hạn)</small>
-                                                </label>
-                                                <input
-                                                    type="number"
-                                                    className="form-control"
-                                                    value={quantityLimit}
-                                                    onChange={e => setQuantityLimit(e.target.value)}
-                                                    min="1"
-                                                    placeholder="Ví dụ: 1, 2, 5..."
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
+
                                 </div>
                             </div>
                         </div>

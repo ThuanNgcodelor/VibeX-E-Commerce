@@ -3,7 +3,9 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import shopCoinAPI from "../../../api/shopCoin/shopCoinAPI.js";
 import "../../../assets/admin/css/ShopCoin.css";
+import "../../../assets/admin/css/ShopCoin.css";
 import "./DailyCheckIn.css";
+import Swal from "sweetalert2";
 
 export default function CoinPage() {
     const { t } = useTranslation();
@@ -55,19 +57,35 @@ export default function CoinPage() {
     const handleClaimDynamicMission = async (missionId, reward) => {
         try {
             await shopCoinAPI.claimMissionReward(missionId);
-            alert(t('coins.claimSuccess', { reward }));
+            Swal.fire({
+                icon: 'success',
+                title: t('coins.claimSuccess', { reward }),
+                confirmButtonText: t('common.ok'),
+                confirmButtonColor: '#ee4d2d'
+            });
             fetchMyMissions();
             const coinResp = await shopCoinAPI.getMyShopCoins();
             setCoins(coinResp?.points ?? 0);
         } catch (error) {
             console.error("Claim failed", error);
-            alert(error.response?.data?.message || t('coins.cannotClaimReward'));
+            Swal.fire({
+                icon: 'error',
+                title: t('common.error'),
+                text: error.response?.data?.message || t('coins.cannotClaimReward'),
+                confirmButtonText: t('common.ok'),
+                confirmButtonColor: '#ee4d2d'
+            });
         }
     };
 
     const handleDailyCheckIn = async () => {
         if (hasCheckedIn) {
-            alert(t('coins.alreadyCheckedIn'));
+            Swal.fire({
+                icon: 'info',
+                title: t('coins.alreadyCheckedIn'),
+                confirmButtonText: t('common.ok'),
+                confirmButtonColor: '#ee4d2d'
+            });
             return;
         }
 
@@ -76,68 +94,167 @@ export default function CoinPage() {
             setCoins(result.points);
             setHasCheckedIn(true);
             setConsecutiveDays(result.consecutiveDays);
-            alert(t('coins.checkInSuccess', { points: result.points }));
+            setHasCheckedIn(true);
+            setConsecutiveDays(result.consecutiveDays);
+            Swal.fire({
+                icon: 'success',
+                title: t('coins.checkInSuccess', { points: result.points }),
+                text: t('coins.dailyCheckinHint') || "Check in daily, get big reward on day 7",
+                confirmButtonText: t('common.ok'),
+                confirmButtonColor: '#ee4d2d'
+            });
         } catch (error) {
             console.error('Full check-in error:', error);
             const errorMessage = error.response?.data?.message ||
                 error.response?.data?.error ||
                 error.message ||
                 t('coins.cannotCheckIn');
-            alert(errorMessage);
+            Swal.fire({
+                icon: 'error',
+                title: t('common.error'),
+                text: errorMessage,
+                confirmButtonText: t('common.ok'),
+                confirmButtonColor: '#ee4d2d'
+            });
         }
     };
 
     const handleMissionAction = (mission) => {
+        const now = Date.now();
+        const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+
         if (mission.actionCode === 'VIEW_PRODUCT') {
-            const startTime = localStorage.getItem('mission_view_product_start');
-            if (startTime) {
-                const elapsed = Date.now() - parseInt(startTime);
-                if (elapsed >= 10000) {
-                    shopCoinAPI.performViewProductMission()
-                        .then(() => {
-                            alert(t('coins.missionUpdated'));
-                            fetchMyMissions();
-                            localStorage.removeItem('mission_view_product_start');
-                        })
-                        .catch(e => alert(t('common.error') + ": " + (e.response?.data?.message || e.message)));
-                    return;
-                } else {
-                    alert(t('coins.viewProductMore', { seconds: (10 - elapsed / 1000).toFixed(0) }));
-                    return;
+            const startTimeStr = localStorage.getItem('mission_view_product_start');
+            let isValidSession = false;
+            let elapsed = 0;
+
+            if (startTimeStr) {
+                const startTime = parseInt(startTimeStr);
+                if (!isNaN(startTime)) {
+                    const sessionAge = now - startTime;
+                    if (sessionAge < SESSION_TIMEOUT) {
+                        isValidSession = true;
+                        elapsed = sessionAge;
+                    }
                 }
             }
-            localStorage.setItem('mission_view_product_start', Date.now());
-            navigate('/shop');
+
+            if (!isValidSession) {
+                localStorage.setItem('mission_view_product_start', now);
+                navigate('/shop');
+                return;
+            }
+
+            // Check if enough time has passed
+            if (elapsed >= 10000) {
+                shopCoinAPI.performViewProductMission()
+                    .then(() => {
+                        Swal.fire({
+                            icon: 'success',
+                            title: t('coins.missionUpdated'),
+                            confirmButtonText: t('common.ok'),
+                            confirmButtonColor: '#ee4d2d'
+                        });
+                        fetchMyMissions();
+                        localStorage.removeItem('mission_view_product_start');
+                    })
+                    .catch(e => {
+                        Swal.fire({
+                            icon: 'error',
+                            title: t('common.error'),
+                            text: e.response?.data?.message || e.message,
+                            confirmButtonText: t('common.ok'),
+                            confirmButtonColor: '#ee4d2d'
+                        });
+                    });
+            } else {
+                Swal.fire({
+                    icon: 'info',
+                    title: t('common.processing'),
+                    text: t('coins.viewProductMore', { seconds: (10 - elapsed / 1000).toFixed(0) }),
+                    confirmButtonText: t('coins.doMission') || "Go to Mission",
+                    confirmButtonColor: '#ee4d2d'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        navigate('/shop');
+                    }
+                });
+            }
         } else if (mission.actionCode === 'VIEW_CART') {
-            const startTime = localStorage.getItem('mission_view_cart_start');
-            if (startTime) {
-                const elapsed = Date.now() - parseInt(startTime);
-                if (elapsed >= 5000) {
-                    shopCoinAPI.performMissionAction('VIEW_CART')
-                        .then(async () => {
-                            alert(t('coins.viewCartComplete'));
-                            fetchMyMissions();
-                            localStorage.removeItem('mission_view_cart_start');
-                            const coinResp = await shopCoinAPI.getMyShopCoins();
-                            setCoins(coinResp?.points ?? 0);
-                        })
-                        .catch(e => alert(t('common.error') + ": " + (e.response?.data?.message || e.message)));
-                    return;
-                } else {
-                    alert(t('coins.viewCartMore', { seconds: (5 - elapsed / 1000).toFixed(0) }));
-                    navigate('/cart');
-                    return;
+            const startTimeStr = localStorage.getItem('mission_view_cart_start');
+            let isValidSession = false;
+            let elapsed = 0;
+
+            if (startTimeStr) {
+                const startTime = parseInt(startTimeStr);
+                if (!isNaN(startTime)) {
+                    const sessionAge = now - startTime;
+                    if (sessionAge < SESSION_TIMEOUT) {
+                        isValidSession = true;
+                        elapsed = sessionAge;
+                    }
                 }
             }
-            localStorage.setItem('mission_view_cart_start', Date.now());
-            navigate('/cart');
+
+            if (!isValidSession) {
+                localStorage.setItem('mission_view_cart_start', now);
+                navigate('/cart');
+                return;
+            }
+
+            if (elapsed >= 5000) {
+                shopCoinAPI.performMissionAction('VIEW_CART')
+                    .then(async () => {
+                        Swal.fire({
+                            icon: 'success',
+                            title: t('coins.viewCartComplete'),
+                            confirmButtonText: t('common.ok'),
+                            confirmButtonColor: '#ee4d2d'
+                        });
+                        fetchMyMissions();
+                        localStorage.removeItem('mission_view_cart_start');
+                        const coinResp = await shopCoinAPI.getMyShopCoins();
+                        setCoins(coinResp?.points ?? 0);
+                    })
+                    .catch(e => {
+                        Swal.fire({
+                            icon: 'error',
+                            title: t('common.error'),
+                            text: e.response?.data?.message || e.message,
+                            confirmButtonText: t('common.ok'),
+                            confirmButtonColor: '#ee4d2d'
+                        });
+                    });
+            } else {
+                Swal.fire({
+                    icon: 'info',
+                    title: t('common.processing'),
+                    text: t('coins.viewCartMore', { seconds: (5 - elapsed / 1000).toFixed(0) }),
+                    confirmButtonText: t('coins.doMission') || "Go to Mission",
+                    confirmButtonColor: '#ee4d2d'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        navigate('/cart');
+                    }
+                });
+            }
         } else if (mission.actionCode === 'FOLLOW_SHOP') {
-            alert(t('coins.followShopHint'));
+            Swal.fire({
+                icon: 'info',
+                title: t('coins.followShopHint'),
+                confirmButtonText: t('common.ok'),
+                confirmButtonColor: '#ee4d2d'
+            });
             navigate('/');
         } else if (mission.actionCode === 'REVIEW_ORDER') {
             navigate('/information/orders');
         } else {
-            alert(t('coins.doMission'));
+            Swal.fire({
+                icon: 'info',
+                title: t('coins.doMission'),
+                confirmButtonText: t('common.ok'),
+                confirmButtonColor: '#ee4d2d'
+            });
         }
     };
 

@@ -15,7 +15,6 @@ public class FlashSaleProductRegistrationRequest {
     // PREVIOUS: private int flashSaleStock;
     // NEW: List of sizes
     private List<FlashSaleSizeReq> sizes;
-    private Integer quantityLimit;
 
     @Data
     @AllArgsConstructor

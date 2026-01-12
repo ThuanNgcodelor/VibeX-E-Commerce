@@ -24,18 +24,12 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.scheduling.annotation.Async;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.scripting.support.ResourceScriptSource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
@@ -165,7 +159,7 @@ public class FlashSaleService {
                 .flashSaleStock(totalFlashSaleStock)
                 .soldCount(0)
                 .status(FlashSaleStatus.PENDING)
-                .quantityLimit(request.getQuantityLimit())
+                .status(FlashSaleStatus.PENDING)
                 .productSizes(flashSaleSizes)
                 .build();
 
@@ -306,7 +300,6 @@ public class FlashSaleService {
                 .productName(product != null ? product.getName() : "Unknown Product")
                 .productImageId(product != null ? product.getImageId() : null)
                 .shopName(shopName)
-                .quantityLimit(fsp.getQuantityLimit())
                 .build();
     }
 
@@ -456,8 +449,8 @@ public class FlashSaleService {
 
         // 3. EXECUTE LUA SCRIPT
         // Now cache is guaranteed to be there (unless product is invalid)
-        FlashSaleProduct fsp = findActiveFlashSaleProduct(productId);
-        int limit = (fsp != null && fsp.getQuantityLimit() != null) ? fsp.getQuantityLimit() : 0;
+        // FlashSaleProduct fsp = findActiveFlashSaleProduct(productId);
+        int limit = 0; // Removed quantity limit feature
         long ttl = 900; // Reservation TTL
 
         Long result = stringRedisTemplate.execute(
@@ -537,8 +530,8 @@ public class FlashSaleService {
     }
 
     public void cancelFlashSaleReservation(String orderId, String productId, String sizeId, String userId) {
-        FlashSaleProduct fsp = findActiveFlashSaleProduct(productId);
-        int limit = (fsp != null && fsp.getQuantityLimit() != null) ? fsp.getQuantityLimit() : 0;
+        // FlashSaleProduct fsp = findActiveFlashSaleProduct(productId);
+        int limit = 0; // Removed quantity limit feature
 
         String stockKey = FLASHSALE_STOCK_KEY_PREFIX + productId + ":" + sizeId;
         String boughtKey = FLASHSALE_BOUGHT_KEY_PREFIX + userId + ":" + productId;

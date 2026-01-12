@@ -21,6 +21,7 @@ import { getShopOwnerInfo } from '../../api/user';
 import { LOCAL_BASE_URL } from '../../config/config';
 import imgFallback from '../../assets/images/shop/6.png';
 import { uploadImage } from '../../api/image';
+import { getToken } from "../../api/auth.js";
 
 export default function LiveManagePage() {
     const { t, i18n } = useTranslation();
@@ -30,6 +31,7 @@ export default function LiveManagePage() {
         i18n.changeLanguage(newLang);
     };
     const videoRef = useRef(null);
+    const containerRef = useRef(null);
 
     const [step, setStep] = useState('list'); // list, create, streaming
     const [rooms, setRooms] = useState([]);
@@ -93,7 +95,7 @@ export default function LiveManagePage() {
     // Setup WebSocket for chat when streaming
     useEffect(() => {
         if (step === 'streaming' && currentRoom?.id) {
-            const token = localStorage.getItem('token');
+            const token = getToken();
             const wsUrl = (LOCAL_BASE_URL || 'http://localhost:8080') + '/ws/live';
 
             const client = new Client({
@@ -1063,7 +1065,7 @@ export default function LiveManagePage() {
 
                                 {/* Video Preview */}
                                 {currentRoom.status === 'LIVE' && (
-                                    <div style={{
+                                    <div ref={containerRef} style={{
                                         background: '#000',
                                         borderRadius: '8px',
                                         overflow: 'hidden',
@@ -1167,9 +1169,12 @@ export default function LiveManagePage() {
                                                 {/* Fullscreen */}
                                                 <button
                                                     onClick={() => {
-                                                        if (videoRef.current) {
-                                                            if (videoRef.current.requestFullscreen) videoRef.current.requestFullscreen();
-                                                            else if (videoRef.current.webkitRequestFullscreen) videoRef.current.webkitRequestFullscreen();
+                                                        if (containerRef.current) {
+                                                            if (!document.fullscreenElement) {
+                                                                containerRef.current.requestFullscreen().catch(err => console.error(err));
+                                                            } else {
+                                                                document.exitFullscreen();
+                                                            }
                                                         }
                                                     }}
                                                     style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: 0, fontSize: '16px' }}
