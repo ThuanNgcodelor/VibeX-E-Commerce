@@ -1,0 +1,787 @@
+@startuml
+!theme plain
+hide circle
+skinparam linetype ortho
+skinparam dpi 300
+' Increased font size for better visibility
+skinparam defaultFontName Arial
+skinparam defaultFontSize 20
+skinparam roundCorner 10
+skinparam classAttributeIconSize 0
+' Styling
+skinparam class {
+    BackgroundColor White
+    ArrowColor #2C3E50
+    BorderColor #2C3E50
+    HeaderBackgroundColor #ECEFF1
+}
+' Entities
+entity "USERS" as USERS {
+  *id : varchar <<PK>>
+  --
+  creation_timestamp : datetime
+  update_timestamp : datetime
+  username : varchar
+  password : varchar
+  email : varchar
+  primary_role : enum
+  active : enum
+  first_name : varchar
+  last_name : varchar
+  phone_number : varchar
+  gender : varchar
+  about_me : text
+  birth_date : date
+  image_url : varchar
+}
+entity "ADDRESSES" as ADDRESSES {
+  *id : varchar <<PK>>
+  --
+  creation_timestamp : datetime
+  update_timestamp : datetime
+  address_name : varchar
+  city : varchar
+  district : varchar
+  district_id : int
+  district_name : varchar
+  is_default : bit
+  latitude : double
+  longitude : double
+  province : varchar
+  province_id : int
+  province_name : varchar
+  recipient_name : varchar
+  recipient_phone : varchar
+  street_address : text
+  user_id : varchar <<FK>>
+  ward_code : varchar
+  ward_name : varchar
+}
+entity "ADMIN_WALLET" as ADMIN_WALLET {
+  *id : varchar <<PK>>
+  --
+  creation_timestamp : datetime
+  update_timestamp : datetime
+  admin_id : varchar <<FK>>
+  balance : decimal
+  total_commission : decimal
+  total_subscription_revenue : decimal
+}
+entity "ADMIN_WALLET_ENTRY" as ADMIN_WALLET_ENTRY {
+  *id : varchar <<PK>>
+  --
+  creation_timestamp : datetime
+  update_timestamp : datetime
+  admin_wallet_id : varchar <<FK>>
+  amount : decimal
+  balance_after : decimal
+  balance_before : decimal
+  description : longtext
+  source_id : varchar
+  type : enum
+}
+entity "ADVERTISEMENTS" as ADVERTISEMENTS {
+  *id : varchar <<PK>>
+  --
+  creation_timestamp : datetime
+  update_timestamp : datetime
+  ad_type : varchar
+  description : text
+  duration_days : int
+  end_date : datetime
+  image_url : varchar
+  placement : varchar
+  rejection_reason : varchar
+  shop_id : varchar <<FK>>
+  start_date : datetime
+  status : enum
+  target_url : varchar
+  title : varchar
+}
+entity "BANNERS" as BANNERS {
+  *id : varchar <<PK>>
+  --
+  alt_text : varchar
+  click_count : int
+  created_at : datetime
+  created_by : varchar
+  description : text
+  display_order : int
+  end_date : datetime
+  image_id : varchar
+  image_url : varchar
+  is_active : bit
+  link_type : enum
+  link_url : varchar
+  open_in_new_tab : bit
+  position : enum
+  start_date : datetime
+  target_id : varchar
+  title : varchar
+  updated_at : datetime
+  view_count : int
+}
+entity "BEHAVIOR_LOGS" as BEHAVIOR_LOGS {
+  *id : varchar <<PK>>
+  --
+  created_timestamp : datetime
+  updated_timestamp : datetime
+  duration_seconds : int
+  event_type : enum
+  product_id : varchar <<FK>>
+  search_keyword : varchar
+  session_id : varchar
+  shop_id : varchar <<FK>>
+  source : varchar
+  user_id : varchar <<FK>>
+}
+entity "CART_ITEMS" as CART_ITEMS {
+  *id : varchar <<PK>>
+  --
+  created_timestamp : datetime
+  updated_timestamp : datetime
+  is_flash_sale : bit
+  is_from_live : bit
+  live_price : double
+  live_product_id : varchar
+  live_room_id : varchar
+  original_price : double
+  quantity : int
+  total_price : double
+  unit_price : double
+  cart_id : varchar <<FK>>
+  product_id : varchar <<FK>>
+  size_id : varchar <<FK>>
+}
+entity "CARTS" as CARTS {
+  *id : varchar <<PK>>
+  --
+  created_timestamp : datetime
+  updated_timestamp : datetime
+  total_amount : double
+  user_id : varchar <<FK>>
+}
+entity "CATEGORY_PRODUCTS" as CATEGORY_PRODUCTS {
+  *id : varchar <<PK>>
+  --
+  created_timestamp : datetime
+  updated_timestamp : datetime
+  description : varchar
+  image_id : varchar
+  name : varchar
+}
+entity "CONVERSATIONS" as CONVERSATIONS {
+  *id : varchar <<PK>>
+  --
+  client_id : varchar <<FK>>
+  client_unread_count : int
+  created_at : datetime
+  last_message_at : datetime
+  last_message_content : text
+  last_message_sender_id : varchar
+  product_id : varchar <<FK>>
+  shop_owner_id : varchar <<FK>>
+  shop_owner_unread_count : int
+  status : enum
+  title : varchar
+  updated_at : datetime
+}
+entity "FILES" as FILES {
+  *id : varchar <<PK>>
+  --
+  file_path : varchar
+  type : varchar
+}
+entity "FLASH_SALE_PRODUCT_SIZES" as FLASH_SALE_PRODUCT_SIZES {
+  *id : varchar <<PK>>
+  --
+  created_timestamp : datetime
+  updated_timestamp : datetime
+  flash_sale_price : double
+  flash_sale_stock : int
+  size_id : varchar <<FK>>
+  sold_count : int
+  flash_sale_product_id : varchar <<FK>>
+}
+entity "FLASH_SALE_PRODUCTS" as FLASH_SALE_PRODUCTS {
+  *id : varchar <<PK>>
+  --
+  created_timestamp : datetime
+  updated_timestamp : datetime
+  flash_sale_stock : int
+  original_price : double
+  product_id : varchar <<FK>>
+  quantity_limit : int
+  rejection_reason : varchar
+  sale_price : double
+  session_id : varchar <<FK>>
+  shop_id : varchar <<FK>>
+  sold_count : int
+  status : enum
+}
+entity "FLASH_SALE_SESSIONS" as FLASH_SALE_SESSIONS {
+  *id : varchar <<PK>>
+  --
+  created_timestamp : datetime
+  updated_timestamp : datetime
+  description : varchar
+  end_time : datetime
+  name : varchar
+  start_time : datetime
+  status : enum
+}
+entity "IDENTIFICATION" as IDENTIFICATION {
+  *id : varchar <<PK>>
+  --
+  created_at : datetime
+  full_name : varchar
+  identification_number : varchar
+  identification_type : enum
+  image_back_url : longtext
+  image_front_url : longtext
+  updated_at : datetime
+  user_id : varchar <<FK>>
+}
+entity "INVENTORY_LOGS" as INVENTORY_LOGS {
+  *id : varchar <<PK>>
+  --
+  created_timestamp : datetime
+  updated_timestamp : datetime
+  change_amount : int
+  current_stock : int
+  product_id : varchar <<FK>>
+  product_name : varchar
+  reason : varchar
+  size_id : varchar <<FK>>
+  size_name : varchar
+  type : enum
+  user_id : varchar <<FK>>
+}
+entity "LIVE_CHATS" as LIVE_CHATS {
+  *id : varchar <<PK>>
+  --
+  avatar_url : varchar
+  created_at : datetime
+  is_pinned : bit
+  live_room_id : varchar <<FK>>
+  message : text
+  product_id : varchar
+  product_name : varchar
+  type : enum
+  user_id : varchar <<FK>>
+  username : varchar
+}
+entity "LIVE_PRODUCTS" as LIVE_PRODUCTS {
+  *id : varchar <<PK>>
+  --
+  created_at : datetime
+  discount_percent : double
+  display_order : int
+  is_featured : bit
+  live_price : double
+  original_price : double
+  product_id : varchar <<FK>>
+  product_image_url : varchar
+  product_name : varchar
+  quantity_limit : int
+  sold_count : int
+  stock_available : int
+  live_room_id : varchar <<FK>>
+}
+entity "LIVE_ROOMS" as LIVE_ROOMS {
+  *id : varchar <<PK>>
+  --
+  created_at : datetime
+  description : text
+  ended_at : datetime
+  peak_viewers : int
+  shop_owner_id : varchar <<FK>>
+  started_at : datetime
+  status : enum
+  stream_key : varchar
+  thumbnail_url : varchar
+  title : varchar
+  total_orders : int
+  total_revenue : double
+  updated_at : datetime
+  viewer_count : int
+}
+entity "MESSAGES" as MESSAGES {
+  *id : varchar <<PK>>
+  --
+  content : text
+  conversation_id : varchar <<FK>>
+  created_at : datetime
+  delivery_status : enum
+  image_id : varchar
+  is_read : bit
+  message_type : enum
+  product_id : varchar
+  read_at : datetime
+  sender_id : varchar
+  sender_type : enum
+  updated_at : datetime
+}
+entity "MISSIONS" as MISSIONS {
+  *id : varchar <<PK>>
+  --
+  creation_timestamp : datetime
+  update_timestamp : datetime
+  action_code : varchar
+  description : text
+  reward_amount : bigint
+  target_count : int
+  title : varchar
+}
+entity "NOTIFICATIONS" as NOTIFICATIONS {
+  *id : varchar <<PK>>
+  --
+  creation_timestamp : datetime
+  message : varchar
+  order_id : varchar
+  is_read : bit
+  shop_id : varchar
+  is_shop_owner_notification : bit
+  user_id : varchar <<FK>>
+}
+entity "ORDER_ITEMS" as ORDER_ITEMS {
+  *id : varchar <<PK>>
+  --
+  created_at : datetime
+  updated_at : datetime
+  is_flash_sale : bit
+  product_id : varchar <<FK>>
+  quantity : int
+  size_id : varchar
+  total_price : double
+  unit_price : double
+  order_id : varchar <<FK>>
+}
+entity "ORDERS" as ORDERS {
+  *id : varchar <<PK>>
+  --
+  created_at : datetime
+  updated_at : datetime
+  address_id : varchar <<FK>>
+  cancel_reason : varchar
+  order_status : enum
+  payment_method : varchar
+  recipient_name : varchar
+  recipient_phone : varchar
+  return_reason : varchar
+  shipping_fee : decimal
+  total_price : double
+  user_id : varchar <<FK>>
+  voucher_discount : decimal
+  voucher_id : varchar
+}
+entity "PAYMENTS" as PAYMENTS {
+  *id : varchar <<PK>>
+  --
+  amount : decimal
+  bank_code : varchar
+  card_type : varchar
+  created_at : datetime
+  currency : varchar
+  gateway_txn_no : varchar
+  message : varchar
+  method : enum
+  order_data : text
+  order_id : varchar <<FK>>
+  payment_url : varchar
+  raw_callback : text
+  response_code : varchar
+  return_url : varchar
+  status : enum
+  txn_ref : varchar
+  updated_at : datetime
+}
+entity "PAYOUT_BATCH" as PAYOUT_BATCH {
+  *id : varchar <<PK>>
+  --
+  created_at : datetime
+  updated_at : datetime
+  account_holder_name : varchar
+  amount : decimal
+  bank_account_number : varchar
+  bank_name : varchar
+  description : varchar
+  failure_reason : text
+  processed_at : datetime
+  shop_owner_id : varchar <<FK>>
+  status : enum
+  transaction_ref : varchar
+}
+entity "PLATFORM_VOUCHERS" as PLATFORM_VOUCHERS {
+  *id : varchar <<PK>>
+  --
+  created_at : datetime
+  updated_at : datetime
+  code : varchar
+  description : varchar
+  discount_type : enum
+  discount_value : decimal
+  end_at : datetime
+  max_discount_amount : decimal
+  min_order_value : decimal
+  quantity_total : int
+  quantity_used : int
+  start_at : datetime
+  status : enum
+  title : varchar
+}
+entity "PRODUCT_ANALYTICS" as PRODUCT_ANALYTICS {
+  *product_id : varchar <<PK,FK>>
+  --
+  cart_count : bigint
+  conversion_rate : double
+  created_at : datetime
+  last_viewed_at : datetime
+  purchase_count : bigint
+  shop_id : varchar
+  unique_viewers : bigint
+  updated_at : datetime
+  view_count : bigint
+}
+entity "PRODUCT_IMAGES" as PRODUCT_IMAGES {
+  product_id : varchar <<FK>>
+  --
+  image_id : varchar
+}
+entity "PRODUCTS" as PRODUCTS {
+  *id : varchar <<PK>>
+  --
+  created_timestamp : datetime
+  updated_timestamp : datetime
+  attribute_json : text
+  description : longtext
+  discount_percent : double
+  image_id : varchar
+  name : varchar
+  original_price : double
+  price : double
+  status : enum
+  user_id : varchar <<FK>>
+  category_id : varchar <<FK>>
+}
+entity "REVIEW_IMAGES" as REVIEW_IMAGES {
+  review_id : varchar <<FK>>
+  --
+  image_id : varchar
+}
+entity "REVIEWS" as REVIEWS {
+  *id : varchar <<PK>>
+  --
+  comment : text
+  created_at : datetime
+  product_id : varchar <<FK>>
+  rating : int
+  replied_at : datetime
+  reply : text
+  user_avatar : varchar
+  user_id : varchar <<FK>>
+  username : varchar
+}
+entity "ROLE_REQUESTS" as ROLE_REQUESTS {
+  *id : varchar <<PK>>
+  --
+  creation_timestamp : datetime
+  update_timestamp : datetime
+  admin_note : text
+  reason : text
+  rejection_reason : text
+  requested_role : enum
+  reviewed_at : datetime
+  reviewed_by : varchar
+  status : enum
+  user_id : varchar <<FK>>
+}
+entity "SEARCH_ANALYTICS" as SEARCH_ANALYTICS {
+  *id : varchar <<PK>>
+  --
+  click_count : bigint
+  created_at : datetime
+  date : date
+  keyword : varchar
+  search_count : bigint
+  updated_at : datetime
+}
+entity "SHIPPING_ORDERS" as SHIPPING_ORDERS {
+  *id : varchar <<PK>>
+  --
+  created_at : datetime
+  updated_at : datetime
+  cod_amount : decimal
+  expected_delivery_time : datetime
+  ghn_order_code : varchar
+  ghn_response : text
+  last_lat : double
+  last_lng : double
+  last_ts : datetime
+  order_id : varchar <<FK>>
+  shipping_fee : decimal
+  status : varchar
+  tracking_history : text
+  weight : int
+}
+entity "SHOP_COINS" as SHOP_COINS {
+  *id : varchar <<PK>>
+  --
+  creation_timestamp : datetime
+  update_timestamp : datetime
+  check_in_date : date
+  consecutive_days : int
+  is_checked_in_today : bit
+  last_check_in_date : date
+  last_review_mission_date : date
+  last_view_product_date : date
+  points : bigint
+  user_id : varchar <<FK>>
+}
+entity "SHOP_DECORATIONS" as SHOP_DECORATIONS {
+  *id : bigint <<PK>>
+  --
+  content : text
+  created_at : datetime
+  shop_id : varchar <<FK>>
+  updated_at : datetime
+}
+entity "SHOP_FOLLOWS" as SHOP_FOLLOWS {
+  *id : varchar <<PK>>
+  --
+  creation_timestamp : datetime
+  update_timestamp : datetime
+  follower_id : varchar <<FK>>
+  shop_id : varchar <<FK>>
+}
+entity "SHOP_LEDGER" as SHOP_LEDGER {
+  *id : varchar <<PK>>
+  --
+  created_at : datetime
+  updated_at : datetime
+  balance_available : decimal
+  balance_pending : decimal
+  shop_owner_id : varchar <<FK>>
+  total_commission : decimal
+  total_earnings : decimal
+  total_payouts : decimal
+}
+entity "SHOP_LEDGER_ENTRY" as SHOP_LEDGER_ENTRY {
+  *id : varchar <<PK>>
+  --
+  created_at : datetime
+  updated_at : datetime
+  amount_gross : decimal
+  amount_net : decimal
+  balance_after : decimal
+  balance_before : decimal
+  commission_fixed : decimal
+  commission_freeship : decimal
+  commission_payment : decimal
+  commission_total : decimal
+  commission_voucher : decimal
+  description : text
+  entry_type : enum
+  order_id : varchar
+  other_fees : decimal
+  ref_txn : varchar
+  shipping_fee : decimal
+  shop_owner_id : varchar <<FK>>
+}
+entity "SHOP_OWNERS" as SHOP_OWNERS {
+  *user_id : varchar <<PK,FK>>
+  --
+  active : enum
+  address : varchar
+  created_at : datetime
+  district_id : int
+  district_name : varchar
+  email : varchar
+  followers_count : int
+  following_count : int
+  profile_image_url : varchar
+  latitude : double
+  longitude : double
+  owner_name : varchar
+  phone : varchar
+  province_id : int
+  province_name : varchar
+  shop_name : varchar
+  street_address : text
+  total_ratings : int
+  updated_at : datetime
+  verified : bit
+  ward_code : varchar
+  ward_name : varchar
+  header_image_url : varchar
+  header_style : varchar
+}
+entity "SHOP_SUBSCRIPTIONS" as SHOP_SUBSCRIPTIONS {
+  *id : varchar <<PK>>
+  --
+  creation_timestamp : datetime
+  update_timestamp : datetime
+  auto_renew : bit
+  cancellation_reason : text
+  cancelled_at : datetime
+  commission_fixed_rate : decimal
+  commission_freeship_rate : decimal
+  commission_payment_rate : decimal
+  commission_voucher_rate : decimal
+  end_date : datetime
+  freeship_enabled : bit
+  is_active : bit
+  payment_status : enum
+  plan_code : varchar
+  plan_duration : enum
+  price : decimal
+  price_paid : decimal
+  shop_owner_id : varchar <<FK>>
+  start_date : datetime
+  subscription_type : enum
+  voucher_enabled : bit
+  voucher_max_per_item : decimal
+  plan_id : varchar <<FK>>
+}
+entity "SHOP_VOUCHERS" as SHOP_VOUCHERS {
+  *id : varchar <<PK>>
+  --
+  created_at : datetime
+  updated_at : datetime
+  applicable_scope : enum
+  code : varchar
+  description : varchar
+  discount_type : enum
+  discount_value : decimal
+  end_at : datetime
+  max_discount_amount : decimal
+  min_order_value : decimal
+  quantity_total : int
+  quantity_used : int
+  shop_owner_id : varchar <<FK>>
+  start_at : datetime
+  status : enum
+  title : varchar
+}
+entity "SIZES" as SIZES {
+  *id : varchar <<PK>>
+  --
+  created_timestamp : datetime
+  updated_timestamp : datetime
+  description : varchar
+  name : varchar
+  price_modifier : double
+  stock : int
+  weight : int
+  product_id : varchar <<FK>>
+}
+entity "SUBSCRIPTION_PLAN_FEATURE" as SUBSCRIPTION_PLAN_FEATURE {
+  *id : varchar <<PK>>
+  --
+  creation_timestamp : datetime
+  update_timestamp : datetime
+  display_order : int
+  feature_text : varchar
+  plan_id : varchar <<FK>>
+}
+entity "SUBSCRIPTION_PLAN_PRICING" as SUBSCRIPTION_PLAN_PRICING {
+  *id : varchar <<PK>>
+  --
+  creation_timestamp : datetime
+  update_timestamp : datetime
+  is_active : bit
+  plan_duration : enum
+  price : decimal
+  plan_id : varchar <<FK>>
+}
+entity "SUBSCRIPTION_PLANS" as SUBSCRIPTION_PLANS {
+  *id : varchar <<PK>>
+  --
+  creation_timestamp : datetime
+  update_timestamp : datetime
+  code : varchar
+  color_hex : varchar
+  commission_fixed_rate : decimal
+  commission_freeship_rate : decimal
+  commission_payment_rate : decimal
+  commission_voucher_rate : decimal
+  description : varchar
+  display_order : int
+  freeship_enabled : bit
+  icon : varchar
+  is_active : bit
+  name : varchar
+  subscription_type : enum
+  voucher_enabled : bit
+  voucher_max_per_item : decimal
+}
+entity "TAX_INFO" as TAX_INFO {
+  *id : varchar <<PK>>
+  --
+  business_address : text
+  business_type : enum
+  created_at : datetime
+  email : varchar
+  tax_code : varchar
+  updated_at : datetime
+  user_id : varchar <<FK>>
+}
+' Relationships
+ADDRESSES }o..|| USERS : "belongs_to"
+IDENTIFICATION ||..|| USERS : "identifies"
+SHOP_OWNERS ||..|| USERS : "is_a"
+ROLE_REQUESTS }o..|| USERS : "requested_by"
+TAX_INFO ||..|| USERS : "tax_record_of"
+NOTIFICATIONS }o..|| USERS : "notifies"
+SHOP_COINS ||..|| USERS : "owned_by"
+SHOP_OWNERS ||..o{ ADVERTISEMENTS : "runs"
+SHOP_OWNERS ||..o{ SHOP_DECORATIONS : "decorates"
+SHOP_OWNERS ||..o{ SHOP_SUBSCRIPTIONS : "subscribes"
+SHOP_OWNERS ||..o{ SHOP_VOUCHERS : "offers"
+SHOP_OWNERS ||..|| SHOP_LEDGER : "has_wallet"
+SHOP_OWNERS ||..o{ SHOP_LEDGER_ENTRY : "transaction"
+SHOP_OWNERS ||..o{ PAYOUT_BATCH : "withdraws"
+SHOP_OWNERS ||..o{ LIVE_ROOMS : "streams"
+SUBSCRIPTION_PLANS ||..o{ SUBSCRIPTION_PLAN_FEATURE : "has_features"
+SUBSCRIPTION_PLANS ||..o{ SUBSCRIPTION_PLAN_PRICING : "has_pricing"
+SUBSCRIPTION_PLANS ||..o{ SHOP_SUBSCRIPTIONS : "plan_of"
+CATEGORY_PRODUCTS ||..o{ PRODUCTS : "categorizes"
+PRODUCTS }o..|| SHOP_OWNERS : "sold_by"
+PRODUCTS ||..o{ PRODUCT_IMAGES : "has_images"
+PRODUCTS ||..o{ SIZES : "has_variants"
+PRODUCTS ||..o{ REVIEW_IMAGES : "reviewed_with_images_via_reviews"
+PRODUCTS ||..|| PRODUCT_ANALYTICS : "has_stats"
+PRODUCTS ||..o{ INVENTORY_LOGS : "logged_change"
+PRODUCTS ||..o{ FLASH_SALE_PRODUCTS : "in_flash_sale"
+FLASH_SALE_SESSIONS ||..o{ FLASH_SALE_PRODUCTS : "hosts"
+FLASH_SALE_PRODUCTS ||..o{ FLASH_SALE_PRODUCT_SIZES : "has_size_limits"
+SIZES ||..o{ FLASH_SALE_PRODUCT_SIZES : "maps_to"
+USERS ||..|| CARTS : "owns"
+CARTS ||..o{ CART_ITEMS : "contains"
+PRODUCTS ||..o{ CART_ITEMS : "added_to_cart"
+SIZES ||..o{ CART_ITEMS : "size_in_cart"
+USERS ||..o{ ORDERS : "places"
+ADDRESSES ||..o{ ORDERS : "shipped_to"
+ORDERS ||..o{ ORDER_ITEMS : "includes"
+PRODUCTS ||..o{ ORDER_ITEMS : "item_in_order"
+ORDERS ||..|| SHIPPING_ORDERS : "shipped_via"
+ORDERS ||..o{ PAYMENTS : "paid_for"
+PRODUCTS ||..o{ REVIEWS : "reviewed"
+USERS ||..o{ REVIEWS : "writes_review"
+REVIEWS ||..o{ REVIEW_IMAGES : "has_images"
+SHOP_FOLLOWS }o..|| USERS : "follower"
+SHOP_FOLLOWS }o..|| SHOP_OWNERS : "followed_shop"
+LIVE_ROOMS ||..o{ LIVE_PRODUCTS : "features"
+PRODUCTS ||..o{ LIVE_PRODUCTS : "promoted_in_live"
+LIVE_ROOMS ||..o{ LIVE_CHATS : "chat_stream"
+USERS ||..o{ LIVE_CHATS : "chats_in"
+CONVERSATIONS }o..|| USERS : "client"
+CONVERSATIONS }o..|| SHOP_OWNERS : "shop"
+CONVERSATIONS }o..|| PRODUCTS : "about_product"
+CONVERSATIONS ||..o{ MESSAGES : "history"
+USERS ||..|| ADMIN_WALLET : "admin_owns"
+ADMIN_WALLET ||..o{ ADMIN_WALLET_ENTRY : "logs"
+' Added Relationship
+USERS ||..o{ BEHAVIOR_LOGS : "generates_log"
+
+@enduml
