@@ -282,20 +282,47 @@ export default function ProductDetailPage() {
         if (selectedSizeId) {
             const size = product.sizes?.find(s => s.id === selectedSizeId);
             limit = size?.stock || 0;
+
+            console.log('[Flash Sale Debug] Size selected:', {
+                sizeId: selectedSizeId,
+                sizeName: size?.name,
+                sizeStock: size?.stock,
+                flashSaleStock: size?.flashSaleStock,
+                isFlashSale,
+                productFlashSaleRemaining: product.flashSaleRemaining
+            });
+
             // If Flash Sale is active, cap at flash sale stock for this size
             if (isFlashSale && size?.flashSaleStock !== undefined && size?.flashSaleStock !== null) {
                 limit = Math.min(limit, size.flashSaleStock);
+                console.log('[Flash Sale Debug] Applied size.flashSaleStock limit:', limit);
+            } else if (isFlashSale && product.flashSaleRemaining !== undefined && product.flashSaleRemaining !== null) {
+                // Fallback: use product-level flashSaleRemaining if size doesn't have flashSaleStock
+                limit = Math.min(limit, product.flashSaleRemaining);
+                console.log('[Flash Sale Debug] Applied product.flashSaleRemaining limit (fallback):', limit);
             }
         } else {
             // No size selected (or product has no sizes)
-            limit = product.stock || 0;
+            // Use totalStock which correctly handles products with/without sizes
+            limit = totalStock;
+
+            console.log('[Flash Sale Debug] No size selected:', {
+                totalStock,
+                productStock: product.stock,
+                productFlashSaleRemaining: product.flashSaleRemaining,
+                isFlashSale
+            });
+
             // If Flash Sale is active for product level
             if (isFlashSale && product.flashSaleRemaining !== undefined && product.flashSaleRemaining !== null) {
                 limit = Math.min(limit, product.flashSaleRemaining);
+                console.log('[Flash Sale Debug] Applied product.flashSaleRemaining limit:', limit);
             }
         }
+
+        console.log('[Flash Sale Debug] Final maxPurchaseQuantity:', limit);
         return Math.max(1, limit);
-    }, [product, selectedSizeId, isFlashSale]);
+    }, [product, selectedSizeId, isFlashSale, totalStock]);
 
     // Update qty when maxPurchaseQuantity changes (e.g. switching between sizes or flash sale mode)
     useEffect(() => {

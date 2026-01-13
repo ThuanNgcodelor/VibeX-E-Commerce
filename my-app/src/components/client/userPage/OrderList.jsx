@@ -10,7 +10,7 @@ import { fetchImageById } from "../../../api/image.js";
 import { fetchProductById } from "../../../api/product.js";
 import Loading from "../Loading.jsx";
 
-const PAGE_SIZE = 5;
+const PAGE_SIZE = 6;
 
 const getStatusConfig = (t) => ({
     ALL: { label: t('orders.all'), color: "#555", bg: "#f8f8f8" },

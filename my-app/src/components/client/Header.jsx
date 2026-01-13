@@ -117,7 +117,7 @@ export default function Header() {
         const loadHistory = async () => {
           try {
             const { getSearchHistory } = await import('../../api/searchApi');
-            const response = await getSearchHistory(5);
+            const response = await getSearchHistory(6);
             const historyItems = (response.history || []).map(h => ({
               id: h,
               name: h,
@@ -633,16 +633,18 @@ export default function Header() {
                     onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
-                      {/* Icon based on type */}
-                      {suggestion.type === 'history' && (
-                        <i className="fa fa-history" style={{ color: '#999', fontSize: '14px' }}></i>
-                      )}
-                      {suggestion.type === 'product' && (
-                        <i className="fa fa-box" style={{ color: '#999', fontSize: '14px' }}></i>
-                      )}
-                      {suggestion.type === 'keyword' && (
-                        <i className="fa fa-search" style={{ color: '#999', fontSize: '14px' }}></i>
-                      )}
+                      {/* Icon based on type - with consistent width */}
+                      <div style={{ minWidth: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {suggestion.type === 'history' && (
+                          <i className="fa fa-history" style={{ color: '#999', fontSize: '14px' }}></i>
+                        )}
+                        {suggestion.type === 'product' && (
+                          <i className="fa fa-box" style={{ color: '#999', fontSize: '14px' }}></i>
+                        )}
+                        {suggestion.type === 'keyword' && (
+                          <i className="fa fa-search" style={{ color: '#999', fontSize: '14px' }}></i>
+                        )}
+                      </div>
 
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: '14px', color: '#222' }}>

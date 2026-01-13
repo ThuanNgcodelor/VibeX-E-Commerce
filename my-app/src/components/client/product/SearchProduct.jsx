@@ -35,7 +35,7 @@ const SearchProduct = () => {
     // Search & Pagination
     const urlQuery = searchParams.get('q') || "";
     const [query, setQuery] = useState(urlQuery);
-    const [debouncedQuery, setDebouncedQuery] = useState("");
+    const [debouncedQuery, setDebouncedQuery] = useState(urlQuery); // Initialize from URL, not empty string
     const [page, setPage] = useState(1);
     const [sortBy, setSortBy] = useState("relevance");
 
@@ -49,7 +49,6 @@ const SearchProduct = () => {
 
     const createdUrlsRef = useRef([]);
 
-    // Load categories from backend
     useEffect(() => {
         const loadCategories = async () => {
             try {
@@ -71,6 +70,8 @@ const SearchProduct = () => {
     useEffect(() => {
         const loadProducts = async () => {
             setLoading(true);
+            // Clear products at start to prevent flash of old results
+            setProducts([]);
             try {
                 const response = await searchProducts({
                     query: debouncedQuery,
@@ -80,7 +81,7 @@ const SearchProduct = () => {
                         categories: categories.length > 0 ? categories : null,
                         locations: selectedAreas.length > 0 ? selectedAreas : null,
                     },
-                    page: page - 1, // Backend expects 0-indexed
+                    page: page - 1, // Backend expects 0-indexed                    
                     size: PAGE_SIZE,
                     sortBy: sortBy
                 });
@@ -106,7 +107,6 @@ const SearchProduct = () => {
         loadProducts();
     }, [debouncedQuery, page, sortBy, priceMin, priceMax, categories, selectedAreas]);
 
-    // Sync URL query parameter
     useEffect(() => {
         const urlQuery = searchParams.get('q') || "";
         if (urlQuery !== query) {
@@ -114,21 +114,20 @@ const SearchProduct = () => {
         }
     }, [searchParams, query]);
 
-    // Debounce search
     useEffect(() => {
+        if (query.trim() !== debouncedQuery.trim()) {
+            setLoading(true);
+        }
         const t = setTimeout(() => setDebouncedQuery(query.trim()), 300);
         return () => clearTimeout(t);
-    }, [query]);
+    }, [query, debouncedQuery]);
 
-    // Reset to page 1 when filters/search change
     useEffect(() => {
         setPage(1);
     }, [debouncedQuery, sortBy, priceMin, priceMax, categories, selectedAreas]);
 
-    // Use currentPage from API response
     const currentPage = Math.min(page, totalPages);
 
-    // Load images for current page
     useEffect(() => {
         if (products.length === 0) {
             setImageUrls({});
@@ -574,10 +573,19 @@ const SearchProduct = () => {
                             </div>
                         </div>
 
-                        {products.length === 0 ? (
+                        {products.length === 0 || loading ? (
                             <div className="text-center py-5" style={{ background: '#fff', borderRadius: '4px' }}>
-                                <i className="fa fa-search" style={{ fontSize: '48px', color: '#d9d9d9', marginBottom: '16px' }}></i>
-                                <p style={{ fontSize: '16px', color: '#757575' }}>{t('search.noProductsFound')}</p>
+                                {loading ? (
+                                    <>
+                                        <i className="fa fa-spinner fa-spin" style={{ fontSize: '48px', color: '#ee4d2d', marginBottom: '16px' }}></i>
+                                        <p style={{ fontSize: '16px', color: '#757575' }}>{t('search.loading')}</p>
+                                    </>
+                                ) : (
+                                    <>
+                                        <i className="fa fa-search" style={{ fontSize: '48px', color: '#d9d9d9', marginBottom: '16px' }}></i>
+                                        <p style={{ fontSize: '16px', color: '#757575' }}>{t('search.noProductsFound')}</p>
+                                    </>
+                                )}
                             </div>
                         ) : (
                             <>

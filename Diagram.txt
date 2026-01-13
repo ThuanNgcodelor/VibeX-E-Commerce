@@ -16,7 +16,7 @@ skinparam class {
     HeaderBackgroundColor #ECEFF1
 }
 ' Entities
-entity "USERS" as USERS #LightBlue {
+entity "USERS" as USERS {
   *id : varchar <<PK>>
   --
   creation_timestamp : datetime
@@ -34,7 +34,7 @@ entity "USERS" as USERS #LightBlue {
   birth_date : date
   image_url : varchar
 }
-entity "ADDRESSES" as ADDRESSES #LightBlue {
+entity "ADDRESSES" as ADDRESSES {
   *id : varchar <<PK>>
   --
   creation_timestamp : datetime
@@ -57,7 +57,7 @@ entity "ADDRESSES" as ADDRESSES #LightBlue {
   ward_code : varchar
   ward_name : varchar
 }
-entity "ADMIN_WALLET" as ADMIN_WALLET #LightSkyBlue {
+entity "ADMIN_WALLET" as ADMIN_WALLET {
   *id : varchar <<PK>>
   --
   creation_timestamp : datetime
@@ -67,7 +67,7 @@ entity "ADMIN_WALLET" as ADMIN_WALLET #LightSkyBlue {
   total_commission : decimal
   total_subscription_revenue : decimal
 }
-entity "ADMIN_WALLET_ENTRY" as ADMIN_WALLET_ENTRY #LightSkyBlue {
+entity "ADMIN_WALLET_ENTRY" as ADMIN_WALLET_ENTRY {
   *id : varchar <<PK>>
   --
   creation_timestamp : datetime
@@ -80,7 +80,7 @@ entity "ADMIN_WALLET_ENTRY" as ADMIN_WALLET_ENTRY #LightSkyBlue {
   source_id : varchar
   type : enum
 }
-entity "ADVERTISEMENTS" as ADVERTISEMENTS #LightGreen {
+entity "ADVERTISEMENTS" as ADVERTISEMENTS {
   *id : varchar <<PK>>
   --
   creation_timestamp : datetime
@@ -98,7 +98,7 @@ entity "ADVERTISEMENTS" as ADVERTISEMENTS #LightGreen {
   target_url : varchar
   title : varchar
 }
-entity "BANNERS" as BANNERS #LightGreen {
+entity "BANNERS" as BANNERS {
   *id : varchar <<PK>>
   --
   alt_text : varchar
@@ -121,7 +121,7 @@ entity "BANNERS" as BANNERS #LightGreen {
   updated_at : datetime
   view_count : int
 }
-entity "BEHAVIOR_LOGS" as BEHAVIOR_LOGS #LightYellow {
+entity "BEHAVIOR_LOGS" as BEHAVIOR_LOGS {
   *id : varchar <<PK>>
   --
   created_timestamp : datetime
@@ -135,7 +135,7 @@ entity "BEHAVIOR_LOGS" as BEHAVIOR_LOGS #LightYellow {
   source : varchar
   user_id : varchar <<FK>>
 }
-entity "CART_ITEMS" as CART_ITEMS #Plum {
+entity "CART_ITEMS" as CART_ITEMS {
   *id : varchar <<PK>>
   --
   created_timestamp : datetime
@@ -153,7 +153,7 @@ entity "CART_ITEMS" as CART_ITEMS #Plum {
   product_id : varchar <<FK>>
   size_id : varchar <<FK>>
 }
-entity "CARTS" as CARTS #Plum {
+entity "CARTS" as CARTS {
   *id : varchar <<PK>>
   --
   created_timestamp : datetime
@@ -161,7 +161,7 @@ entity "CARTS" as CARTS #Plum {
   total_amount : double
   user_id : varchar <<FK>>
 }
-entity "CATEGORY_PRODUCTS" as CATEGORY_PRODUCTS #Orchid {
+entity "CATEGORY_PRODUCTS" as CATEGORY_PRODUCTS {
   *id : varchar <<PK>>
   --
   created_timestamp : datetime
@@ -170,7 +170,7 @@ entity "CATEGORY_PRODUCTS" as CATEGORY_PRODUCTS #Orchid {
   image_id : varchar
   name : varchar
 }
-entity "CONVERSATIONS" as CONVERSATIONS #LightCyan {
+entity "CONVERSATIONS" as CONVERSATIONS {
   *id : varchar <<PK>>
   --
   client_id : varchar <<FK>>
@@ -186,13 +186,13 @@ entity "CONVERSATIONS" as CONVERSATIONS #LightCyan {
   title : varchar
   updated_at : datetime
 }
-entity "FILES" as FILES #LightGray {
+entity "FILES" as FILES {
   *id : varchar <<PK>>
   --
   file_path : varchar
   type : varchar
 }
-entity "FLASH_SALE_PRODUCT_SIZES" as FLASH_SALE_PRODUCT_SIZES #LightCoral {
+entity "FLASH_SALE_PRODUCT_SIZES" as FLASH_SALE_PRODUCT_SIZES {
   *id : varchar <<PK>>
   --
   created_timestamp : datetime
@@ -203,7 +203,7 @@ entity "FLASH_SALE_PRODUCT_SIZES" as FLASH_SALE_PRODUCT_SIZES #LightCoral {
   sold_count : int
   flash_sale_product_id : varchar <<FK>>
 }
-entity "FLASH_SALE_PRODUCTS" as FLASH_SALE_PRODUCTS #LightCoral {
+entity "FLASH_SALE_PRODUCTS" as FLASH_SALE_PRODUCTS {
   *id : varchar <<PK>>
   --
   created_timestamp : datetime
@@ -219,7 +219,7 @@ entity "FLASH_SALE_PRODUCTS" as FLASH_SALE_PRODUCTS #LightCoral {
   sold_count : int
   status : enum
 }
-entity "FLASH_SALE_SESSIONS" as FLASH_SALE_SESSIONS #LightCoral {
+entity "FLASH_SALE_SESSIONS" as FLASH_SALE_SESSIONS {
   *id : varchar <<PK>>
   --
   created_timestamp : datetime
@@ -230,7 +230,7 @@ entity "FLASH_SALE_SESSIONS" as FLASH_SALE_SESSIONS #LightCoral {
   start_time : datetime
   status : enum
 }
-entity "IDENTIFICATION" as IDENTIFICATION #LightBlue {
+entity "IDENTIFICATION" as IDENTIFICATION {
   *id : varchar <<PK>>
   --
   created_at : datetime
@@ -242,7 +242,7 @@ entity "IDENTIFICATION" as IDENTIFICATION #LightBlue {
   updated_at : datetime
   user_id : varchar <<FK>>
 }
-entity "INVENTORY_LOGS" as INVENTORY_LOGS #Orchid {
+entity "INVENTORY_LOGS" as INVENTORY_LOGS {
   *id : varchar <<PK>>
   --
   created_timestamp : datetime
@@ -257,7 +257,7 @@ entity "INVENTORY_LOGS" as INVENTORY_LOGS #Orchid {
   type : enum
   user_id : varchar <<FK>>
 }
-entity "LIVE_CHATS" as LIVE_CHATS #LightCyan {
+entity "LIVE_CHATS" as LIVE_CHATS {
   *id : varchar <<PK>>
   --
   avatar_url : varchar
@@ -271,7 +271,7 @@ entity "LIVE_CHATS" as LIVE_CHATS #LightCyan {
   user_id : varchar <<FK>>
   username : varchar
 }
-entity "LIVE_PRODUCTS" as LIVE_PRODUCTS #PaleGreen {
+entity "LIVE_PRODUCTS" as LIVE_PRODUCTS {
   *id : varchar <<PK>>
   --
   created_at : datetime
@@ -288,7 +288,7 @@ entity "LIVE_PRODUCTS" as LIVE_PRODUCTS #PaleGreen {
   stock_available : int
   live_room_id : varchar <<FK>>
 }
-entity "LIVE_ROOMS" as LIVE_ROOMS #PaleGreen {
+entity "LIVE_ROOMS" as LIVE_ROOMS {
   *id : varchar <<PK>>
   --
   created_at : datetime
@@ -306,7 +306,7 @@ entity "LIVE_ROOMS" as LIVE_ROOMS #PaleGreen {
   updated_at : datetime
   viewer_count : int
 }
-entity "MESSAGES" as MESSAGES #LightCyan {
+entity "MESSAGES" as MESSAGES {
   *id : varchar <<PK>>
   --
   content : text
@@ -322,7 +322,7 @@ entity "MESSAGES" as MESSAGES #LightCyan {
   sender_type : enum
   updated_at : datetime
 }
-entity "MISSIONS" as MISSIONS #LightGoldenrodYellow {
+entity "MISSIONS" as MISSIONS {
   *id : varchar <<PK>>
   --
   creation_timestamp : datetime
@@ -333,7 +333,7 @@ entity "MISSIONS" as MISSIONS #LightGoldenrodYellow {
   target_count : int
   title : varchar
 }
-entity "NOTIFICATIONS" as NOTIFICATIONS #LightCyan {
+entity "NOTIFICATIONS" as NOTIFICATIONS {
   *id : varchar <<PK>>
   --
   creation_timestamp : datetime
@@ -344,7 +344,7 @@ entity "NOTIFICATIONS" as NOTIFICATIONS #LightCyan {
   is_shop_owner_notification : bit
   user_id : varchar <<FK>>
 }
-entity "ORDER_ITEMS" as ORDER_ITEMS #LightSalmon {
+entity "ORDER_ITEMS" as ORDER_ITEMS {
   *id : varchar <<PK>>
   --
   created_at : datetime
@@ -357,7 +357,7 @@ entity "ORDER_ITEMS" as ORDER_ITEMS #LightSalmon {
   unit_price : double
   order_id : varchar <<FK>>
 }
-entity "ORDERS" as ORDERS #LightSalmon {
+entity "ORDERS" as ORDERS {
   *id : varchar <<PK>>
   --
   created_at : datetime
@@ -375,7 +375,7 @@ entity "ORDERS" as ORDERS #LightSalmon {
   voucher_discount : decimal
   voucher_id : varchar
 }
-entity "PAYMENTS" as PAYMENTS #PeachPuff {
+entity "PAYMENTS" as PAYMENTS {
   *id : varchar <<PK>>
   --
   amount : decimal
@@ -396,7 +396,7 @@ entity "PAYMENTS" as PAYMENTS #PeachPuff {
   txn_ref : varchar
   updated_at : datetime
 }
-entity "PAYOUT_BATCH" as PAYOUT_BATCH #PeachPuff {
+entity "PAYOUT_BATCH" as PAYOUT_BATCH {
   *id : varchar <<PK>>
   --
   created_at : datetime
@@ -412,7 +412,7 @@ entity "PAYOUT_BATCH" as PAYOUT_BATCH #PeachPuff {
   status : enum
   transaction_ref : varchar
 }
-entity "PLATFORM_VOUCHERS" as PLATFORM_VOUCHERS #Khaki {
+entity "PLATFORM_VOUCHERS" as PLATFORM_VOUCHERS {
   *id : varchar <<PK>>
   --
   created_at : datetime
@@ -430,7 +430,7 @@ entity "PLATFORM_VOUCHERS" as PLATFORM_VOUCHERS #Khaki {
   status : enum
   title : varchar
 }
-entity "PRODUCT_ANALYTICS" as PRODUCT_ANALYTICS #LightYellow {
+entity "PRODUCT_ANALYTICS" as PRODUCT_ANALYTICS {
   *product_id : varchar <<PK,FK>>
   --
   cart_count : bigint
@@ -443,12 +443,12 @@ entity "PRODUCT_ANALYTICS" as PRODUCT_ANALYTICS #LightYellow {
   updated_at : datetime
   view_count : bigint
 }
-entity "PRODUCT_IMAGES" as PRODUCT_IMAGES #Orchid {
+entity "PRODUCT_IMAGES" as PRODUCT_IMAGES {
   product_id : varchar <<FK>>
   --
   image_id : varchar
 }
-entity "PRODUCTS" as PRODUCTS #Orchid {
+entity "PRODUCTS" as PRODUCTS {
   *id : varchar <<PK>>
   --
   created_timestamp : datetime
@@ -464,12 +464,12 @@ entity "PRODUCTS" as PRODUCTS #Orchid {
   user_id : varchar <<FK>>
   category_id : varchar <<FK>>
 }
-entity "REVIEW_IMAGES" as REVIEW_IMAGES #Thistle {
+entity "REVIEW_IMAGES" as REVIEW_IMAGES {
   review_id : varchar <<FK>>
   --
   image_id : varchar
 }
-entity "REVIEWS" as REVIEWS #Thistle {
+entity "REVIEWS" as REVIEWS {
   *id : varchar <<PK>>
   --
   comment : text
@@ -482,7 +482,7 @@ entity "REVIEWS" as REVIEWS #Thistle {
   user_id : varchar <<FK>>
   username : varchar
 }
-entity "ROLE_REQUESTS" as ROLE_REQUESTS #LightBlue {
+entity "ROLE_REQUESTS" as ROLE_REQUESTS {
   *id : varchar <<PK>>
   --
   creation_timestamp : datetime
@@ -496,7 +496,7 @@ entity "ROLE_REQUESTS" as ROLE_REQUESTS #LightBlue {
   status : enum
   user_id : varchar <<FK>>
 }
-entity "SEARCH_ANALYTICS" as SEARCH_ANALYTICS #LightYellow {
+entity "SEARCH_ANALYTICS" as SEARCH_ANALYTICS {
   *id : varchar <<PK>>
   --
   click_count : bigint
@@ -506,7 +506,7 @@ entity "SEARCH_ANALYTICS" as SEARCH_ANALYTICS #LightYellow {
   search_count : bigint
   updated_at : datetime
 }
-entity "SHIPPING_ORDERS" as SHIPPING_ORDERS #LightSalmon {
+entity "SHIPPING_ORDERS" as SHIPPING_ORDERS {
   *id : varchar <<PK>>
   --
   created_at : datetime
@@ -524,7 +524,7 @@ entity "SHIPPING_ORDERS" as SHIPPING_ORDERS #LightSalmon {
   tracking_history : text
   weight : int
 }
-entity "SHOP_COINS" as SHOP_COINS #LightGoldenrodYellow {
+entity "SHOP_COINS" as SHOP_COINS {
   *id : varchar <<PK>>
   --
   creation_timestamp : datetime
@@ -538,7 +538,7 @@ entity "SHOP_COINS" as SHOP_COINS #LightGoldenrodYellow {
   points : bigint
   user_id : varchar <<FK>>
 }
-entity "SHOP_DECORATIONS" as SHOP_DECORATIONS #PaleGreen {
+entity "SHOP_DECORATIONS" as SHOP_DECORATIONS {
   *id : bigint <<PK>>
   --
   content : text
@@ -546,7 +546,7 @@ entity "SHOP_DECORATIONS" as SHOP_DECORATIONS #PaleGreen {
   shop_id : varchar <<FK>>
   updated_at : datetime
 }
-entity "SHOP_FOLLOWS" as SHOP_FOLLOWS #PaleGreen {
+entity "SHOP_FOLLOWS" as SHOP_FOLLOWS {
   *id : varchar <<PK>>
   --
   creation_timestamp : datetime
@@ -554,7 +554,7 @@ entity "SHOP_FOLLOWS" as SHOP_FOLLOWS #PaleGreen {
   follower_id : varchar <<FK>>
   shop_id : varchar <<FK>>
 }
-entity "SHOP_LEDGER" as SHOP_LEDGER #PaleGreen {
+entity "SHOP_LEDGER" as SHOP_LEDGER {
   *id : varchar <<PK>>
   --
   created_at : datetime
@@ -566,7 +566,7 @@ entity "SHOP_LEDGER" as SHOP_LEDGER #PaleGreen {
   total_earnings : decimal
   total_payouts : decimal
 }
-entity "SHOP_LEDGER_ENTRY" as SHOP_LEDGER_ENTRY #PaleGreen {
+entity "SHOP_LEDGER_ENTRY" as SHOP_LEDGER_ENTRY {
   *id : varchar <<PK>>
   --
   created_at : datetime
@@ -588,7 +588,7 @@ entity "SHOP_LEDGER_ENTRY" as SHOP_LEDGER_ENTRY #PaleGreen {
   shipping_fee : decimal
   shop_owner_id : varchar <<FK>>
 }
-entity "SHOP_OWNERS" as SHOP_OWNERS #PaleGreen {
+entity "SHOP_OWNERS" as SHOP_OWNERS {
   *user_id : varchar <<PK,FK>>
   --
   active : enum
@@ -616,7 +616,7 @@ entity "SHOP_OWNERS" as SHOP_OWNERS #PaleGreen {
   header_image_url : varchar
   header_style : varchar
 }
-entity "SHOP_SUBSCRIPTIONS" as SHOP_SUBSCRIPTIONS #PaleGreen {
+entity "SHOP_SUBSCRIPTIONS" as SHOP_SUBSCRIPTIONS {
   *id : varchar <<PK>>
   --
   creation_timestamp : datetime
@@ -643,7 +643,7 @@ entity "SHOP_SUBSCRIPTIONS" as SHOP_SUBSCRIPTIONS #PaleGreen {
   voucher_max_per_item : decimal
   plan_id : varchar <<FK>>
 }
-entity "SHOP_VOUCHERS" as SHOP_VOUCHERS #Khaki {
+entity "SHOP_VOUCHERS" as SHOP_VOUCHERS {
   *id : varchar <<PK>>
   --
   created_at : datetime
@@ -663,7 +663,7 @@ entity "SHOP_VOUCHERS" as SHOP_VOUCHERS #Khaki {
   status : enum
   title : varchar
 }
-entity "SIZES" as SIZES #Orchid {
+entity "SIZES" as SIZES {
   *id : varchar <<PK>>
   --
   created_timestamp : datetime
@@ -675,7 +675,7 @@ entity "SIZES" as SIZES #Orchid {
   weight : int
   product_id : varchar <<FK>>
 }
-entity "SUBSCRIPTION_PLAN_FEATURE" as SUBSCRIPTION_PLAN_FEATURE #Wheat {
+entity "SUBSCRIPTION_PLAN_FEATURE" as SUBSCRIPTION_PLAN_FEATURE {
   *id : varchar <<PK>>
   --
   creation_timestamp : datetime
@@ -684,7 +684,7 @@ entity "SUBSCRIPTION_PLAN_FEATURE" as SUBSCRIPTION_PLAN_FEATURE #Wheat {
   feature_text : varchar
   plan_id : varchar <<FK>>
 }
-entity "SUBSCRIPTION_PLAN_PRICING" as SUBSCRIPTION_PLAN_PRICING #Wheat {
+entity "SUBSCRIPTION_PLAN_PRICING" as SUBSCRIPTION_PLAN_PRICING {
   *id : varchar <<PK>>
   --
   creation_timestamp : datetime
@@ -694,7 +694,7 @@ entity "SUBSCRIPTION_PLAN_PRICING" as SUBSCRIPTION_PLAN_PRICING #Wheat {
   price : decimal
   plan_id : varchar <<FK>>
 }
-entity "SUBSCRIPTION_PLANS" as SUBSCRIPTION_PLANS #Wheat {
+entity "SUBSCRIPTION_PLANS" as SUBSCRIPTION_PLANS {
   *id : varchar <<PK>>
   --
   creation_timestamp : datetime
@@ -715,7 +715,7 @@ entity "SUBSCRIPTION_PLANS" as SUBSCRIPTION_PLANS #Wheat {
   voucher_enabled : bit
   voucher_max_per_item : decimal
 }
-entity "TAX_INFO" as TAX_INFO #LightBlue {
+entity "TAX_INFO" as TAX_INFO {
   *id : varchar <<PK>>
   --
   business_address : text
