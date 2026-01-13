@@ -16,12 +16,23 @@ export const trackProductView = (productId) => {
     }
 };
 
+// Helper to get or create a session ID stored in session storage
+const getSessionId = () => {
+    let sessionId = sessionStorage.getItem('analytics_session_id');
+    if (!sessionId) {
+        sessionId = 'sess_' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
+        sessionStorage.setItem('analytics_session_id', sessionId);
+    }
+    return sessionId;
+};
+
 /**
  * Track site visit (homepage load)
  */
 export const trackSiteVisit = () => {
     try {
-        api.post('/stock/analytics/visit');
+        const sessionId = getSessionId();
+        api.post(`/stock/analytics/visit?sessionId=${sessionId}`);
     } catch (e) {
         console.warn("Tracking failed", e);
     }

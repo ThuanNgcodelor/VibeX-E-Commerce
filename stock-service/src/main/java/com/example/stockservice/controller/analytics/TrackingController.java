@@ -27,11 +27,11 @@ import java.util.Set;
 @Slf4j
 @Tag(name = "Analytics Tracking", description = "User behavior tracking APIs")
 public class TrackingController {
-    
+
     private final TrackingService trackingService;
-    
+
     // ==================== TRACKING ENDPOINTS ====================
-    
+
     /**
      * Track product view event
      * Called when user views a product detail page
@@ -42,7 +42,7 @@ public class TrackingController {
         trackingService.trackView(request);
         return ResponseEntity.ok().build();
     }
-    
+
     /**
      * Track search event
      * Called when user performs a search
@@ -53,7 +53,7 @@ public class TrackingController {
         trackingService.trackSearch(request);
         return ResponseEntity.ok().build();
     }
-    
+
     /**
      * Track add to cart event
      * Called when user adds a product to cart
@@ -64,7 +64,7 @@ public class TrackingController {
         trackingService.trackCart(request);
         return ResponseEntity.ok().build();
     }
-    
+
     /**
      * Track purchase event
      * Called when user successfully places an order
@@ -76,9 +76,9 @@ public class TrackingController {
         trackingService.trackPurchaseFromFrontend(request.getProductId(), request.getQuantity());
         return ResponseEntity.ok().build();
     }
-    
+
     // ==================== QUERY ENDPOINTS ====================
-    
+
     /**
      * Get recently viewed products for current user
      */
@@ -89,7 +89,7 @@ public class TrackingController {
         List<String> productIds = trackingService.getRecentlyViewed(limit);
         return ResponseEntity.ok(productIds);
     }
-    
+
     /**
      * Get trending search keywords
      */
@@ -100,7 +100,7 @@ public class TrackingController {
         Set<String> keywords = trackingService.getTrendingKeywords(limit);
         return ResponseEntity.ok(keywords);
     }
-    
+
     /**
      * Get trending products
      */
@@ -111,7 +111,7 @@ public class TrackingController {
         Set<String> productIds = trackingService.getTrendingProducts(limit);
         return ResponseEntity.ok(productIds);
     }
-    
+
     /**
      * Get view count for a specific product
      */
@@ -121,7 +121,49 @@ public class TrackingController {
         Long count = trackingService.getViewCount(productId);
         return ResponseEntity.ok(Map.of(
                 "productId", productId,
-                "viewCount", count
-        ));
+                "viewCount", count));
+    }
+
+    // ==================== SYSTEM & COMPATIBILITY ENDPOINTS ====================
+
+    @PostMapping("/visit")
+    @Operation(summary = "Track site visit", description = "Track homepage visit")
+    public ResponseEntity<Void> trackVisit(@RequestParam(required = false) String sessionId) {
+        trackingService.trackVisit(sessionId);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/view/{productId}")
+    @Operation(summary = "Track product view (Frontend)", description = "Frontend compatibility endpoint")
+    public ResponseEntity<Void> trackViewFrontend(@PathVariable String productId) {
+        TrackViewRequest request = new TrackViewRequest();
+        request.setProductId(productId);
+        request.setSource("direct");
+        trackingService.trackView(request);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/cart-add")
+    @Operation(summary = "Track cart add (Frontend)", description = "Frontend compatibility endpoint")
+    public ResponseEntity<Void> trackCartFrontend() {
+        // Frontend calls this without body sometimes, just to increment system counter
+        // Frontend calls this without body just to increment system counter
+        trackingService.trackSystemCartAdd();
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/system/views")
+    public ResponseEntity<Long> getSystemTotalViews() {
+        return ResponseEntity.ok(trackingService.getSystemViews());
+    }
+
+    @GetMapping("/system/visits")
+    public ResponseEntity<Long> getSystemSiteVisits() {
+        return ResponseEntity.ok(trackingService.getSystemVisits());
+    }
+
+    @GetMapping("/system/cart-adds")
+    public ResponseEntity<Long> getSystemAddToCart() {
+        return ResponseEntity.ok(trackingService.getSystemCartAdds());
     }
 }

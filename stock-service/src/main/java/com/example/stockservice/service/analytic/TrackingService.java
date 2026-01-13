@@ -24,7 +24,8 @@ import java.util.UUID;
  * ===== PHASE 1: TRACKING SERVICE =====
  * LUỒNG HOẠT ĐỘNG:
  * 1. User xem sản phẩm/search → Frontend gọi API tracking
- * 2. TrackingService nhận request → Cập nhật Redis ngay lập tức (real-time counters)
+ * 2. TrackingService nhận request → Cập nhật Redis ngay lập tức (real-time
+ * counters)
  * 3. TrackingService gửi event đến Kafka (async) → Consumer lưu vào MySQL
  * CÁC LOẠI EVENT:
  * - VIEW: Xem sản phẩm (productId, duration, source)
@@ -36,14 +37,14 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Slf4j
 public class TrackingService {
-    
+
     private final AnalyticsRedisService redisService;
     private final BehaviorKafkaProducer kafkaProducer;
     private final ProductRepository productRepository;
     private final JwtUtil jwtUtil;
-    
+
     // ==================== TRACKING METHODS ====================
-    
+
     /**
      * Theo dõi sự kiện XEM SẢN PHẨM
      * Luồng xử lý:
@@ -51,23 +52,25 @@ public class TrackingService {
      * 2. Tăng view counter trong Redis (real-time)
      * 3. Thêm vào danh sách "đã xem gần đây" cho user đã đăng nhập
      * 4. Gửi event đến Kafka để lưu vào MySQL (async)
+     * 
      * @param request Thông tin tracking: productId, sessionId, source, duration
      */
     public void trackView(TrackViewRequest request) {
         String userId = getCurrentUserId();
         String shopId = getShopIdForProduct(request.getProductId());
-        
-        log.info("Tracking view: productId={}, userId={}, source={}", 
+
+        log.info("Tracking view: productId={}, userId={}, source={}",
                 request.getProductId(), userId, request.getSource());
-        
+
         // Bước 1: Cập nhật Redis counters ngay lập tức (real-time)
         redisService.incrementViewCount(request.getProductId());
-        
+        redisService.incrementSystemViews(); // Track system-wide view
+
         // Bước 2: Thêm vào danh sách "đã xem gần đây" cho user đã đăng nhập
         if (userId != null) {
             redisService.addRecentlyViewed(userId, request.getProductId());
         }
-        
+
         // Bước 3: Gửi đến Kafka để lưu vào MySQL
         BehaviorEventDto event = BehaviorEventDto.builder()
                 .eventId(UUID.randomUUID().toString())
@@ -80,26 +83,27 @@ public class TrackingService {
                 .duration(request.getDuration())
                 .timestamp(LocalDateTime.now())
                 .build();
-        
+
         kafkaProducer.sendEvent(event);
     }
-    
+
     /**
      * Theo dõi sự kiện TÌM KIẾM
      * Luồng xử lý:
      * 1. Tăng search counter trong Redis
      * 2. Cập nhật danh sách "từ khóa trending"
      * 3. Gửi event đến Kafka để lưu vào MySQL
+     * 
      * @param request Thông tin tracking: keyword, sessionId
      */
     public void trackSearch(TrackSearchRequest request) {
         String userId = getCurrentUserId();
-        
+
         log.info("Tracking search: keyword={}, userId={}", request.getKeyword(), userId);
-        
+
         // Bước 1: Cập nhật Redis search counter và trending keywords
         redisService.incrementSearchCount(request.getKeyword());
-        
+
         // Bước 2: Gửi đến Kafka để lưu vào MySQL (async)
         BehaviorEventDto event = BehaviorEventDto.builder()
                 .eventId(UUID.randomUUID().toString())
@@ -109,10 +113,24 @@ public class TrackingService {
                 .keyword(request.getKeyword())
                 .timestamp(LocalDateTime.now())
                 .build();
-        
+
         kafkaProducer.sendEvent(event);
     }
-    
+
+    /**
+     * Theo dõi sự kiện TRUY CẬP WEBSITE
+     */
+    public void trackVisit(String sessionId) {
+        redisService.incrementSystemVisits(sessionId);
+    }
+
+    /**
+     * Theo dõi sự kiện ADD TO CART (System-wide only)
+     */
+    public void trackSystemCartAdd() {
+        redisService.incrementSystemCartAdds();
+    }
+
     /**
      * Theo dõi sự kiện THÊM VÀO GIỎ HÀNG
      * 
@@ -121,10 +139,12 @@ public class TrackingService {
     public void trackCart(TrackCartRequest request) {
         String userId = getCurrentUserId();
         String shopId = getShopIdForProduct(request.getProductId());
-        
-        log.info("Tracking add to cart: productId={}, userId={}, quantity={}", 
+
+        log.info("Tracking add to cart: productId={}, userId={}, quantity={}",
                 request.getProductId(), userId, request.getQuantity());
-        
+
+        redisService.incrementSystemCartAdds(); // Track system-wide cart add
+
         // Gửi đến Kafka để lưu vào MySQL (async)
         BehaviorEventDto event = BehaviorEventDto.builder()
                 .eventId(UUID.randomUUID().toString())
@@ -135,22 +155,22 @@ public class TrackingService {
                 .quantity(request.getQuantity())
                 .timestamp(LocalDateTime.now())
                 .build();
-        
+
         kafkaProducer.sendEvent(event);
     }
-    
+
     /**
      * Theo dõi sự kiện MUA HÀNG (gọi từ Order Service qua Kafka/Feign)
      * 
-     * @param userId ID người dùng
+     * @param userId    ID người dùng
      * @param productId ID sản phẩm
-     * @param shopId ID cửa hàng
-     * @param orderId ID đơn hàng
+     * @param shopId    ID cửa hàng
+     * @param orderId   ID đơn hàng
      */
     public void trackPurchase(String userId, String productId, String shopId, String orderId) {
-        log.info("Tracking purchase: productId={}, userId={}, orderId={}", 
+        log.info("Tracking purchase: productId={}, userId={}, orderId={}",
                 productId, userId, orderId);
-        
+
         BehaviorEventDto event = BehaviorEventDto.builder()
                 .eventId(UUID.randomUUID().toString())
                 .userId(userId)
@@ -159,24 +179,24 @@ public class TrackingService {
                 .shopId(shopId)
                 .timestamp(LocalDateTime.now())
                 .build();
-        
+
         kafkaProducer.sendEvent(event);
     }
-    
+
     /**
      * Theo dõi sự kiện MUA HÀNG từ Frontend
      * Được gọi khi user đặt hàng thành công từ giao diện
      * 
      * @param productId ID sản phẩm
-     * @param quantity Số lượng mua
+     * @param quantity  Số lượng mua
      */
     public void trackPurchaseFromFrontend(String productId, Integer quantity) {
         String userId = getCurrentUserId();
         String shopId = getShopIdForProduct(productId);
-        
-        log.info("Tracking purchase from frontend: productId={}, userId={}, quantity={}", 
+
+        log.info("Tracking purchase from frontend: productId={}, userId={}, quantity={}",
                 productId, userId, quantity);
-        
+
         BehaviorEventDto event = BehaviorEventDto.builder()
                 .eventId(UUID.randomUUID().toString())
                 .userId(userId)
@@ -186,12 +206,12 @@ public class TrackingService {
                 .quantity(quantity)
                 .timestamp(LocalDateTime.now())
                 .build();
-        
+
         kafkaProducer.sendEvent(event);
     }
-    
+
     // ==================== QUERY METHODS (Truy vấn dữ liệu) ====================
-    
+
     /**
      * Lấy danh sách sản phẩm đã xem gần đây của user hiện tại
      * 
@@ -205,7 +225,7 @@ public class TrackingService {
         }
         return redisService.getRecentlyViewed(userId, limit);
     }
-    
+
     /**
      * Lấy từ khóa tìm kiếm xu hướng (trending)
      * 
@@ -215,7 +235,7 @@ public class TrackingService {
     public Set<String> getTrendingKeywords(int limit) {
         return redisService.getTrendingKeywords(limit);
     }
-    
+
     /**
      * Lấy sản phẩm xu hướng (được xem nhiều nhất)
      * 
@@ -225,7 +245,7 @@ public class TrackingService {
     public Set<String> getTrendingProducts(int limit) {
         return redisService.getTrendingProducts(limit);
     }
-    
+
     /**
      * Lấy số lượt xem của một sản phẩm
      * 
@@ -235,16 +255,29 @@ public class TrackingService {
     public Long getViewCount(String productId) {
         return redisService.getViewCount(productId);
     }
-    
+
+    public Long getSystemVisits() {
+        return redisService.getSystemVisits();
+    }
+
+    public Long getSystemViews() {
+        return redisService.getSystemViews();
+    }
+
+    public Long getSystemCartAdds() {
+        return redisService.getSystemCartAdds();
+    }
+
     // ==================== HELPER METHODS (Phương thức hỗ trợ) ====================
-    
+
     /**
      * Lấy userId hiện tại từ JWT token
      * Trả về UUID userId thực thay vì email
      */
     private String getCurrentUserId() {
         try {
-            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder
+                    .getRequestAttributes();
             if (attributes != null) {
                 HttpServletRequest request = attributes.getRequest();
                 return jwtUtil.ExtractUserId(request);
@@ -254,7 +287,7 @@ public class TrackingService {
         }
         return null;
     }
-    
+
     /**
      * Lấy shopId (userId của shop owner) từ productId
      */
