@@ -32,14 +32,13 @@ const formatTimeAgo = (timestamp, t, i18n) => {
     // Use the current language/locale
     const locale = i18n.language === 'vi' ? 'vi-VN' : 'en-US';
     return date.toLocaleDateString(locale);
-  } catch (error) {
+  } catch {
     return t('notifications.unknown');
   }
 };
 
 // Format data from backend to UI format
 const formatNotification = (notification, t, i18n) => {
-  // All notifications from backend are order notifications
   const type = 'order';
   const icon = 'fa-shopping-cart';
 

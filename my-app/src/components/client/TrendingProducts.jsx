@@ -256,11 +256,6 @@ export default function TrendingProducts() {
                                             <div style={{ fontSize: '16px', color: '#ee4d2d', fontWeight: 600 }}>
                                                 {formatVND(product.price)}
                                             </div>
-                                            {product.originalPrice && product.originalPrice !== product.price && (
-                                                <div style={{ fontSize: '12px', color: '#999', textDecoration: 'line-through' }}>
-                                                    {formatVND(product.originalPrice)}
-                                                </div>
-                                            )}
                                         </div>
                                     </div>
                                 </Link>

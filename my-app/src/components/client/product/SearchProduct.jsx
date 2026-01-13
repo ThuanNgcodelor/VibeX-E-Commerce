@@ -7,7 +7,7 @@ import {
 } from "../../../api/product.js";
 import { searchProducts } from "../../../api/searchApi.js";
 import { trackSearch } from "../../../api/tracking";
-import { fetchCategories } from "../../../api/categoryApi.js";
+import categoryApi from "../../../api/categoryApi.js";
 
 const USE_OBJECT_URL = true;
 
@@ -53,10 +53,15 @@ const SearchProduct = () => {
     useEffect(() => {
         const loadCategories = async () => {
             try {
-                const response = await fetchCategories();
-                setAvailableCategories(response || []);
+                const data = await categoryApi.getAll();
+                const transformedCategories = data.map((cat) => ({
+                    ...cat,
+                    link: `/shop?category=${cat.id}`
+                }));
+                setAvailableCategories(transformedCategories);
             } catch (error) {
                 console.error("Failed to load categories:", error);
+                setAvailableCategories([]);
             }
         };
         loadCategories();
@@ -233,23 +238,14 @@ const SearchProduct = () => {
         "Hà Nội", "TP. Hồ Chí Minh", "Đà Nẵng", "Hải Phòng", "Cần Thơ", "Bình Dương"
     ];
 
-    if (loading) {
-        return (
-            <div className="container py-5 text-center">
-                <div className="spinner-border text-primary" role="status">
-                    <span className="visually-hidden">{t('search.loading')}</span>
-                </div>
-            </div>
-        );
-    }
-
     return (
         <div style={{ minHeight: '100vh', paddingTop: '12px', paddingBottom: '20px', background: '#f5f5f5' }}>
             <div className="container" style={{ maxWidth: '1250px' }}>
                 {/* Search Result Title */}
                 <div style={{ marginBottom: '12px', fontSize: '16px', color: '#262626', fontWeight: 500 }}>
                     {t('search.searchResults', { keyword: debouncedQuery || query || '' })}
-                    {total > 0 && <span style={{ color: '#757575', fontWeight: 400 }}> ({total} {t('search.products')})</span>}
+                    {!loading && total > 0 && <span style={{ color: '#757575', fontWeight: 400 }}> ({total} {t('search.products')})</span>}
+                    {loading && <span style={{ color: '#757575', fontWeight: 400, fontSize: '14px' }}> <i className="fa fa-spinner fa-spin"></i></span>}
                 </div>
 
                 {/* Active Filters Bar */}

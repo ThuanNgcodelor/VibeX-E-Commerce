@@ -274,6 +274,36 @@ export default function ProductDetailPage() {
         }
     };
 
+    // Calculate maximum purchaseable quantity based on Stock and Flash Sale limits
+    const maxPurchaseQuantity = useMemo(() => {
+        if (!product) return 1;
+        let limit = 0;
+
+        if (selectedSizeId) {
+            const size = product.sizes?.find(s => s.id === selectedSizeId);
+            limit = size?.stock || 0;
+            // If Flash Sale is active, cap at flash sale stock for this size
+            if (isFlashSale && size?.flashSaleStock !== undefined && size?.flashSaleStock !== null) {
+                limit = Math.min(limit, size.flashSaleStock);
+            }
+        } else {
+            // No size selected (or product has no sizes)
+            limit = product.stock || 0;
+            // If Flash Sale is active for product level
+            if (isFlashSale && product.flashSaleRemaining !== undefined && product.flashSaleRemaining !== null) {
+                limit = Math.min(limit, product.flashSaleRemaining);
+            }
+        }
+        return Math.max(1, limit);
+    }, [product, selectedSizeId, isFlashSale]);
+
+    // Update qty when maxPurchaseQuantity changes (e.g. switching between sizes or flash sale mode)
+    useEffect(() => {
+        if (qty > maxPurchaseQuantity) {
+            setQty(maxPurchaseQuantity);
+        }
+    }, [maxPurchaseQuantity, qty]);
+
     return (
         <div className="wrapper">
             <Header />
@@ -702,16 +732,11 @@ export default function ProductDetailPage() {
                                                     <input
                                                         type="number"
                                                         min="1"
-                                                        max={selectedSizeId
-                                                            ? product.sizes?.find(s => s.id === selectedSizeId)?.stock || 1
-                                                            : product.stock || 1}
+                                                        max={maxPurchaseQuantity}
                                                         value={qty}
                                                         onChange={(e) => {
                                                             const val = Number(e.target.value);
-                                                            const maxQty = selectedSizeId
-                                                                ? product.sizes?.find(s => s.id === selectedSizeId)?.stock || 1
-                                                                : product.stock || 1;
-                                                            setQty(Math.max(1, Math.min(val || 1, maxQty)));
+                                                            setQty(Math.max(1, Math.min(val || 1, maxPurchaseQuantity)));
                                                         }}
                                                         className="form-control text-center"
                                                         style={{ width: '80px', height: '36px' }}
@@ -721,14 +746,9 @@ export default function ProductDetailPage() {
                                                         className="btn btn-outline-dark"
                                                         style={{ width: '36px', height: '36px', padding: 0 }}
                                                         onClick={() => {
-                                                            const maxQty = selectedSizeId
-                                                                ? product.sizes?.find(s => s.id === selectedSizeId)?.stock || 1
-                                                                : product.stock || 1;
-                                                            setQty(Math.min(qty + 1, maxQty));
+                                                            setQty(Math.min(qty + 1, maxPurchaseQuantity));
                                                         }}
-                                                        disabled={qty >= (selectedSizeId
-                                                            ? product.sizes?.find(s => s.id === selectedSizeId)?.stock || 1
-                                                            : product.stock || 1)}
+                                                        disabled={qty >= maxPurchaseQuantity}
                                                     >
                                                         <i className="fa fa-plus"></i>
                                                     </button>

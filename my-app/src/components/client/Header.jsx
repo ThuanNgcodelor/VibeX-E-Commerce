@@ -112,7 +112,7 @@ export default function Header() {
       const timeoutId = setTimeout(fetchSuggestions, 300);
       return () => clearTimeout(timeoutId);
     } else {
-      // Empty query - show search history if available
+      // Empty query - load search history if available
       if (token) {
         const loadHistory = async () => {
           try {
@@ -125,15 +125,16 @@ export default function Header() {
             }));
             setSearchHistory(historyItems);
             setSearchSuggestions(historyItems);
-            // Don't auto-show, only show when focused
+            // Don't auto-show here, will show on focus
           } catch (error) {
             console.error('Error loading search history:', error);
           }
         };
         loadHistory();
+      } else {
+        setSearchSuggestions([]);
+        setShowSearchSuggestions(false);
       }
-      setSearchSuggestions([]);
-      setShowSearchSuggestions(false);
     }
   }, [searchQuery, token]);
 
@@ -243,12 +244,9 @@ export default function Header() {
   const handleSuggestionClick = (suggestion) => {
     if (suggestion.type === 'shop') {
       navigate(`/shop?q=${encodeURIComponent(suggestion.name.replace("Find Shop '", "").replace("'", ""))}`);
-    } else if (suggestion.type === 'history' || suggestion.type === 'keyword') {
-      // For history/keyword, set as search query and navigate
+    } else if (suggestion.type === 'history' || suggestion.type === 'keyword' || suggestion.type === 'product') {
+      // For all types, navigate to search results page
       navigate(`/shop?q=${encodeURIComponent(suggestion.name)}`);
-    } else {
-      // Product type
-      navigate(`/product/${suggestion.id}`);
     }
     setSearchQuery("");
     setShowSearchSuggestions(false);
@@ -565,7 +563,14 @@ export default function Header() {
                 placeholder={t('header.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                onFocus={() => searchQuery.trim() && setShowSearchSuggestions(true)}
+                onFocus={() => {
+                  // Show suggestions on focus if there's a query OR if there's history
+                  if (searchQuery.trim()) {
+                    setShowSearchSuggestions(true);
+                  } else if (searchSuggestions.length > 0) {
+                    setShowSearchSuggestions(true);
+                  }
+                }}
                 style={{
                   height: '100%',
                   border: 'none',
