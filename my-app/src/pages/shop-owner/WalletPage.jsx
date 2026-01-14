@@ -69,7 +69,7 @@ export default function WalletPage() {
                 buyerName: 'Shopper', // Placeholder
                 productImage: '/placeholder-product.jpg',
                 productName: e.description || 'Order Item',
-                estimatedPaymentDate: new Date(e.createdAt).toLocaleDateString('vi-VN'),
+                estimatedPaymentDate: new Date(e.createdAt).toLocaleString('vi-VN'),
                 status: e.entryType,
                 paymentMethod: 'Wallet',
                 unpaidAmount: e.amountNet, // Amount this entry affected the wallet
@@ -187,7 +187,12 @@ export default function WalletPage() {
         if (activeTab === 'unpaid' && entry.type === 'PAYOUT') return false;
 
         if (searchQuery) {
-            return entry.orderId.toLowerCase().includes(searchQuery.toLowerCase());
+            const query = searchQuery.toLowerCase();
+            return (
+                (entry.orderId || '').toLowerCase().includes(query) ||
+                (entry.productName || '').toLowerCase().includes(query) ||
+                (entry.status || '').toLowerCase().includes(query)
+            );
         }
         return true;
     });
