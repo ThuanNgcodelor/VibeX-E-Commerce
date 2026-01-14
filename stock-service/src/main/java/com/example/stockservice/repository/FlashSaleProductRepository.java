@@ -16,4 +16,8 @@ public interface FlashSaleProductRepository extends JpaRepository<FlashSaleProdu
     List<FlashSaleProduct> findByShopId(String shopId);
 
     List<FlashSaleProduct> findByProductIdAndStatus(String productId, FlashSaleStatus status);
+
+    int countBySessionId(String sessionId);
+
+    List<FlashSaleProduct> findByProductId(String productId);
 }

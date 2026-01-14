@@ -40,44 +40,44 @@ public class AIChatService {
             ROLE:
             Bạn là VIBE AI, trợ lý mua sắm thông minh của VIBE E-commerce.
             Bạn thân thiện, hữu ích và chuyên nghiệp.
-            
+
             CONTEXT:
             - Thời gian hiện tại: {current_time}
             - Ngày: {current_date} ({day_of_week})
             - Ngôn ngữ ưu tiên: {language}
             - User ID: {user_id}
-            
+
             PRODUCT INVENTORY CONTEXT (DANH MỤC SẢN PHẨM CÓ SẴN):
             Cửa hàng hiện đang kinh doanh các danh mục sản phẩm sau:
             [{available_categories}]
-            
+
             KHI SUY LUẬN SẢN PHẨM (INFER KEYWORDS), HÃY ƯU TIÊN CÁC SẢN PHẨM THUỘC CÁC DANH MỤC TRÊN!
-            Ví dụ: Nếu user hỏi "cầu lông", nhưng shop chỉ có "Sport & Outdoor" (quần áo, giày) mà không bán "Vợt", 
+            Ví dụ: Nếu user hỏi "cầu lông", nhưng shop chỉ có "Sport & Outdoor" (quần áo, giày) mà không bán "Vợt",
             thì hãy tìm "giày thể thao, quần áo thể thao" thay vì "vợt".
-            
+
             CẢNH BÁO QUAN TRỌNG - ĐỌC KỸ
-            
+
             BẠN TUYỆT ĐỐI KHÔNG ĐƯỢC TỰ BỊA DỮ LIỆU!
             BẠN BẮT BUỘC PHẢI GỌI TOOL VÀ COPY CHÍNH XÁC KẾT QUẢ!
-            
+
             AVAILABLE TOOLS VÀ CÁCH DÙNG:
-            
+
             PRODUCT TOOLS:
             - "tìm sản phẩm X" → searchProducts(keyword="X")
             - "giá sản phẩm X" → getProductPrice(productName="X")
             - "sản phẩm giảm giá" → getDiscountedProducts()
-            
+
             CONTEXTUAL SUGGESTIONS (TỰ ĐỘNG GỌI):
             Khi user đề cập đến hoạt động/scenario, BẠN PHẢI TỰ ĐỘNG GỌI suggestProductsByScenario:
-            
+
             AI PHẢI TỰ SUY LUẬN (INFER) KEYWORDS TỪ HOẠT ĐỘNG:
-            
+
             Quy tắc:
             1. PHÂN TÍCH hoạt động/scenario user muốn.
             2. ĐỐI CHIẾU với [PRODUCT INVENTORY CONTEXT] ở trên.
             3. TỰ SUY LUẬN các sản phẩm cần thiết (keywords) MÀ SHOP CÓ THỂ CÓ.
             4. GỌI suggestProductsByScenario với keywords đó.
-            
+
             Ví dụ (Examples):
             - "đi biển" → suggestProductsByScenario(scenario="đồ bơi,kính râm,kem chống nắng,nón")
             - "đá bóng" → suggestProductsByScenario(scenario="giày đá bóng,quần áo thể thao,bóng đá,tất")
@@ -86,42 +86,52 @@ public class AIChatService {
             - "đi picnic" → suggestProductsByScenario(scenario="thảm trải,đồ ăn nhanh,nước uống,lều")
             - "đi tiệc/party" → suggestProductsByScenario(scenario="váy dạ hội,giày cao gót,túi xách,trang sức")
             - "đi học" → suggestProductsByScenario(scenario="ba lô,sách,vở,bút,laptop")
-            
+
             English Examples:
             - "soccer/football" → suggestProductsByScenario(scenario="soccer shoes,jersey,shorts,socks")
             - "hiking" → suggestProductsByScenario(scenario="hiking boots,backpack,jacket,water bottle")
             - "camping" → suggestProductsByScenario(scenario="tent,sleeping bag,lantern,camping chair")
             - "badminton" → suggestProductsByScenario(scenario="racket,shuttlecock,sport shoes")
-            
-            QUAN TRỌNG: 
+
+            QUAN TRỌNG:
             - Với các hoạt động chưa có trong ví dụ, HÃY TỰ SUY LUẬN ít nhất 3-4 keywords liên quan nhất.
-            
-            QUAN TRỌNG: 
+
+            QUAN TRỌNG:
             - KHÔNG HỎI LẠI USER, TỰ ĐỘNG GỌI FUNCTION NGAY!
             - Extract keywords phù hợp với scenario
             - Tool sẽ trả về products, bạn chỉ cần hiển thị
-            
+
             ORDER TOOLS:
             - "đơn hàng của tôi" → getMyOrders(userId="{user_id}")
             - "đơn VNPAY/COD" → getOrdersByPayment(userId="{user_id}", paymentMethod="VNPAY" hoặc "COD")
             - "chi tiêu tháng này" → getSpendingStats(userId="{user_id}", period="month")
             - "chi tiêu tuần này" → getSpendingStats(userId="{user_id}", period="week")
             - "tổng đã chi" → getSpendingStats(userId="{user_id}", period="all")
-            
+
             QUAN TRỌNG: Message từ tool đã được format sẵn, bạn CHỈ CẦN COPY và hiển thị.
             KHÔNG ĐƯỢC thêm, bớt, hoặc thay đổi dữ liệu từ tool.
-            
+
             QUY TẮC NGÔN NGỮ:
             - Tiếng Việt → trả lời tiếng Việt
             - English → reply in English
             - KHÔNG dùng tiếng Trung, Nhật, Hàn
-            
+
             {conversation_history}
             """;
 
-    public AIChatService(ChatModel chatModel, LanguageFilter languageFilter, ProductTools productTools, ProductService productService, CategoryRepository categoryRepository, ContextualSuggestTool contextualSuggestTool) {
+    private final FlashSaleTools flashSaleTools;
+    private final AdvancedProductTools advancedProductTools;
+    private final LiveSessionTools liveSessionTools;
+
+    public AIChatService(ChatModel chatModel, LanguageFilter languageFilter, ProductTools productTools,
+            ProductService productService, CategoryRepository categoryRepository,
+            ContextualSuggestTool contextualSuggestTool, FlashSaleTools flashSaleTools,
+            AdvancedProductTools advancedProductTools, LiveSessionTools liveSessionTools) {
         this.languageFilter = languageFilter;
         this.categoryRepository = categoryRepository;
+        this.flashSaleTools = flashSaleTools;
+        this.advancedProductTools = advancedProductTools;
+        this.liveSessionTools = liveSessionTools;
 
         // Build ChatClient với các tools
         this.chatClient = ChatClient.builder(chatModel)
@@ -136,7 +146,22 @@ public class AIChatService {
                         "getOrderStatus",
                         "getOrdersByPayment",
                         "getSpendingStats",
-                        "suggestProductsByScenario")
+                        // Contextual suggestions
+                        "suggestProductsByScenario",
+                        // Flash Sale tools (NEW)
+                        "getCurrentFlashSales",
+                        "getFlashSaleProducts",
+                        "checkProductInFlashSale",
+                        "getUpcomingFlashSales",
+                        // Advanced Product tools (NEW)
+                        "getTrendingProducts",
+                        "getNewArrivals",
+                        "getProductsByCategory",
+                        "getCategories",
+                        // Live Session tools (NEW)
+                        "getActiveLiveSessions",
+                        "searchLiveByKeyword",
+                        "getLiveDetails")
                 .build();
     }
 
@@ -148,6 +173,34 @@ public class AIChatService {
         } catch (Exception e) {
             log.error("Failed to fetch categories context", e);
             return "Fashion, Electronics, Home & Living"; // Fallback
+        }
+    }
+
+    private String getFlashSaleContext() {
+        try {
+            var response = flashSaleTools.getCurrentFlashSales()
+                    .apply(new FlashSaleTools.GetCurrentFlashSalesRequest());
+            if (response.total() > 0) {
+                return String.format("%d Flash Sale đang hoạt động", response.total());
+            }
+            return "Không có Flash Sale";
+        } catch (Exception e) {
+            log.warn("Could not fetch flash sale context", e);
+            return "N/A";
+        }
+    }
+
+    private String getLiveSessionContext() {
+        try {
+            var response = liveSessionTools.getActiveLiveSessions()
+                    .apply(new LiveSessionTools.GetActiveLiveSessionsRequest(5));
+            if (response.total() > 0) {
+                return String.format("%d phiên live đang hoạt động", response.total());
+            }
+            return "Không có phiên live";
+        } catch (Exception e) {
+            log.warn("Could not fetch live session context", e);
+            return "N/A";
         }
     }
 
@@ -173,6 +226,10 @@ public class AIChatService {
 
             // 3. Get available categories context
             String categoriesContext = getAvailableCategories();
+
+            // 4. Get Flash Sale and Live context
+            String flashSaleContext = getFlashSaleContext();
+            String liveContext = getLiveSessionContext();
 
             // 3. Get or create conversation ID
             String conversationId = request.getConversationId();
@@ -218,6 +275,8 @@ public class AIChatService {
                     .replace("{language}", language)
                     .replace("{user_id}", userId)
                     .replace("{available_categories}", categoriesContext)
+                    .replace("{flash_sale_context}", flashSaleContext)
+                    .replace("{live_context}", liveContext)
                     .replace("{conversation_history}", historyBuilder.toString());
 
             log.info("Processing: '{}' (ConvId: {}, UserId: {}, History: {} msgs)",
@@ -246,7 +305,8 @@ public class AIChatService {
 
             log.info("AI Response: {}", aiResponse);
 
-            // 9. Check if contextual products were suggested (stored in ThreadLocal by tool)
+            // 9. Check if contextual products were suggested (stored in ThreadLocal by
+            // tool)
             List<ProductSuggestionDto> productSuggestions = ContextualSuggestTool.getLastProducts();
 
             if (productSuggestions != null && !productSuggestions.isEmpty()) {
