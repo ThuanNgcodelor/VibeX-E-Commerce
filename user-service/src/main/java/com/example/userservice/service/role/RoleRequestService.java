@@ -36,6 +36,69 @@ public class RoleRequestService {
                 .orElseThrow(() -> new NotFoundException("404"));
     }
 
+    public com.example.userservice.request.RoleRequestDetailResponse getRoleRequestDetail(String requestId) {
+        RoleRequest request = getRoleRequestById(requestId);
+        String userId = request.getUser().getId();
+
+        // 1. Fetch Shop Owner Info
+        com.example.userservice.dto.ShopOwnerDto shopOwnerDto = null;
+        if (shopOwnerRepository.existsById(userId)) {
+            com.example.userservice.model.ShopOwner shopOwner = shopOwnerRepository.findById(userId).get();
+            // Manual mapping or use ModelMapper if injected
+            shopOwnerDto = com.example.userservice.dto.ShopOwnerDto.builder()
+                    .shopName(shopOwner.getShopName())
+                    .ownerName(shopOwner.getOwnerName())
+                    .phone(shopOwner.getPhone())
+                    .address(shopOwner.getAddress())
+                    .active(shopOwner.getActive() != null ? shopOwner.getActive().name() : "INACTIVE")
+                    .verified(shopOwner.getVerified())
+                    .build();
+            // Note: Assuming simple mapping for now. Better to use ModelMapper in
+            // Controller or here.
+        }
+
+        // 2. Fetch Identification
+        com.example.userservice.dto.IdentificationDto identificationDto = null;
+        var identificationOpt = identificationRepository.findByUserId(userId);
+        if (identificationOpt.isPresent()) {
+            var idEntity = identificationOpt.get();
+            identificationDto = com.example.userservice.dto.IdentificationDto.builder()
+                    .identificationNumber(idEntity.getIdentificationNumber())
+                    .fullName(idEntity.getFullName())
+                    .identificationType(idEntity.getIdentificationType().name())
+                    .imageFrontUrl(idEntity.getImageFrontUrl())
+                    .imageBackUrl(idEntity.getImageBackUrl())
+                    .build();
+        }
+
+        // 3. Fetch Tax Info
+        com.example.userservice.dto.TaxInfoDto taxInfoDto = null;
+        var taxOpt = taxInfoRepository.findByUserId(userId);
+        if (taxOpt.isPresent()) {
+            var taxEntity = taxOpt.get();
+            taxInfoDto = com.example.userservice.dto.TaxInfoDto.builder()
+                    .taxCode(taxEntity.getTaxCode())
+                    .email(taxEntity.getEmail())
+                    .businessType(taxEntity.getBusinessType().name())
+                    .businessAddress(taxEntity.getBusinessAddress())
+                    .build();
+        }
+
+        return com.example.userservice.request.RoleRequestDetailResponse.builder()
+                .id(request.getId())
+                .userId(userId)
+                .username(request.getUser().getUsername())
+                .requestedRole(request.getRequestedRole().name())
+                .reason(request.getReason())
+                .status(request.getStatus().name())
+                .creationTimestamp(request.getCreationTimestamp())
+                .adminNote(request.getAdminNote())
+                .shopDetails(shopOwnerDto)
+                .identification(identificationDto)
+                .taxInfo(taxInfoDto)
+                .build();
+    }
+
     private void createRoleRequestRecord(User user, RoleRequestRequest roleRequestData) {
         // Kiểm tra spam request
         boolean existsPending = roleRequestRepository.existsByUserAndStatus(user, RequestStatus.PENDING);

@@ -8,7 +8,7 @@ export default function ShopStatsDashboard({ shop }) {
     const revenueTrend = shop.revenueTrend || [];
     const revenueData = revenueTrend.length > 0
         ? revenueTrend.map(item => ({
-            month: `T${item.month}`,
+            month: `M${item.month}`,
             revenue: item.revenue || 0
         }))
         : []; // Or default/empty chart
@@ -76,16 +76,16 @@ export default function ShopStatsDashboard({ shop }) {
             <div className="dashboard-header">
                 <h3 className="dashboard-title">
                     <i className="fas fa-chart-line me-2"></i>
-                    Thống Kê: {shop.shopName}
+                    Statistics: {shop.shopName}
                 </h3>
                 <span className="verified-badge-large">
                     {shop.verified ? (
                         <>
-                            <i className="fas fa-check-circle text-success"></i> Đã xác minh
+                            <i className="fas fa-check-circle text-success"></i> Verified
                         </>
                     ) : (
                         <>
-                            <i className="fas fa-clock text-warning"></i> Chưa xác minh
+                            <i className="fas fa-clock text-warning"></i> Unverified
                         </>
                     )}
                 </span>
@@ -99,7 +99,7 @@ export default function ShopStatsDashboard({ shop }) {
                     </div>
                     <div className="card-content">
                         <h4 className="card-value">{formatCurrency(stats.revenue.total)}</h4>
-                        <p className="card-label">Tổng Doanh Thu</p>
+                        <p className="card-label">Total Revenue</p>
                         <span className="card-trend positive">
                             <i className="fas fa-arrow-up"></i> {stats.revenue.trend}
                         </span>
@@ -112,9 +112,9 @@ export default function ShopStatsDashboard({ shop }) {
                     </div>
                     <div className="card-content">
                         <h4 className="card-value">{stats.orders.total}</h4>
-                        <p className="card-label">Tổng Đơn Hàng</p>
+                        <p className="card-label">Total Orders</p>
                         <span className="card-detail">
-                            {stats.orders.byStatus.delivered} đã giao
+                            {stats.orders.byStatus.delivered} delivered
                         </span>
                     </div>
                 </div>
@@ -125,9 +125,9 @@ export default function ShopStatsDashboard({ shop }) {
                     </div>
                     <div className="card-content">
                         <h4 className="card-value">{stats.products.total}</h4>
-                        <p className="card-label">Tổng Sản Phẩm</p>
+                        <p className="card-label">Total Products</p>
                         <span className="card-detail">
-                            {stats.products.active} đang bán
+                            {stats.products.active} active
                         </span>
                     </div>
                 </div>
@@ -138,9 +138,9 @@ export default function ShopStatsDashboard({ shop }) {
                     </div>
                     <div className="card-content">
                         <h4 className="card-value">{stats.categories}</h4>
-                        <p className="card-label">Danh Mục</p>
+                        <p className="card-label">Categories</p>
                         <span className="card-detail">
-                            {stats.products.byCategory.length} loại
+                            {stats.products.byCategory.length} types
                         </span>
                     </div>
                 </div>
@@ -149,7 +149,7 @@ export default function ShopStatsDashboard({ shop }) {
             {/* Revenue Trend Chart */}
             <div className="chart-section">
                 <div className="section-header">
-                    <h4>Xu Hướng Doanh Thu 6 Tháng Gần Đây</h4>
+                    <h4>Revenue Trend (Last 6 Months)</h4>
                 </div>
                 <div className="revenue-chart">
                     <div className="chart-bars">
@@ -168,7 +168,7 @@ export default function ShopStatsDashboard({ shop }) {
                                 </div>
                             ))
                         ) : (
-                            <div className="text-center w-100 py-3 text-muted">Chưa có dữ liệu doanh thu</div>
+                            <div className="text-center w-100 py-3 text-muted">No revenue data available</div>
                         )}
                     </div>
                 </div>
@@ -179,7 +179,7 @@ export default function ShopStatsDashboard({ shop }) {
                 <div className="col-md-6">
                     <div className="chart-section">
                         <div className="section-header">
-                            <h4>Sản Phẩm Theo Danh Mục</h4>
+                            <h4>Products by Category</h4>
                         </div>
                         <div className="category-chart">
                             {stats.products.byCategory.length > 0 ? (
@@ -210,7 +210,7 @@ export default function ShopStatsDashboard({ shop }) {
                                     </div>
                                 ))
                             ) : (
-                                <div className="text-center py-3 text-muted">Chưa có dữ liệu danh mục</div>
+                                <div className="text-center py-3 text-muted">No category data available</div>
                             )}
                         </div>
                     </div>
@@ -220,41 +220,41 @@ export default function ShopStatsDashboard({ shop }) {
                 <div className="col-md-6">
                     <div className="chart-section">
                         <div className="section-header">
-                            <h4>Phân Bố Trạng Thái Đơn Hàng</h4>
+                            <h4>Order Status Distribution</h4>
                         </div>
                         <div className="status-chart">
                             <div className="status-item">
                                 <div className="status-info">
                                     <span className="status-dot pending"></span>
-                                    <span className="status-name">Chờ xử lý</span>
+                                    <span className="status-name">Pending</span>
                                 </div>
                                 <span className="status-count">{stats.orders.byStatus.pending}</span>
                             </div>
                             <div className="status-item">
                                 <div className="status-info">
                                     <span className="status-dot processing"></span>
-                                    <span className="status-name">Đang xử lý</span>
+                                    <span className="status-name">Processing</span>
                                 </div>
                                 <span className="status-count">{stats.orders.byStatus.processing}</span>
                             </div>
                             <div className="status-item">
                                 <div className="status-info">
                                     <span className="status-dot shipped"></span>
-                                    <span className="status-name">Đang giao</span>
+                                    <span className="status-name">Shipping</span>
                                 </div>
                                 <span className="status-count">{stats.orders.byStatus.shipped}</span>
                             </div>
                             <div className="status-item">
                                 <div className="status-info">
                                     <span className="status-dot delivered"></span>
-                                    <span className="status-name">Đã giao</span>
+                                    <span className="status-name">Delivered</span>
                                 </div>
                                 <span className="status-count">{stats.orders.byStatus.delivered}</span>
                             </div>
                             <div className="status-item">
                                 <div className="status-info">
                                     <span className="status-dot cancelled"></span>
-                                    <span className="status-name">Đã hủy</span>
+                                    <span className="status-name">Cancelled</span>
                                 </div>
                                 <span className="status-count">{stats.orders.byStatus.cancelled}</span>
                             </div>

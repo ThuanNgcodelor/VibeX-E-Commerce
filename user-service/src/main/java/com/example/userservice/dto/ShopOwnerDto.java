@@ -38,4 +38,5 @@ public class ShopOwnerDto {
     private String email;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private String active;
 }

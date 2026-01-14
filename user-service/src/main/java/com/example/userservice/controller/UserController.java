@@ -16,8 +16,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/v1/user")
 @RequiredArgsConstructor
@@ -45,9 +43,15 @@ public class UserController {
     }
 
     @GetMapping("/getAll")
-    public ResponseEntity<List<UserAdminDto>> getAll() {
-        return ResponseEntity.ok(userService.getAllUsers().stream()
-                .map(userService::toUserAdminDto).toList());
+    public ResponseEntity<org.springframework.data.domain.Page<UserAdminDto>> getAll(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String role,
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
+        org.springframework.data.domain.Page<User> userPage = userService.getAllUsers(search, role, status, pageable);
+        return ResponseEntity.ok(userPage.map(userService::toUserAdminDto));
     }
 
     @GetMapping("/getUserForAdminByUserId/{id}")

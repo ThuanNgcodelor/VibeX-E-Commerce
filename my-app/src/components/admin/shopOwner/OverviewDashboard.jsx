@@ -34,9 +34,9 @@ export default function OverviewDashboard({ shops }) {
             <div className="dashboard-header">
                 <h3 className="dashboard-title">
                     <i className="fas fa-chart-pie me-2"></i>
-                    Tổng Quan Hệ Thống
+                    System Overview
                 </h3>
-                <p className="dashboard-subtitle">Thống kê chung của tất cả shop owners</p>
+                <p className="dashboard-subtitle">General statistics of all shop owners</p>
             </div>
 
             {/* System Summary Cards */}
@@ -47,9 +47,9 @@ export default function OverviewDashboard({ shops }) {
                     </div>
                     <div className="card-content">
                         <h4 className="card-value">{totalShops}</h4>
-                        <p className="card-label">Tổng Số Shop</p>
+                        <p className="card-label">Total Shops</p>
                         <span className="card-detail">
-                            {verifiedShops} đã xác minh
+                            {verifiedShops} verified
                         </span>
                     </div>
                 </div>
@@ -60,9 +60,9 @@ export default function OverviewDashboard({ shops }) {
                     </div>
                     <div className="card-content">
                         <h4 className="card-value">{formatCurrency(totalRevenue)}</h4>
-                        <p className="card-label">Tổng Doanh Thu</p>
+                        <p className="card-label">Total Revenue</p>
                         <span className="card-detail">
-                            Từ tất cả shop
+                            From all shops
                         </span>
                     </div>
                 </div>
@@ -73,9 +73,9 @@ export default function OverviewDashboard({ shops }) {
                     </div>
                     <div className="card-content">
                         <h4 className="card-value">{totalOrders.toLocaleString()}</h4>
-                        <p className="card-label">Tổng Đơn Hàng</p>
+                        <p className="card-label">Total Orders</p>
                         <span className="card-detail">
-                            Trung bình {Math.floor(totalOrders / totalShops)}/shop
+                            Average {Math.floor(totalOrders / (totalShops || 1))}/shop
                         </span>
                     </div>
                 </div>
@@ -86,9 +86,9 @@ export default function OverviewDashboard({ shops }) {
                     </div>
                     <div className="card-content">
                         <h4 className="card-value">{totalProducts.toLocaleString()}</h4>
-                        <p className="card-label">Tổng Sản Phẩm</p>
+                        <p className="card-label">Total Products</p>
                         <span className="card-detail">
-                            Trung bình {Math.floor(totalProducts / totalShops)}/shop
+                            Average {Math.floor(totalProducts / (totalShops || 1))}/shop
                         </span>
                     </div>
                 </div>
@@ -99,7 +99,7 @@ export default function OverviewDashboard({ shops }) {
                 <div className="section-header">
                     <h4>
                         <i className="fas fa-trophy me-2"></i>
-                        Top 5 Shop Theo Doanh Thu
+                        Top 5 Shops by Revenue
                     </h4>
                 </div>
                 <div className="revenue-comparison-chart">
@@ -114,12 +114,12 @@ export default function OverviewDashboard({ shops }) {
                                 <div className="revenue-bar-container">
                                     <div
                                         className="revenue-bar-fill"
-                                        style={{ width: `${(shop.totalRevenue / maxRevenue) * 100}%` }}
+                                        style={{ width: `${(shop.totalRevenue / (maxRevenue || 1)) * 100}%` }}
                                     ></div>
                                 </div>
                                 <div className="shop-stats-row">
                                     <span className="revenue-amount">{formatCurrency(shop.totalRevenue)}</span>
-                                    <span className="order-count">{shop.totalOrders} đơn</span>
+                                    <span className="order-count">{shop.totalOrders} orders</span>
                                 </div>
                             </div>
                         </div>
@@ -132,7 +132,7 @@ export default function OverviewDashboard({ shops }) {
                 <div className="section-header">
                     <h4>
                         <i className="fas fa-boxes me-2"></i>
-                        Top 5 Shop Theo Số Lượng Sản Phẩm
+                        Top 5 Shops by Product Count
                     </h4>
                 </div>
                 <div className="product-distribution-chart">
@@ -147,11 +147,11 @@ export default function OverviewDashboard({ shops }) {
                                 <div className="product-bar-container">
                                     <div
                                         className="product-bar-fill"
-                                        style={{ width: `${(shop.totalProducts / maxProducts) * 100}%` }}
+                                        style={{ width: `${(shop.totalProducts / (maxProducts || 1)) * 100}%` }}
                                     ></div>
                                 </div>
                                 <div className="shop-stats-row">
-                                    <span className="product-count">{shop.totalProducts} sản phẩm</span>
+                                    <span className="product-count">{shop.totalProducts} products</span>
                                     <span className="owner-name">{shop.ownerName}</span>
                                 </div>
                             </div>
@@ -167,8 +167,8 @@ export default function OverviewDashboard({ shops }) {
                         <i className="fas fa-percentage"></i>
                     </div>
                     <div className="stat-info">
-                        <h5>{((verifiedShops / totalShops) * 100).toFixed(1)}%</h5>
-                        <p>Tỷ Lệ Xác Minh</p>
+                        <h5>{((verifiedShops / (totalShops || 1)) * 100).toFixed(1)}%</h5>
+                        <p>Verification Rate</p>
                     </div>
                 </div>
 
@@ -177,8 +177,8 @@ export default function OverviewDashboard({ shops }) {
                         <i className="fas fa-chart-line"></i>
                     </div>
                     <div className="stat-info">
-                        <h5>{formatCurrency(totalRevenue / totalShops)}</h5>
-                        <p>Doanh Thu TB/Shop</p>
+                        <h5>{formatCurrency(totalRevenue / (totalShops || 1))}</h5>
+                        <p>Avg Revenue/Shop</p>
                     </div>
                 </div>
 
@@ -187,8 +187,8 @@ export default function OverviewDashboard({ shops }) {
                         <i className="fas fa-box-open"></i>
                     </div>
                     <div className="stat-info">
-                        <h5>{Math.floor(totalProducts / totalShops)}</h5>
-                        <p>Sản Phẩm TB/Shop</p>
+                        <h5>{Math.floor(totalProducts / (totalShops || 1))}</h5>
+                        <p>Avg Products/Shop</p>
                     </div>
                 </div>
 
@@ -197,8 +197,8 @@ export default function OverviewDashboard({ shops }) {
                         <i className="fas fa-receipt"></i>
                     </div>
                     <div className="stat-info">
-                        <h5>{Math.floor(totalOrders / totalShops)}</h5>
-                        <p>Đơn Hàng TB/Shop</p>
+                        <h5>{Math.floor(totalOrders / (totalShops || 1))}</h5>
+                        <p>Avg Orders/Shop</p>
                     </div>
                 </div>
             </div>

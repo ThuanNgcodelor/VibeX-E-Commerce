@@ -1,17 +1,94 @@
 .sidebar-ezmart {
     background-color: #ffffff;
     width: 220px;
-    min-height: 100vh;
+    height: 100vh;
+    /* Fixed height for sticky */
+    position: sticky;
+    /* Make sticky */
+    top: 0;
+    z-index: 1000;
     box-shadow: 2px 0 8px rgba(0, 0, 0, 0.08);
     padding: 0;
     list-style: none;
     margin: 0;
+    overflow-y: auto;
+    /* Scrollable sidebar */
+    transition: all 0.3s ease;
+    /* Smooth transition */
 }
 
+/* Toggled State (Mini Sidebar) */
+.sidebar-ezmart.toggled {
+    width: 90px;
+    overflow-x: hidden;
+    /* Hide horizontal overflow */
+}
+
+.sidebar-ezmart.toggled .brand-text {
+    display: none;
+}
+
+.sidebar-ezmart.toggled .sidebar-brand-ezmart {
+    justify-content: center;
+    padding: 20px 0;
+}
+
+.sidebar-ezmart.toggled .brand-icon {
+    margin-right: 0;
+}
+
+.sidebar-ezmart.toggled .nav-link-ezmart span {
+    display: none;
+}
+
+.sidebar-ezmart.toggled .nav-link-ezmart {
+    justify-content: center;
+    padding: 15px 0;
+}
+
+.sidebar-ezmart.toggled .nav-link-ezmart i {
+    margin-right: 0;
+    font-size: 20px;
+}
+
+/* Dropdown tweaks for toggled state */
+.sidebar-ezmart.toggled .dropdown-toggle-ezmart span {
+    display: none;
+}
+
+.sidebar-ezmart.toggled .dropdown-toggle-ezmart i.arrow {
+    display: none;
+}
+
+.sidebar-ezmart.toggled .dropdown-toggle-ezmart .left-content {
+    justify-content: center;
+    width: 100%;
+}
+
+.sidebar-ezmart.toggled .dropdown-toggle-ezmart i.icon {
+    margin-right: 0;
+    font-size: 20px;
+}
+
+.sidebar-ezmart.toggled .dropdown-toggle-ezmart {
+    justify-content: center;
+    padding: 15px 0;
+}
+
+/* Hide dropdown menu content when toggled (or make it popover - complex) 
+   For now, just hide it to avoid layout break
+*/
+.sidebar-ezmart.toggled .dropdown-menu-ezmart {
+    display: none;
+}
+
+/* ... existing styles ... */
 .sidebar-brand-ezmart {
     padding: 20px 16px;
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    /* Space out Logo and Hamburger */
     text-decoration: none;
     border-bottom: 1px solid #f0f0f0;
 }
@@ -25,6 +102,19 @@
     align-items: center;
     justify-content: center;
     margin-right: 8px;
+}
+
+/* ... existing ... */
+
+/* Toggled overrides */
+.sidebar-ezmart.toggled .sidebar-brand-ezmart {
+    justify-content: center;
+    padding: 20px 0;
+}
+
+.sidebar-ezmart.toggled .brand-icon {
+    display: none;
+    /* Hide logo icon in mini mode, show only hamburger */
 }
 
 .sidebar-brand-ezmart .brand-icon i {

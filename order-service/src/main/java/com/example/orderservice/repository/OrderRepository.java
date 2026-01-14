@@ -119,7 +119,7 @@ public interface OrderRepository extends JpaRepository<Order, String> {
         @Query("SELECT new com.example.orderservice.dto.DailyRevenueDto(" +
                         "CAST(o.createdAt AS LocalDate), SUM(o.totalPrice), COUNT(o)) " +
                         "FROM Order o " +
-                        "WHERE o.createdAt >= :startDate AND o.orderStatus = 'COMPLETED' " +
+                        "WHERE o.createdAt >= :startDate AND o.orderStatus IN ('COMPLETED', 'DELIVERED') " +
                         "GROUP BY CAST(o.createdAt AS LocalDate) " +
                         "ORDER BY CAST(o.createdAt AS LocalDate) ASC")
         List<com.example.orderservice.dto.DailyRevenueDto> getDailyRevenue(@Param("startDate") LocalDateTime startDate);
@@ -127,8 +127,27 @@ public interface OrderRepository extends JpaRepository<Order, String> {
         @Query("SELECT SUM(o.totalPrice) FROM Order o JOIN o.orderItems oi WHERE oi.productId IN :productIds AND o.orderStatus = 'COMPLETED'")
         Double sumTotalRevenueByProductIds(@Param("productIds") List<String> productIds);
 
-        @Query("SELECT COUNT(DISTINCT o) FROM Order o JOIN o.orderItems oi WHERE oi.productId IN :productIds")
+        @Query("SELECT SUM(o.totalPrice) FROM Order o JOIN o.orderItems oi WHERE oi.productId IN :productIds")
         Long countByProductIds(@Param("productIds") List<String> productIds);
+
+        // Date Range Specific Queries for Dashboard
+        @Query("SELECT SUM(o.totalPrice) FROM Order o WHERE o.createdAt BETWEEN :startDate AND :endDate AND o.orderStatus IN ('COMPLETED', 'DELIVERED')")
+        Double sumTotalRevenueBetween(@Param("startDate") LocalDateTime startDate,
+                        @Param("endDate") LocalDateTime endDate);
+
+        @Query("SELECT COUNT(o) FROM Order o WHERE o.createdAt BETWEEN :startDate AND :endDate AND o.orderStatus <> 'CANCELLED'")
+        Long countValidOrdersBetween(@Param("startDate") LocalDateTime startDate,
+                        @Param("endDate") LocalDateTime endDate);
+
+        @Query("SELECT new com.example.orderservice.dto.DailyRevenueDto(" +
+                        "CAST(o.createdAt AS LocalDate), SUM(o.totalPrice), COUNT(o)) " +
+                        "FROM Order o " +
+                        "WHERE o.createdAt BETWEEN :startDate AND :endDate AND o.orderStatus IN ('COMPLETED', 'DELIVERED') "
+                        +
+                        "GROUP BY CAST(o.createdAt AS LocalDate) " +
+                        "ORDER BY CAST(o.createdAt AS LocalDate) ASC")
+        List<com.example.orderservice.dto.DailyRevenueDto> getDailyRevenueBetween(
+                        @Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
 
         @Query("SELECT MONTH(o.createdAt), YEAR(o.createdAt), SUM(oi.totalPrice) FROM Order o JOIN o.orderItems oi WHERE oi.productId IN :productIds AND o.orderStatus = 'COMPLETED' AND o.createdAt >= :startDate GROUP BY YEAR(o.createdAt), MONTH(o.createdAt) ORDER BY YEAR(o.createdAt), MONTH(o.createdAt)")
         List<Object[]> getMonthlyRevenueByProductIds(@Param("productIds") List<String> productIds,

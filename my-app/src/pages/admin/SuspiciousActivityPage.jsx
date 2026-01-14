@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { getSuspiciousProducts } from "../../api/adminAnalyticsApi"; // Adjust path if needed
+import { getSuspiciousProducts, warnShop } from "../../api/adminAnalyticsApi"; // Adjust path if needed
 import { Table, Button, Container, Card, Alert, Spinner } from "react-bootstrap";
+import Swal from 'sweetalert2';
 import { Link } from "react-router-dom";
 
 const SuspiciousActivityPage = () => {
@@ -25,9 +26,34 @@ const SuspiciousActivityPage = () => {
         }
     };
 
-    const handleWarnShop = (shopId) => {
-        // Placeholder for warning logic (e.g., open modal, send notification API)
-        alert(`Warning sent to shop owner: ${shopId}`);
+    const handleWarnShop = async (shopId) => {
+        const result = await Swal.fire({
+            title: 'Warn this shop?',
+            text: "Are you sure you want to send a warning notification to this shop?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ffc107',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, warn them!',
+            cancelButtonText: 'Cancel'
+        });
+
+        if (result.isConfirmed) {
+            try {
+                await warnShop(shopId);
+                Swal.fire(
+                    'Sent!',
+                    'Warning notification has been sent to the shop owner.',
+                    'success'
+                );
+            } catch (err) {
+                Swal.fire(
+                    'Error!',
+                    'Failed to send warning notification.',
+                    'error'
+                );
+            }
+        }
     };
 
     const renderReasonBadge = (reason) => {

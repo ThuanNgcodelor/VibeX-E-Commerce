@@ -4,6 +4,7 @@ import {
   approveRequest,
   rejectRequest,
   getPendingRequests,
+  getRoleRequestById, // Implemented in api/role_request.js
 } from "../../api/role_request";
 
 // Số dòng mỗi trang
@@ -34,6 +35,11 @@ export default function RolesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [updating, setUpdating] = useState(null); // id đang Accept/Reject
+  
+  // New state for dropdown
+  const [expandedRow, setExpandedRow] = useState(null); // ID of expanded row
+  const [rowDetails, setRowDetails] = useState({}); // Cache for loaded details: { [id]: detailObject }
+  const [loadingDetails, setLoadingDetails] = useState(false);
 
   // Hàm load dữ liệu
   const load = async () => {
@@ -57,13 +63,39 @@ export default function RolesPage() {
     load();
   }, []);
 
+  // Handle Expand Row
+  const toggleRow = async (id) => {
+    if (expandedRow === id) {
+      setExpandedRow(null);
+      return;
+    }
+
+    setExpandedRow(id);
+    
+    // If not cached, fetch details
+    if (!rowDetails[id]) {
+      setLoadingDetails(true);
+      try {
+        const detail = await getRoleRequestById(id);
+        setRowDetails(prev => ({ ...prev, [id]: detail }));
+      } catch (err) {
+        console.error("Failed to load request details", err);
+        // Optional: show error toast
+      } finally {
+        setLoadingDetails(false);
+      }
+    }
+  };
+
   // Accept role
   const handleAccept = async (id) => {
     setUpdating(id);
     try {
       await approveRequest(id, 'Approved by admin');
+      // Close expanded row if needed or keep it? 
       // Refresh data sau khi approve
       await load();
+      setExpandedRow(null); // Close after action
     } catch (e) {
       console.error("Error approving request:", e);
       setError("Không thể approve request");
@@ -77,8 +109,8 @@ export default function RolesPage() {
     setUpdating(id);
     try {
       await rejectRequest(id, 'Rejected by admin');
-      // Refresh data sau khi reject
       await load();
+      setExpandedRow(null);
     } catch (e) {
       console.error("Error rejecting request:", e);
       setError("Không thể reject request");
@@ -103,6 +135,64 @@ export default function RolesPage() {
   const safePage = Math.min(page, totalPages);
   const start = (safePage - 1) * pageSize;
   const current = filtered.slice(start, start + pageSize);
+
+  const renderDetailRow = (detail) => {
+      if (!detail) return null;
+      const { shopDetails, identification, taxInfo } = detail;
+      
+      return (
+          <div className="p-3 bg-light border rounded">
+              <div className="row">
+                  <div className="col-md-6">
+                      <h6 className="text-primary border-bottom pb-2">Shop Information</h6>
+                      <p><strong>Shop Name:</strong> {shopDetails?.shopName}</p>
+                      <p><strong>Owner Name:</strong> {shopDetails?.ownerName}</p>
+                      <p><strong>Phone:</strong> {shopDetails?.phone}</p>
+                      <p><strong>Address:</strong> {shopDetails?.address}</p>
+                      <p><strong>Email:</strong> {taxInfo?.email || 'N/A'}</p>
+                      <p><strong>Tax Code:</strong> {taxInfo?.taxCode || 'N/A'}</p>
+                  </div>
+                  <div className="col-md-6">
+                      <h6 className="text-primary border-bottom pb-2">Identification Documents</h6>
+                      {identification ? (
+                          <div className="d-flex flex-column gap-3">
+                              <div>
+                                  <small className="text-muted d-block mb-1">ID Number: {identification.identificationNumber}</small>
+                                  <small className="text-muted d-block mb-1">Type: {identification.identificationType}</small>
+                              </div>
+                              <div className="row">
+                                  <div className="col-6 text-center">
+                                      <span className="badge bg-secondary mb-2">Front Side</span>
+                                      {identification.imageFrontUrl ? (
+                                        <img 
+                                            src={identification.imageFrontUrl} 
+                                            alt="ID Front" 
+                                            className="img-fluid rounded border shadow-sm"
+                                            style={{ maxHeight: '150px', objectFit: 'contain' }}
+                                        />
+                                      ) : <p className="text-muted small">No image</p>}
+                                  </div>
+                                  <div className="col-6 text-center">
+                                      <span className="badge bg-secondary mb-2">Back Side</span>
+                                      {identification.imageBackUrl ? (
+                                        <img 
+                                            src={identification.imageBackUrl} 
+                                            alt="ID Back" 
+                                            className="img-fluid rounded border shadow-sm"
+                                            style={{ maxHeight: '150px', objectFit: 'contain' }}
+                                        />
+                                      ) : <p className="text-muted small">No image</p>}
+                                  </div>
+                              </div>
+                          </div>
+                      ) : (
+                          <p className="text-muted fst-italic">No identification info provided.</p>
+                      )}
+                  </div>
+              </div>
+          </div>
+      );
+  };
 
   return (
     <div className="container py-4">
@@ -155,19 +245,20 @@ export default function RolesPage() {
 
           {/* Bảng */}
           <div className="table-responsive">
-            <table className="table table-striped table-hover align-middle text-center">
+            <table className="table table-hover align-middle">
               <thead className="table-light">
                 <tr>
+                  <th style={{ width: '50px' }}></th>
                   <th>User</th>
                   <th>Role Request</th>
                   <th>Status</th>
-                  <th style={{ width: 220 }}>Actions</th>
+                  <th style={{ width: 220 }} className="text-center">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={4} className="py-5">
+                    <td colSpan={5} className="py-5 text-center">
                       <div className="d-flex justify-content-center align-items-center">
                         <span className="spinner-border me-2" />
                         Đang tải dữ liệu...
@@ -176,9 +267,20 @@ export default function RolesPage() {
                   </tr>
                 ) : current.length > 0 ? (
                   current.map((r) => (
-                    <tr key={r.id}>
+                    <>
+                    <tr key={r.id} className={expandedRow === r.id ? "table-active" : ""}>
+                      <td className="text-center">
+                          <button 
+                            className={`btn btn-sm btn-link text-decoration-none ${expandedRow === r.id ? 'text-danger' : 'text-primary'}`}
+                            onClick={() => toggleRow(r.id)}
+                            title="View Details"
+                          >
+                              <i className={`fas fa-${expandedRow === r.id ? 'chevron-up' : 'eye'}`}></i>
+                          </button>
+                      </td>
                       <td className="text-start">
                         <div className="fw-semibold">{r.name}</div>
+                        <small className="text-muted">{r.reason ? `Reason: ${r.reason.substring(0, 30)}${r.reason.length > 30 ? '...' : ''}` : ''}</small>
                       </td>
                       <td>
                         <span className="badge bg-primary-subtle text-primary border border-primary-subtle">
@@ -202,7 +304,7 @@ export default function RolesPage() {
                           <span className="badge bg-secondary">Pending</span>
                         )}
                       </td>
-                      <td>
+                      <td className="text-center">
                         <div
                           className="btn-group btn-group-sm"
                           role="group"
@@ -237,10 +339,27 @@ export default function RolesPage() {
                         </div>
                       </td>
                     </tr>
+                    {expandedRow === r.id && (
+                        <tr>
+                            <td colSpan="5" className="p-0 border-0">
+                                <div className="p-3 bg-white border-bottom">
+                                    {loadingDetails && !rowDetails[r.id] ? (
+                                        <div className="text-center py-3">
+                                            <span className="spinner-border spinner-border-sm text-primary me-2"></span>
+                                            Loading details...
+                                        </div>
+                                    ) : (
+                                        renderDetailRow(rowDetails[r.id])
+                                    )}
+                                </div>
+                            </td>
+                        </tr>
+                    )}
+                    </>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={4} className="text-muted py-4">
+                    <td colSpan={5} className="text-muted py-4 text-center">
                       No roles found
                     </td>
                   </tr>
@@ -252,7 +371,7 @@ export default function RolesPage() {
           {/* Phân trang */}
           {!loading && filtered.length > 0 && (
             <nav>
-              <ul className="pagination justify-content-center mb-0">
+              <ul className="pagination justify-content-center mb-0 mt-3">
                 <li className={`page-item ${safePage === 1 ? "disabled" : ""}`}>
                   <button
                     className="page-link"

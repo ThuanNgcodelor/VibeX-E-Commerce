@@ -64,8 +64,11 @@ public class ShopCoinController {
     }
 
     @GetMapping("/all")
-    public ResponseEntity<java.util.List<com.example.userservice.dto.ShopCoinAdminDto>> getAllShopCoins() {
-        return ResponseEntity.ok(shopCoinService.getAllShopCoins());
+    public ResponseEntity<org.springframework.data.domain.Page<com.example.userservice.dto.ShopCoinAdminDto>> getAllShopCoins(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
+        return ResponseEntity.ok(shopCoinService.getAllShopCoins(pageable));
     }
 
     @PostMapping("/mission/review")

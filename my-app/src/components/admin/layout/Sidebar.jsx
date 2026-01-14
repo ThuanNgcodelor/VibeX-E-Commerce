@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import "../../../assets/admin/css/Sidebar.css"
 
-const Sidebar = () => {
+const Sidebar = ({ isOpen = true, toggleSidebar }) => {
     const location = useLocation();
     const [isDesignOpen, setIsDesignOpen] = useState(false);
 
@@ -19,14 +19,19 @@ const Sidebar = () => {
     };
 
     return (
-        <ul className="sidebar-ezmart">
+        <ul className={`sidebar-ezmart ${isOpen ? '' : 'toggled'}`}>
             {/* Brand */}
-            <Link className="sidebar-brand-ezmart" to="/admin">
-                <div className="brand-icon">
-                    <i className="fas fa-th"></i>
+            <div className="sidebar-brand-ezmart">
+                <Link className="d-flex align-items-center text-decoration-none" to="/admin" style={{ overflow: 'hidden' }}>
+                    <div className="brand-icon">
+                        <i className="fas fa-th"></i>
+                    </div>
+                    <span className="brand-text ml-2">Vibe</span>
+                </Link>
+                <div className="sidebar-toggle-btn" onClick={toggleSidebar} style={{ cursor: 'pointer', padding: '0 5px' }}>
+                    <i className="fas fa-bars" style={{ fontSize: '1.2rem', color: '#2c3e50' }}></i>
                 </div>
-                <span className="brand-text">Vibe</span>
-            </Link>
+            </div>
 
             {/* Dashboard */}
             <li className="nav-item-ezmart">

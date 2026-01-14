@@ -7,6 +7,13 @@ export default function CoinManagement() {
     const [missions, setMissions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+
+    // Pagination State
+    const [currentPage, setCurrentPage] = useState(0);
+    const [totalPages, setTotalPages] = useState(0);
+    const [totalElements, setTotalElements] = useState(0);
+    const [pageSize] = useState(10); // Default page size
+
     const [newMission, setNewMission] = useState({
         title: '',
         description: '',
@@ -20,19 +27,37 @@ export default function CoinManagement() {
     useEffect(() => {
         fetchCoins();
         fetchMissions();
-    }, []);
+    }, [currentPage]); // Fetch when page changes
 
     const fetchCoins = async () => {
         try {
             setLoading(true);
-            const data = await shopCoinAPI.getAllShopCoins();
-            setUsers(data);
+            const params = {
+                page: currentPage,
+                size: pageSize
+            };
+            const data = await shopCoinAPI.getAllShopCoins(params);
+
+            // Handle Page<ShopCoinAdminDto>
+            if (data.content) {
+                setUsers(data.content);
+                setTotalPages(data.totalPages);
+                setTotalElements(data.totalElements);
+            } else {
+                setUsers(data);
+            }
             setError(null);
         } catch (err) {
             console.error("Failed to fetch coins", err);
             setError("Failed to load coin data.");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handlePageChange = (newPage) => {
+        if (newPage >= 0 && newPage < totalPages) {
+            setCurrentPage(newPage);
         }
     };
 
@@ -161,6 +186,60 @@ export default function CoinManagement() {
                                 </table>
                             )}
                         </div>
+
+                        {/* Pagination Controls */}
+                        {totalPages > 1 && (
+                            <div className="card-footer" style={{ borderTop: '1px solid #e3e6f0' }}>
+                                <div className="row align-items-center">
+                                    <div className="col-4">
+                                        <span className="small text-muted">
+                                            Showing {(currentPage * pageSize) + 1} to {Math.min((currentPage + 1) * pageSize, totalElements)} of {totalElements} users
+                                        </span>
+                                    </div>
+
+                                    <div className="col-4 d-flex justify-content-center">
+                                        <nav aria-label="Pagination">
+                                            <ul className="pagination mb-0">
+                                                <li className={`page-item ${currentPage === 0 ? "disabled" : ""}`}>
+                                                    <button
+                                                        className="page-link"
+                                                        onClick={() => handlePageChange(currentPage - 1)}
+                                                        disabled={currentPage === 0}
+                                                        title="Previous"
+                                                    >
+                                                        <i className="fas fa-chevron-left"></i>
+                                                    </button>
+                                                </li>
+
+                                                {Array.from({ length: totalPages }, (_, i) => i).map((p) => (
+                                                    <li key={p} className={`page-item ${p === currentPage ? "active" : ""}`}>
+                                                        <button
+                                                            className="page-link"
+                                                            onClick={() => handlePageChange(p)}
+                                                        >
+                                                            {p + 1}
+                                                        </button>
+                                                    </li>
+                                                ))}
+
+                                                <li className={`page-item ${currentPage === totalPages - 1 ? "disabled" : ""}`}>
+                                                    <button
+                                                        className="page-link"
+                                                        onClick={() => handlePageChange(currentPage + 1)}
+                                                        disabled={currentPage === totalPages - 1}
+                                                        title="Next"
+                                                    >
+                                                        <i className="fas fa-chevron-right"></i>
+                                                    </button>
+                                                </li>
+                                            </ul>
+                                        </nav>
+                                    </div>
+
+                                    <div className="col-4"></div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

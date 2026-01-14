@@ -40,30 +40,34 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
 
     @Override
     public DashboardStatsDto getDashboardStats() {
-        Double totalSales = orderRepository.sumTotalRevenue();
+        // Default to all time (or a very long period if needed, but current logic
+        // mimics "all time" by not filtering)
+        // However, existing logic was "All Time".
+        return getDashboardStats(LocalDateTime.of(2000, 1, 1, 0, 0), LocalDateTime.now());
+    }
+
+    @Override
+    public DashboardStatsDto getDashboardStats(LocalDateTime startDate, LocalDateTime endDate) {
+        Double totalSales = orderRepository.sumTotalRevenueBetween(startDate, endDate);
         if (totalSales == null)
             totalSales = 0.0;
 
-        Long totalOrders = orderRepository.countAllValidOrders();
+        Long totalOrders = orderRepository.countValidOrdersBetween(startDate, endDate);
         if (totalOrders == null)
             totalOrders = 0L;
 
-        // Fetch user count from User Service
+        // Fetch user count (Active Users is usually "Current State", not historical, so
+        // keep as is)
         Long totalUsers = 0L;
         try {
             ResponseEntity<Long> response = userServiceClient.countActiveUsers();
-            if (response.getBody() != null) {
+            if (response.getBody() != null)
                 totalUsers = response.getBody();
-            }
         } catch (Exception e) {
             log.error("Failed to fetch user count", e);
         }
 
-        // Total products can be fetched from Stock/Product service, or just
-        // hardcoded/placeholder for now
         Long totalProducts = 0L;
-
-        // Fetch Analytics Stats from Redis (via Stock Service)
         Long totalViews = 0L;
         Long totalSiteVisits = 0L;
         Long totalAddToCart = 0L;
@@ -74,41 +78,39 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
         Double orderCompletionRate = 0.0;
 
         try {
-            // Using system total views for Admin Dashboard
+            // Note: External service stats (Views, Visits) might not support date filtering
+            // in current API.
+            // We use system totals for now, or would need to update StockService API to
+            // support ranges.
+            // For now, we'll use the existing endpoints but be aware they are "All Time".
+            // Ideally, we should implement date filtering in StockService too.
             ResponseEntity<Long> viewsResponse = stockServiceClient.getSystemTotalViews();
-            if (viewsResponse.getBody() != null) {
+            if (viewsResponse.getBody() != null)
                 totalViews = viewsResponse.getBody();
-            }
 
             ResponseEntity<Long> visitsResponse = stockServiceClient.getSystemSiteVisits();
-            if (visitsResponse.getBody() != null) {
+            if (visitsResponse.getBody() != null)
                 totalSiteVisits = visitsResponse.getBody();
-            }
 
             ResponseEntity<Long> cartAddsResponse = stockServiceClient.getSystemAddToCart();
-            if (cartAddsResponse.getBody() != null) {
+            if (cartAddsResponse.getBody() != null)
                 totalAddToCart = cartAddsResponse.getBody();
-            }
 
-            // Calculate Funnel Rates based on Site Visits
             if (totalSiteVisits > 0) {
                 productViewRate = (totalViews * 100.0) / totalSiteVisits;
                 addToCartRate = (totalAddToCart * 100.0) / totalSiteVisits;
+                // Use the filtered orders count for the rate within this period
+                // Note: Mixing "Period Orders" with "All Time Visits" skews this rate if Visits
+                // aren't filtered.
+                // But without StockService update, this is the best partial fix.
                 orderCompletionRate = (totalOrders * 100.0) / totalSiteVisits;
 
-                // Cap at 100% just in case of data anomalies
                 if (productViewRate > 100)
                     productViewRate = 100.0;
                 if (addToCartRate > 100)
                     addToCartRate = 100.0;
                 if (orderCompletionRate > 100)
                     orderCompletionRate = 100.0;
-            }
-
-            // Legacy conversion rate (Orders / Views) - keeping for backward compatibility
-            // if needed
-            if (totalViews > 0) {
-                conversionRate = (totalOrders * 100.0) / totalViews;
             }
         } catch (Exception e) {
             log.error("Failed to fetch analytics stats", e);
@@ -132,7 +134,13 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
     @Override
     public List<DailyRevenueDto> getRevenueChartData(int days) {
         LocalDateTime startDate = LocalDateTime.now().minusDays(days);
-        return orderRepository.getDailyRevenue(startDate);
+        // Default behavior: implies end date is now
+        return getRevenueChartData(startDate, LocalDateTime.now());
+    }
+
+    @Override
+    public List<DailyRevenueDto> getRevenueChartData(LocalDateTime startDate, LocalDateTime endDate) {
+        return orderRepository.getDailyRevenueBetween(startDate, endDate);
     }
 
     @Override
@@ -147,7 +155,12 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
 
     @Override
     public List<CategorySalesDto> getTopCategories() {
-        List<Object[]> productSales = orderItemRepository.findTopSellingProducts();
+        return getTopCategories(LocalDateTime.of(2000, 1, 1, 0, 0), LocalDateTime.now());
+    }
+
+    @Override
+    public List<CategorySalesDto> getTopCategories(LocalDateTime startDate, LocalDateTime endDate) {
+        List<Object[]> productSales = orderItemRepository.findTopSellingProductsBetween(startDate, endDate);
 
         // Map to aggregate by category
         Map<String, Double> categorySalesMap = new HashMap<>();

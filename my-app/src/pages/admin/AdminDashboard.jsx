@@ -1,8 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import '../../assets/admin/css/AdminDashboard.css';
 import { getDashboardStats, getRevenueChartData, getRecentOrders, getTopCategories } from '../../api/adminAnalyticsApi';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 const AdminDashboard = () => {
+    const handleExportPDF = () => {
+        const input = document.querySelector('.admin-dashboard');
+        html2canvas(input, { scale: 2 }).then((canvas) => {
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = pdf.internal.pageSize.getHeight();
+            const finalImgWidth = pdfWidth - 20;
+            const finalImgHeight = (canvas.height * finalImgWidth) / canvas.width;
+            pdf.addImage(imgData, 'PNG', 10, 10, finalImgWidth, finalImgHeight);
+            pdf.save('dashboard-report.pdf');
+        });
+    };
     const [dashboardStats, setDashboardStats] = useState({
         totalSales: 0,
         totalOrders: 0,
@@ -16,34 +31,39 @@ const AdminDashboard = () => {
     const [topCategoriesList, setTopCategoriesList] = useState([]);
     const [loading, setLoading] = useState(true);
 
+    // Default: Last 30 days
+    const [startDate, setStartDate] = useState(() => {
+        const d = new Date();
+        d.setDate(d.getDate() - 30);
+        return d.toISOString().split('T')[0];
+    });
+    const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
+
+    const fetchData = async () => {
+        try {
+            setLoading(true); // constant refresh feedback might be annoying, but good for explicit filter
+            const [stats, revenue, orders, categories] = await Promise.all([
+                getDashboardStats(startDate, endDate),
+                getRevenueChartData(startDate, endDate),
+                getRecentOrders(),
+                getTopCategories(startDate, endDate)
+            ]);
+            setDashboardStats(stats);
+            setRevenueData(revenue);
+            setRecentOrdersList(orders);
+            setTopCategoriesList(categories);
+        } catch (error) {
+            console.error("Failed to fetch dashboard data", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const [stats, revenue, orders, categories] = await Promise.all([
-                    getDashboardStats(),
-                    getRevenueChartData(),
-                    getRecentOrders(),
-                    getTopCategories()
-                ]);
-                setDashboardStats(stats);
-                setRevenueData(revenue);
-                setRecentOrdersList(orders);
-                setTopCategoriesList(categories);
-            } catch (error) {
-                console.error("Failed to fetch dashboard data", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
         fetchData();
-
-        // Auto-refresh every 30 seconds
-        const intervalId = setInterval(fetchData, 30000);
-
-        // Cleanup interval on unmount
+        const intervalId = setInterval(fetchData, 10000);
         return () => clearInterval(intervalId);
-    }, []);
+    }, [startDate, endDate]); // Re-run setup when dates change
 
     // Static data for fallback or unimplemented sections
     const activeUsers = [
@@ -54,10 +74,10 @@ const AdminDashboard = () => {
     ];
 
     const conversionMetrics = [
-        { label: 'Site Visits (Base)', value: (dashboardStats.totalSiteVisits || 0).toLocaleString(), percentage: '100%', change: 'Base', color: '#667eea' },
-        { label: 'Product Views', value: (dashboardStats.totalViews || 0).toLocaleString(), percentage: `${(dashboardStats.productViewRate || 0).toFixed(1)}%`, change: 'of visits', color: '#60a5fa' },
-        { label: 'Added to Cart', value: (dashboardStats.totalAddToCart || 0).toLocaleString(), percentage: `${(dashboardStats.addToCartRate || 0).toFixed(1)}%`, change: 'of visits', color: '#fb923c' },
-        { label: 'Orders Completed', value: (dashboardStats.totalOrders || 0).toLocaleString(), percentage: `${(dashboardStats.orderCompletionRate || 0).toFixed(1)}%`, change: 'of visits', color: '#4ade80' }
+        { label: 'Site Visits (Base)', value: (dashboardStats.totalSiteVisits || 0).toLocaleString(), percentage: '100%', color: '#667eea' },
+        { label: 'Product Views', value: (dashboardStats.totalViews || 0).toLocaleString(), percentage: `${(dashboardStats.productViewRate || 0).toFixed(1)}%`, color: '#60a5fa' },
+        { label: 'Added to Cart', value: (dashboardStats.totalAddToCart || 0).toLocaleString(), percentage: `${(dashboardStats.addToCartRate || 0).toFixed(1)}%`, color: '#fb923c' },
+        { label: 'Orders Completed', value: (dashboardStats.totalOrders || 0).toLocaleString(), percentage: `${(dashboardStats.orderCompletionRate || 0).toFixed(1)}%`, color: '#4ade80' }
     ];
 
     const trafficSources = [
@@ -71,14 +91,14 @@ const AdminDashboard = () => {
     const recentActivity = [
         {
             type: 'purchase',
-            message: 'Maxwell Shaw purchased 2 items totaling $120',
+            message: 'Maxwell Shaw purchased 2 items totaling 120.000 VND',
             time: '12 min ago',
             icon: '🛍️',
             color: '#FF6B35'
         },
         {
             type: 'update',
-            message: 'The stock of "Smart TV" was updated from $600 to $450',
+            message: 'The stock of "Smart TV" was updated from 600.000 VND to 450.000 VND',
             time: '1:32 AM',
             icon: '📦',
             color: '#667eea'
@@ -87,11 +107,40 @@ const AdminDashboard = () => {
 
     // Formatting helper
     const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+        return new Intl.NumberFormat('vi-VN').format(amount) + ' VND';
     };
 
     return (
         <div className="admin-dashboard">
+            <div className="d-flex justify-content-between align-items-center mb-4">
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1a1a2e' }}>Dashboard Overview</h2>
+                <div className="d-flex gap-2 bg-white p-2 rounded shadow-sm">
+                    <button
+                        className="btn btn-sm btn-outline-danger d-flex align-items-center gap-2"
+                        onClick={handleExportPDF}
+                        title="Export to PDF"
+                    >
+                        <i className="bi bi-file-earmark-pdf"></i> Export PDF
+                    </button>
+                    <div className="vr mx-1"></div>
+                    <input
+                        type="date"
+                        className="form-control form-control-sm"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        style={{ border: '1px solid #eee' }}
+                    />
+                    <span className="align-self-center text-muted">-</span>
+                    <input
+                        type="date"
+                        className="form-control form-control-sm"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        style={{ border: '1px solid #eee' }}
+                    />
+                </div>
+            </div>
+
             {/* First Row: Stats + Top Categories */}
             <div className="row-1">
                 <div className="stats-section">
@@ -191,25 +240,44 @@ const AdminDashboard = () => {
                     <div className="card-body">
                         <div className="chart-placeholder">
                             {/* Simple SVG Chart Implementation based on data */}
-                            <div className="chart-visual" style={{ display: 'flex', alignItems: 'flex-end', height: '200px', gap: '10px' }}>
+                            <div className="chart-visual" style={{ display: 'flex', height: '200px', gap: '10px' }}>
                                 {(() => {
-                                    const maxRevenue = Math.max(...revenueData.map(d => d.revenue), 1);
-                                    return revenueData.map((data, index) => (
-                                        <div key={index} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                    const sanitizedData = revenueData.map(d => ({
+                                        ...d,
+                                        revenue: Number(d.revenue) || 0
+                                    }));
+                                    const maxRevenue = Math.max(...sanitizedData.map(d => d.revenue), 1);
+
+
+                                    return sanitizedData.map((data, index) => (
+                                        <div key={index} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%' }}>
                                             <div style={{
                                                 width: '100%',
-                                                height: '100%',
+                                                flex: 1,
                                                 display: 'flex',
-                                                alignItems: 'flex-end',
-                                                justifyContent: 'center'
+                                                flexDirection: 'column',
+                                                justifyContent: 'flex-end',
+                                                alignItems: 'center'
                                             }}>
+                                                {data.revenue > 0 && (
+                                                    <span style={{
+                                                        fontSize: '11px',
+                                                        fontWeight: '600',
+                                                        marginBottom: '4px',
+                                                        color: '#333',
+                                                        whiteSpace: 'nowrap'
+                                                    }}>
+                                                        {formatCurrency(data.revenue).replace(/\.00$/, '')}
+                                                    </span>
+                                                )}
                                                 <div style={{
                                                     width: '100%',
-                                                    height: `${(data.revenue / maxRevenue) * 100}%`,
+                                                    height: `${(data.revenue / maxRevenue) * 90}%`,
                                                     backgroundColor: '#FF6B35',
                                                     borderRadius: '4px 4px 0 0',
-                                                    minHeight: '4px'
-                                                }} title={`Revenue: $${data.revenue} - Date: ${data.date}`}></div>
+                                                    minHeight: '4px',
+                                                    transition: 'height 0.3s ease'
+                                                }} title={`Revenue: ${formatCurrency(data.revenue)} - Date: ${data.date}`}></div>
                                             </div>
                                             <span style={{
                                                 fontSize: '10px',
@@ -289,23 +357,29 @@ const AdminDashboard = () => {
                         {/* Static Conversion Metrics */}
                         <div className="conversion-metrics">
                             {conversionMetrics.map((metric, index) => (
-                                <div key={index} className="conversion-item">
-                                    <div className="conversion-header">
-                                        <span className="conversion-label">{metric.label}</span>
-                                        <span className="conversion-change" style={{ color: '#888', fontSize: '0.8rem' }}>
-                                            {metric.change}
-                                        </span>
+                                <div key={index} className="conversion-item" style={{
+                                    padding: '1rem',
+                                    borderRadius: '12px',
+                                    background: '#f8f9fa',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    justifyContent: 'space-between'
+                                }}>
+                                    <div className="conversion-header" style={{ marginBottom: '10px' }}>
+                                        {metric.icon && <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>{metric.icon}</div>}
+                                        <span className="conversion-label" style={{ fontSize: '0.85rem', fontWeight: '600', color: '#555' }}>{metric.label}</span>
                                     </div>
-                                    <div className="d-flex align-items-baseline justify-content-between mt-1">
-                                        <h3 className="conversion-value" style={{ fontSize: '1.5rem' }}>{metric.percentage}</h3>
-                                        <span style={{ fontSize: '0.9rem', color: '#555' }}>({metric.value})</span>
+                                    <div className="d-flex flex-column align-items-center justify-content-center mt-2">
+                                        <h3 className="conversion-value" style={{ fontSize: '1.75rem', color: metric.color }}>{metric.percentage}</h3>
+                                        <span style={{ fontSize: '0.85rem', color: '#888', marginTop: '0.25rem' }}>{metric.value} count</span>
                                     </div>
-                                    <div className="progress mt-2" style={{ height: '4px', backgroundColor: '#f0f0f0' }}>
+                                    <div className="progress mt-3" style={{ height: '6px', backgroundColor: '#e9ecef', borderRadius: '3px' }}>
                                         <div
                                             className="progress-bar"
                                             style={{
                                                 width: metric.percentage,
-                                                backgroundColor: metric.color
+                                                backgroundColor: metric.color,
+                                                borderRadius: '3px'
                                             }}
                                         ></div>
                                     </div>

@@ -266,11 +266,11 @@ const VoucherManagementPage = () => {
             {/* Header */}
             <div className="page-header">
                 <div>
-                    <h1 className="page-title">Quản Lý Voucher</h1>
-                    <p className="page-subtitle">Quản lý mã giảm giá và khuyến mãi</p>
+                    <h1 className="page-title">Voucher Management</h1>
+                    <p className="page-subtitle">Manage discount codes and promotions</p>
                 </div>
                 <button className="btn-create" onClick={handleCreate}>
-                    <i className="fas fa-plus"></i> Tạo Voucher
+                    <i className="fas fa-plus"></i> Create Voucher
                 </button>
             </div>
 
@@ -281,7 +281,7 @@ const VoucherManagementPage = () => {
                         <i className="fas fa-ticket-alt"></i>
                     </div>
                     <div className="stat-info">
-                        <span className="stat-label">Tổng Voucher</span>
+                        <span className="stat-label">Total Vouchers</span>
                         <h2 className="stat-value">{stats.total}</h2>
                     </div>
                 </div>
@@ -291,7 +291,7 @@ const VoucherManagementPage = () => {
                         <i className="fas fa-check-circle"></i>
                     </div>
                     <div className="stat-info">
-                        <span className="stat-label">Đang Hoạt Động</span>
+                        <span className="stat-label">Active</span>
                         <h2 className="stat-value">{stats.active}</h2>
                     </div>
                 </div>
@@ -301,7 +301,7 @@ const VoucherManagementPage = () => {
                         <i className="fas fa-clock"></i>
                     </div>
                     <div className="stat-info">
-                        <span className="stat-label">Đã Lên Lịch</span>
+                        <span className="stat-label">Scheduled</span>
                         <h2 className="stat-value">{stats.scheduled}</h2>
                     </div>
                 </div>
@@ -311,7 +311,7 @@ const VoucherManagementPage = () => {
                         <i className="fas fa-chart-line"></i>
                     </div>
                     <div className="stat-info">
-                        <span className="stat-label">Lượt Sử Dụng</span>
+                        <span className="stat-label">Usage Count</span>
                         <h2 className="stat-value">{stats.totalUsage}</h2>
                     </div>
                 </div>
@@ -320,13 +320,13 @@ const VoucherManagementPage = () => {
             {/* Filters Card */}
             <div className="card filters-card">
                 <div className="card-header">
-                    <h3 className="card-title">Danh Sách Voucher</h3>
+                    <h3 className="card-title">Voucher List</h3>
                     <div className="header-actions">
                         <div className="search-box">
                             <i className="fas fa-search"></i>
                             <input
                                 type="text"
-                                placeholder="Tìm kiếm voucher..."
+                                placeholder="Search vouchers..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="search-input"
@@ -338,11 +338,11 @@ const VoucherManagementPage = () => {
                             onChange={(e) => setFilterType(e.target.value)}
                             className="filter-select"
                         >
-                            <option value="all">Tất Cả Loại</option>
+                            <option value="all">All Types</option>
                             <option value="PLATFORM">Platform</option>
                             <option value="SHOP">Shop</option>
-                            <option value="CATEGORY">Danh Mục</option>
-                            <option value="PRODUCT">Sản Phẩm</option>
+                            <option value="CATEGORY">Category</option>
+                            <option value="PRODUCT">Product</option>
                         </select>
 
                         <select
@@ -350,11 +350,11 @@ const VoucherManagementPage = () => {
                             onChange={(e) => setFilterStatus(e.target.value)}
                             className="filter-select"
                         >
-                            <option value="all">Tất Cả Trạng Thái</option>
-                            <option value="ACTIVE">Hoạt Động</option>
-                            <option value="EXPIRED">Hết Hạn</option>
-                            <option value="SCHEDULED">Đã Lên Lịch</option>
-                            <option value="PAUSED">Tạm Dừng</option>
+                            <option value="all">All Status</option>
+                            <option value="ACTIVE">Active</option>
+                            <option value="EXPIRED">Expired</option>
+                            <option value="SCHEDULED">Scheduled</option>
+                            <option value="PAUSED">Paused</option>
                         </select>
 
                         {/* View Toggle */}
@@ -386,7 +386,7 @@ const VoucherManagementPage = () => {
                     ) : filteredVouchers.length === 0 ? (
                         <div className="no-data">
                             <i className="fas fa-inbox"></i>
-                            <p>Không tìm thấy voucher</p>
+                            <p>No vouchers found</p>
                         </div>
                     ) : viewMode === 'grid' ? (
                         /* Grid View */
@@ -414,7 +414,7 @@ const VoucherManagementPage = () => {
                                             </div>
                                             {voucher.maxDiscount && (
                                                 <span className="max-discount">
-                                                    Tối đa: {formatCurrency(voucher.maxDiscount)}
+                                                    Max: {formatCurrency(voucher.maxDiscount)}
                                                 </span>
                                             )}
                                         </div>
@@ -422,13 +422,13 @@ const VoucherManagementPage = () => {
                                         <div className="voucher-details">
                                             <div className="detail-row">
                                                 <span className="detail-label">
-                                                    <i className="fas fa-shopping-cart"></i> Đơn tối thiểu:
+                                                    <i className="fas fa-shopping-cart"></i> Min Order:
                                                 </span>
                                                 <span className="detail-value">{formatCurrency(voucher.minOrder)}</span>
                                             </div>
                                             <div className="detail-row">
                                                 <span className="detail-label">
-                                                    <i className="fas fa-calendar"></i> Hết hạn:
+                                                    <i className="fas fa-calendar"></i> Expires:
                                                 </span>
                                                 <span className="detail-value">{formatDate(voucher.endDate)}</span>
                                             </div>
@@ -436,7 +436,7 @@ const VoucherManagementPage = () => {
 
                                         <div className="voucher-usage">
                                             <div className="usage-header">
-                                                <span>Đã dùng</span>
+                                                <span>Used</span>
                                                 <span>{voucher.usedQuantity} / {voucher.totalQuantity}</span>
                                             </div>
                                             <div className="usage-bar">
@@ -450,7 +450,7 @@ const VoucherManagementPage = () => {
                                         {/* Status Toggle */}
                                         <div className="voucher-toggle-section">
                                             <span className="toggle-label">
-                                                {voucher.status === 'ACTIVE' ? 'Hoạt động' : 'Tạm dừng'}
+                                                {voucher.status === 'ACTIVE' ? 'Active' : 'Paused'}
                                             </span>
                                             <label className="toggle-switch">
                                                 <input
@@ -465,10 +465,10 @@ const VoucherManagementPage = () => {
                                     </div>
 
                                     <div className="voucher-card-footer">
-                                        <button className="btn-action btn-edit" title="Sửa" onClick={() => handleEdit(voucher)}>
+                                        <button className="btn-action btn-edit" title="Edit" onClick={() => handleEdit(voucher)}>
                                             <i className="fas fa-edit"></i>
                                         </button>
-                                        <button className="btn-action btn-delete" title="Xóa" onClick={() => handleDelete(voucher.id)}>
+                                        <button className="btn-action btn-delete" title="Delete" onClick={() => handleDelete(voucher.id)}>
                                             <i className="fas fa-trash"></i>
                                         </button>
                                     </div>
@@ -481,16 +481,16 @@ const VoucherManagementPage = () => {
                             <table className="vouchers-table">
                                 <thead>
                                     <tr>
-                                        <th>Mã</th>
-                                        <th>Tên</th>
-                                        <th>Loại</th>
-                                        <th>Giảm Giá</th>
-                                        <th>Đơn Tối Thiểu</th>
-                                        <th>Đã Dùng</th>
-                                        <th>Hết Hạn</th>
-                                        <th>Trạng Thái</th>
-                                        <th>Bật/Tắt</th>
-                                        <th>Thao Tác</th>
+                                        <th>Code</th>
+                                        <th>Name</th>
+                                        <th>Type</th>
+                                        <th>Discount</th>
+                                        <th>Min Order</th>
+                                        <th>Used</th>
+                                        <th>Expires</th>
+                                        <th>Status</th>
+                                        <th>On/Off</th>
+                                        <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -512,7 +512,7 @@ const VoucherManagementPage = () => {
                                                             : formatCurrency(voucher.discountValue)}
                                                     </strong>
                                                     {voucher.maxDiscount && (
-                                                        <small>Tối đa: {formatCurrency(voucher.maxDiscount)}</small>
+                                                        <small>Max: {formatCurrency(voucher.maxDiscount)}</small>
                                                     )}
                                                 </div>
                                             </td>
@@ -543,10 +543,10 @@ const VoucherManagementPage = () => {
                                             </td>
                                             <td>
                                                 <div className="action-buttons">
-                                                    <button className="btn-action btn-edit" title="Sửa" onClick={() => handleEdit(voucher)}>
+                                                    <button className="btn-action btn-edit" title="Edit" onClick={() => handleEdit(voucher)}>
                                                         <i className="fas fa-edit"></i>
                                                     </button>
-                                                    <button className="btn-action btn-delete" title="Xóa" onClick={() => handleDelete(voucher.id)}>
+                                                    <button className="btn-action btn-delete" title="Delete" onClick={() => handleDelete(voucher.id)}>
                                                         <i className="fas fa-trash"></i>
                                                     </button>
                                                 </div>
@@ -566,7 +566,7 @@ const VoucherManagementPage = () => {
                     <div className="modal-container" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
                             <h3 className="modal-title">
-                                {editingVoucher ? 'Sửa Voucher' : 'Tạo Voucher Mới'}
+                                {editingVoucher ? 'Edit Voucher' : 'Create New Voucher'}
                             </h3>
                             <button className="modal-close" onClick={() => setShowModal(false)}>
                                 <i className="fas fa-times"></i>
@@ -577,14 +577,14 @@ const VoucherManagementPage = () => {
                             <div className="modal-body">
                                 <div className="form-grid">
                                     <div className="form-group">
-                                        <label>Mã Voucher *</label>
+                                        <label>Voucher Code *</label>
                                         <div style={{ display: 'flex', gap: '8px' }}>
                                             <input
                                                 type="text"
                                                 className="form-input"
                                                 value={formData.code}
                                                 onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                                                placeholder="SALE20 hoặc XXXX-XXXX"
+                                                placeholder="SALE20 or XXXX-XXXX"
                                                 required
                                                 disabled={editingVoucher !== null}
                                                 style={{
@@ -598,7 +598,7 @@ const VoucherManagementPage = () => {
                                                     type="button"
                                                     className="btn-random-code"
                                                     onClick={generateRandomCode}
-                                                    title="Tạo mã ngẫu nhiên"
+                                                    title="Generate Random Code"
                                                     style={{
                                                         padding: '8px 16px',
                                                         backgroundColor: '#6c63ff',
@@ -623,13 +623,13 @@ const VoucherManagementPage = () => {
                                         </div>
                                         {editingVoucher && (
                                             <small style={{ color: '#666', fontSize: '12px', marginTop: '4px', display: 'block' }}>
-                                                Mã voucher không thể thay đổi sau khi tạo
+                                                Voucher code cannot be changed after creation
                                             </small>
                                         )}
                                     </div>
 
                                     <div className="form-group">
-                                        <label>Tên Voucher *</label>
+                                        <label>Voucher Name *</label>
                                         <input
                                             type="text"
                                             className="form-input"
@@ -641,31 +641,31 @@ const VoucherManagementPage = () => {
                                     </div>
 
                                     <div className="form-group full-width">
-                                        <label>Mô Tả</label>
+                                        <label>Description</label>
                                         <textarea
                                             className="form-input"
                                             rows="3"
                                             value={formData.description}
                                             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                            placeholder="Giảm ngay 20% cho tất cả sản phẩm..."
+                                            placeholder="e.g., 20% off all products..."
                                         />
                                     </div>
 
                                     <div className="form-group">
-                                        <label>Loại Giảm Giá *</label>
+                                        <label>Discount Type *</label>
                                         <select
                                             className="form-input"
                                             value={formData.discountType}
                                             onChange={(e) => setFormData({ ...formData, discountType: e.target.value })}
                                             required
                                         >
-                                            <option value="PERCENTAGE">Phần Trăm (%)</option>
-                                            <option value="FIXED">Giá Cố Định (VND)</option>
+                                            <option value="PERCENTAGE">Percentage (%)</option>
+                                            <option value="FIXED">Fixed Amount (VND)</option>
                                         </select>
                                     </div>
 
                                     <div className="form-group">
-                                        <label>{formData.discountType === 'PERCENTAGE' ? 'Giảm Giá (%) *' : 'Giảm Giá (VND) *'}</label>
+                                        <label>{formData.discountType === 'PERCENTAGE' ? 'Discount (%) *' : 'Discount (VND) *'}</label>
                                         <input
                                             type="number"
                                             className="form-input"
@@ -680,7 +680,7 @@ const VoucherManagementPage = () => {
 
                                     {formData.discountType === 'PERCENTAGE' && (
                                         <div className="form-group">
-                                            <label>Giảm Tối Đa (VND)</label>
+                                            <label>Max Discount (VND)</label>
                                             <input
                                                 type="number"
                                                 className="form-input"
@@ -694,7 +694,7 @@ const VoucherManagementPage = () => {
                                     )}
 
                                     <div className="form-group">
-                                        <label>Đơn Tối Thiểu (VND) *</label>
+                                        <label>Min Order (VND) *</label>
                                         <input
                                             type="number"
                                             className="form-input"
@@ -708,7 +708,7 @@ const VoucherManagementPage = () => {
                                     </div>
 
                                     <div className="form-group">
-                                        <label>Số Lượng *</label>
+                                        <label>Quantity *</label>
                                         <input
                                             type="number"
                                             className="form-input"
@@ -721,7 +721,7 @@ const VoucherManagementPage = () => {
                                     </div>
 
                                     <div className="form-group">
-                                        <label>Ngày Bắt Đầu</label>
+                                        <label>Start Date</label>
                                         <input
                                             type="date"
                                             className="form-input"
@@ -731,7 +731,7 @@ const VoucherManagementPage = () => {
                                     </div>
 
                                     <div className="form-group">
-                                        <label>Ngày Kết Thúc</label>
+                                        <label>End Date</label>
                                         <input
                                             type="date"
                                             className="form-input"
@@ -741,16 +741,16 @@ const VoucherManagementPage = () => {
                                     </div>
 
                                     <div className="form-group">
-                                        <label>Trạng Thái *</label>
+                                        <label>Status *</label>
                                         <select
                                             className="form-input"
                                             value={formData.status}
                                             onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                                             required
                                         >
-                                            <option value="ACTIVE">Hoạt Động</option>
-                                            <option value="SCHEDULED">Đã Lên Lịch</option>
-                                            <option value="PAUSED">Tạm Dừng</option>
+                                            <option value="ACTIVE">Active</option>
+                                            <option value="SCHEDULED">Scheduled</option>
+                                            <option value="PAUSED">Paused</option>
                                         </select>
                                     </div>
                                 </div>
@@ -758,7 +758,7 @@ const VoucherManagementPage = () => {
 
                             <div className="modal-footer">
                                 <button type="button" className="btn-cancel" onClick={() => setShowModal(false)}>
-                                    Hủy
+                                    Cancel
                                 </button>
                                 <button type="submit" className="btn-save" disabled={saving}>
                                     {saving ? (
@@ -768,7 +768,7 @@ const VoucherManagementPage = () => {
                                         </>
                                     ) : (
                                         <>
-                                            <i className="fas fa-save"></i> {editingVoucher ? 'Cập Nhật' : 'Tạo Mới'}
+                                            <i className="fas fa-save"></i> {editingVoucher ? 'Update' : 'Create'}
                                         </>
                                     )}
                                 </button>

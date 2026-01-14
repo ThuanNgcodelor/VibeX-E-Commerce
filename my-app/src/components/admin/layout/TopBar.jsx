@@ -1,11 +1,8 @@
 import React from 'react';
 
-const TopBar = () => {
+const TopBar = ({ toggleSidebar }) => {
   return (
     <nav className="navbar navbar-expand navbar-light bg-navbar topbar mb-4 static-top" style={{ backgroundColor: 'rgba(230, 57, 70, 0.1)' }}>
-      <button id="sidebarToggleTop" className="btn btn-link rounded-circle mr-3" style={{ color: '#1D3557' }}>
-        <i className="fa fa-bars" style={{ color: '#1D3557' }}></i>
-      </button>
 
       <ul className="navbar-nav ml-auto">
         {/* Search Dropdown */}

@@ -69,7 +69,7 @@ public class BannerController {
      * GET /v1/banners
      * Lấy tất cả banners (admin only)
      */
-    @GetMapping("/getAllBanner")
+    @GetMapping("")
     public ResponseEntity<List<BannerDto>> getAllBanners() {
         return ResponseEntity.ok(bannerService.getAllBanners());
     }

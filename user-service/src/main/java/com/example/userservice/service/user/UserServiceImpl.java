@@ -80,8 +80,11 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public List<User> getAllUsers() {
-        return userRepository.findAll(); // Return ALL users including locked accounts
+    public org.springframework.data.domain.Page<User> getAllUsers(String search, String role, String status,
+            org.springframework.data.domain.Pageable pageable) {
+        org.springframework.data.jpa.domain.Specification<User> spec = com.example.userservice.specification.UserSpecification
+                .filterUsers(search, role, status);
+        return userRepository.findAll(spec, pageable);
     }
 
     @Override

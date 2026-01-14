@@ -42,7 +42,9 @@ public class NotificationService {
                 .shopOwnerNotification(isShopOwnerNotification)
                 .build();
 
-        return notificationRepository.save(notification);
+        Notification savedNotification = notificationRepository.save(notification);
+        webSocketNotificationService.pushNotification(savedNotification);
+        return savedNotification;
     }
 
     public List<Notification> getAllNotifications(String id) {

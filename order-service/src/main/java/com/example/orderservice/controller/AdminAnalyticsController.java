@@ -5,6 +5,8 @@ import com.example.orderservice.service.SuspiciousActivityService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -24,12 +26,26 @@ public class AdminAnalyticsController {
     }
 
     @GetMapping("/dashboard")
-    public ResponseEntity<com.example.orderservice.dto.DashboardStatsDto> getDashboardStats() {
+    public ResponseEntity<com.example.orderservice.dto.DashboardStatsDto> getDashboardStats(
+            @org.springframework.web.bind.annotation.RequestParam(required = false) java.time.LocalDate startDate,
+            @org.springframework.web.bind.annotation.RequestParam(required = false) java.time.LocalDate endDate) {
+
+        if (startDate != null && endDate != null) {
+            return ResponseEntity
+                    .ok(adminDashboardService.getDashboardStats(startDate.atStartOfDay(), endDate.atTime(23, 59, 59)));
+        }
         return ResponseEntity.ok(adminDashboardService.getDashboardStats());
     }
 
     @GetMapping("/revenue-chart")
-    public ResponseEntity<List<com.example.orderservice.dto.DailyRevenueDto>> getRevenueChartData() {
+    public ResponseEntity<List<com.example.orderservice.dto.DailyRevenueDto>> getRevenueChartData(
+            @org.springframework.web.bind.annotation.RequestParam(required = false) java.time.LocalDate startDate,
+            @org.springframework.web.bind.annotation.RequestParam(required = false) java.time.LocalDate endDate) {
+
+        if (startDate != null && endDate != null) {
+            return ResponseEntity.ok(
+                    adminDashboardService.getRevenueChartData(startDate.atStartOfDay(), endDate.atTime(23, 59, 59)));
+        }
         return ResponseEntity.ok(adminDashboardService.getRevenueChartData(30)); // Default 30 days
     }
 
@@ -39,7 +55,20 @@ public class AdminAnalyticsController {
     }
 
     @GetMapping("/top-categories")
-    public ResponseEntity<List<com.example.orderservice.dto.CategorySalesDto>> getTopCategories() {
+    public ResponseEntity<List<com.example.orderservice.dto.CategorySalesDto>> getTopCategories(
+            @org.springframework.web.bind.annotation.RequestParam(required = false) java.time.LocalDate startDate,
+            @org.springframework.web.bind.annotation.RequestParam(required = false) java.time.LocalDate endDate) {
+
+        if (startDate != null && endDate != null) {
+            return ResponseEntity
+                    .ok(adminDashboardService.getTopCategories(startDate.atStartOfDay(), endDate.atTime(23, 59, 59)));
+        }
         return ResponseEntity.ok(adminDashboardService.getTopCategories());
+    }
+
+    @PostMapping("/warn-shop/{shopId}")
+    public ResponseEntity<Void> warnShop(@PathVariable String shopId) {
+        suspiciousActivityService.warnShop(shopId);
+        return ResponseEntity.ok().build();
     }
 }

@@ -15,9 +15,11 @@ export const getSuspiciousProducts = async () => {
     }
 };
 
-export const getDashboardStats = async () => {
+export const getDashboardStats = async (startDate, endDate) => {
     try {
-        const response = await api.get("/dashboard");
+        const response = await api.get("/dashboard", {
+            params: { startDate, endDate }
+        });
         return response.data;
     } catch (error) {
         console.error("Error fetching dashboard stats:", error);
@@ -25,9 +27,11 @@ export const getDashboardStats = async () => {
     }
 };
 
-export const getRevenueChartData = async () => {
+export const getRevenueChartData = async (startDate, endDate) => {
     try {
-        const response = await api.get("/revenue-chart");
+        const response = await api.get("/revenue-chart", {
+            params: { startDate, endDate }
+        });
         return response.data;
     } catch (error) {
         console.error("Error fetching revenue chart data:", error);
@@ -45,12 +49,23 @@ export const getRecentOrders = async () => {
     }
 };
 
-export const getTopCategories = async () => {
+export const getTopCategories = async (startDate, endDate) => {
     try {
-        const response = await api.get("/top-categories");
+        const response = await api.get("/top-categories", {
+            params: { startDate, endDate }
+        });
         return response.data;
     } catch (error) {
         console.error("Error fetching top categories:", error);
+        throw error;
+    }
+};
+
+export const warnShop = async (shopId) => {
+    try {
+        await api.post(`/warn-shop/${shopId}`);
+    } catch (error) {
+        console.error(`Error warning shop ${shopId}:`, error);
         throw error;
     }
 };

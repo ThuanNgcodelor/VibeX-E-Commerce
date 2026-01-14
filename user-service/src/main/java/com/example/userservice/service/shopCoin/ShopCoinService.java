@@ -20,7 +20,8 @@ public interface ShopCoinService {
 
         boolean hasCheckedInToday(String userId);
 
-        List<ShopCoinAdminDto> getAllShopCoins();
+        org.springframework.data.domain.Page<ShopCoinAdminDto> getAllShopCoins(
+                        org.springframework.data.domain.Pageable pageable);
 
         ShopCoinDto performViewProductMission(String userId);
 

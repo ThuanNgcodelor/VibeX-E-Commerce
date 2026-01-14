@@ -31,13 +31,6 @@ public class RoleRequestController {
         private final JwtUtil jwtUtil;
         private final ModelMapper modelMapper;
 
-        @GetMapping("/{requestId}")
-        ResponseEntity<RoleRequestResponse> getRequestById(@PathVariable String requestId) {
-                return ResponseEntity
-                                .ok(modelMapper.map(roleRequestService.getRoleRequestById(requestId),
-                                                RoleRequestResponse.class));
-        }
-
         @PostMapping(value = "/createShopOwner", consumes = { "multipart/form-data" })
         ResponseEntity<?> createShopOwner(
                         HttpServletRequest request,
@@ -87,42 +80,6 @@ public class RoleRequestController {
                 }
         }
 
-        // @PostMapping
-        // public ResponseEntity<RoleRequestResponse> createRoleRequest(
-        // @Valid @RequestBody RoleRequestRequest request,
-        // HttpServletRequest httpRequest) {
-        //
-        //
-        // String userId = jwtUtil.ExtractUserId(httpRequest);
-        //
-        // if (request.getRole() == null || request.getRole().trim().isEmpty()) {
-        // throw new IllegalArgumentException("Role cannot be null or empty");
-        // }
-        //
-        // Role requestedRole;
-        // try {
-        // requestedRole = Role.valueOf(request.getRole().toUpperCase());
-        // } catch (IllegalArgumentException e) {
-        // throw new IllegalArgumentException("Invalid role: " + request.getRole());
-        // }
-        //
-        // RoleRequest created = roleRequestService.createRoleRequest(
-        // userId,
-        // requestedRole,
-        // request.getReason()
-        // );
-        //
-        // RoleRequestResponse response = RoleRequestResponse.builder()
-        // .id(created.getId())
-        // .userId(created.getUser().getId())
-        // .requestedRole(created.getRequestedRole().name())
-        // .reason(created.getReason())
-        // .status(created.getStatus().name())
-        // .build();
-        //
-        // return ResponseEntity.ok(response);
-        // }
-
         @GetMapping("/pending")
         public ResponseEntity<List<RoleRequestResponse>> getPendingRequests() {
                 List<RoleRequestResponse> responses = roleRequestService.getPendingRequests().stream()
@@ -156,6 +113,12 @@ public class RoleRequestController {
                                                 .build())
                                 .toList();
                 return ResponseEntity.ok(responses);
+        }
+
+        @GetMapping("/{requestId}")
+        ResponseEntity<com.example.userservice.request.RoleRequestDetailResponse> getRequestById(
+                        @PathVariable String requestId) {
+                return ResponseEntity.ok(roleRequestService.getRoleRequestDetail(requestId));
         }
 
         // {{baseURL}}/v1/user/role-requests/ee24db1d-ae50-4894-9a94-9648d2baf4e2/approve?adminNote=vcl

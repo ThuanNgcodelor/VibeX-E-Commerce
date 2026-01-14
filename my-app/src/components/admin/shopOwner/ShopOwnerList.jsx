@@ -43,12 +43,18 @@ export default function ShopOwnerList({ shops, selectedShopId, onSelectShop }) {
         }).format(amount);
     };
 
+    const formatDate = (dateString) => {
+        if (!dateString || dateString === 'N/A') return 'N/A';
+        const date = new Date(dateString);
+        return isNaN(date.getTime()) ? 'N/A' : date.toLocaleDateString();
+    };
+
     return (
         <div className="shop-owner-list-container">
             <div className="list-header">
                 <h3 className="list-title">
                     <i className="fas fa-list me-2"></i>
-                    Danh Sách Shop ({sortedShops.length})
+                    Shop List ({sortedShops.length})
                 </h3>
             </div>
 
@@ -58,7 +64,7 @@ export default function ShopOwnerList({ shops, selectedShopId, onSelectShop }) {
                     <i className="fas fa-search"></i>
                     <input
                         type="text"
-                        placeholder="Tìm kiếm shop hoặc chủ shop..."
+                        placeholder="Search shop or owner..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -70,9 +76,9 @@ export default function ShopOwnerList({ shops, selectedShopId, onSelectShop }) {
                         value={filterVerified}
                         onChange={(e) => setFilterVerified(e.target.value)}
                     >
-                        <option value="all">Tất cả trạng thái</option>
-                        <option value="verified">✓ Đã xác minh</option>
-                        <option value="unverified">⏳ Chưa xác minh</option>
+                        <option value="all">All Statuses</option>
+                        <option value="verified">✓ Verified</option>
+                        <option value="unverified">⏳ Unverified</option>
                     </select>
 
                     <select
@@ -80,10 +86,10 @@ export default function ShopOwnerList({ shops, selectedShopId, onSelectShop }) {
                         value={sortBy}
                         onChange={(e) => setSortBy(e.target.value)}
                     >
-                        <option value="name">Sắp xếp: Tên</option>
-                        <option value="products">Sắp xếp: Sản phẩm</option>
-                        <option value="orders">Sắp xếp: Đơn hàng</option>
-                        <option value="revenue">Sắp xếp: Doanh thu</option>
+                        <option value="name">Sort: Name</option>
+                        <option value="products">Sort: Products</option>
+                        <option value="orders">Sort: Orders</option>
+                        <option value="revenue">Sort: Revenue</option>
                     </select>
                 </div>
             </div>
@@ -93,7 +99,7 @@ export default function ShopOwnerList({ shops, selectedShopId, onSelectShop }) {
                 {sortedShops.length === 0 ? (
                     <div className="empty-state">
                         <i className="fas fa-store-slash"></i>
-                        <p>Không tìm thấy shop nào</p>
+                        <p>No shops found</p>
                     </div>
                 ) : (
                     sortedShops.map(shop => (
@@ -116,7 +122,7 @@ export default function ShopOwnerList({ shops, selectedShopId, onSelectShop }) {
                                     <h4 className="shop-name">
                                         {shop.shopName}
                                         {shop.verified && (
-                                            <span className="verified-badge" title="Đã xác minh">
+                                            <span className="verified-badge" title="Verified">
                                                 <i className="fas fa-check-circle"></i>
                                             </span>
                                         )}
@@ -131,24 +137,24 @@ export default function ShopOwnerList({ shops, selectedShopId, onSelectShop }) {
                                 <div className="stat-item">
                                     <i className="fas fa-box text-primary"></i>
                                     <span className="stat-value">{shop.totalProducts}</span>
-                                    <span className="stat-label">Sản phẩm</span>
+                                    <span className="stat-label">Products</span>
                                 </div>
                                 <div className="stat-item">
                                     <i className="fas fa-shopping-cart text-success"></i>
                                     <span className="stat-value">{shop.totalOrders}</span>
-                                    <span className="stat-label">Đơn hàng</span>
+                                    <span className="stat-label">Orders</span>
                                 </div>
                                 <div className="stat-item">
                                     <i className="fas fa-money-bill-wave text-warning"></i>
                                     <span className="stat-value">{formatCurrency(shop.totalRevenue)}</span>
-                                    <span className="stat-label">Doanh thu</span>
+                                    <span className="stat-label">Revenue</span>
                                 </div>
                             </div>
 
                             <div className="shop-footer">
                                 <span className="join-date">
                                     <i className="fas fa-calendar-alt"></i>
-                                    Tham gia: {new Date(shop.createdAt).toLocaleDateString('vi-VN')}
+                                    Joined: {formatDate(shop.createdAt)}
                                 </span>
                             </div>
                         </div>

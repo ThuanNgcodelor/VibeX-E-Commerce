@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.example.notificationservice.request.SendNotificationRequest;
 
 import java.util.List;
 
@@ -16,6 +17,12 @@ import java.util.List;
 public class NotificationController {
     private final NotificationService notificationService;
     private final JwtUtil jwtUtil;
+
+    @PostMapping("/send")
+    public ResponseEntity<Void> sendNotification(@RequestBody SendNotificationRequest request) {
+        notificationService.save(request);
+        return ResponseEntity.ok().build();
+    }
 
     @GetMapping("/getAllByUserId")
     public ResponseEntity<List<Notification>> getAllByUserId(HttpServletRequest request) {

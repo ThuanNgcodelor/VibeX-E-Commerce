@@ -50,7 +50,7 @@ export default function ShopOwnerManagementPage() {
                     <i className="fas fa-store me-2"></i>
                     Shop Owner Management
                 </h1>
-                <p className="page-subtitle">Quản lý thông tin và thống kê của các shop owner</p>
+                <p className="page-subtitle">Manage shop owner information and statistics</p>
             </div>
 
             <div className="management-container">

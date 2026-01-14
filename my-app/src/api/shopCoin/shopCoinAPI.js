@@ -69,9 +69,9 @@ export const shopCoinAPI = {
     }
   },
 
-  getAllShopCoins: async () => {
+  getAllShopCoins: async (params = {}) => {
     try {
-      const response = await api.get('/all');
+      const response = await api.get('/all', { params });
       return response.data;
     } catch (error) {
       console.error('Error fetching all shop coins:', error);

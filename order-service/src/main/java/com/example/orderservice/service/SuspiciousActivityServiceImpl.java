@@ -1,9 +1,13 @@
 package com.example.orderservice.service;
 
+import com.example.orderservice.client.NotificationServiceClient;
 import com.example.orderservice.client.StockServiceClient;
+import com.example.orderservice.client.UserServiceClient;
 import com.example.orderservice.dto.ProductDto;
+import com.example.orderservice.dto.ShopOwnerDto;
 import com.example.orderservice.dto.SuspiciousProductDto;
 import com.example.orderservice.repository.OrderRepository;
+import com.example.orderservice.request.SendNotificationRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -19,6 +23,8 @@ public class SuspiciousActivityServiceImpl implements SuspiciousActivityService 
 
     private final OrderRepository orderRepository;
     private final StockServiceClient stockServiceClient;
+    private final UserServiceClient userServiceClient;
+    private final NotificationServiceClient notificationServiceClient;
 
     @Override
     public List<SuspiciousProductDto> getSuspiciousProducts() {
@@ -122,7 +128,40 @@ public class SuspiciousActivityServiceImpl implements SuspiciousActivityService 
             }
         }
 
+        // Populate Shop Names
+        populateShopNames(result);
+
         return result;
+    }
+
+    private void populateShopNames(List<SuspiciousProductDto> dtos) {
+        java.util.Map<String, String> shopNameCache = new java.util.HashMap<>();
+
+        for (SuspiciousProductDto dto : dtos) {
+            String shopId = dto.getShopId();
+            if (shopId != null && !shopId.isEmpty()) {
+                if (shopNameCache.containsKey(shopId)) {
+                    dto.setShopName(shopNameCache.get(shopId));
+                } else {
+                    try {
+                        org.springframework.http.ResponseEntity<ShopOwnerDto> response = userServiceClient
+                                .getShopOwnerByUserId(shopId);
+                        if (response.getBody() != null) {
+                            String name = response.getBody().getShopName();
+                            dto.setShopName(name);
+                            shopNameCache.put(shopId, name);
+                        } else {
+                            // Try fetching as regular user if shop owner not found (fallback)
+                            // or just mark unknown
+                            shopNameCache.put(shopId, "Unknown Shop");
+                        }
+                    } catch (Exception e) {
+                        log.warn("Failed to fetch shop name for id: {}", shopId);
+                        shopNameCache.put(shopId, "Unknown Shop");
+                    }
+                }
+            }
+        }
     }
 
     private void enrichProductInfo(SuspiciousProductDto dto) {
@@ -137,5 +176,28 @@ public class SuspiciousActivityServiceImpl implements SuspiciousActivityService 
             dto.setProductName("Unknown Product");
         }
 
+    }
+
+    @Override
+    public void warnShop(String shopId) {
+        try {
+            log.info("Sending warning notification to shop: {}", shopId);
+
+            SendNotificationRequest request = SendNotificationRequest.builder()
+                    .userId(shopId) // notification-service logic might route based on this
+                    .shopId(shopId)
+                    .isShopOwnerNotification(true)
+                    .message(
+                            "System has detected suspicious activity from your shop (High cancellation rate/Suspected fake orders). Please review your operational processes.") // English
+                                                                                                                                                                                // warning
+                                                                                                                                                                                // message
+                    .build();
+
+            notificationServiceClient.sendNotification(request);
+            log.info("Warning sent successfully to shop {}", shopId);
+        } catch (Exception e) {
+            log.error("Failed to send warning to shop {}", shopId, e);
+            throw new RuntimeException("Failed to send warning notification");
+        }
     }
 }

@@ -109,8 +109,9 @@ public class ShopCoinServiceImpl implements ShopCoinService {
 
     @Override
     @Transactional(readOnly = true)
-    public java.util.List<com.example.userservice.dto.ShopCoinAdminDto> getAllShopCoins() {
-        return shopCoinRepository.findAll().stream()
+    public org.springframework.data.domain.Page<com.example.userservice.dto.ShopCoinAdminDto> getAllShopCoins(
+            org.springframework.data.domain.Pageable pageable) {
+        return shopCoinRepository.findAll(pageable)
                 .map(shopCoin -> {
                     com.example.userservice.model.User user = userRepository.findById(shopCoin.getUserId())
                             .orElse(null);
@@ -122,8 +123,7 @@ public class ShopCoinServiceImpl implements ShopCoinService {
                             .lastCheckInDate(shopCoin.getLastCheckInDate())
                             .consecutiveDays(shopCoin.getConsecutiveDays())
                             .build();
-                })
-                .collect(java.util.stream.Collectors.toList());
+                });
     }
 
     @Override

@@ -14,7 +14,8 @@ import java.util.List;
 public interface UserService {
     User SaveUser(RegisterRequest registerRequest);
 
-    List<User> getAllUsers();
+    org.springframework.data.domain.Page<User> getAllUsers(String search, String role, String status,
+            org.springframework.data.domain.Pageable pageable);
 
     User getUserById(String id);
 

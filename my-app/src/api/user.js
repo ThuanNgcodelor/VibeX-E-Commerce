@@ -7,9 +7,9 @@ const api = createApiInstance(API_URL);
  * Lấy danh sách tất cả người dùng (Admin only)
  * @returns {Promise<Array>} - Promise trả về danh sách người dùng
  */
-export const getAllUser = async () => {
+export const getAllUser = async (params) => {
     try {
-        const response = await api.get("/getAll");
+        const response = await api.get("/getAll", { params });
         return response.data;
     } catch {
         throw new Error("Failed to fetch users");
@@ -429,7 +429,7 @@ export const getMyShopDecoration = async () => {
     try {
         const res = await api.get("/shops/decoration/me");
         return res.data;
-    } catch{
+    } catch {
         throw new Error("Failed to load decoration config");
     }
 };

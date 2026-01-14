@@ -52,7 +52,7 @@ export default function AdManagement() {
         // Parallel fetch for simplified logic (optimize to bulk if API exists)
         await Promise.all(uniqueShopIds.map(async (id) => {
             if (id === 'ADMIN' || id === 'SYSTEM') {
-                names[id] = 'Hệ thống (Admin)';
+                names[id] = 'System (Admin)';
                 return;
             }
             try {
@@ -84,30 +84,30 @@ export default function AdManagement() {
         try {
             if (actionType === 'APPROVE') {
                 await adAPI.approveAd(selectedAd.id, placement);
-                alert("Đã phê duyệt quảng cáo!");
+                alert("Ad approved!");
             } else if (actionType === 'REJECT') {
                 if (!rejectReason.trim()) {
-                    alert("Vui lòng nhập lý do từ chối");
+                    alert("Please enter rejection reason");
                     return;
                 }
                 await adAPI.rejectAd(selectedAd.id, rejectReason);
-                alert("Đã từ chối quảng cáo!");
+                alert("Ad rejected!");
             }
             setSelectedAd(null);
             fetchAds();
         } catch (error) {
             console.error("Action failed", error);
-            alert("Có lỗi xảy ra");
+            alert("An error occurred");
         }
     };
 
     const handleDelete = async (id) => {
-        if (window.confirm("Bạn có chắc chắn muốn xóa quảng cáo này?")) {
+        if (window.confirm("Are you sure you want to delete this ad?")) {
             try {
                 await adAPI.deleteAd(id);
                 fetchAds();
             } catch (error) {
-                alert("Xóa thất bại");
+                alert("Delete failed");
             }
         }
     };
@@ -126,7 +126,7 @@ export default function AdManagement() {
             setNewAd({ ...newAd, imageUrl: fullUrl });
         } catch (error) {
             console.error('Upload failed', error);
-            alert('Upload ảnh thất bại: ' + error.message);
+            alert('Image upload failed: ' + error.message);
         } finally {
             setUploading(false);
         }
@@ -134,7 +134,7 @@ export default function AdManagement() {
 
     const handleCreateSubmit = async () => {
         if (!newAd.title || !newAd.imageUrl) {
-            alert("Vui lòng nhập tiêu đề và upload ảnh");
+            alert("Please enter title and upload image");
             return;
         }
 
@@ -144,7 +144,7 @@ export default function AdManagement() {
 
             // 1. Create & Auto Approve
             await adAPI.createSystemAd(newAd);
-            alert("Đã tạo và kích hoạt quảng cáo hệ thống!");
+            alert("System ad created and activated!");
 
             setIsCreateModalOpen(false);
             setNewAd({
@@ -159,16 +159,16 @@ export default function AdManagement() {
             fetchAds();
         } catch (error) {
             console.error("Create failed", error);
-            alert("Tạo quảng cáo thất bại");
+            alert("Failed to create ad");
         }
     };
 
     return (
         <div className="container-fluid mt-4">
             <div className="d-flex justify-content-between align-items-center">
-                <h3>Quản lý Quảng Cáo</h3>
+                <h3>Advertisement Management</h3>
                 <button className="btn btn-primary" onClick={() => setIsCreateModalOpen(true)}>
-                    <i className="fas fa-plus"></i> Tạo Quảng Cáo Hệ Thống
+                    <i className="fas fa-plus"></i> Create System Ad
                 </button>
             </div>
 
@@ -176,19 +176,19 @@ export default function AdManagement() {
                 <table className="table table-bordered table-hover mt-3" style={{ background: 'white' }}>
                     <thead className="table-light">
                         <tr>
-                            <th>Hình ảnh</th>
-                            <th>Tiêu đề / Mô tả</th>
+                            <th>Image</th>
+                            <th>Title / Description</th>
                             <th>Shop</th>
-                            <th>Loại</th>
-                            <th>Thời lượng</th>
-                            <th>Trạng thái</th>
-                            <th>Vị trí</th>
-                            <th>Hành động</th>
+                            <th>Type</th>
+                            <th>Duration</th>
+                            <th>Status</th>
+                            <th>Position</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {ads.length === 0 ? (
-                            <tr><td colSpan="8" className="text-center text-muted p-4">Không có dữ liệu</td></tr>
+                            <tr><td colSpan="8" className="text-center text-muted p-4">No data</td></tr>
                         ) : ads.map(ad => (
                             <tr key={ad.id} style={{ verticalAlign: 'middle' }}>
                                 <td style={{ width: '120px', textAlign: 'center' }}>
@@ -205,7 +205,7 @@ export default function AdManagement() {
                                                 cursor: 'pointer'
                                             }}
                                             onClick={() => window.open(ad.imageUrl, '_blank')}
-                                            title="Click để xem ảnh lớn"
+                                            title="Click to view full image"
                                         />
                                     ) : <span className="text-muted small">No Image</span>}
                                 </td>
@@ -217,7 +217,7 @@ export default function AdManagement() {
                                 </td>
                                 <td>
                                     {ad.shopId === 'ADMIN' ? (
-                                        <span className="badge bg-info">Hệ thống</span>
+                                        <span className="badge bg-info">System</span>
                                     ) : (
                                         <div style={{ fontWeight: 500 }}>
                                             {shopNames[ad.shopId] || <span className="text-secondary small">{ad.shopId}</span>}
@@ -225,7 +225,7 @@ export default function AdManagement() {
                                     )}
                                 </td>
                                 <td><span className="badge bg-secondary">{ad.adType}</span></td>
-                                <td>{ad.durationDays} ngày</td>
+                                <td>{ad.durationDays} days</td>
                                 <td>
                                     <span className={`badge ${ad.status === 'APPROVED' ? 'bg-success' :
                                         ad.status === 'REJECTED' ? 'bg-danger' : 'bg-warning'
@@ -238,15 +238,15 @@ export default function AdManagement() {
                                     <div className="d-flex gap-2">
                                         {ad.status === 'PENDING' && (
                                             <>
-                                                <button className="btn btn-sm btn-success" onClick={() => handleAction(ad, 'APPROVE')} title="Duyệt">
+                                                <button className="btn btn-sm btn-success" onClick={() => handleAction(ad, 'APPROVE')} title="Approve">
                                                     <i className="fas fa-check"></i>
                                                 </button>
-                                                <button className="btn btn-sm btn-warning" onClick={() => handleAction(ad, 'REJECT')} title="Từ chối">
+                                                <button className="btn btn-sm btn-warning" onClick={() => handleAction(ad, 'REJECT')} title="Reject">
                                                     <i className="fas fa-times"></i>
                                                 </button>
                                             </>
                                         )}
-                                        <button className="btn btn-sm btn-danger" onClick={() => handleDelete(ad.id)} title="Xóa">
+                                        <button className="btn btn-sm btn-danger" onClick={() => handleDelete(ad.id)} title="Delete">
                                             <i className="fas fa-trash"></i>
                                         </button>
                                     </div>
@@ -265,8 +265,7 @@ export default function AdManagement() {
                     display: 'flex', alignItems: 'center', justifyContent: 'center'
                 }}>
                     <div style={{ background: 'white', padding: '24px', borderRadius: '8px', width: '500px', maxWidth: '90%' }}>
-                        <h5 className="mb-3">{actionType === 'APPROVE' ? 'Phê duyệt Quảng cáo' : 'Từ chối Quảng cáo'}</h5>
-                        {/* ... Existing Approval Modal Content Can Stay or be Replaced, but let's keep it consistent within this tool call ... */}
+                        <h5 className="mb-3">{actionType === 'APPROVE' ? 'Approve Advertisement' : 'Reject Advertisement'}</h5>
                         <div className="mb-3 p-2 bg-light rounded text-center">
                             {selectedAd.imageUrl && (
                                 <img src={selectedAd.imageUrl} alt="Preview" style={{ maxWidth: '100%', maxHeight: '150px', objectFit: 'contain' }} />
@@ -276,28 +275,28 @@ export default function AdManagement() {
 
                         {actionType === 'APPROVE' ? (
                             <div className="mb-3">
-                                <label className="form-label">Chọn vị trí hiển thị:</label>
+                                <label className="form-label">Select display position:</label>
                                 <select className="form-select" value={placement} onChange={e => setPlacement(e.target.value)}>
-                                    <option value="HEADER">Header (Banner chính)</option>
-                                    <option value="SIDEBAR">Sidebar (Cột bên)</option>
-                                    <option value="FOOTER">Footer (Chân trang)</option>
-                                    <option value="POPUP">Popup (Hộp thoại)</option>
+                                    <option value="HEADER">Header (Main Banner)</option>
+                                    <option value="SIDEBAR">Sidebar</option>
+                                    <option value="FOOTER">Footer</option>
+                                    <option value="POPUP">Popup</option>
                                 </select>
                             </div>
                         ) : (
                             <div className="mb-3">
-                                <label className="form-label">Lý do từ chối:</label>
+                                <label className="form-label">Rejection reason:</label>
                                 <textarea className="form-control" rows="3"
                                     value={rejectReason} onChange={e => setRejectReason(e.target.value)}
-                                    placeholder="Nhập lý do..."
+                                    placeholder="Enter reason..."
                                 ></textarea>
                             </div>
                         )}
 
                         <div className="d-flex justify-content-end gap-2 mt-4">
-                            <button className="btn btn-secondary" onClick={() => setSelectedAd(null)}>Hủy</button>
+                            <button className="btn btn-secondary" onClick={() => setSelectedAd(null)}>Cancel</button>
                             <button className={`btn ${actionType === 'APPROVE' ? 'btn-success' : 'btn-danger'}`} onClick={submitAction}>
-                                {actionType === 'APPROVE' ? 'Xác nhận Duyệt' : 'Xác nhận Từ chối'}
+                                {actionType === 'APPROVE' ? 'Confirm Approve' : 'Confirm Reject'}
                             </button>
                         </div>
                     </div>
@@ -312,31 +311,31 @@ export default function AdManagement() {
                     display: 'flex', alignItems: 'center', justifyContent: 'center'
                 }}>
                     <div style={{ background: 'white', padding: '24px', borderRadius: '8px', width: '600px', maxWidth: '95%', maxHeight: '90vh', overflowY: 'auto' }}>
-                        <h5 className="mb-4">Tạo Quảng Cáo Hệ Thống (Admin)</h5>
+                        <h5 className="mb-4">Create System Ad (Admin)</h5>
 
                         <div className="mb-3">
-                            <label className="form-label">Tiêu đề</label>
-                            <input className="form-control" value={newAd.title} onChange={e => setNewAd({ ...newAd, title: e.target.value })} placeholder="Nhập tiêu đề..." />
+                            <label className="form-label">Title</label>
+                            <input className="form-control" value={newAd.title} onChange={e => setNewAd({ ...newAd, title: e.target.value })} placeholder="Enter title..." />
                         </div>
 
                         <div className="row">
                             <div className="col-md-6 mb-3">
-                                <label className="form-label">Loại quảng cáo</label>
+                                <label className="form-label">Ad Type</label>
                                 <select className="form-select" value={newAd.adType} onChange={e => setNewAd({ ...newAd, adType: e.target.value })}>
-                                    <option value="POPUP">Popup (Hộp thoại)</option> {/* Prioritized */}
+                                    <option value="POPUP">Popup</option> {/* Prioritized */}
                                     <option value="BANNER">Banner</option>
                                 </select>
                             </div>
                             <div className="col-md-6 mb-3">
-                                <label className="form-label">Thời gian (Ngày)</label>
+                                <label className="form-label">Duration (Days)</label>
                                 <input type="number" className="form-control" value={newAd.durationDays} onChange={e => setNewAd({ ...newAd, durationDays: e.target.value })} />
                             </div>
                         </div>
 
                         <div className="mb-3">
-                            <label className="form-label">Hình ảnh</label>
+                            <label className="form-label">Image</label>
                             <input type="file" className="form-control" accept="image/*" onChange={handleImageUpload} disabled={uploading} />
-                            {uploading && <small className="text-info">Đang tải lên...</small>}
+                            {uploading && <small className="text-info">Uploading...</small>}
                             {newAd.imageUrl && (
                                 <div className="mt-2 text-center border p-2">
                                     <img src={newAd.imageUrl} alt="New Ad" style={{ maxHeight: '150px', maxWidth: '100%' }} />
@@ -345,23 +344,23 @@ export default function AdManagement() {
                         </div>
 
                         <div className="mb-3">
-                            <label className="form-label">Link đích (URL)</label>
-                            <input className="form-control" value={newAd.targetUrl} onChange={e => setNewAd({ ...newAd, targetUrl: e.target.value })} placeholder="VD: http://localhost:5173/shop" />
+                            <label className="form-label">Target Link (URL)</label>
+                            <input className="form-control" value={newAd.targetUrl} onChange={e => setNewAd({ ...newAd, targetUrl: e.target.value })} placeholder="e.g. http://localhost:5173/shop" />
                         </div>
 
                         <div className="mb-3">
-                            <label className="form-label">Mô tả</label>
+                            <label className="form-label">Description</label>
                             <textarea className="form-control" rows="2" value={newAd.description} onChange={e => setNewAd({ ...newAd, description: e.target.value })}></textarea>
                         </div>
 
                         <div className="alert alert-info small">
-                            <i className="fas fa-info-circle"></i> Quảng cáo này sẽ được tự động duyệt và hiển thị ngay sau khi tạo.
+                            <i className="fas fa-info-circle"></i> This ad will be automatically approved and displayed immediately after creation.
                         </div>
 
                         <div className="d-flex justify-content-end gap-2 mt-4">
-                            <button className="btn btn-secondary" onClick={() => setIsCreateModalOpen(false)}>Hủy</button>
+                            <button className="btn btn-secondary" onClick={() => setIsCreateModalOpen(false)}>Cancel</button>
                             <button className="btn btn-primary" onClick={handleCreateSubmit} disabled={uploading}>
-                                {uploading ? 'Đang xử lý...' : 'Tạo & Duyệt Ngay'}
+                                {uploading ? 'Processing...' : 'Create & Approve'}
                             </button>
                         </div>
                     </div>
