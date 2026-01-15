@@ -1,6 +1,6 @@
 package com.example.stockservice.service.flashsale;
 
-import com.example.stockservice.client.NotificationClient;
+import com.example.stockservice.client.NotificationServiceClient;
 import com.example.stockservice.client.ShopOwnerClient;
 import com.example.stockservice.dto.ShopOwnerDto;
 import com.example.stockservice.enums.FlashSaleStatus;
@@ -44,7 +44,7 @@ public class FlashSaleService {
 
     private final ProductRepository productRepository;
     private final SizeRepository sizeRepository;
-    private final NotificationClient notificationClient;
+    private final NotificationServiceClient notificationClient;
     private final ShopOwnerClient shopOwnerClient;
     private final KafkaTemplate<String, ProductUpdateKafkaEvent> kafkaTemplate;
     private final StringRedisTemplate stringRedisTemplate;

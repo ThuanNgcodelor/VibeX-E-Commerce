@@ -7,6 +7,7 @@ import com.example.stockservice.repository.FlashSaleSessionRepository;
 import com.example.stockservice.repository.FlashSaleProductRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Description;
 import org.springframework.stereotype.Component;
 
@@ -77,6 +78,10 @@ public class FlashSaleTools {
 
     // ============ Tool Functions ============
 
+    /**
+     * Lấy tất cả Flash Sales đang hoạt động
+     */
+    @Bean
     @Description("Get current active flash sales. Use when user asks about flash sales, sales today, current promotions.")
     public Function<GetCurrentFlashSalesRequest, GetCurrentFlashSalesResponse> getCurrentFlashSales() {
         return request -> {
@@ -89,11 +94,11 @@ public class FlashSaleTools {
                         .findByStatus(FlashSaleStatus.ACTIVE)
                         .stream()
                         .filter(session -> session.getStartTime().isBefore(now) && session.getEndTime().isAfter(now))
-                        .collect(Collectors.toList());
+                        .toList();
 
                 if (activeSessions.isEmpty()) {
                     return new GetCurrentFlashSalesResponse(List.of(), 0,
-                            "Hiện tại không có Flash Sale nào đang diễn ra.");
+                            "There are currently no Flash Sales happening.");
                 }
 
                 List<FlashSaleSessionInfo> sessionInfos = activeSessions.stream()
@@ -101,24 +106,28 @@ public class FlashSaleTools {
                         .collect(Collectors.toList());
 
                 StringBuilder message = new StringBuilder();
-                message.append("🔥 **Flash Sale đang diễn ra:**\n\n");
+                message.append("**Flash Sale is happening now.:**\n\n");
                 for (FlashSaleSessionInfo info : sessionInfos) {
                     message.append("• **").append(info.name()).append("**\n");
-                    message.append("  - Thời gian: ").append(info.startTime()).append(" - ").append(info.endTime())
+                    message.append("  - Time: ").append(info.startTime()).append(" - ").append(info.endTime())
                             .append("\n");
-                    message.append("  - Số sản phẩm: ").append(info.productCount()).append("\n\n");
+                    message.append("  - Number of products: ").append(info.productCount()).append("\n\n");
                 }
 
                 return new GetCurrentFlashSalesResponse(sessionInfos, sessionInfos.size(), message.toString());
 
             } catch (Exception e) {
                 log.error("Error getting flash sales: ", e);
-                return new GetCurrentFlashSalesResponse(List.of(), 0, "Không thể lấy thông tin Flash Sale.");
+                return new GetCurrentFlashSalesResponse(List.of(), 0, "Unable to retrieve Flash Sale information.");
             }
         };
     }
 
-    @Description("Get products in a flash sale session.")
+    /**
+     * Lấy danh sách sản phẩm trong một Flash Sale session
+     */
+    @Bean
+    @Description("Get products in a specific flash sale session. Use when user wants to see products in a flash sale.")
     public Function<GetFlashSaleProductsRequest, GetFlashSaleProductsResponse> getFlashSaleProducts() {
         return request -> {
             log.info("=== Tool called: getFlashSaleProducts(sessionId={}) ===", request.sessionId());
@@ -143,7 +152,11 @@ public class FlashSaleTools {
         };
     }
 
-    @Description("Check if product is in flash sale.")
+    /**
+     * Kiểm tra một sản phẩm có đang trong Flash Sale không
+     */
+    @Bean
+    @Description("Check if a specific product is in any active flash sale. Use when user asks about a product's flash sale status.")
     public Function<CheckProductInFlashSaleRequest, CheckProductInFlashSaleResponse> checkProductInFlashSale() {
         return request -> {
             log.info("=== Tool called: checkProductInFlashSale(productId={}) ===", request.productId());
@@ -171,7 +184,11 @@ public class FlashSaleTools {
         };
     }
 
-    @Description("Get upcoming flash sales.")
+    /**
+     * Lấy danh sách Flash Sales sắp diễn ra
+     */
+    @Bean
+    @Description("Get upcoming flash sales. Use when user asks about future or scheduled flash sales.")
     public Function<GetUpcomingFlashSalesRequest, GetUpcomingFlashSalesResponse> getUpcomingFlashSales() {
         return request -> {
             log.info("=== Tool called: getUpcomingFlashSales() ===");
@@ -183,7 +200,7 @@ public class FlashSaleTools {
                         .stream()
                         .filter(s -> s.getStartTime().isAfter(now))
                         .limit(5)
-                        .collect(Collectors.toList());
+                        .toList();
 
                 if (upcoming.isEmpty()) {
                     return new GetUpcomingFlashSalesResponse(List.of(), 0, "Chưa có Flash Sale sắp diễn ra.");

@@ -30,7 +30,7 @@ const ProductCard = ({ product, onClose }) => {
                 <h4 className="ai-product-name">{product.name}</h4>
                 <p className="ai-product-price">{formatPrice(product.price)}</p>
                 <button className="ai-product-btn" onClick={() => { navigate(`/product/${product.id}`); onClose(); }}>
-                    {t('aiChat.viewProduct', 'Xem chi tiết')}
+                    {t('aiChat.viewProduct', 'View details')}
                 </button>
             </div>
         </div>
@@ -134,10 +134,12 @@ export default function AIChatWidget() {
     };
 
     const suggestedQuestions = [
-        { key: 'aiChat.suggestions.findProducts', default: 'Tìm sản phẩm' },
-        { key: 'aiChat.suggestions.saleProducts', default: 'Sản phẩm đang giảm giá' },
-        { key: 'aiChat.suggestions.myOrders', default: 'Đơn hàng của tôi' },
-        { key: 'aiChat.suggestions.today', default: 'Hôm nay thứ mấy?' }
+        { key: 'aiChat.suggestions.flashSale', default: '🔥 Flash Sale today?' },
+        { key: 'aiChat.suggestions.liveSession', default: '📺 Any live streams?' },
+        { key: 'aiChat.suggestions.trending', default: '📈 Trending products?' },
+        { key: 'aiChat.suggestions.myOrders', default: '📦 My orders?' },
+        { key: 'aiChat.suggestions.categories', default: '📂 What categories?' },
+        { key: 'aiChat.suggestions.newArrivals', default: '✨ New arrivals?' }
     ];
 
     const handleOrderClick = (orderId) => {
@@ -163,7 +165,9 @@ export default function AIChatWidget() {
                 .replace(/`(.*?)`/g, '<code>$1</code>')
                 .replace(/\n- /g, '<br/>• ')
                 .replace(/\n\d\. /g, (match) => '<br/>' + match.trim() + ' ')
-                .replace(/\n/g, '<br/>');
+                .replace(/\n/g, '<br/>')
+                // Preserve emojis
+                .replace(/(🔥|📺|📦|📈|✨|📂|⚡|🛍️|💰|✅|❌|⏰|👥|🚛)/g, '<span class="ai-emoji">$1</span>');
 
             const isOrderContext = /order|đơn hàng|đơn|trạng thái/i.test(msg.content);
             const isProductContext = /sản phẩm|product|giá|price/i.test(msg.content) && !isOrderContext;

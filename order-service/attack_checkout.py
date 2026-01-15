@@ -12,7 +12,7 @@ import threading
 # ORDER_URL = "http://localhost:8080/order-service/v1/order/create-from-cart"
 
 # Option 2: Direct to Order Service (bypass Gateway for pure performance test)
-ORDER_URL = "http://localhost:8005/v1/order/create-from-cart"
+ORDER_URL = "http://localhost:8080/v1/order/create-from-cart"
 
 # Test parameters
 TOTAL_REQUESTS = 5000      # Giảm để test nhanh, tăng khi cần stress test

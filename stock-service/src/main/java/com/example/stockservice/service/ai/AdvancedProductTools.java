@@ -1,11 +1,14 @@
 package com.example.stockservice.service.ai;
 
+import com.example.stockservice.dto.ProductSuggestionDto;
+import com.example.stockservice.enums.ProductStatus;
 import com.example.stockservice.model.Category;
 import com.example.stockservice.model.Product;
 import com.example.stockservice.repository.CategoryRepository;
 import com.example.stockservice.service.product.ProductService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Description;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
@@ -26,6 +29,18 @@ public class AdvancedProductTools {
 
     private final ProductService productService;
     private final CategoryRepository categoryRepository;
+
+    // ThreadLocal to store products for carousel display
+    private static final ThreadLocal<List<ProductSuggestionDto>> LAST_PRODUCTS = new ThreadLocal<>();
+
+    /**
+     * Get products from last function call (called by AIChatService)
+     */
+    public static List<ProductSuggestionDto> getLastProducts() {
+        List<ProductSuggestionDto> products = LAST_PRODUCTS.get();
+        LAST_PRODUCTS.remove(); // Clean up
+        return products;
+    }
 
     // ============ Request/Response Records ============
 
@@ -74,10 +89,10 @@ public class AdvancedProductTools {
     // ============ Tool Functions ============
 
     /**
-     * Lấy sản phẩm trending (giả định là sản phẩm có discount cao)
-     * TODO: Tích hợp với order-service để lấy sản phẩm bán chạy thật
+     * Lấy danh sách sản phẩm trending (giảm giá cao)
      */
-    @Description("Get trending or best-selling products. Use when user asks about popular products, trending items, best sellers.")
+    @Bean
+    @Description("Get trending products with high discounts. Use when user asks about trending or hot products.")
     public Function<GetTrendingProductsRequest, GetTrendingProductsResponse> getTrendingProducts() {
         return request -> {
             log.info("=== Tool called: getTrendingProducts(limit={}) ===", request.limit());
@@ -103,6 +118,41 @@ public class AdvancedProductTools {
                             .collect(Collectors.toList());
                 }
 
+                // Store products in ThreadLocal for carousel
+                List<ProductSuggestionDto> productDtos = allProducts.getContent().stream()
+                        .filter(p -> p.getDiscountPercent() > 0)
+                        .sorted((p1, p2) -> Double.compare(p2.getDiscountPercent(), p1.getDiscountPercent()))
+                        .limit(limit)
+                        .map(p -> ProductSuggestionDto.builder()
+                                .id(p.getId())
+                                .name(p.getName())
+                                .description(p.getDescription())
+                                .price(p.getPrice())
+                                .originalPrice(p.getOriginalPrice())
+                                .discountPercent(p.getDiscountPercent())
+                                .status(ProductStatus.IN_STOCK.name())
+                                .imageUrl(p.getImageId())
+                                .build())
+                        .collect(Collectors.toList());
+
+                if (productDtos.isEmpty()) {
+                    productDtos = allProducts.getContent().stream()
+                            .limit(limit)
+                            .map(p -> ProductSuggestionDto.builder()
+                                    .id(p.getId())
+                                    .name(p.getName())
+                                    .description(p.getDescription())
+                                    .price(p.getPrice())
+                                    .originalPrice(p.getOriginalPrice())
+                                    .discountPercent(p.getDiscountPercent())
+                                    .status(ProductStatus.IN_STOCK.name())
+                                    .imageUrl(p.getImageId())
+                                    .build())
+                            .collect(Collectors.toList());
+                }
+
+                LAST_PRODUCTS.set(productDtos);
+
                 StringBuilder message = new StringBuilder();
                 message.append("📈 **Sản phẩm đang trending:**\n\n");
                 for (ProductInfo product : trendingProducts) {
@@ -123,6 +173,7 @@ public class AdvancedProductTools {
 
             } catch (Exception e) {
                 log.error("Error getting trending products: ", e);
+                LAST_PRODUCTS.remove();
                 return new GetTrendingProductsResponse(
                         List.of(),
                         "Không thể lấy danh sách sản phẩm trending.");
@@ -131,9 +182,10 @@ public class AdvancedProductTools {
     }
 
     /**
-     * Lấy sản phẩm mới nhất
+     * Lấy hàng mới về (sắp xếp theo ngày tạo)
      */
-    @Description("Get newest products recently added. Use when user asks about new arrivals, new products, latest items.")
+    @Bean
+    @Description("Get newly arrived products. Use when user asks about new products or recent additions.")
     public Function<GetNewArrivalsRequest, GetNewArrivalsResponse> getNewArrivals() {
         return request -> {
             log.info("=== Tool called: getNewArrivals(days={}, limit={}) ===", request.days(), request.limit());
@@ -153,6 +205,25 @@ public class AdvancedProductTools {
                         .limit(limit)
                         .map(this::toProductInfo)
                         .collect(Collectors.toList());
+
+                // Store products in ThreadLocal for carousel
+                List<ProductSuggestionDto> productDtos = allProducts.getContent().stream()
+                        .filter(p -> p.getCreatedTimestamp() != null && p.getCreatedTimestamp().isAfter(cutoffDate))
+                        .sorted((p1, p2) -> p2.getCreatedTimestamp().compareTo(p1.getCreatedTimestamp()))
+                        .limit(limit)
+                        .map(p -> ProductSuggestionDto.builder()
+                                .id(p.getId())
+                                .name(p.getName())
+                                .description(p.getDescription())
+                                .price(p.getPrice())
+                                .originalPrice(p.getOriginalPrice())
+                                .discountPercent(p.getDiscountPercent())
+                                .status(ProductStatus.IN_STOCK.name())
+                                .imageUrl(p.getImageId())
+                                .build())
+                        .collect(Collectors.toList());
+
+                LAST_PRODUCTS.set(productDtos);
 
                 StringBuilder message = new StringBuilder();
                 if (newProducts.isEmpty()) {
@@ -174,6 +245,7 @@ public class AdvancedProductTools {
 
             } catch (Exception e) {
                 log.error("Error getting new arrivals: ", e);
+                LAST_PRODUCTS.remove();
                 return new GetNewArrivalsResponse(
                         List.of(),
                         "Không thể lấy danh sách sản phẩm mới.");
@@ -182,9 +254,10 @@ public class AdvancedProductTools {
     }
 
     /**
-     * Lấy sản phẩm theo category
+     * Lấy sản phẩm theo danh mục
      */
-    @Description("Get products by category name. Use when user asks about products in a specific category.")
+    @Bean
+    @Description("Get products by category. Use when user wants to browse a specific category.")
     public Function<GetProductsByCategoryRequest, GetProductsByCategoryResponse> getProductsByCategory() {
         return request -> {
             log.info("=== Tool called: getProductsByCategory(category={}, limit={}) ===",
@@ -222,6 +295,24 @@ public class AdvancedProductTools {
                         .map(this::toProductInfo)
                         .collect(Collectors.toList());
 
+                // Store products in ThreadLocal for carousel
+                List<ProductSuggestionDto> productDtos = allProducts.getContent().stream()
+                        .filter(p -> p.getCategory() != null && p.getCategory().getId().equals(matchedCategory.getId()))
+                        .limit(limit)
+                        .map(p -> ProductSuggestionDto.builder()
+                                .id(p.getId())
+                                .name(p.getName())
+                                .description(p.getDescription())
+                                .price(p.getPrice())
+                                .originalPrice(p.getOriginalPrice())
+                                .discountPercent(p.getDiscountPercent())
+                                .status(ProductStatus.IN_STOCK.name())
+                                .imageUrl(p.getImageId())
+                                .build())
+                        .collect(Collectors.toList());
+
+                LAST_PRODUCTS.set(productDtos);
+
                 StringBuilder message = new StringBuilder();
                 message.append("🏷️ **Sản phẩm trong '").append(matchedCategory.getName()).append("':**\n\n");
                 if (categoryProducts.isEmpty()) {
@@ -241,6 +332,7 @@ public class AdvancedProductTools {
 
             } catch (Exception e) {
                 log.error("Error getting products by category: ", e);
+                LAST_PRODUCTS.remove();
                 return new GetProductsByCategoryResponse(
                         List.of(),
                         request.categoryName(),
@@ -250,9 +342,10 @@ public class AdvancedProductTools {
     }
 
     /**
-     * Lấy danh sách tất cả categories với thông tin chi tiết
+     * Lấy danh sách tất cả categories
      */
-    @Description("Get all product categories with details. Use when user asks about available categories, product types.")
+    @Bean
+    @Description("Get all available product categories. Use when user asks what categories exist.")
     public Function<GetCategoriesRequest, GetCategoriesResponse> getCategories() {
         return request -> {
             log.info("=== Tool called: getCategories() ===");

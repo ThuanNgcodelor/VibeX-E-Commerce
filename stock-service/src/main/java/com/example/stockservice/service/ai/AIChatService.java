@@ -108,13 +108,22 @@ public class AIChatService {
             - "chi tiêu tuần này" → getSpendingStats(userId="{user_id}", period="week")
             - "tổng đã chi" → getSpendingStats(userId="{user_id}", period="all")
 
-            QUAN TRỌNG: Message từ tool đã được format sẵn, bạn CHỈ CẦN COPY và hiển thị.
-            KHÔNG ĐƯỢC thêm, bớt, hoặc thay đổi dữ liệu từ tool.
+            QUAN TRỌNG: Message từ tool có thể bằng tiếng Việt, nhưng bạn PHẢI dịch/format lại theo ngôn ngữ user.
 
-            QUY TẮC NGÔN NGỮ:
-            - Tiếng Việt → trả lời tiếng Việt
-            - English → reply in English
+            QUY TẮC NGÔN NGỮ (CRITICAL - LUÔN ĐỌC KỸ):
+            - LUÔN LUÔN phát hiện ngôn ngữ của câu hỏi user (Vietnamese hoặc English)
+            - LUÔN LUÔN trả lời CÙNG NGÔN NGỮ với user
+            - Nếu user hỏi bằng tiếng Việt → trả lời tiếng Việt
+            - Nếu user hỏi bằng English → reply in English
+            - Tool responses có thể trả vềtiếng Việt, nhưng BẠN PHẢI DỊCH sang ngôn ngữ của user
             - KHÔNG dùng tiếng Trung, Nhật, Hàn
+
+            EXAMPLES:
+            User: "What products are on sale?" (English)
+            → You MUST respond in English, even if tool returns Vietnamese
+
+            User: "Sản phẩm nào đang giảm giá?" (Vietnamese)
+            → You MUST respond in Vietnamese
 
             {conversation_history}
             """;
@@ -157,11 +166,13 @@ public class AIChatService {
                         "getTrendingProducts",
                         "getNewArrivals",
                         "getProductsByCategory",
-                        "getCategories",
-                        // Live Session tools (NEW)
-                        "getActiveLiveSessions",
-                        "searchLiveByKeyword",
-                        "getLiveDetails")
+                        "getCategories"
+                // Live Session tools (NEW) - TEMPORARILY DISABLED until notification-service
+                // endpoint is fixed
+                // "getActiveLiveSessions",
+                // "searchLiveByKeyword",
+                // "getLiveDetails"
+                )
                 .build();
     }
 
@@ -191,17 +202,26 @@ public class AIChatService {
     }
 
     private String getLiveSessionContext() {
-        try {
-            var response = liveSessionTools.getActiveLiveSessions()
-                    .apply(new LiveSessionTools.GetActiveLiveSessionsRequest(5));
-            if (response.total() > 0) {
-                return String.format("%d phiên live đang hoạt động", response.total());
-            }
-            return "Không có phiên live";
-        } catch (Exception e) {
-            log.warn("Could not fetch live session context", e);
-            return "N/A";
-        }
+        // TEMPORARILY DISABLED - notification-service endpoint not ready
+        return "Live Session feature đang được phát triển";
+
+        /*
+         * TODO: Re-enable when notification-service has proper endpoint
+         * try {
+         * var result = liveSessionTools.getActiveLiveSessions().apply(
+         * new LiveSessionTools.GetActiveLiveSessionsRequest(5));
+         * 
+         * if (result.total() > 0) {
+         * return result.total() + " phiên live đang hoạt động";
+         * }
+         * return "Không có phiên live nào";
+         * } catch (Exception e) {
+         * log.
+         * warn("Failed to fetch live session context (notification-service may be down): {}"
+         * , e.getMessage());
+         * return "Không có thông tin live"; // Fallback - không crash
+         * }
+         */
     }
 
     // Product IN Stock
@@ -305,12 +325,19 @@ public class AIChatService {
 
             log.info("AI Response: {}", aiResponse);
 
-            // 9. Check if contextual products were suggested (stored in ThreadLocal by
-            // tool)
-            List<ProductSuggestionDto> productSuggestions = ContextualSuggestTool.getLastProducts();
+            // 9. Check if products were stored by ANY tool (in ThreadLocal)
+            List<ProductSuggestionDto> productSuggestions = null;
+
+            // Check ContextualSuggestTool first
+            productSuggestions = ContextualSuggestTool.getLastProducts();
+
+            // If not found, check AdvancedProductTools
+            if (productSuggestions == null || productSuggestions.isEmpty()) {
+                productSuggestions = AdvancedProductTools.getLastProducts();
+            }
 
             if (productSuggestions != null && !productSuggestions.isEmpty()) {
-                log.info("Retrieved {} product suggestions from ThreadLocal", productSuggestions.size());
+                log.info("Retrieved {} product suggestions from tools", productSuggestions.size());
                 return AIChatResponse.builder()
                         .message(aiResponse)
                         .conversationId(conversationId)

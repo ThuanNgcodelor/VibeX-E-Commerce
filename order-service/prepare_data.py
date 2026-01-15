@@ -78,7 +78,7 @@ def main():
                 
                 # Fallback to Direct Auth Service (8001)
                 if resp.status_code == 404:
-                     resp = requests.post("http://localhost:8001/v1/auth/login", json={"email": email, "password": pwd}, timeout=5)
+                     resp = requests.post("http://localhost:8080/v1/auth/login", json={"email": email, "password": pwd}, timeout=5)
 
                 if resp.status_code == 200:
                     data = resp.json()
@@ -104,7 +104,7 @@ def main():
             
             # Fallback Direct User Service (8002)
             if resp_addr.status_code == 404:
-                resp_addr = requests.get("http://localhost:8002/v1/user/address/getAllAddresses", headers=headers, timeout=5)
+                resp_addr = requests.get("http://localhost:8080/v1/user/address/getAllAddresses", headers=headers, timeout=5)
 
             addressId = None
             if resp_addr.status_code == 200 and resp_addr.json():
@@ -129,7 +129,7 @@ def main():
             try:
                 requests.post(f"{STOCK_URL}/item/add", json=cart_payload, headers=headers, timeout=5)
             except: 
-                requests.post("http://localhost:8004/v1/stock/cart/item/add", json=cart_payload, headers=headers, timeout=5)
+                requests.post("http://localhost:8080/v1/stock/cart/item/add", json=cart_payload, headers=headers, timeout=5)
 
             users_data.append({
                 "userId": userId,
