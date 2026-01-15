@@ -1209,6 +1209,11 @@ public class OrderServiceImpl implements OrderService {
     public void orderByKafka(FrontendOrderRequest orderRequest, String userId) {
         if (orderRequest.getSelectedItems() == null || orderRequest.getSelectedItems().isEmpty())
             throw new RuntimeException("Selected items cannot be empty");
+
+        // Validate Shop Status
+        validateShopsActive(orderRequest.getSelectedItems().stream()
+                .map(SelectedItemDto::getProductId)
+                .collect(Collectors.toList()));
         if (orderRequest.getAddressId() == null || orderRequest.getAddressId().isBlank())
             throw new RuntimeException("Address ID is required");
 
@@ -1409,6 +1414,12 @@ public class OrderServiceImpl implements OrderService {
             throw new RuntimeException("Missing required fields: userId, addressId, selectedItems");
         }
 
+        // Validate Shop Status
+        List<String> productIds = selectedItemsRaw.stream()
+                .map(item -> (String) item.get("productId"))
+                .collect(Collectors.toList());
+        validateShopsActive(productIds);
+
         // 2. Parse shippingFee (handle multiple types)
         BigDecimal shippingFee = null;
         if (orderData.containsKey("shippingFee")) {
@@ -1462,6 +1473,11 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional
     public Order createOrderFromWallet(FrontendOrderRequest request, String userId) {
+        // Validate Shop Status
+        validateShopsActive(request.getSelectedItems().stream()
+                .map(SelectedItemDto::getProductId)
+                .collect(Collectors.toList()));
+
         // ========== PHASE 1: PREPARE SELECTED ITEMS ==========
         // Extract per-shop shipping fees map from request
         Map<String, BigDecimal> shopShippingFeesMap = request.getShopShippingFees() != null
@@ -2983,5 +2999,38 @@ public class OrderServiceImpl implements OrderService {
 
         kafkaTemplateSend.send(notificationTopic.name(), order.getUserId(), notification);
         log.info("[COMPENSATION-NOTIFY] Sent cancellation notification to user {}", order.getUserId());
+    }
+
+    private void validateShopsActive(List<String> productIds) {
+        if (productIds == null || productIds.isEmpty())
+            return;
+
+        Set<String> checkedShopOwnerIds = new HashSet<>();
+
+        for (String productId : productIds) {
+            try {
+                ResponseEntity<com.example.orderservice.dto.ProductDto> productResponse = stockServiceClient
+                        .getProductById(productId);
+                if (productResponse != null && productResponse.getBody() != null) {
+                    String shopOwnerId = productResponse.getBody().getUserId();
+                    if (shopOwnerId != null && !checkedShopOwnerIds.contains(shopOwnerId)) {
+                        ResponseEntity<com.example.orderservice.dto.ShopOwnerDto> shopResponse = userServiceClient
+                                .getShopOwnerByUserId(shopOwnerId);
+                        if (shopResponse != null && shopResponse.getBody() != null) {
+                            if ("INACTIVE".equalsIgnoreCase(shopResponse.getBody().getActive())) {
+                                throw new RuntimeException(
+                                        "SHOP_LOCKED: One of the shops in your order is currently locked. Order cannot be processed.");
+                            }
+                        }
+                        checkedShopOwnerIds.add(shopOwnerId);
+                    }
+                }
+            } catch (Exception e) {
+                if (e.getMessage().contains("SHOP_LOCKED")) {
+                    throw e;
+                }
+                log.warn("Failed to check shop status for product {}: {}", productId, e.getMessage());
+            }
+        }
     }
 }

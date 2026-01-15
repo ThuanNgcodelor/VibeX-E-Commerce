@@ -1,8 +1,40 @@
 import React, { useState } from 'react';
 import '../../../assets/admin/css/ShopOwnerList.css';
+import Swal from 'sweetalert2';
 
-export default function ShopOwnerList({ shops, selectedShopId, onSelectShop }) {
+export default function ShopOwnerList({ shops, selectedShopId, onSelectShop, onToggleStatus }) {
     const [searchTerm, setSearchTerm] = useState('');
+    // ... (rest of state)
+
+    const handleLockClick = (e, shop) => {
+        e.stopPropagation(); // Stop card selection
+
+        const isLocked = shop.status === 'LOCKED';
+        const action = isLocked ? 'Unlock' : 'Lock';
+
+        Swal.fire({
+            title: `Are you sure you want to ${action.toLowerCase()} this shop?`,
+            text: isLocked ? "The shop will be active again." : "The shop will be disabled and cannot sell products.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: isLocked ? '#28a745' : '#d33',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: `Yes, ${action} it!`
+        }).then((result) => {
+            if (result.isConfirmed) {
+                onToggleStatus(shop.id);
+                // Optional: Let parent handle success message to avoid duplicate or handled via optimistic update
+                Swal.fire({
+                    title: `${action}ed!`,
+                    text: `The shop has been ${action.toLowerCase()}ed.`,
+                    icon: 'success',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+            }
+        });
+    };
+
     const [filterVerified, setFilterVerified] = useState('all');
     const [sortBy, setSortBy] = useState('name');
 
@@ -121,7 +153,12 @@ export default function ShopOwnerList({ shops, selectedShopId, onSelectShop }) {
                                 <div className="shop-info">
                                     <h4 className="shop-name">
                                         {shop.shopName}
-                                        {shop.verified && (
+                                        {shop.status === 'LOCKED' && (
+                                            <span className="badge bg-danger ms-1" title="Locked" style={{ fontSize: '0.6em' }}>
+                                                <i className="fas fa-lock"></i>
+                                            </span>
+                                        )}
+                                        {shop.verified && shop.status !== 'LOCKED' && (
                                             <span className="verified-badge" title="Verified">
                                                 <i className="fas fa-check-circle"></i>
                                             </span>
@@ -151,11 +188,23 @@ export default function ShopOwnerList({ shops, selectedShopId, onSelectShop }) {
                                 </div>
                             </div>
 
-                            <div className="shop-footer">
+                            <div className="shop-footer d-flex justify-content-between align-items-center">
                                 <span className="join-date">
                                     <i className="fas fa-calendar-alt"></i>
                                     Joined: {formatDate(shop.createdAt)}
                                 </span>
+                                {onToggleStatus && (
+                                    <button
+                                        type="button"
+                                        className={`btn btn-sm ${shop.status === 'LOCKED' ? 'btn-danger' : 'btn-outline-secondary'}`}
+                                        // onClick={(e) => handleLockClick(e, shop)}
+                                        title={shop.status === 'LOCKED' ? 'Unlock Shop' : 'Lock Shop'}
+                                        style={{ zIndex: 10, position: 'relative' }}
+                                    >
+                                        <i className={`fas ${shop.status === 'LOCKED' ? 'fa-lock' : 'fa-lock-open'}`}></i>
+                                        {shop.status === 'LOCKED' ? ' Locked' : ' Lock'}
+                                    </button>
+                                )}
                             </div>
                         </div>
                     ))

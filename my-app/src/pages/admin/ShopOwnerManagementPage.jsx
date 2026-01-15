@@ -38,6 +38,29 @@ export default function ShopOwnerManagementPage() {
         setSelectedShopId(shopId);
     };
 
+    const handleToggleStatus = async (shopId) => {
+        try {
+            // Optimistic update
+            setShops(prevShops => prevShops.map(shop => {
+                if (shop.id === shopId) {
+                    const newStatus = shop.status === 'LOCKED'
+                        ? (shop.verified ? 'ACTIVE' : 'PENDING') // Fallback logic
+                        : 'LOCKED';
+                    return { ...shop, status: newStatus };
+                }
+                return shop;
+            }));
+
+            await shopOwnerAdminApi.toggleShopStatus(shopId);
+            // Re-fetch to confirm or just rely on optimistic
+            fetchShops();
+        } catch (err) {
+            console.error("Failed to toggle shop status:", err);
+            // Revert on error
+            fetchShops();
+        }
+    };
+
     const selectedShop = shops.find(shop => shop.id === selectedShopId);
 
     if (loading) return <div className="p-5 text-center">Loading shop data...</div>;
@@ -61,13 +84,17 @@ export default function ShopOwnerManagementPage() {
                             shops={shops}
                             selectedShopId={selectedShopId}
                             onSelectShop={handleSelectShop}
+                            onToggleStatus={handleToggleStatus}
                         />
                     </div>
 
                     {/* Right Panel - Statistics Dashboard */}
                     <div className="col-lg-7">
                         {selectedShopId && selectedShop ? (
-                            <ShopStatsDashboard shop={selectedShop} />
+                            <ShopStatsDashboard
+                                shop={selectedShop}
+                                onToggleStatus={handleToggleStatus}
+                            />
                         ) : (
                             <OverviewDashboard shops={shops} />
                         )}

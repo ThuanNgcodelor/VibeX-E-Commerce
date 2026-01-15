@@ -162,7 +162,6 @@ public class ShopOwnerServiceImpl implements ShopOwnerService {
                     if (stats.containsKey("totalRevenue")) {
                         revenue = ((Number) stats.get("totalRevenue")).doubleValue();
                     }
-                    // Actually, let's look at OrderServiceImpl again.
                 }
             } catch (Exception e) {
                 // Ignore
@@ -217,11 +216,26 @@ public class ShopOwnerServiceImpl implements ShopOwnerService {
                     .totalOrders(orderCount) // Completed orders
                     .totalRevenue(revenue)
                     .totalRatings(totalRatings)
-                    .status(shopOwner.getVerified() ? "ACTIVE" : "PENDING")
+                    .status(shopOwner.getActive() == com.example.userservice.enums.Active.INACTIVE ? "LOCKED"
+                            : (shopOwner.getVerified() ? "ACTIVE" : "PENDING"))
                     .revenueTrend(revenueTrend)
                     .productCategoryStats(productCategoryStats)
                     .orderStatusDistribution(orderStatusDistribution)
                     .build();
         }).collect(java.util.stream.Collectors.toList());
+    }
+
+    @Override
+    public ShopOwner toggleShopStatus(String userId) {
+        ShopOwner shopOwner = shopOwnerRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("Shop owner not found with userId: " + userId));
+
+        if (shopOwner.getActive() == com.example.userservice.enums.Active.ACTIVE) {
+            shopOwner.setActive(com.example.userservice.enums.Active.INACTIVE);
+        } else {
+            shopOwner.setActive(com.example.userservice.enums.Active.ACTIVE);
+        }
+
+        return shopOwnerRepository.save(shopOwner);
     }
 }

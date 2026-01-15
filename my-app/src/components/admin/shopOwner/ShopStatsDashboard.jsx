@@ -1,9 +1,37 @@
 import React from 'react';
 import '../../../assets/admin/css/ShopStatsDashboard.css';
+import Swal from 'sweetalert2';
 
-export default function ShopStatsDashboard({ shop }) {
+export default function ShopStatsDashboard({ shop, onToggleStatus }) {
     // Mock data cho biểu đồ - sẽ thay bằng API call sau
     // Parse Data from Shop Prop
+
+    const handleLockToggle = () => {
+        const isLocked = shop.status === 'LOCKED';
+        const action = isLocked ? 'Unlock' : 'Lock';
+
+        Swal.fire({
+            title: `Are you sure you want to ${action.toLowerCase()} this shop?`,
+            text: isLocked ? "The shop will be active again." : "The shop will be disabled and cannot sell products.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: isLocked ? '#28a745' : '#d33', // Green for unlock, Red for lock
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: `Yes, ${action} it!`
+        }).then((result) => {
+            if (result.isConfirmed) {
+                if (onToggleStatus) {
+                    onToggleStatus(shop.id);
+                    Swal.fire(
+                        `${action}ed!`,
+                        `The shop has been ${action.toLowerCase()}ed.`,
+                        'success'
+                    );
+                }
+            }
+        });
+    };
+
     // Revenue Trend
     const revenueTrend = shop.revenueTrend || [];
     const revenueData = revenueTrend.length > 0
@@ -73,22 +101,38 @@ export default function ShopStatsDashboard({ shop }) {
 
     return (
         <div className="shop-stats-dashboard">
-            <div className="dashboard-header">
-                <h3 className="dashboard-title">
-                    <i className="fas fa-chart-line me-2"></i>
-                    Statistics: {shop.shopName}
-                </h3>
-                <span className="verified-badge-large">
-                    {shop.verified ? (
-                        <>
-                            <i className="fas fa-check-circle text-success"></i> Verified
-                        </>
-                    ) : (
-                        <>
-                            <i className="fas fa-clock text-warning"></i> Unverified
-                        </>
-                    )}
-                </span>
+            <div className="dashboard-header d-flex justify-content-between align-items-center">
+                <div className="d-flex align-items-center gap-3">
+                    <h3 className="dashboard-title mb-0">
+                        <i className="fas fa-chart-line me-2"></i>
+                        Statistics: {shop.shopName}
+                    </h3>
+                    <span className="verified-badge-large">
+                        {shop.status === 'LOCKED' ? (
+                            <>
+                                <i className="fas fa-lock text-danger"></i> Locked
+                            </>
+                        ) : (
+                            shop.verified ? (
+                                <>
+                                    <i className="fas fa-check-circle text-success"></i> Verified
+                                </>
+                            ) : (
+                                <>
+                                    <i className="fas fa-clock text-warning"></i> Unverified
+                                </>
+                            )
+                        )}
+                    </span>
+                </div>
+
+                <button
+                    className={`btn ${shop.status === 'LOCKED' ? 'btn-success' : 'btn-danger'} d-flex align-items-center gap-2`}
+                    onClick={handleLockToggle}
+                >
+                    <i className={`fas ${shop.status === 'LOCKED' ? 'fa-lock-open' : 'fa-lock'}`}></i>
+                    {shop.status === 'LOCKED' ? 'Unlock Shop' : 'Lock Shop'}
+                </button>
             </div>
 
             {/* Summary Cards */}

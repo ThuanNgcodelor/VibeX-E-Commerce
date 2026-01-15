@@ -30,6 +30,7 @@ import com.example.stockservice.repository.SizeRepository;
 @Service
 @RequiredArgsConstructor
 public class ProductServiceImpl implements ProductService {
+    private final com.example.stockservice.client.UserServiceClient userServiceClient;
     private final com.example.stockservice.repository.CartItemRepository cartItemRepository;
 
     @Override
@@ -217,6 +218,9 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public Product createProduct(ProductCreateRequest request, MultipartFile[] files) {
+        // Check if shop is active
+        checkShopStatus(request.getUserId());
+
         String imageId = request.getImageId();
         List<String> imageIds = new ArrayList<>();
 
@@ -291,6 +295,10 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public Product updateProduct(ProductUpdateRequest request, MultipartFile[] files) {
         Product toUpdate = findProductById(request.getId());
+
+        // Check if shop is active
+        checkShopStatus(toUpdate.getUserId());
+
         if (request.getName() != null) {
             toUpdate.setName(request.getName());
         }
@@ -626,5 +634,26 @@ public class ProductServiceImpl implements ProductService {
         }
 
         return results;
+    }
+
+    private void checkShopStatus(String userId) {
+        try {
+            org.springframework.http.ResponseEntity<com.example.stockservice.dto.ShopOwnerDto> response = userServiceClient
+                    .getShopOwnerByUserId(userId);
+            if (response != null && response.getBody() != null) {
+                com.example.stockservice.dto.ShopOwnerDto shop = response.getBody();
+                if ("INACTIVE".equalsIgnoreCase(shop.getActive())) {
+                    throw new RuntimeException(
+                            "SHOP_LOCKED: Your shop is currently locked. You cannot perform this action.");
+                }
+            }
+        } catch (Exception e) {
+            if (e.getMessage().contains("SHOP_LOCKED")) {
+                throw e;
+            }
+            // Log error but allow operation to proceed if service is down, EXCEPT if
+            // explicitly locked
+            System.err.println("Failed to verify shop status: " + e.getMessage());
+        }
     }
 }
