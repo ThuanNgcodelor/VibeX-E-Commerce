@@ -5,6 +5,7 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
@@ -13,7 +14,7 @@ import java.util.List;
  * Feign Client to communicate with notification-service
  * For querying live streaming sessions
  */
-@FeignClient(name = "notification-service", url = "${notification.service.url:http://localhost:8085}")
+@FeignClient(name = "notification-service", url = "${notification.service.url:http://localhost:8009}")
 public interface NotificationServiceClient {
 
     /**
@@ -29,4 +30,7 @@ public interface NotificationServiceClient {
      */
     @GetMapping("/api/live/{roomId}")
     ResponseEntity<LiveRoomDto> getLiveRoom(@PathVariable String roomId);
+
+    @PostMapping("/v1/notifications/broadcast/shops")
+    void broadcastToShops(@RequestParam("message") String message, @RequestParam("title") String title);
 }

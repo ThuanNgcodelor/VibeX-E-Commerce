@@ -14,6 +14,16 @@ const shopOwnerAdminApi = {
             console.error("Error fetching shop owner stats:", error);
             throw error;
         }
+    },
+
+    toggleShopStatus: async (userId) => {
+        try {
+            const response = await api.put(`/shop-owners/${userId}/status`);
+            return response.data;
+        } catch (error) {
+            console.error("Error toggling shop status:", error);
+            throw error;
+        }
     }
 };
 

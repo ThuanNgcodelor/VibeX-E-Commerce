@@ -58,4 +58,10 @@ public class ShopOwnerController {
     public ResponseEntity<java.util.List<com.example.userservice.dto.ShopOwnerStatsDto>> getAllShopOwnersAdmin() {
         return ResponseEntity.ok(shopOwnerService.getAllShopOwnersWithStats());
     }
+
+    @PutMapping("/{userId}/status")
+    public ResponseEntity<ShopOwnerDto> toggleShopStatus(@PathVariable String userId) {
+        ShopOwner updated = shopOwnerService.toggleShopStatus(userId);
+        return ResponseEntity.ok(modelMapper.map(updated, ShopOwnerDto.class));
+    }
 }

@@ -1,6 +1,6 @@
 package com.example.stockservice.service.flashsale;
 
-import com.example.stockservice.client.NotificationClient;
+import com.example.stockservice.client.NotificationServiceClient;
 import com.example.stockservice.client.ShopOwnerClient;
 import com.example.stockservice.dto.ShopOwnerDto;
 import com.example.stockservice.enums.FlashSaleStatus;
@@ -44,7 +44,7 @@ public class FlashSaleService {
 
     private final ProductRepository productRepository;
     private final SizeRepository sizeRepository;
-    private final NotificationClient notificationClient;
+    private final NotificationServiceClient notificationServiceClient;
     private final ShopOwnerClient shopOwnerClient;
     private final KafkaTemplate<String, ProductUpdateKafkaEvent> kafkaTemplate;
     private final StringRedisTemplate stringRedisTemplate;
@@ -104,7 +104,7 @@ public class FlashSaleService {
         sessionRepository.save(session);
 
         try {
-            notificationClient.broadcastToShops(
+            notificationServiceClient.broadcastToShops(
                     "Đăng ký ngay cho chương trình: " + session.getName(),
                     "Mở đăng ký Flash Sale");
         } catch (Exception e) {
@@ -332,7 +332,7 @@ public class FlashSaleService {
             warmUpSession(saved.getId());
 
             try {
-                notificationClient.broadcastToShops(
+                notificationServiceClient.broadcastToShops(
                         "Đăng ký ngay cho chương trình: " + saved.getName(),
                         "Mở đăng ký Flash Sale");
             } catch (Exception e) {

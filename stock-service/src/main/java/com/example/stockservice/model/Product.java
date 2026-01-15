@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.util.List;
+
 @Entity(name = "products")
 @Builder
 @AllArgsConstructor
@@ -22,7 +23,7 @@ public class Product extends BaseEntity {
     private double discountPercent = 0;
     @Enumerated(EnumType.STRING)
     private ProductStatus status;
-    private String imageId; // Main image 
+    private String imageId; // Main image
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "product_images", joinColumns = @JoinColumn(name = "product_id"))

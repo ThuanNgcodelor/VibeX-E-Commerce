@@ -10,4 +10,6 @@ public interface ShopOwnerService {
     ShopOwner getShopOwnerByUserId(String userId);
 
     java.util.List<com.example.userservice.dto.ShopOwnerStatsDto> getAllShopOwnersWithStats();
+
+    ShopOwner toggleShopStatus(String userId);
 }

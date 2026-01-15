@@ -10,4 +10,5 @@ public class ShopOwnerDto {
     private String shopName;
     private String ownerName;
     private String imageUrl;
+    private String active;
 }
