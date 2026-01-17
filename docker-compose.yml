@@ -13,10 +13,10 @@ services:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-    networks: [shopee-network]
+    networks: [ shopee-network ]
 
   zookeeper:
-    image: confluentinc/cp-zookeeper:7.6.1   # ZK ổn định
+    image: confluentinc/cp-zookeeper:7.6.1 # ZK ổn định
     container_name: zookeeper
     restart: unless-stopped
     environment:
@@ -24,13 +24,13 @@ services:
       ZOOKEEPER_TICK_TIME: "2000"
     ports:
       - "2181:2181"
-    networks: [shopee-network]
+    networks: [ shopee-network ]
 
   kafka:
-    image: confluentinc/cp-kafka:7.6.1       # Kafka ổn định
+    image: confluentinc/cp-kafka:7.6.1 # Kafka ổn định
     container_name: kafka
     restart: unless-stopped
-    depends_on: [zookeeper]
+    depends_on: [ zookeeper ]
     environment:
       KAFKA_BROKER_ID: "1"
       KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
@@ -48,15 +48,15 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "1"
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: "0"
     ports:
-      - "9092:9092"   # internal (các container + kafka-ui)
-      - "9094:9094"   # external (client ngoài VPS)
-    networks: [shopee-network]
+      - "9092:9092" # internal (các container + kafka-ui)
+      - "9094:9094" # external (client ngoài VPS)
+    networks: [ shopee-network ]
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     container_name: kafka-ui
     restart: unless-stopped
-    depends_on: [kafka]
+    depends_on: [ kafka ]
     environment:
       KAFKA_CLUSTERS_0_NAME: local
       # Kafka UI dùng listener PLAINTEXT trong network Docker
@@ -64,7 +64,7 @@ services:
       KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
     ports:
       - "9090:8080"
-    networks: [shopee-network]
+    networks: [ shopee-network ]
 
   # ============================================
   # NGINX-RTMP: Media Server cho Livestream
@@ -75,11 +75,11 @@ services:
     container_name: nginx-rtmp
     restart: unless-stopped
     ports:
-      - "1935:1935"    # RTMP ingest từ OBS
-      - "8088:8080"    # HLS playback (8088 để tránh conflict với gateway 8080)
+      - "1935:1935" # RTMP ingest từ OBS
+      - "8088:8080" # HLS playback (8088 để tránh conflict với gateway 8080)
     volumes:
       - ./config/nginx-rtmp/nginx.conf:/etc/nginx/nginx.conf:ro
-    networks: [shopee-network]
+    networks: [ shopee-network ]
     # Hướng dẫn sử dụng:
     # 1. OBS Stream Settings:
     #    - Server: rtmp://localhost:1935/live
@@ -94,13 +94,14 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
-    networks: [shopee-network]
+    networks: [ shopee-network ]
 
 volumes:
   zookeeper_data:
   kafka_data:
   mysql_data:
   redis_data:
+
 
 networks:
   shopee-network:

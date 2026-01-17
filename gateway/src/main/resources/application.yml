@@ -39,7 +39,7 @@ spring:
             allowCredentials: true
 
   # ============================================
-  # ✅ TỐI ƯU: Tomcat Thread Pool (Gateway - High Traffic)
+  #  TỐI ƯU: Tomcat Thread Pool
   # ============================================
   # Maximum số threads xử lý HTTP requests đồng thời
   # 500 threads cho phép xử lý 500 requests cùng lúc (Gateway là entry point, cần nhiều threads)
@@ -57,7 +57,6 @@ spring:
         min-response-size: 1024        # Minimum size để nén (bytes) - Chỉ nén response >= 1KB
 
       # ============================================
-      # ✅ TỐI ƯU: Spring Boot Actuator (Monitoring)
       # ============================================
       # Expose các endpoints của Actuator để monitor Gateway
       # health: Kiểm tra Gateway còn sống không

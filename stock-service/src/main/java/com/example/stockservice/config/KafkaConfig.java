@@ -25,7 +25,7 @@ import java.util.Map;
 public class KafkaConfig {
     @Value("${kafka.topic.product-updates}")
     private String productUpdatesTopic;
-    
+
     @Value("${kafka.topic.analytics:analytics-topic}")
     private String analyticsTopic;
 
@@ -44,15 +44,15 @@ public class KafkaConfig {
     @Bean
     public NewTopic productUpdatesTopic() {
         return TopicBuilder.name(productUpdatesTopic)
-                .partitions(3)
+                .partitions(10)
                 .replicas(1)
                 .build();
     }
-    
+
     @Bean
     public NewTopic analyticsTopic() {
         return TopicBuilder.name(analyticsTopic)
-                .partitions(10)  // High throughput for analytics
+                .partitions(10) // High throughput for analytics
                 .replicas(1)
                 .build();
     }
@@ -71,8 +71,9 @@ public class KafkaConfig {
     public KafkaTemplate<String, ProductUpdateKafkaEvent> productKafkaTemplate() {
         return new KafkaTemplate<>(productProducerFactory());
     }
-    
-    // Generic producer for analytics events (Object type) - This is the default KafkaTemplate
+
+    // Generic producer for analytics events (Object type) - This is the default
+    // KafkaTemplate
     @Bean
     public ProducerFactory<String, Object> genericProducerFactory() {
         Map<String, Object> configProps = new HashMap<>();
@@ -81,7 +82,7 @@ public class KafkaConfig {
         configProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
         return new DefaultKafkaProducerFactory<>(configProps);
     }
-    
+
     @Bean
     public KafkaTemplate<String, Object> kafkaTemplate() {
         return new KafkaTemplate<>(genericProducerFactory());
@@ -102,13 +103,12 @@ public class KafkaConfig {
 
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, ProductUpdateKafkaEvent> kafkaListenerContainerFactory() {
-        ConcurrentKafkaListenerContainerFactory<String, ProductUpdateKafkaEvent> factory =
-                new ConcurrentKafkaListenerContainerFactory<>();
+        ConcurrentKafkaListenerContainerFactory<String, ProductUpdateKafkaEvent> factory = new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory());
         factory.setConcurrency(10);
         return factory;
     }
-    
+
     // Analytics Consumer Factory for BehaviorEventDto
     @Bean
     public ConsumerFactory<String, BehaviorEventDto> analyticsConsumerFactory() {
@@ -121,13 +121,12 @@ public class KafkaConfig {
         props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, BehaviorEventDto.class);
         return new DefaultKafkaConsumerFactory<>(props);
     }
-    
+
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, BehaviorEventDto> analyticsKafkaListenerContainerFactory() {
-        ConcurrentKafkaListenerContainerFactory<String, BehaviorEventDto> factory =
-                new ConcurrentKafkaListenerContainerFactory<>();
+        ConcurrentKafkaListenerContainerFactory<String, BehaviorEventDto> factory = new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(analyticsConsumerFactory());
-        factory.setConcurrency(10);  // 10 concurrent consumers for high throughput
+        factory.setConcurrency(10); // 10 concurrent consumers for high throughput
         return factory;
     }
 
@@ -152,10 +151,8 @@ public class KafkaConfig {
     }
 
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, com.example.stockservice.event.StockDecreaseEvent> 
-        stockDecreaseListenerFactory() {
-        ConcurrentKafkaListenerContainerFactory<String, StockDecreaseEvent> factory =
-                new ConcurrentKafkaListenerContainerFactory<>();
+    public ConcurrentKafkaListenerContainerFactory<String, com.example.stockservice.event.StockDecreaseEvent> stockDecreaseListenerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, StockDecreaseEvent> factory = new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(stockDecreaseConsumerFactory());
         factory.setConcurrency(10);
         factory.setBatchListener(true); // Batch processing

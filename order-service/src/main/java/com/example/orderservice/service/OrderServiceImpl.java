@@ -3009,12 +3009,12 @@ public class OrderServiceImpl implements OrderService {
 
         for (String productId : productIds) {
             try {
-                ResponseEntity<com.example.orderservice.dto.ProductDto> productResponse = stockServiceClient
+                ResponseEntity<ProductDto> productResponse = stockServiceClient
                         .getProductById(productId);
                 if (productResponse != null && productResponse.getBody() != null) {
                     String shopOwnerId = productResponse.getBody().getUserId();
                     if (shopOwnerId != null && !checkedShopOwnerIds.contains(shopOwnerId)) {
-                        ResponseEntity<com.example.orderservice.dto.ShopOwnerDto> shopResponse = userServiceClient
+                        ResponseEntity<ShopOwnerDto> shopResponse = userServiceClient
                                 .getShopOwnerByUserId(shopOwnerId);
                         if (shopResponse != null && shopResponse.getBody() != null) {
                             if ("INACTIVE".equalsIgnoreCase(shopResponse.getBody().getActive())) {

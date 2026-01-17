@@ -94,8 +94,7 @@ public class StockReservationService {
      * @param quantity  Số lượng cần reserve
      * @return ReservationResult với status và message
      */
-    public ReservationResult reserveStock(String orderId, String productId,
-            String sizeId, int quantity) {
+    public ReservationResult reserveStock(String orderId, String productId, String sizeId, int quantity) {
         String stockKey = buildStockKey(productId, sizeId);
         String reserveKey = buildReserveKey(orderId, productId, sizeId);
 

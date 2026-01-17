@@ -416,11 +416,11 @@ public class FlashSaleService {
             handleCacheMissWithLock(stockKey, productId, sizeId);
         }
 
-        // 3. EXECUTE LUA SCRIPT
-        // Now cache is guaranteed to be there (unless product is invalid)
-        // FlashSaleProduct fsp = findActiveFlashSaleProduct(productId);
-        int limit = 0; // Removed quantity limit feature
-        long ttl = 900; // Reservation TTL
+//        3. THỰC THI KỊCH BẢN LUA
+//        Bây giờ bộ nhớ cache được đảm bảo tồn tại (trừ khi sản phẩm không hợp lệ)
+//        FlashSaleProduct fsp = findActiveFlashSaleProduct(productId);
+        int limit = 0; // Đã loại bỏ tính năng giới hạn số lượng
+        long ttl = 900; // Thời gian đặt chỗ
 
         Long result = stringRedisTemplate.execute(
                 flashSaleReserveScript,
@@ -480,24 +480,6 @@ public class FlashSaleService {
         }
     }
 
-    // Existing helper, kept for reuse
-    @Transactional
-    public void incrementSoldCount(String productId, String sizeId, int quantity) {
-        FlashSaleProduct fsp = findActiveFlashSaleProduct(productId);
-        if (fsp != null && fsp.getProductSizes() != null) {
-            FlashSaleProductSize size = fsp.getProductSizes().stream()
-                    .filter(s -> s.getSizeId().equals(sizeId))
-                    .findFirst().orElse(null);
-
-            if (size != null) {
-                size.setFlashSaleStock(Math.max(0, size.getFlashSaleStock() - quantity));
-                size.setSoldCount(size.getSoldCount() + quantity);
-                fsp.setSoldCount(fsp.getSoldCount() + quantity);
-                flashSaleProductRepository.save(fsp);
-            }
-        }
-    }
-
     public void cancelFlashSaleReservation(String orderId, String productId, String sizeId, String userId) {
         // FlashSaleProduct fsp = findActiveFlashSaleProduct(productId);
         int limit = 0; // Removed quantity limit feature
@@ -537,16 +519,6 @@ public class FlashSaleService {
     public void confirmFlashSaleReservation(String orderId, String productId, String sizeId) {
         String reserveKey = FLASHSALE_RESERVE_KEY_PREFIX + orderId + ":" + productId + ":" + sizeId;
         stringRedisTemplate.delete(reserveKey);
-        // Confirmation Logic: DB is already decremented via
-        // asyncDecrementFlashSaleStock during reservation!
-        // So we don't need to decrement again.
-        // BUT: if reservation failed (e.g. user didn't pay), we cancel.
-        // If user pays -> confirm.
-        // Sync logic: Reserve -> Decr Cache + Decr DB.
-        // Confirm -> Clean Reserve Key.
-        // Cancel -> Incr Cache + Incr DB.
-
-        // So confirm just cleans up.
     }
 
     // Add missing public method for decrement if used elsewhere
