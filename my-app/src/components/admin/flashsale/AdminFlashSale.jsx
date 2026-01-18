@@ -42,7 +42,7 @@ const AdminFlashSale = () => {
     const fetchSessions = async () => {
         try {
             const data = await flashSaleAPI.getAllSessions();
-            setSessions(data);
+            setSessions(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error("Failed to load sessions", error);
         }
@@ -51,7 +51,7 @@ const AdminFlashSale = () => {
     const fetchProducts = async (sessionId) => {
         try {
             const data = await flashSaleAPI.getSessionProducts(sessionId);
-            setProducts(data);
+            setProducts(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error("Failed to load products", error);
         }

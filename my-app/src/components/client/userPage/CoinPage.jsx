@@ -48,7 +48,7 @@ export default function CoinPage() {
     const fetchMyMissions = async () => {
         try {
             const data = await shopCoinAPI.getMyMissions();
-            setMyMissions(data);
+            setMyMissions(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error("Failed to fetch my missions", error);
         }

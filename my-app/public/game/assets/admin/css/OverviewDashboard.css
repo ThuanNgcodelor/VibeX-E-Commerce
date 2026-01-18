@@ -1,0 +1,331 @@
+.overview-dashboard {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    padding: 24px;
+    height: calc(100vh - 180px);
+    overflow-y: auto;
+}
+
+.overview-dashboard::-webkit-scrollbar {
+    width: 6px;
+}
+
+.overview-dashboard::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.overview-dashboard::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+.dashboard-header {
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.dashboard-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #2c3e50;
+    margin: 0 0 4px 0;
+}
+
+.dashboard-subtitle {
+    font-size: 14px;
+    color: #6c757d;
+    margin: 0;
+}
+
+.overview-summary {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.overview-card {
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+    border-radius: 12px;
+    padding: 20px;
+    border: 2px solid #e9ecef;
+    transition: all 0.3s;
+}
+
+.overview-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.overview-card.shops {
+    border-color: #667eea;
+    background: linear-gradient(135deg, #f0f2ff 0%, #ffffff 100%);
+}
+
+.overview-card.revenue {
+    border-color: #FF6B35;
+    background: linear-gradient(135deg, #fff5f0 0%, #ffffff 100%);
+}
+
+.overview-card.orders {
+    border-color: #28a745;
+    background: linear-gradient(135deg, #f0fff4 0%, #ffffff 100%);
+}
+
+.overview-card.products {
+    border-color: #007bff;
+    background: linear-gradient(135deg, #f0f7ff 0%, #ffffff 100%);
+}
+
+.overview-card .card-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+    font-size: 24px;
+}
+
+.shops .card-icon {
+    background: rgba(102, 126, 234, 0.1);
+    color: #667eea;
+}
+
+.revenue .card-icon {
+    background: rgba(255, 107, 53, 0.1);
+    color: #FF6B35;
+}
+
+.orders .card-icon {
+    background: rgba(40, 167, 69, 0.1);
+    color: #28a745;
+}
+
+.products .card-icon {
+    background: rgba(0, 123, 255, 0.1);
+    color: #007bff;
+}
+
+.overview-card .card-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: #2c3e50;
+    margin: 0 0 4px 0;
+}
+
+.overview-card .card-label {
+    font-size: 13px;
+    color: #6c757d;
+    margin: 0 0 8px 0;
+}
+
+.overview-card .card-detail {
+    font-size: 12px;
+    font-weight: 600;
+    color: #6c757d;
+}
+
+.chart-section {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+}
+
+.section-header {
+    margin-bottom: 16px;
+}
+
+.section-header h4 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0;
+    display: flex;
+    align-items: center;
+}
+
+.revenue-comparison-chart,
+.product-distribution-chart {
+    background: white;
+    border-radius: 8px;
+    padding: 16px;
+}
+
+.shop-revenue-bar,
+.shop-product-bar {
+    display: grid;
+    grid-template-columns: 40px 1fr;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 16px;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    transition: all 0.3s;
+}
+
+.shop-revenue-bar:hover,
+.shop-product-bar:hover {
+    background: #e9ecef;
+    transform: translateX(4px);
+}
+
+.shop-revenue-bar:last-child,
+.shop-product-bar:last-child {
+    margin-bottom: 0;
+}
+
+.shop-rank {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, #FF6B35 0%, #F7931E 100%);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    color: white;
+}
+
+.shop-details {
+    flex: 1;
+    min-width: 0;
+}
+
+.shop-name-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+}
+
+.shop-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.verified-icon {
+    color: #28a745;
+    font-size: 14px;
+}
+
+.revenue-bar-container,
+.product-bar-container {
+    height: 8px;
+    background: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 6px;
+}
+
+.revenue-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #FF6B35 0%, #F7931E 100%);
+    border-radius: 4px;
+    transition: width 0.5s ease;
+}
+
+.product-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #007bff 0%, #667eea 100%);
+    border-radius: 4px;
+    transition: width 0.5s ease;
+}
+
+.shop-stats-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.revenue-amount,
+.product-count {
+    font-size: 13px;
+    font-weight: 700;
+    color: #2c3e50;
+}
+
+.order-count,
+.owner-name {
+    font-size: 12px;
+    color: #6c757d;
+}
+
+.quick-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+}
+
+.stat-box {
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+    border: 2px solid #e9ecef;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    transition: all 0.3s;
+}
+
+.stat-box:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    border-color: #FF6B35;
+}
+
+.stat-box .stat-icon {
+    width: 48px;
+    height: 48px;
+    background: rgba(255, 107, 53, 0.1);
+    color: #FF6B35;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 12px;
+    font-size: 24px;
+}
+
+.stat-box .stat-info h5 {
+    font-size: 24px;
+    font-weight: 700;
+    color: #2c3e50;
+    margin: 0 0 4px 0;
+}
+
+.stat-box .stat-info p {
+    font-size: 12px;
+    color: #6c757d;
+    margin: 0;
+}
+
+@media (max-width: 1200px) {
+
+    .overview-summary,
+    .quick-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+
+    .overview-summary,
+    .quick-stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .overview-dashboard {
+        height: auto;
+    }
+
+    .shop-revenue-bar,
+    .shop-product-bar {
+        grid-template-columns: 32px 1fr;
+    }
+}

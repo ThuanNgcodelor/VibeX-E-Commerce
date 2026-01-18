@@ -113,10 +113,6 @@ export default function ShopInfoBar({
                 borderRadius: "50%",
                 border: "2px solid #ee4d2d"
               }}
-              onError={(e) => {
-                e.currentTarget.onerror = null;
-                e.currentTarget.src = "/assets/admin/img/boy.png";
-              }}
             />
           ) : (
             <div

@@ -6,20 +6,21 @@ const getApiBaseUrl = () => {
     return '/api'
   }
   // Development mode
-  return import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
+  return import.meta.env.VITE_API_BASE_URL || 'http://localhost'
 }
 
 const getGoogleRedirectUri = () => {
   if (import.meta.env.MODE === 'production') {
+    // Use explicit port 80 for localhost to match Google Console
     return import.meta.env.VITE_GOOGLE_REDIRECT_URI || window.location.origin + '/oauth2/callback'
   }
   return import.meta.env.VITE_GOOGLE_REDIRECT_URI || 'http://localhost:5173/oauth2/callback'
 }
 
 export const API_BASE_URL = getApiBaseUrl()
-export const LOCAL_BASE_URL = 'http://localhost:8080'
+export const LOCAL_BASE_URL = 'http://localhost'
 // WebSocket URL for notification-service (runs on port 8084, not through gateway)
-export const NOTIFICATION_WS_URL = import.meta.env.VITE_NOTIFICATION_WS_URL || 'http://localhost:8080'
+export const NOTIFICATION_WS_URL = import.meta.env.VITE_NOTIFICATION_WS_URL || 'http://localhost'
 export const GOOGLE_REDIRECT_URI = getGoogleRedirectUri()
 export const GOOGLE_CLIENT_ID = '941069814660-or8vut20mcc30h2lp3lgdrfqd48j4qkc.apps.googleusercontent.com'
 

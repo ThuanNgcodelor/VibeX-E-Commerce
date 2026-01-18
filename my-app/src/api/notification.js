@@ -2,7 +2,7 @@ import createApiInstance from "./createApiInstance.js";
 import { LOCAL_BASE_URL } from "../config/config.js";
 
 const getApiBaseUrl = () => {
-    return LOCAL_BASE_URL || 'http://localhost:8080';
+    return LOCAL_BASE_URL || 'http://localhost';
 };
 
 const API_URL = "/v1/notifications";
@@ -29,7 +29,7 @@ export const getNotificationsByShopId = async () => {
     try {
         const response = await api.get(`/getAllByShopId`);
         return response.data;
-    } catch (error) {
+    } catch  {
         throw new Error("Failed to fetch shop notifications");
     }
 };
@@ -43,7 +43,7 @@ export const markNotificationAsRead = async (notificationId) => {
     try {
         const response = await api.put(`/markAsRead/${notificationId}`);
         return response.data;
-    } catch (error) {
+    } catch {
         throw new Error("Failed to mark notification as read");
     }
 };
@@ -57,7 +57,7 @@ export const deleteNotification = async (notificationId) => {
     try {
         const response = await api.delete(`/delete/${notificationId}`);
         return response.data;
-    } catch (error) {
+    } catch{
         throw new Error("Failed to delete notification");
     }
 };
@@ -70,7 +70,7 @@ export const deleteAllNotifications = async () => {
     try {
         const response = await api.delete(`/deleteAllByUserId`);
         return response.data;
-    } catch (error) {
+    } catch  {
         throw new Error("Failed to delete all notifications");
     }
 };

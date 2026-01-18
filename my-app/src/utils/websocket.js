@@ -59,7 +59,7 @@ const getWebSocketUrl = () => {
   } else {
     // Development: Kết nối trực tiếp tới Gateway
     // Gateway chạy ở localhost:8080
-    return 'http://localhost:8080/ws/notifications';
+    return 'http://localhost/ws/notifications';
   }
 };
 

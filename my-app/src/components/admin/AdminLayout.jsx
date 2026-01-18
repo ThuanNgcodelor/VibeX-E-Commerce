@@ -154,11 +154,11 @@ export default function AdminLayout() {
     }, []);
 
     return (
-        <div id="page-top">
-            <div id="wrapper">
+        <div id="page-top" style={{ margin: 0, padding: 0 }}>
+            <div id="wrapper" style={{ display: 'flex', minHeight: '100vh' }}>
                 <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
-                <div id="content-wrapper" className="d-flex flex-column">
-                    <div id="content">
+                <div id="content-wrapper" className="d-flex flex-column" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
+                    <div id="content" style={{ flex: 1, padding: '0' }}>
                         <TopBar toggleSidebar={toggleSidebar} />
                         <Outlet />
                     </div>

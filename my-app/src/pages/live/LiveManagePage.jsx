@@ -107,7 +107,7 @@ export default function LiveManagePage() {
     useEffect(() => {
         if (step === 'streaming' && currentRoom?.id) {
             const token = getToken();
-            const wsUrl = (LOCAL_BASE_URL || 'http://localhost:8080') + '/ws/live';
+            const wsUrl = (LOCAL_BASE_URL || 'http://localhost') + '/ws/live';
 
             const client = new Client({
                 webSocketFactory: () => new SockJS(wsUrl),

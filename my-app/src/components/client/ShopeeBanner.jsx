@@ -79,7 +79,7 @@ export default function ShopeeBanner() {
         // If relative path, build full URL using API base URL
         const API_BASE_URL = import.meta.env.MODE === 'production'
             ? '/api'
-            : (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080');
+            : (import.meta.env.VITE_API_BASE_URL || 'http://localhost');
         // Remove leading slash if present to avoid double slashes
         const path = imageUrl.startsWith('/') ? imageUrl.substring(1) : imageUrl;
         return `${API_BASE_URL}/${path}`;

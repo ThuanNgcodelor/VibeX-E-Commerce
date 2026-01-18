@@ -2,7 +2,7 @@ import createApiInstance from "./createApiInstance.js";
 import { LOCAL_BASE_URL } from "../config/config.js";
 
 const getApiBaseUrl = () => {
-    return LOCAL_BASE_URL || 'http://localhost:8080';
+    return LOCAL_BASE_URL || 'http://localhost';
 };
 
 const API_URL = "/v1/notifications/live";

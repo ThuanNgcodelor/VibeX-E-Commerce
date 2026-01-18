@@ -36,8 +36,9 @@ export default function AdManagement() {
         setLoading(true);
         try {
             const data = await adAPI.getAllAds();
-            setAds(data);
-            fetchShopNames(data);
+            const adsArray = Array.isArray(data) ? data : [];
+            setAds(adsArray);
+            fetchShopNames(adsArray);
         } catch (error) {
             console.error("Failed to fetch ads", error);
         } finally {
@@ -46,6 +47,7 @@ export default function AdManagement() {
     };
 
     const fetchShopNames = async (adsData) => {
+        if (!Array.isArray(adsData)) return;
         const uniqueShopIds = [...new Set(adsData.map(ad => ad.shopId))];
         const names = {};
 

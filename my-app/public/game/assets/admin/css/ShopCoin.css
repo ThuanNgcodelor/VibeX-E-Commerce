@@ -1,0 +1,151 @@
+/* General Styles for Coin Section */
+.coin-tab-container {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    min-height: 400px;
+}
+
+.coin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.coin-balance-section {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.coin-icon-wrapper {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #ffcc00;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.coin-icon-text {
+    color: #fff;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.coin-balance-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.coin-amount {
+    font-size: 32px;
+    font-weight: bold;
+    color: #222;
+}
+
+.coin-info-text {
+    font-size: 12px;
+    color: #666;
+}
+
+.xu-title {
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.xu-expiry {
+    font-size: 12px;
+    color: #999;
+}
+
+.get-more-xu {
+    padding: 10px 20px;
+    background-color: #ee4d2d;
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+    text-align: center;
+    font-size: 14px;
+    font-weight: bold;
+    transition: background-color 0.3s;
+}
+
+.get-more-xu:hover {
+    background-color: #e43b2e;
+}
+
+.daily-checkin-card {
+    background-color: #fafafa;
+    padding: 16px;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    margin-bottom: 20px;
+}
+
+.checkin-info {
+    margin-bottom: 10px;
+}
+
+.checkin-info h6 {
+    font-size: 16px;
+    font-weight: 500;
+    color: #333;
+}
+
+.checkin-info p {
+    font-size: 14px;
+    color: #666;
+}
+
+.btn-checkin {
+    width: 100%;
+    padding: 10px;
+    background-color: #ffcc00;
+    color: white;
+    border: none;
+    font-size: 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.btn-checkin:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+.btn-checkin:hover:not(:disabled) {
+    background-color: #e8b900;
+}
+
+.coin-body {
+    text-align: center;
+    padding: 20px 0;
+}
+
+.no-coins-text {
+    font-size: 16px;
+    color: #666;
+    margin-bottom: 16px;
+}
+
+.how-to-earn-btn {
+    background-color: #007bff;
+    color: white;
+    padding: 10px 20px;
+    font-size: 14px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.how-to-earn-btn:hover {
+    background-color: #0056b3;
+}

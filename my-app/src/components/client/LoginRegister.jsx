@@ -18,7 +18,7 @@ export default function Auth() {
         confirmPassword: ''
     });
     const [error, setError] = useState('');
-    const [fieldErrors, setFieldErrors] = useState({}); // Lưu validation errors theo từng field
+    const [fieldErrors, setFieldErrors] = useState({});
     const [, setLoading] = useState(false);
     const [success, setSuccess] = useState("");
     const navigate = useNavigate();
@@ -46,7 +46,7 @@ export default function Auth() {
             client_id: FACEBOOK_CLIENT_ID,
             redirect_uri: FACEBOOK_REDIRECT_URI,
             state: "facebook",
-            response_type: "code",scope: "public_profile"
+            response_type: "code", scope: "public_profile"
         });
 
         window.location.href = `${facebookAuthUrl}?${params.toString()}`;

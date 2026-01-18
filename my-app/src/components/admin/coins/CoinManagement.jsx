@@ -39,12 +39,12 @@ export default function CoinManagement() {
             const data = await shopCoinAPI.getAllShopCoins(params);
 
             // Handle Page<ShopCoinAdminDto>
-            if (data.content) {
-                setUsers(data.content);
-                setTotalPages(data.totalPages);
-                setTotalElements(data.totalElements);
+            if (data && data.content) {
+                setUsers(Array.isArray(data.content) ? data.content : []);
+                setTotalPages(data.totalPages || 0);
+                setTotalElements(data.totalElements || 0);
             } else {
-                setUsers(data);
+                setUsers(Array.isArray(data) ? data : []);
             }
             setError(null);
         } catch (err) {
@@ -64,7 +64,7 @@ export default function CoinManagement() {
     const fetchMissions = async () => {
         try {
             const data = await shopCoinAPI.getAllMissions();
-            setMissions(data);
+            setMissions(Array.isArray(data) ? data : []);
         } catch (err) {
             console.error("Failed to fetch missions", err);
         }
