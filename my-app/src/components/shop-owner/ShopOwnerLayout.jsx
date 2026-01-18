@@ -82,7 +82,7 @@ export default function ShopOwnerLayout() {
                     {/* Render layout in background but blurred and disabled */}
                     <div className="row">
                         <ShopOwnerSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-                        <main className="col-md-10 main-content">
+                        <main className="col-md-9 main-content">
                             {/* Don't render outlet content to be safe and save performance */}
                         </main>
                     </div>
@@ -99,7 +99,7 @@ export default function ShopOwnerLayout() {
             <div className="container-fluid">
                 <div className="row">
                     <ShopOwnerSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-                    <main className="col-md-10 main-content">
+                    <main className="col-md-9 main-content">
                         <Outlet />
                     </main>
                 </div>

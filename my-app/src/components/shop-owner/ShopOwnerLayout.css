@@ -773,7 +773,8 @@
     }
 
     .sidebar {
-        left: -260px;
+        left: -280px;
+        width: 280px;
         /* Fully hide by default on tablet */
         position: fixed;
         z-index: 1000;
@@ -949,5 +950,4 @@
         max-width: none;
         width: auto;
     }
-}
 }

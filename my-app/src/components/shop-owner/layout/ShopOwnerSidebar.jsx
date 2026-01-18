@@ -92,7 +92,7 @@ const ShopOwnerSidebar = ({ isOpen, onClose }) => {
     };
 
     return (
-        <nav className={`col-md-2 sidebar ${isOpen ? 'active' : ''}`}>
+        <nav className={`col-md-3 sidebar ${isOpen ? 'active' : ''}`}>
             {isOpen && (
                 <button className="sidebar-close-btn" onClick={onClose}>
                     <i className="fas fa-times"></i>
@@ -100,6 +100,7 @@ const ShopOwnerSidebar = ({ isOpen, onClose }) => {
             )}
             <div className="sidebar-brand">
                 <Link to="/shop-owner" onClick={onClose}>
+                    <i className="fas fa-store me-2" style={{ fontSize: '1.2rem' }}></i>
                     <span className="sidebar-title">{t('shopOwner.sidebar.sellerCenter')}</span>
                 </Link>
             </div>
