@@ -57,8 +57,8 @@ export default function ProductsPage() {
     } catch (e) {
       setErr(e?.response?.data?.message || "Failed to load products");
       Swal.fire({
-        title: "Không tải được dữ liệu",
-        text: e?.response?.data?.message || "Vui lòng thử lại.",
+        title: "Failed to load data",
+        text: e?.response?.data?.message || "Please try again.",
         icon: "error",
       });
     } finally {
@@ -91,12 +91,12 @@ export default function ProductsPage() {
       });
       setShowForm(false);
 
-      toast("success", id ? "Đã cập nhật sản phẩm" : "Đã thêm sản phẩm");
+      toast("success", id ? "Product updated" : "Product added");
     } catch (e) {
       const msg = e?.response?.data?.message || "Save failed";
       setErr(msg);
       Swal.fire({
-        title: "Lưu thất bại",
+        title: "Save failed",
         text: msg,
         icon: "error",
       });
@@ -128,41 +128,40 @@ export default function ProductsPage() {
 
       if (product?.categoryId) {
         await Swal.fire({
-          title: "Không thể xoá",
+          title: "Cannot delete",
           html: `
             <div style="text-align:left">
-              Sản phẩm đang được gắn với <b>Category</b>.<br/>
-              Vui lòng gỡ liên kết category trước khi xoá.
-              ${
-                product.categoryName
-                  ? `<div class="mt-2"><b>Category:</b> ${product.categoryName}</div>`
-                  : ""
-              }
+              Product is linked to <b>Category</b>.<br/>
+              Please remove category link first.
+              ${product.categoryName
+              ? `<div class="mt-2"><b>Category:</b> ${product.categoryName}</div>`
+              : ""
+            }
             </div>
           `,
           icon: "info",
-          confirmButtonText: "Đã hiểu",
+          confirmButtonText: "Understood",
         });
         return;
       }
 
-      // Xác nhận xoá
+      // Confirm delete
       const result = await Swal.fire({
-        title: "Xoá sản phẩm?",
-        text: "Hành động này không thể hoàn tác.",
+        title: "Delete product?",
+        text: "This action cannot be undone.",
         icon: "warning",
         showCancelButton: true,
-        confirmButtonText: "Xoá",
-        cancelButtonText: "Huỷ",
+        confirmButtonText: "Delete",
+        cancelButtonText: "Cancel",
         confirmButtonColor: "#d33",
         cancelButtonColor: "#6c757d",
       });
 
       if (!result.isConfirmed) return;
 
-      // Loading trong lúc xoá
+      // Loading while deleting
       Swal.fire({
-        title: "Đang xoá...",
+        title: "Deleting...",
         allowOutsideClick: false,
         allowEscapeKey: false,
         didOpen: () => Swal.showLoading(),
@@ -172,12 +171,12 @@ export default function ProductsPage() {
       await load();
 
       Swal.close();
-      toast("success", "Đã xoá sản phẩm");
+      toast("success", "Product deleted");
     } catch (e) {
       const msg = e?.response?.data?.message || "Delete failed";
       setErr(msg);
       Swal.fire({
-        title: "Xoá thất bại",
+        title: "Delete failed",
         text: msg,
         icon: "error",
       });
@@ -237,16 +236,14 @@ export default function ProductsPage() {
             />
             <div className="d-flex align-items-center gap-2">
               <label
-                className={`form-label m-0 ${
-                  dark ? "text-light" : "text-dark"
-                }`}
+                className={`form-label m-0 ${dark ? "text-light" : "text-dark"
+                  }`}
               >
                 Sort
               </label>
               <select
-                className={`form-select form-select-sm ${
-                  dark ? "bg-dark text-light border-secondary" : ""
-                }`}
+                className={`form-select form-select-sm ${dark ? "bg-dark text-light border-secondary" : ""
+                  }`}
                 style={{ width: 120 }}
                 value={sortOrder}
                 onChange={(e) => setSortOrder(e.target.value)}
@@ -272,18 +269,16 @@ export default function ProductsPage() {
 
         {err && (
           <div
-            className={`alert alert-danger ${
-              dark ? "bg-danger-subtle text-dark" : ""
-            }`}
+            className={`alert alert-danger ${dark ? "bg-danger-subtle text-dark" : ""
+              }`}
           >
             {err}
           </div>
         )}
         {loading && (
           <div
-            className={`alert alert-info ${
-              dark ? "bg-info-subtle text-dark" : ""
-            }`}
+            className={`alert alert-info ${dark ? "bg-info-subtle text-dark" : ""
+              }`}
           >
             Loading...
           </div>
@@ -325,9 +320,8 @@ export default function ProductsPage() {
 
         {/* Product Table */}
         <div
-          className={`card shadow-sm ${
-            dark ? "bg-dark text-light border-secondary" : ""
-          }`}
+          className={`card shadow-sm ${dark ? "bg-dark text-light border-secondary" : ""
+            }`}
         >
           <div className="card-body p-2 p-md-3">
             <div className="d-flex justify-content-between align-items-center mb-2 gap-2">
@@ -356,9 +350,8 @@ export default function ProductsPage() {
 
             <div className="table-responsive">
               <table
-                className={`table table-bordered table-hover align-middle mb-2 ${
-                  dark ? "table-dark border-secondary" : ""
-                }`}
+                className={`table table-bordered table-hover align-middle mb-2 ${dark ? "table-dark border-secondary" : ""
+                  }`}
               >
                 <thead className={`text-center ${dark ? "" : "table-light"}`}>
                   <tr>
@@ -418,9 +411,8 @@ export default function ProductsPage() {
               <ul className="pagination mb-0">
                 <li className={`page-item ${page === 1 ? "disabled" : ""}`}>
                   <button
-                    className={`page-link ${
-                      dark ? "bg-dark text-light border-secondary" : ""
-                    }`}
+                    className={`page-link ${dark ? "bg-dark text-light border-secondary" : ""
+                      }`}
                     onClick={() => goTo(page - 1)}
                     title="Previous"
                   >
@@ -434,13 +426,12 @@ export default function ProductsPage() {
                       className={`page-item ${p === page ? "active" : ""}`}
                     >
                       <button
-                        className={`page-link ${
-                          dark
+                        className={`page-link ${dark
                             ? p === page
                               ? "bg-primary text-light border-primary"
                               : "bg-dark text-light border-secondary"
                             : ""
-                        }`}
+                          }`}
                         onClick={() => goTo(p)}
                       >
                         {p}
@@ -449,14 +440,12 @@ export default function ProductsPage() {
                   )
                 )}
                 <li
-                  className={`page-item ${
-                    page === totalPages ? "disabled" : ""
-                  }`}
+                  className={`page-item ${page === totalPages ? "disabled" : ""
+                    }`}
                 >
                   <button
-                    className={`page-link ${
-                      dark ? "bg-dark text-light border-secondary" : ""
-                    }`}
+                    className={`page-link ${dark ? "bg-dark text-light border-secondary" : ""
+                      }`}
                     onClick={() => goTo(page + 1)}
                     title="Next"
                   >

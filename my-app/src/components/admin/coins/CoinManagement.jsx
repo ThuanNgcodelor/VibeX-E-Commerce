@@ -153,7 +153,7 @@ export default function CoinManagement() {
                                         <tr>
                                             <th>Username</th>
                                             <th>Email</th>
-                                            <th>Points (Xu)</th>
+                                            <th>Points (Coins)</th>
                                             <th>Last Check-in</th>
                                             <th>Streaks (Days)</th>
                                         </tr>
@@ -274,14 +274,14 @@ export default function CoinManagement() {
                                             value={newMission.actionCode}
                                             onChange={(e) => setNewMission({ ...newMission, actionCode: e.target.value })}>
                                             <option value="">Select Action...</option>
-                                            <option value="VIEW_PRODUCT">VIEW_PRODUCT (Xem sản phẩm)</option>
-                                            <option value="REVIEW_ORDER">REVIEW_ORDER (Đánh giá đơn)</option>
-                                            <option value="VIEW_CART">VIEW_CART (Xem giỏ hàng)</option>
-                                            <option value="FOLLOW_SHOP">FOLLOW_SHOP (Theo dõi shop)</option>
+                                            <option value="VIEW_PRODUCT">VIEW_PRODUCT (View Product)</option>
+                                            <option value="REVIEW_ORDER">REVIEW_ORDER (Review Order)</option>
+                                            <option value="VIEW_CART">VIEW_CART (View Cart)</option>
+                                            <option value="FOLLOW_SHOP">FOLLOW_SHOP (Follow Shop)</option>
                                         </select>
                                     </div>
                                     <div className="form-group col-md-2">
-                                        <label>Reward (Xu)</label>
+                                        <label>Reward (Coins)</label>
                                         <input type="number" className="form-control" required
                                             value={newMission.rewardAmount}
                                             onChange={(e) => setNewMission({ ...newMission, rewardAmount: parseInt(e.target.value) })} />
@@ -322,7 +322,7 @@ export default function CoinManagement() {
                                             <tr key={mission.id}>
                                                 <td>{mission.title}</td>
                                                 <td><span className="badge badge-info">{mission.actionCode}</span></td>
-                                                <td className="text-warning font-weight-bold">{mission.rewardAmount} Xu</td>
+                                                <td className="text-warning font-weight-bold">{mission.rewardAmount} Coins</td>
                                                 <td>{mission.targetCount}</td>
                                                 <td>{mission.description}</td>
                                                 <td>

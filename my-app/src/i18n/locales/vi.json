@@ -82,7 +82,7 @@
   "header": {
     "sellerCenter": "Vibe Center",
     "registerShopOwner": "Đăng ký bán hàng",
-    "shopeeLive": "Shopee Live",
+    "VibeLive": "Vibe Live",
     "watchLive": "Xem Live",
     "downloadApp": "Tải Ứng Dụng",
     "connect": "Kết nối",
@@ -105,15 +105,15 @@
   },
   "footer": {
     "customerService": "CHĂM SÓC KHÁCH HÀNG",
-    "shopeeHelpCenter": "Trung tâm trợ giúp Shopee",
-    "shopeeVietnam": "SHOPEE VIỆT NAM",
-    "aboutShopee": "Về Shopee",
+    "VibeHelpCenter": "Trung tâm trợ giúp Vibe",
+    "VibeVietnam": "Vibe VIỆT NAM",
+    "aboutVibe": "Về Vibe",
     "payment": "THANH TOÁN",
-    "followShopee": "THEO DÕI SHOPEE",
-    "downloadApp": "TẢI ỨNG DỤNG SHOPEE",
+    "followVibe": "THEO DÕI Vibe",
+    "downloadApp": "TẢI ỨNG DỤNG Vibe",
     "appStore": "App Store",
     "googlePlay": "Google Play",
-    "copyright": "© {{year}} Shopee. Bảo lưu mọi quyền."
+    "copyright": "© {{year}} Vibe. Bảo lưu mọi quyền."
   },
   "cart": {
     "title": "Giỏ hàng của tôi",
@@ -435,10 +435,10 @@
     "products": "sản phẩm",
     "buyNow": "Mua Hàng",
     "saved": "Tiết kiệm",
-    "shopeeVoucher": "Shopee Voucher",
+    "VibeVoucher": "Vibe Voucher",
     "selectOrEnterCode": "Chọn hoặc nhập mã",
-    "shopeeCoins": "Shopee Xu",
-    "noCoins": "Bạn chưa có Shopee Xu",
+    "VibeCoins": "Vibe Xu",
+    "noCoins": "Bạn chưa có Vibe Xu",
     "dealShock": "Deal Sốc",
     "buyWithDeal": "Mua Kèm Deal Sốc với mức giá ưu đãi",
     "add": "Thêm",
@@ -473,24 +473,24 @@
     "shippingFee": "Phí vận chuyển",
     "inspectOnDelivery": "Được đồng kiểm",
     "totalAmount": "Tổng số tiền",
-    "shopeeVoucher": "Shopee Voucher",
-    "shopeeCoins": "Shopee Xu",
+    "VibeVoucher": "Vibe Voucher",
+    "VibeCoins": "Vibe Xu",
     "cannotUseCoins": "Không thể sử dụng Xu",
     "chooseVoucher": "Chọn Voucher",
     "paymentMethod": "Phương thức thanh toán",
-    "shopeePay": "Ví ShopeePay",
+    "VibePay": "Ví VibePay",
     "creditDebitCard": "Thẻ Tín dụng/Ghi nợ",
     "googlePay": "Google Pay",
     "napasCard": "Thẻ nội địa NAPAS",
     "cashOnDelivery": "Thanh toán khi nhận hàng",
-    "walletBalance": "Số dư Ví ShopeePay",
+    "walletBalance": "Số dư Ví VibePay",
     "totalMerchandise": "Tổng tiền hàng",
     "totalShippingFee": "Tổng tiền phí vận chuyển",
     "totalVoucherDiscount": "Tổng cộng Voucher giảm giá",
     "totalPayment": "Tổng thanh toán",
     "placeOrder": "Đặt hàng",
-    "termsAgreement": "Nhấn \"Đặt hàng\" đồng nghĩa với việc bạn đồng ý tuân theo Điều khoản Shopee",
-    "terms": "Điều khoản Shopee",
+    "termsAgreement": "Nhấn \"Đặt hàng\" đồng nghĩa với việc bạn đồng ý tuân theo Điều khoản Vibe",
+    "terms": "Điều khoản Vibe",
     "shopSubtotal": "Tổng số tiền"
   },
   "orders": {
@@ -622,9 +622,9 @@
     "myOrders": "Đơn hàng của tôi",
     "roleRequest": "Yêu cầu vai trò",
     "voucherWallet": "Ví voucher",
-    "shopeeCoins": "Shopee Coins",
+    "VibeCoins": "Vibe Coins",
     "noVouchersYet": "Chưa có voucher nào",
-    "noShopeeCoins": "Bạn chưa có Shopee Coins nào",
+    "noVibeCoins": "Bạn chưa có Vibe Coins nào",
     "hello": "Xin chào, {{username}}!",
     "accountDescription": "Từ trang quản lý tài khoản, bạn có thể xem các đơn hàng gần đây, quản lý địa chỉ giao hàng và chỉnh sửa thông tin cá nhân."
   },
@@ -754,7 +754,7 @@
     "enterShopName": "Nhập tên cửa hàng của bạn",
     "enterOwnerName": "Nhập tên đầy đủ của chủ cửa hàng",
     "enterPhoneNumber": "Nhập số điện thoại",
-    "headerTitle": "Đăng ký trở thành Người bán Shopee",
+    "headerTitle": "Đăng ký trở thành Người bán Vibe",
     "backHome": "Quay lại trang chính",
     "steps": {
       "shopInfo": "Thông tin Shop",
@@ -763,8 +763,8 @@
       "complete": "Hoàn tất"
     },
     "welcome": {
-      "title": "Chào mừng đến Shopee!",
-      "description": "Để đăng ký bán hàng trên Shopee, bạn cần cung cấp một số thông tin cơ bản.",
+      "title": "Chào mừng đến Vibe!",
+      "description": "Để đăng ký bán hàng trên Vibe, bạn cần cung cấp một số thông tin cơ bản.",
       "registerButton": "Đăng ký"
     },
     "step1": {
@@ -798,35 +798,66 @@
       "fullNameHint": "Theo CMND/CCCD/Hộ Chiếu",
       "frontImage": "Ảnh mặt trước",
       "backImage": "Ảnh mặt sau",
-      "uploadFront": "Tải lên mặt trước",
-      "uploadBack": "Tải lên mặt sau",
-      "imageNote": "Lưu ý: Vui lòng tải lên hình ảnh rõ nét, không bị mờ hoặc chói sáng.",
-      "agreement": "Tôi xác nhận tất cả dữ liệu cung cấp là chính xác và trung thực."
+      "imageNote": "Lưu ý: Ảnh cần rõ nét, không bị lóa sáng, không bị mất góc.",
+      "agreement": "Tôi đồng ý với các Điều khoản & Điều kiện của Vibe",
+      "uploadFront": "Tải ảnh mặt trước",
+      "uploadBack": "Tải ảnh mặt sau"
     },
     "step4": {
-      "successTitle": "Đăng ký thành công",
-      "successMessage": "Hãy đợi đơn xác nhận để đăng bán sản phẩm đầu tiên để khởi động hành trình bán hàng cùng Vibe nhé!"
+      "successTitle": "Đăng ký thành công!",
+      "successMessage": "Yêu cầu đăng ký của bạn đang được xét duyệt. Chúng tôi sẽ thông báo kết quả sớm nhất."
     },
     "buttons": {
       "back": "Quay lại",
-      "save": "Lưu",
       "next": "Tiếp theo",
+      "save": "Lưu",
       "complete": "Hoàn tất",
       "cancel": "Hủy"
     },
     "modal": {
-      "addAddress": "Thêm Địa Chỉ Mới",
-      "fullName": "Họ & Tên",
+      "addAddress": "Thêm địa chỉ mới",
+      "fullName": "Họ và tên",
       "phone": "Số điện thoại",
-      "address": "Địa chỉ",
-      "detailAddress": "Địa chỉ chi tiết",
-      "detailPlaceholder": "Số nhà, tên đường, v.v...",
+      "address": "Tỉnh/Thành phố, Quận/Huyện, Phường/Xã",
+      "detailAddress": "Địa chỉ cụ thể",
+      "detailPlaceholder": "Số nhà, tên đường...",
+      "enterValue": "Nhập giá trị",
       "locate": "Định vị",
       "locating": "Đang định vị...",
-      "locateHelp": "Giúp đơn hàng được giao nhanh nhất",
-      "addressPlaceholder": "Tỉnh/Thành phố/Quận/Huyện/Phường/Xã",
-      "enterValue": "Nhập vào"
+      "locateHelp": "Nhấn để tự động điền địa chỉ",
+      "addressPlaceholder": "Chưa chọn địa chỉ"
     },
+    "alerts": {
+      "loginRequired": "Bạn cần đăng nhập để đăng ký trở thành shop owner!",
+      "fileSizeLimit": "Kích thước file không được vượt quá 5MB",
+      "selectAddress": "Vui lòng chọn đủ Tỉnh/TP, Quận/Huyện, Phường/Xã.",
+      "enterDetailAddress": "Vui lòng nhập địa chỉ chi tiết.",
+      "gpsNotSupported": "Trình duyệt không hỗ trợ định vị GPS.",
+      "gpsDenied": "Bạn đã từ chối quyền định vị.",
+      "gpsFailed": "Định vị thất bại, vui lòng thử lại.",
+      "gpsNoAddress": "Không lấy được địa chỉ từ vị trí.",
+      "sessionExpired": "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!",
+      "submitError": "Đã xảy ra lỗi khi gửi yêu cầu. Vui lòng thử lại sau.",
+      "submitFailed": "Đăng ký thất bại",
+      "submitSuccess": "Đăng ký thành công!"
+    },
+    "captcha": {
+      "title": "Xác Nhận Là Người Dùng",
+      "textInstruction": "Vui lòng nhập mã xác thực bên dưới",
+      "mathInstruction": "Giải phép tính dưới đây",
+      "imageInstruction": "Hãy chọn hình ảnh có ngôi sao",
+      "sliderInstruction": "Kéo slider đến vị trí {{target}}",
+      "refresh": "Làm mới",
+      "inputPlaceholder": "Nhập 6 ký tự",
+      "answerPlaceholder": "Nhập đáp án",
+      "sliderTarget": "Mục tiêu: {{target}}",
+      "verify": "Xác Nhận",
+      "errorText": "Mã xác thực không đúng. Vui lòng nhập lại.",
+      "errorMath": "Kết quả tính toán không đúng. Vui lòng thử lại.",
+      "errorImage": "Vui lòng chọn hình ảnh đúng.",
+      "errorSlider": "Kéo slider đến {{target}}. Hiện tại: {{current}}"
+    },
+    "uni": "Vibe Uni",
     "errors": {
       "loginRequired": "Bạn cần đăng nhập để đăng ký trở thành shop owner!",
       "sessionExpired": "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!",
@@ -1489,8 +1520,8 @@
       "title": "Doanh Thu",
       "subtitle": "Quản lý số dư và doanh thu của cửa hàng",
       "promo": {
-        "title": "Bạn đang tìm kiếm cách để tăng doanh số? Hãy thử dùng Quảng cáo Shopee!",
-        "description": "Trung bình, Quảng cáo Shopee đang giúp những người bán sử dụng quảng cáo thu về 65% về số đơn đặt hàng. Bắt đầu ngay hôm nay để tăng mức độ tiếp xúc và bán hàng, và giúp Shop của bạn phát triển hơn nữa!",
+        "title": "Bạn đang tìm kiếm cách để tăng doanh số? Hãy thử dùng Quảng cáo Vibe!",
+        "description": "Trung bình, Quảng cáo Vibe đang giúp những người bán sử dụng quảng cáo thu về 65% về số đơn đặt hàng. Bắt đầu ngay hôm nay để tăng mức độ tiếp xúc và bán hàng, và giúp Shop của bạn phát triển hơn nữa!",
         "createAd": "Tạo quảng cáo"
       },
       "overview": {
@@ -1686,7 +1717,7 @@
       "subtotal": "Tổng tiền hàng",
       "shippingFee": "Phí vận chuyển",
       "shippingDiscount": "Giảm giá phí vận chuyển",
-      "voucherDiscount": "Voucher từ Shopee",
+      "voucherDiscount": "Voucher từ Vibe",
       "total": "Thành tiền",
       "paymentMethod": "Phương thức Thanh toán"
     },
@@ -1708,7 +1739,7 @@
   },
   "coins": {
     "currentCoins": "Xu đang có",
-    "expiry": "{{coins}} Shopee Xu sẽ hết hạn vào {{date}}",
+    "expiry": "{{coins}} Vibe Xu sẽ hết hạn vào {{date}}",
     "getMoreCoins": "Nhận thêm Xu!",
     "dailyCheckin7Days": "Điểm danh 7 ngày nhận Xu",
     "dailyCheckinHint": "Nhận xu mỗi ngày, ngày 7 nhận quà lớn",

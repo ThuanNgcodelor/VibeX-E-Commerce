@@ -198,6 +198,11 @@ const AdminFlashSale = () => {
                 )}
             </div>
 
+            {/* Content Grid: Sessions List (Left equivalent) & Products (Right equivalent) could be good, 
+                but to match reference let's do Tabs or a Master-Detail view. 
+                Reference image is single table. I'll make a Sessions Table first. 
+            */}
+
             <div className="card">
                 <div className="card-header">
                     <h3 className="card-title">Flash Sale Sessions</h3>

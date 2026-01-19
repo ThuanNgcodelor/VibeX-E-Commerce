@@ -98,4 +98,21 @@ const createShopOwner = async (registrationData, imageFront, imageBack) => {
         throw error;
     }
 };
+
+/**
+ * Tạo yêu cầu mở khóa shop (User)
+ * @param {string} reason - Lý do mở khóa
+ * @returns {Promise}
+ */
+export const createUnlockRequest = async (reason) => {
+    try {
+        const response = await api.post("/unlock", null, {
+            params: { reason }
+        });
+        return response.data;
+    } catch (error) {
+        throw new Error(error.response?.data?.message || "Failed to create unlock request");
+    }
+};
+
 export default createShopOwner

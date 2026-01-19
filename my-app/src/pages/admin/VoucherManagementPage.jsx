@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import '../../assets/admin/css/VoucherManagementPage.css';
+import '../../assets/admin/css/Validation.css';
 import { adminVoucherApi } from '../../api/voucher';
 import Swal from 'sweetalert2';
 
@@ -16,6 +17,7 @@ const VoucherManagementPage = () => {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
+    const [errors, setErrors] = useState({});
 
     const [formData, setFormData] = useState({
         code: '',
@@ -32,6 +34,35 @@ const VoucherManagementPage = () => {
         endDate: '',
         status: 'ACTIVE'
     });
+
+    const validate = () => {
+        const newErrors = {};
+
+        if (!formData.code.trim()) newErrors.code = 'Code is required';
+        if (!formData.name.trim()) newErrors.name = 'Name is required';
+
+        if (!formData.discountValue || parseFloat(formData.discountValue) <= 0) {
+            newErrors.discountValue = 'Valid discount value is required';
+        }
+
+        if (!formData.minOrder || parseFloat(formData.minOrder) < 0) {
+            newErrors.minOrder = 'Valid min order is required';
+        }
+
+        if (!formData.totalQuantity || parseInt(formData.totalQuantity) <= 0) {
+            newErrors.totalQuantity = 'Valid quantity is required';
+        }
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
+    const handleInputChange = (field, value) => {
+        setFormData(prev => ({ ...prev, [field]: value }));
+        if (errors[field]) {
+            setErrors(prev => ({ ...prev, [field]: null }));
+        }
+    };
 
     // Load vouchers from backend
     const loadVouchers = async () => {
@@ -104,6 +135,7 @@ const VoucherManagementPage = () => {
             endDate: '',
             status: 'ACTIVE'
         });
+        setErrors({});
         setShowModal(true);
     };
 
@@ -125,6 +157,7 @@ const VoucherManagementPage = () => {
             endDate: voucher.endDate,
             status: voucher.status
         });
+        setErrors({});
         setShowModal(true);
     };
 
@@ -169,6 +202,9 @@ const VoucherManagementPage = () => {
     // Handle Submit Form
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        if (!validate()) return;
+
         setSaving(true);
         setError('');
 
@@ -583,9 +619,9 @@ const VoucherManagementPage = () => {
                                                 type="text"
                                                 className="form-input"
                                                 value={formData.code}
-                                                onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+                                                onChange={(e) => handleInputChange('code', e.target.value.toUpperCase())}
                                                 placeholder="SALE20 or XXXX-XXXX"
-                                                required
+
                                                 disabled={editingVoucher !== null}
                                                 style={{
                                                     flex: 1,
@@ -632,12 +668,11 @@ const VoucherManagementPage = () => {
                                         <label>Voucher Name *</label>
                                         <input
                                             type="text"
-                                            className="form-input"
-                                            value={formData.name}
-                                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                            onChange={(e) => handleInputChange('name', e.target.value)}
                                             placeholder="Flash Sale 20%"
-                                            required
+                                            className={`form-input ${errors.name ? 'error' : ''}`}
                                         />
+                                        {errors.name && <span className="error-message">{errors.name}</span>}
                                     </div>
 
                                     <div className="form-group full-width">
@@ -668,14 +703,13 @@ const VoucherManagementPage = () => {
                                         <label>{formData.discountType === 'PERCENTAGE' ? 'Discount (%) *' : 'Discount (VND) *'}</label>
                                         <input
                                             type="number"
-                                            className="form-input"
-                                            value={formData.discountValue}
-                                            onChange={(e) => setFormData({ ...formData, discountValue: e.target.value })}
+                                            onChange={(e) => handleInputChange('discountValue', e.target.value)}
                                             placeholder={formData.discountType === 'PERCENTAGE' ? '20' : '50000'}
                                             min="0"
                                             step={formData.discountType === 'PERCENTAGE' ? '1' : '1000'}
-                                            required
+                                            className={`form-input ${errors.discountValue ? 'error' : ''}`}
                                         />
+                                        {errors.discountValue && <span className="error-message">{errors.discountValue}</span>}
                                     </div>
 
                                     {formData.discountType === 'PERCENTAGE' && (
@@ -697,27 +731,25 @@ const VoucherManagementPage = () => {
                                         <label>Min Order (VND) *</label>
                                         <input
                                             type="number"
-                                            className="form-input"
-                                            value={formData.minOrder}
-                                            onChange={(e) => setFormData({ ...formData, minOrder: e.target.value })}
+                                            onChange={(e) => handleInputChange('minOrder', e.target.value)}
                                             placeholder="500000"
                                             min="0"
                                             step="1000"
-                                            required
+                                            className={`form-input ${errors.minOrder ? 'error' : ''}`}
                                         />
+                                        {errors.minOrder && <span className="error-message">{errors.minOrder}</span>}
                                     </div>
 
                                     <div className="form-group">
                                         <label>Quantity *</label>
                                         <input
                                             type="number"
-                                            className="form-input"
-                                            value={formData.totalQuantity}
-                                            onChange={(e) => setFormData({ ...formData, totalQuantity: e.target.value })}
+                                            onChange={(e) => handleInputChange('totalQuantity', e.target.value)}
                                             placeholder="100"
                                             min="1"
-                                            required
+                                            className={`form-input ${errors.totalQuantity ? 'error' : ''}`}
                                         />
+                                        {errors.totalQuantity && <span className="error-message">{errors.totalQuantity}</span>}
                                     </div>
 
                                     <div className="form-group">

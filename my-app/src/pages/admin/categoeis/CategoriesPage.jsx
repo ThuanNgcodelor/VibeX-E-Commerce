@@ -275,13 +275,7 @@ export default function CategoriesPage() {
                             >
                               <i className="fas fa-edit"></i>
                             </button>
-                            <button
-                              onClick={() => handleDelete(c.id)}
-                              className="btn-action btn-delete"
-                              title="Delete Category"
-                            >
-                              <i className="fas fa-trash"></i>
-                            </button>
+
                           </div>
                         </td>
                       </tr>

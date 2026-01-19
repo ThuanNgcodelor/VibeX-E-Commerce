@@ -9,6 +9,7 @@ import PricingManagement from '../../components/admin/subscription/PricingManage
 import FeaturesManagement from '../../components/admin/subscription/FeaturesManagement';
 import Swal from 'sweetalert2';
 import '../../assets/admin/css/SubscriptionPlanManagement.css';
+import '../../assets/admin/css/Validation.css';
 
 const SubscriptionPlanManagementPage = () => {
     const [plans, setPlans] = useState([]);
@@ -42,6 +43,28 @@ const SubscriptionPlanManagementPage = () => {
         voucherEnabled: false,
         isActive: true
     });
+    const [errors, setErrors] = useState({});
+
+    const validate = () => {
+        const newErrors = {};
+        if (!formData.code.trim()) newErrors.code = 'Code is required';
+        if (!formData.name.trim()) newErrors.name = 'Name is required';
+        if (!formData.subscriptionType) newErrors.subscriptionType = 'Type is required';
+
+        // Commission rates validation (0-100)
+        if (formData.commissionPaymentRate < 0 || formData.commissionPaymentRate > 1) newErrors.commissionPaymentRate = 'Rate must be 0-1';
+        if (formData.commissionFixedRate < 0 || formData.commissionFixedRate > 1) newErrors.commissionFixedRate = 'Rate must be 0-1';
+        if (formData.commissionFreeshipRate < 0 || formData.commissionFreeshipRate > 1) newErrors.commissionFreeshipRate = 'Rate must be 0-1';
+        if (formData.commissionVoucherRate < 0 || formData.commissionVoucherRate > 1) newErrors.commissionVoucherRate = 'Rate must be 0-1';
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
+    const handleInputChange = (field, value) => {
+        setFormData(prev => ({ ...prev, [field]: value }));
+        if (errors[field]) setErrors(prev => ({ ...prev, [field]: null }));
+    };
 
     useEffect(() => {
         fetchPlans();
@@ -195,10 +218,7 @@ const SubscriptionPlanManagementPage = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (!formData.code || !formData.name) {
-            Swal.fire('Error!', 'Code and Name are required.', 'error');
-            return;
-        }
+        if (!validate()) return;
 
         try {
             if (editingPlan) {
@@ -546,25 +566,25 @@ const SubscriptionPlanManagementPage = () => {
                                             <label>Code *</label>
                                             <input
                                                 type="text"
-                                                className="form-input"
+                                                className={`form-input ${errors.code ? 'error' : ''}`}
                                                 value={formData.code}
-                                                onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                                                required
+                                                onChange={(e) => handleInputChange('code', e.target.value.toUpperCase())}
                                                 disabled={!!editingPlan}
-                                                placeholder="VD: FREESHIP_XTRA"
+                                                placeholder="e.g. FREESHIP_XTRA"
                                             />
+                                            {errors.code && <span className="error-message">{errors.code}</span>}
                                         </div>
 
                                         <div className="form-group">
                                             <label>Name *</label>
                                             <input
                                                 type="text"
-                                                className="form-input"
+                                                className={`form-input ${errors.name ? 'error' : ''}`}
                                                 value={formData.name}
-                                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                                required
-                                                placeholder="VD: Freeship Xtra"
+                                                onChange={(e) => handleInputChange('name', e.target.value)}
+                                                placeholder="e.g. Freeship Xtra"
                                             />
+                                            {errors.name && <span className="error-message">{errors.name}</span>}
                                         </div>
 
                                         <div className="form-group full-width">
@@ -573,23 +593,23 @@ const SubscriptionPlanManagementPage = () => {
                                                 className="form-input"
                                                 rows="3"
                                                 value={formData.description}
-                                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                                placeholder="Mô tả gói đăng ký..."
+                                                onChange={(e) => handleInputChange('description', e.target.value)}
+                                                placeholder="Subscription plan description..."
                                             />
                                         </div>
 
                                         <div className="form-group">
                                             <label>Type *</label>
                                             <select
-                                                className="form-input"
+                                                className={`form-input ${errors.subscriptionType ? 'error' : ''}`}
                                                 value={formData.subscriptionType}
-                                                onChange={(e) => setFormData({ ...formData, subscriptionType: e.target.value })}
-                                                required
+                                                onChange={(e) => handleInputChange('subscriptionType', e.target.value)}
                                             >
                                                 <option value="FREESHIP_XTRA">Freeship Xtra</option>
                                                 <option value="VOUCHER_XTRA">Voucher Xtra</option>
                                                 <option value="BOTH">Both</option>
                                             </select>
+                                            {errors.subscriptionType && <span className="error-message">{errors.subscriptionType}</span>}
                                         </div>
 
                                         <div className="form-group">
@@ -598,7 +618,7 @@ const SubscriptionPlanManagementPage = () => {
                                                 type="color"
                                                 className="form-input"
                                                 value={formData.colorHex}
-                                                onChange={(e) => setFormData({ ...formData, colorHex: e.target.value })}
+                                                onChange={(e) => handleInputChange('colorHex', e.target.value)}
                                             />
                                         </div>
 
@@ -608,8 +628,8 @@ const SubscriptionPlanManagementPage = () => {
                                                 type="text"
                                                 className="form-input"
                                                 value={formData.icon}
-                                                onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
-                                                placeholder="VD: truck, ticket-alt"
+                                                onChange={(e) => handleInputChange('icon', e.target.value)}
+                                                placeholder="e.g. truck, ticket-alt"
                                             />
                                         </div>
 
@@ -622,72 +642,60 @@ const SubscriptionPlanManagementPage = () => {
                                             <label>Payment Rate (%) *</label>
                                             <input
                                                 type="number"
-                                                className="form-input"
+                                                className={`form-input ${errors.commissionPaymentRate ? 'error' : ''}`}
                                                 value={(formData.commissionPaymentRate * 100).toFixed(2)}
-                                                onChange={(e) => setFormData({
-                                                    ...formData,
-                                                    commissionPaymentRate: parseFloat(e.target.value) / 100
-                                                })}
+                                                onChange={(e) => handleInputChange('commissionPaymentRate', parseFloat(e.target.value) / 100)}
                                                 step="0.01"
                                                 min="0"
                                                 max="100"
-                                                required
                                             />
+                                            {errors.commissionPaymentRate && <span className="error-message">{errors.commissionPaymentRate}</span>}
                                         </div>
 
                                         <div className="form-group">
                                             <label>Fixed Rate (%) *</label>
                                             <input
                                                 type="number"
-                                                className="form-input"
+                                                className={`form-input ${errors.commissionFixedRate ? 'error' : ''}`}
                                                 value={(formData.commissionFixedRate * 100).toFixed(2)}
-                                                onChange={(e) => setFormData({
-                                                    ...formData,
-                                                    commissionFixedRate: parseFloat(e.target.value) / 100
-                                                })}
+                                                onChange={(e) => handleInputChange('commissionFixedRate', parseFloat(e.target.value) / 100)}
                                                 step="0.01"
                                                 min="0"
                                                 max="100"
-                                                required
                                             />
+                                            {errors.commissionFixedRate && <span className="error-message">{errors.commissionFixedRate}</span>}
                                         </div>
 
                                         <div className="form-group">
                                             <label>Freeship Rate (%) *</label>
                                             <input
                                                 type="number"
-                                                className="form-input"
+                                                className={`form-input ${errors.commissionFreeshipRate ? 'error' : ''}`}
                                                 value={(formData.commissionFreeshipRate * 100).toFixed(2)}
-                                                onChange={(e) => setFormData({
-                                                    ...formData,
-                                                    commissionFreeshipRate: parseFloat(e.target.value) / 100
-                                                })}
+                                                onChange={(e) => handleInputChange('commissionFreeshipRate', parseFloat(e.target.value) / 100)}
                                                 step="0.01"
                                                 min="0"
                                                 max="100"
-                                                required
                                             />
+                                            {errors.commissionFreeshipRate && <span className="error-message">{errors.commissionFreeshipRate}</span>}
                                         </div>
 
                                         <div className="form-group">
                                             <label>Voucher Rate (%) *</label>
                                             <input
                                                 type="number"
-                                                className="form-input"
+                                                className={`form-input ${errors.commissionVoucherRate ? 'error' : ''}`}
                                                 value={(formData.commissionVoucherRate * 100).toFixed(2)}
-                                                onChange={(e) => setFormData({
-                                                    ...formData,
-                                                    commissionVoucherRate: parseFloat(e.target.value) / 100
-                                                })}
+                                                onChange={(e) => handleInputChange('commissionVoucherRate', parseFloat(e.target.value) / 100)}
                                                 step="0.01"
                                                 min="0"
                                                 max="100"
-                                                required
                                             />
+                                            {errors.commissionVoucherRate && <span className="error-message">{errors.commissionVoucherRate}</span>}
                                         </div>
 
                                         <div className="form-group">
-                                            <label>Voucher Max Per Item (VNĐ)</label>
+                                            <label>Voucher Max Per Item (VND)</label>
                                             <input
                                                 type="number"
                                                 className="form-input"
@@ -776,9 +784,9 @@ const SubscriptionPlanManagementPage = () => {
                             )}
                         </form>
                     </div>
-                </div>
+                </div >
             )}
-        </div>
+        </div >
     );
 };
 

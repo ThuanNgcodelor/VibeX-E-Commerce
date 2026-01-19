@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { toggleUserActive, getAllUser, updateUser } from "../../api/user";
+
+import "../../assets/admin/css/Validation.css"; // Import shared validation styles
 import Swal from "sweetalert2";
 import '../../assets/admin/css/UserManagement.css';
 
@@ -114,17 +116,16 @@ const DataTablesPage = () => {
   const confirmToggleActive = async (user) => {
     const isActive = user.active === "ACTIVE";
     const action = isActive ? "lock" : "unlock";
-    const actionVi = isActive ? "khóa" : "mở khóa";
 
     const result = await Swal.fire({
-      title: `${actionVi.charAt(0).toUpperCase() + actionVi.slice(1)} tài khoản?`,
-      text: `Bạn có chắc muốn ${actionVi} tài khoản "${user.email}"?`,
+      title: `${isActive ? "Lock" : "Unlock"} account?`,
+      text: `Are you sure you want to ${action} the account "${user.email}"?`,
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: isActive ? '#dc3545' : '#28a745',
       cancelButtonColor: '#6c757d',
-      confirmButtonText: `Đồng ý ${actionVi}`,
-      cancelButtonText: 'Hủy'
+      confirmButtonText: `Yes, ${action} it`,
+      cancelButtonText: 'Cancel'
     });
 
     if (result.isConfirmed) {
@@ -153,15 +154,50 @@ const DataTablesPage = () => {
       setUsers((prev) =>
         prev.map((u) => (u.id === id ? updatedUser : u))
       );
-      const newStatus = wasActive ? "khóa" : "mở khóa";
-      Swal.fire('Thành công!', `Tài khoản đã được ${newStatus}.`, 'success');
+      const actionPast = wasActive ? "locked" : "unlocked";
+      Swal.fire('Success!', `Account has been ${actionPast}.`, 'success');
     } catch (err) {
       console.error("Toggle active failed:", err);
-      Swal.fire("Lỗi!", `Không thể ${wasActive ? "khóa" : "mở khóa"} tài khoản.`, "error");
+      Swal.fire("Error!", `Failed to ${wasActive ? "lock" : "unlock"} account.`, "error");
     }
   };
 
+  const validate = () => {
+    let tempErrors = {};
+    let isValid = true;
+
+    if (!form.firstName) {
+      tempErrors.firstName = "First name is required.";
+      isValid = false;
+    }
+    if (!form.lastName) {
+      tempErrors.lastName = "Last name is required.";
+      isValid = false;
+    }
+    if (!form.username) {
+      tempErrors.username = "Username is required.";
+      isValid = false;
+    }
+    if (!form.email) {
+      tempErrors.email = "Email is required.";
+      isValid = false;
+    } else if (!/\S+@\S+\.\S+/.test(form.email)) {
+      tempErrors.email = "Email is not valid.";
+      isValid = false;
+    }
+    if (form.phoneNumber && !/^\d{10,15}$/.test(form.phoneNumber)) {
+      tempErrors.phoneNumber = "Phone number is not valid.";
+      isValid = false;
+    }
+    // Add more validation rules as needed
+
+    setErrors(tempErrors);
+    return isValid;
+  };
+
   const handleSave = async () => {
+    if (!validate()) return;
+
     try {
       const payload = {
         id: form.id,
@@ -414,47 +450,52 @@ const DataTablesPage = () => {
                     disabled
                   />
                 </div>
-
                 <div className="form-group">
-                  <label>Username</label>
+                  <label>Username *</label>
                   <input
                     type="text"
-                    className="form-input"
+                    className={`form-input ${errors.username ? 'error' : ''}`}
                     value={form.username}
-                    onChange={(e) => setForm({ ...form, username: e.target.value })}
+                    onChange={(e) => handleInputChange('username', e.target.value)}
                   />
+                  {errors.username && <span className="error-message">{errors.username}</span>}
                 </div>
-
-                <div className="form-group">
-                  <label>First Name</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={form.firstName}
-                    onChange={(e) => setForm({ ...form, firstName: e.target.value })}
-                  />
+                <div className="row">
+                  <div className="col-6">
+                    <div className="form-group">
+                      <label>First Name *</label>
+                      <input
+                        type="text"
+                        className={`form-input ${errors.firstName ? 'error' : ''}`}
+                        value={form.firstName}
+                        onChange={(e) => handleInputChange('firstName', e.target.value)}
+                      />
+                      {errors.firstName && <span className="error-message">{errors.firstName}</span>}
+                    </div>
+                  </div>
+                  <div className="col-6">
+                    <div className="form-group">
+                      <label>Last Name *</label>
+                      <input
+                        type="text"
+                        className={`form-input ${errors.lastName ? 'error' : ''}`}
+                        value={form.lastName}
+                        onChange={(e) => handleInputChange('lastName', e.target.value)}
+                      />
+                      {errors.lastName && <span className="error-message">{errors.lastName}</span>}
+                    </div>
+                  </div>
                 </div>
-
-                <div className="form-group">
-                  <label>Last Name</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={form.lastName}
-                    onChange={(e) => setForm({ ...form, lastName: e.target.value })}
-                  />
-                </div>
-
                 <div className="form-group">
                   <label>Phone Number</label>
                   <input
-                    type="tel"
-                    className="form-input"
+                    type="text"
+                    className={`form-input ${errors.phoneNumber ? 'error' : ''}`}
                     value={form.phoneNumber}
-                    onChange={(e) => setForm({ ...form, phoneNumber: e.target.value })}
+                    onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
                   />
+                  {errors.phoneNumber && <span className="error-message">{errors.phoneNumber}</span>}
                 </div>
-
                 <div className="form-group">
                   <label>Gender</label>
                   <select
