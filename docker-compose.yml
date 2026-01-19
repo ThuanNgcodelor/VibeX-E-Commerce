@@ -254,6 +254,7 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/shopee
       - SPRING_DATASOURCE_USERNAME=sa
       - SPRING_DATASOURCE_PASSWORD=Thuan@417
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       # ===== PAYMENT URLs (Change for production) =====
       - VNPAY_RETURN_URL=http://localhost/payment/vnpay/return
       - MOMO_RETURN_URL=http://localhost/payment/momo/return
