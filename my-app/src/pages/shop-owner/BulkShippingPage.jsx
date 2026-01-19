@@ -28,6 +28,46 @@ const GHN_STATUS_MAP = {
     'cancel': { titleKey: 'shopOwner.manageOrder.ghnStatus.cancel', color: '#f44336' }
 };
 
+// Status Tab Groups for organized UI
+const STATUS_TAB_GROUPS = {
+    processing: {
+        label: 'shopOwner.manageOrder.tabGroups.processing',
+        icon: '📦',
+        statuses: ['PENDING', 'CONFIRMED']
+    },
+    shipping: {
+        label: 'shopOwner.manageOrder.tabGroups.shipping',
+        icon: '🚚',
+        statuses: ['READY_TO_SHIP', 'SHIPPED']
+    },
+    completed: {
+        label: 'shopOwner.manageOrder.tabGroups.completed',
+        icon: '✅',
+        statuses: ['DELIVERED', 'COMPLETED']
+    },
+    issues: {
+        label: 'shopOwner.manageOrder.tabGroups.issues',
+        icon: '⚠️',
+        statuses: ['CANCELLED', 'RETURNED']
+    }
+};
+
+// GHN sub-statuses for SHIPPED orders - helps filter problematic orders
+const GHN_SHIPPED_SUB_STATUSES = {
+    all: { label: 'shopOwner.manageOrder.ghnSubFilter.all', icon: '📋' },
+    in_transit: {
+        label: 'shopOwner.manageOrder.ghnSubFilter.inTransit',
+        icon: '🛵',
+        statuses: ['PICKED', 'STORING', 'TRANSPORTING', 'SORTING', 'DELIVERING', 'MONEY_COLLECT_DELIVERING']
+    },
+    attention: {
+        label: 'shopOwner.manageOrder.ghnSubFilter.attention',
+        icon: '⚠️',
+        statuses: ['DELIVERY_FAIL', 'WAITING_TO_RETURN'],
+        badgeClass: 'bg-danger'
+    }
+};
+
 // Format datetime helper
 const formatTrackingTime = (ts) => {
     if (!ts) return '-';
@@ -69,6 +109,7 @@ export default function BulkShippingPage() {
     const [usernames, setUsernames] = useState({});
     const [selectedOrders, setSelectedOrders] = useState(new Set());
     const [bulkStatus, setBulkStatus] = useState('');
+    const [ghnSubFilter, setGhnSubFilter] = useState('all'); // For filtering SHIPPED orders by GHN sub-status
 
     const [imageUrls, setImageUrls] = useState({});
     const [productDetails, setProductDetails] = useState({}); // Store fetched product info (name, size)
@@ -941,7 +982,7 @@ export default function BulkShippingPage() {
                             <input
                                 type="text"
                                 className="form-control"
-                                placeholder="Tìm theo mã đơn..."
+                                placeholder="Find by order code..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
@@ -956,27 +997,130 @@ export default function BulkShippingPage() {
                                 </button>
                             )}
                         </div>
-                        <div className="search-filter">
-                            <select
-                                className="form-select"
-                                value={statusFilter}
-                                onChange={(e) => {
-                                    setStatusFilter(e.target.value);
-                                    setCurrentPage(1);
-                                    setSearchResults(null);
-                                }}
-                                style={{ width: '180px' }}
-                            >
-                                <option value="PENDING">{t('common.status.pending')}</option>
-                                <option value="CONFIRMED">{t('common.status.confirmed')}</option>
-                                <option value="READY_TO_SHIP">{t('common.status.readyToShip', 'Sẵn sàng giao')}</option>
-                                <option value="SHIPPED">{t('common.status.shipped')}</option>
-                                <option value="DELIVERED">{t('common.status.delivered')}</option>
-                                <option value="COMPLETED">{t('common.status.completed')}</option>
-                                <option value="CANCELLED">{t('common.status.cancelled')}</option>
-                                <option value="RETURNED">{t('common.status.returned')}</option>
-                            </select>
+                    </div>
+                </div>
+
+                {/* ===== GROUPED TAB BAR UI ===== */}
+                <div className="status-tabs-container" style={{
+                    background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
+                    borderRadius: '12px',
+                    padding: '16px',
+                    marginBottom: '20px',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+                }}>
+                    {/* Tab Groups Navigation */}
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
+                        {Object.entries(STATUS_TAB_GROUPS).map(([groupKey, group]) => (
+                            <div key={groupKey} className="tab-group" style={{
+                                display: 'flex',
+                                gap: '4px',
+                                padding: '4px',
+                                background: '#fff',
+                                borderRadius: '8px',
+                                boxShadow: '0 1px 3px rgba(0,0,0,0.08)'
+                            }}>
+                                {/* Group Label */}
+                                <span style={{
+                                    padding: '6px 10px',
+                                    fontSize: '12px',
+                                    color: '#6c757d',
+                                    fontWeight: '500',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px'
+                                }}>
+                                    <span>{group.icon}</span>
+                                    <span>{t(group.label, groupKey)}</span>
+                                </span>
+                                {/* Status Tabs in Group */}
+                                {group.statuses.map(status => (
+                                    <button
+                                        key={status}
+                                        onClick={() => {
+                                            setStatusFilter(status);
+                                            setCurrentPage(1);
+                                            setSearchResults(null);
+                                            setGhnSubFilter('all'); // Reset sub-filter when switching tabs
+                                        }}
+                                        className={`status-tab-btn ${statusFilter === status ? 'active' : ''}`}
+                                        style={{
+                                            padding: '6px 14px',
+                                            fontSize: '13px',
+                                            fontWeight: statusFilter === status ? '600' : '400',
+                                            border: 'none',
+                                            borderRadius: '6px',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s ease',
+                                            background: statusFilter === status
+                                                ? (groupKey === 'issues' ? '#dc3545' : '#ee4d2d')
+                                                : 'transparent',
+                                            color: statusFilter === status ? '#fff' : '#495057',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '6px'
+                                        }}
+                                    >
+                                        {t(`common.status.${status.toLowerCase()}`, status)}
+                                    </button>
+                                ))}
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* GHN Sub-filter for SHIPPED tab */}
+                    {statusFilter === 'SHIPPED' && (
+                        <div className="ghn-sub-filter" style={{
+                            display: 'flex',
+                            gap: '8px',
+                            padding: '10px 12px',
+                            background: '#fff8f5',
+                            borderRadius: '8px',
+                            border: '1px solid #ffe4dd',
+                            alignItems: 'center'
+                        }}>
+                            <span style={{ fontSize: '13px', color: '#666', fontWeight: '500' }}>
+                                🚚 {t('shopOwner.manageOrder.ghnSubFilter.label', 'GHN Status')}:
+                            </span>
+                            {Object.entries(GHN_SHIPPED_SUB_STATUSES).map(([key, config]) => (
+                                <button
+                                    key={key}
+                                    onClick={() => setGhnSubFilter(key)}
+                                    className={`ghn-sub-btn ${ghnSubFilter === key ? 'active' : ''}`}
+                                    style={{
+                                        padding: '4px 12px',
+                                        fontSize: '12px',
+                                        fontWeight: ghnSubFilter === key ? '600' : '400',
+                                        border: ghnSubFilter === key ? 'none' : '1px solid #ddd',
+                                        borderRadius: '20px',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s ease',
+                                        background: ghnSubFilter === key
+                                            ? (key === 'attention' ? '#dc3545' : '#ee4d2d')
+                                            : '#fff',
+                                        color: ghnSubFilter === key ? '#fff' : '#495057',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '4px'
+                                    }}
+                                >
+                                    <span>{config.icon}</span>
+                                    <span>{t(config.label, key)}</span>
+                                    {key === 'attention' && (
+                                        <span className="badge bg-warning text-dark" style={{
+                                            fontSize: '10px',
+                                            marginLeft: '4px',
+                                            display: ghnSubFilter === key ? 'none' : 'inline'
+                                        }}>!</span>
+                                    )}
+                                </button>
+                            ))}
                         </div>
+                    )}
+                </div>
+
+                {/* Action Buttons Row */}
+                <div className="table-header" style={{ borderTop: 'none', paddingTop: 0, marginBottom: '10px' }}>
+                    <div className="table-actions" style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', width: '100%', justifyContent: 'flex-end' }}>
                         {/* Select All Across Pages Button */}
                         <button
                             className={`btn btn-outline-primary d-flex align-items-center gap-2 ${selectedOrders.size === orders.length && orders.length > 0 ? 'active' : ''}`}

@@ -1,5 +1,19 @@
 package com.example.paymentservice.service;
 
+import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
+import java.util.TimeZone;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+
 import com.example.paymentservice.config.VnpayProperties;
 import com.example.paymentservice.dto.CreateVnpayPaymentRequest;
 import com.example.paymentservice.dto.PaymentEvent;
@@ -10,18 +24,10 @@ import com.example.paymentservice.model.Payment;
 import com.example.paymentservice.repository.PaymentRepository;
 import com.example.paymentservice.util.VnpayUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
-
-import java.math.BigDecimal;
-import java.text.SimpleDateFormat;
-import java.time.Instant;
-import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -49,8 +55,12 @@ public class VnpayPaymentService {
             orderInfo = orderInfo + " - OrderId: " + req.getOrderId();
         }
 
-        Calendar cld = Calendar.getInstance(TimeZone.getTimeZone("Etc/GMT+7"));
+        // Use Asia/Ho_Chi_Minh timezone (GMT+7) - VNPay requires Vietnam timezone
+        // Note: "Etc/GMT+7" is actually UTC-7 (opposite!), so we use explicit timezone
+        TimeZone vnTimezone = TimeZone.getTimeZone("Asia/Ho_Chi_Minh");
+        Calendar cld = Calendar.getInstance(vnTimezone);
         SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss");
+        formatter.setTimeZone(vnTimezone); // Ensure formatter also uses Vietnam timezone
         String vnpCreateDate = formatter.format(cld.getTime());
         cld.add(Calendar.MINUTE, 15);
         String vnpExpireDate = formatter.format(cld.getTime());

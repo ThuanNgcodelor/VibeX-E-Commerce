@@ -781,6 +781,18 @@
                 "returning": "Returning",
                 "returned": "Returned",
                 "cancel": "Cancelled"
+            },
+            "tabGroups": {
+                "processing": "Processing",
+                "shipping": "Shipping",
+                "completed": "Completed",
+                "issues": "Issues"
+            },
+            "ghnSubFilter": {
+                "label": "GHN Status",
+                "all": "All",
+                "inTransit": "In Transit",
+                "attention": "Needs Attention"
             }
         },
         "returnOrder": {

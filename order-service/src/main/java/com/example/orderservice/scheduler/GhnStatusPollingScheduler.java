@@ -1,16 +1,18 @@
 package com.example.orderservice.scheduler;
 
+import java.util.List;
+
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+
 import com.example.orderservice.client.GhnApiClient;
 import com.example.orderservice.dto.ghn.GhnOrderInfoResponse;
 import com.example.orderservice.model.ShippingOrder;
 import com.example.orderservice.repository.ShippingOrderRepository;
 import com.example.orderservice.service.OrderService;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Component;
-
-import java.util.List;
 
 /**
  * Scheduler that polls GHN API every 30 seconds to get shipping status updates.
@@ -26,9 +28,9 @@ public class GhnStatusPollingScheduler {
     private final OrderService orderService;
     
     /**
-     * Poll GHN API every 30 seconds (30000 ms) for active shipping orders
+     * Poll GHN API every 30 seconds (10000 ms) for active shipping orders
      */
-    @Scheduled(fixedRate = 15000)
+    @Scheduled(fixedRate = 10000)
     public void pollGhnStatus() {
         try {
             List<ShippingOrder> activeOrders = shippingOrderRepository.findActiveShippingOrders();

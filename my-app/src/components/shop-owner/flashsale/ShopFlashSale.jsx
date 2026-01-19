@@ -27,7 +27,7 @@ const ShopFlashSale = () => {
     useEffect(() => {
         const token = Cookies.get('accessToken');
         if (!token) {
-            alert("Bạn chưa đăng nhập. Vui lòng đăng nhập lại!");
+            alert("You need to login first!");
             return;
         }
         fetchSessions();
@@ -50,18 +50,32 @@ const ShopFlashSale = () => {
     const fetchSessions = async () => {
         try {
             const data = await flashSaleAPI.getAllSessions();
-            setSessions(data.filter(s => s.status === 'ACTIVE' || new Date(s.endTime) > new Date()));
+            // Ensure data is an array before filtering
+            if (Array.isArray(data)) {
+                setSessions(data.filter(s => s.status === 'ACTIVE' || new Date(s.endTime) > new Date()));
+            } else {
+                console.error("Sessions data is not an array:", data);
+                setSessions([]);
+            }
         } catch (error) {
-            console.error("Failed to fetch sessions");
+            console.error("Failed to fetch sessions", error);
+            setSessions([]);
         }
     };
 
     const fetchMyRegistrations = async () => {
         try {
             const data = await flashSaleAPI.getMyRegistrations();
-            setMyRegistrations(data);
+            // Ensure data is an array before setting
+            if (Array.isArray(data)) {
+                setMyRegistrations(data);
+            } else {
+                console.error("Registrations data is not an array:", data);
+                setMyRegistrations([]);
+            }
         } catch (error) {
-            console.error("Failed to fetch registrations");
+            console.error("Failed to fetch registrations", error);
+            setMyRegistrations([]);
         }
     };
 
@@ -73,9 +87,12 @@ const ShopFlashSale = () => {
             const response = await axios.get(`${API_BASE_URL}/v1/stock/product/listPageShopOwner?pageSize=1000&pageNo=1`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            setProducts(response.data.content || []);
+            // Ensure response.data.content is an array
+            const content = response.data?.content;
+            setProducts(Array.isArray(content) ? content : []);
         } catch (error) {
             console.error("Failed to fetch products", error);
+            setProducts([]);
         }
     };
 
@@ -100,7 +117,7 @@ const ShopFlashSale = () => {
         // Validate prices
         for (const item of sizesPayload) {
             if (!item.salePrice || item.salePrice <= 0) {
-                alert("Vui lòng nhập giá Flash Sale hợp lệ cho tất cả các size đã chọn số lượng.");
+                alert("Please enter a valid flash sale price for all selected sizes.");
                 return;
             }
         }
@@ -181,12 +198,16 @@ const ShopFlashSale = () => {
                                             onChange={e => setSelectedSessionId(e.target.value)}
                                             required
                                         >
+
+
                                             <option value="">{t('shopOwner.flashSale.selectSessionPlaceholder')}</option>
                                             {sessions.map(s => (
                                                 <option key={s.id} value={s.id}>
                                                     {s.name} ({new Date(s.startTime).toLocaleString('vi-VN')} - {new Date(s.endTime).toLocaleString('vi-VN')})
                                                 </option>
                                             ))}
+
+
                                         </select>
                                     </div>
 
@@ -241,8 +262,8 @@ const ShopFlashSale = () => {
                                                     <thead>
                                                         <tr>
                                                             <th style={{ width: '15%' }}>Size</th>
-                                                            <th style={{ width: '15%' }}>Kho hiện tại</th>
-                                                            <th style={{ width: '20%' }}>Giá gốc (+Mod)</th>
+                                                            <th style={{ width: '15%' }}>Current Stock</th>
+                                                            <th style={{ width: '20%' }}>Original Price (+Mod)</th>
                                                             <th style={{ width: '20%' }}>Flash Sale Qty</th>
                                                             <th style={{ width: '30%' }}>Flash Sale Price</th>
                                                         </tr>
@@ -300,9 +321,9 @@ const ShopFlashSale = () => {
                                                                         {sizeConfig[size.id]?.salePrice > 0 && (
                                                                             <div style={{ fontSize: '10px' }}>
                                                                                 {sizeConfig[size.id]?.salePrice >= originalPrice ? (
-                                                                                    <span className="text-danger">Cao hơn giá gốc!</span>
+                                                                                    <span className="text-danger">Higher than original price!</span>
                                                                                 ) : (
-                                                                                    <span className="text-success">Giảm {Math.round((1 - sizeConfig[size.id].salePrice / originalPrice) * 100)}%</span>
+                                                                                    <span className="text-success">Discount {Math.round((1 - sizeConfig[size.id].salePrice / originalPrice) * 100)}%</span>
                                                                                 )}
                                                                             </div>
                                                                         )}
@@ -313,7 +334,7 @@ const ShopFlashSale = () => {
                                                     </tbody>
                                                 </table>
                                             </div>
-                                            <small className="text-muted">Nhập số lượng và giá bán Flash Sale cho từng size.</small>
+                                            <small className="text-muted">Enter flash sale quantity and price for each size.</small>
                                         </div>
                                     )}
 
