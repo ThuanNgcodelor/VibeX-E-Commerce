@@ -27,41 +27,35 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         // Register STOMP endpoint for WebSocket connection
-        // CORS: Set specific origins to match Gateway config (avoid duplicate headers)
+        // CORS: Allow all origins to support Docker and various deployments
+        String[] allowedOrigins = {
+            "http://localhost",
+            "http://localhost:5173",
+            "http://localhost:80",
+            "https://localhost",
+            "http://shopee-fake.id.vn",
+            "https://shopee-fake.id.vn",
+            "http://www.shopee-fake.id.vn",
+            "https://www.shopee-fake.id.vn",
+            "*" // Allow all for development/Docker
+        };
+        
         registry.addEndpoint("/ws/notifications")
-                .setAllowedOriginPatterns(
-                    "http://localhost:5173",
-                    "http://shopee-fake.id.vn",
-                    "http://www.shopee-fake.id.vn"
-                )
+                .setAllowedOriginPatterns(allowedOrigins)
                 .withSockJS(); // Fallback for browsers that don't support WebSocket
 
         // Also support raw WebSocket without SockJS
         registry.addEndpoint("/ws/notifications")
-                .setAllowedOriginPatterns(
-                    "http://localhost:5173",
-                    "http://shopee-fake.id.vn",
-                    "http://www.shopee-fake.id.vn"
-                );
+                .setAllowedOriginPatterns(allowedOrigins);
         
         // NEW: Livestream WebSocket endpoint with SockJS
         registry.addEndpoint("/ws/live")
-                .setAllowedOriginPatterns(
-                    "http://localhost:5173",
-                    "http://shopee-fake.id.vn",
-                    "http://www.shopee-fake.id.vn",
-                    "*" // Allow all for development
-                )
+                .setAllowedOriginPatterns(allowedOrigins)
                 .withSockJS();
         
         // NEW: Livestream WebSocket endpoint without SockJS
         registry.addEndpoint("/ws/live")
-                .setAllowedOriginPatterns(
-                    "http://localhost:5173",
-                    "http://shopee-fake.id.vn",
-                    "http://www.shopee-fake.id.vn",
-                    "*"
-                );
+                .setAllowedOriginPatterns(allowedOrigins);
     }
 
     @Override

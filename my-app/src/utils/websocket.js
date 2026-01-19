@@ -35,32 +35,18 @@ const getToken = () => {
   return '';
 };
 
-/**
- * Xác định WebSocket URL dựa trên môi trường
- * 
- * Logic giống với useWebSocketNotification.js:
- * - Production: Đi qua reverse proxy (/api/ws/notifications)
- * - Development: Kết nối trực tiếp tới Gateway (localhost:8080)
- *
- * - Gateway xử lý authentication (verify JWT)
- * - Gateway route request tới đúng service (notification-service)
- * - Đảm bảo security và consistency
- * 
- * @returns {string} WebSocket URL
- */
+
 const getWebSocketUrl = () => {
-  if (process.env.NODE_ENV === 'production' || window.location.hostname !== 'localhost') {
-    // Production: Sử dụng protocol và host hiện tại
-    // Ví dụ: https://shopee-fake.id.vn/api/ws/notifications
-    const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
-    const host = window.location.host;
-    // Frontend chạy ở root, nhưng API được proxy qua /api
-    return `${protocol}//${host}/api/ws/notifications`;
-  } else {
-    // Development: Kết nối trực tiếp tới Gateway
-    // Gateway chạy ở localhost:8080
-    return 'http://localhost/ws/notifications';
-  }
+  // Trong môi trường Docker, gateway là http://gateway:8080
+  // Từ browser, gọi qua nginx proxy tại localhost hoặc domain
+  // Nginx cần được cấu hình để proxy /ws/notifications tới gateway
+
+  const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
+  const host = window.location.host;
+
+  // WebSocket path đi qua nginx proxy, nginx sẽ route /ws/** tới gateway
+  // Gateway có route /ws/notifications/** -> notification-service
+  return `${protocol}//${host}/ws/notifications`;
 };
 
 /**
@@ -109,7 +95,6 @@ export const connectWebSocket = (onMessage, onError, userId = null) => {
          * Đây là nơi subscribe vào các topics
          */
         onConnect: (frame) => {
-          console.log('WebSocket connected via Gateway:', frame);
           reconnectAttempts = 0;  // Reset reconnect counter
           stompClient = client;    // Lưu client vào global variable
 
@@ -123,7 +108,6 @@ export const connectWebSocket = (onMessage, onError, userId = null) => {
           const subscribeUserId = userId;
           if (subscribeUserId) {
             client.subscribe(`/topic/user/${subscribeUserId}/conversations`, (message) => {
-              console.log('Received conversation update:', message.body);
               if (onMessage) {
                 try {
                   // Parse JSON và gọi callback
@@ -213,7 +197,6 @@ export const subscribeToConversation = (conversationId, callback) => {
     }
   });
 
-  console.log(`Subscribed to conversation messages for conversation: ${conversationId}`);
 
   // Return subscription để có thể unsubscribe sau
   return subscription;
@@ -251,7 +234,6 @@ export const subscribeToConversations = (userId, callback) => {
     }
   });
 
-  console.log(`Subscribed to conversations for user: ${userId}`);
   return subscription;
 };
 
@@ -284,7 +266,6 @@ export const disconnectWebSocket = () => {
 const handleReconnect = (onMessage, onError) => {
   if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
     reconnectAttempts++;
-    console.log(`Reconnecting... Attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}`);
 
     // Exponential backoff: đợi 5s, 10s, 15s, 20s, 25s
     setTimeout(() => {

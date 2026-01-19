@@ -123,8 +123,8 @@ export default function AddProductPage() {
                 handleDescriptionChange(response.result); // Set ReactQuill content
                 Swal.fire({
                     icon: 'success',
-                    title: 'Thành công',
-                    text: 'Mô tả đã được tạo thành công bởi AI!',
+                    title: 'Success',
+                    text: 'Description has been generated successfully by AI!',
                     timer: 2000,
                     showConfirmButton: false
                 });
@@ -443,7 +443,6 @@ export default function AddProductPage() {
                 price: parseFloat(formData.price),
                 originalPrice: parseFloat(formData.originalPrice) || parseFloat(formData.price),
                 discountPercent: parseFloat(formData.discountPercent) || 0,
-                // Category is optional: send null/undefined if not selected
                 categoryId: formData.categoryId || null,
                 status: (formData.status || 'IN_STOCK').toUpperCase(),
                 sizes: sizesData,
@@ -454,7 +453,7 @@ export default function AddProductPage() {
                 await updateProduct(productData, formData.images);
                 Swal.fire({
                     icon: 'success',
-                    title: 'Thành công',
+                    title: 'Success',
                     text: t('shopOwner.addProduct.productUpdated'),
                     showConfirmButton: false,
                     timer: 1500
@@ -463,7 +462,7 @@ export default function AddProductPage() {
                 await addProduct(productData, formData.images);
                 Swal.fire({
                     icon: 'success',
-                    title: 'Thành công',
+                    title: 'Success',
                     text: t('shopOwner.addProduct.productCreated'),
                     showConfirmButton: false,
                     timer: 1500
@@ -474,7 +473,7 @@ export default function AddProductPage() {
             console.error('Error creating product:', error);
             Swal.fire({
                 icon: 'error',
-                title: 'Lỗi',
+                title: 'Error',
                 text: (isEditMode ? t('shopOwner.addProduct.errorUpdating') : t('shopOwner.addProduct.errorCreating')) + error.message
             });
         } finally {

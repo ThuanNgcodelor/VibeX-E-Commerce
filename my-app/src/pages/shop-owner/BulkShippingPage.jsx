@@ -508,7 +508,7 @@ export default function BulkShippingPage() {
             } else {
                 Swal.fire({
                     icon: 'success',
-                    title: 'Thành công',
+                    title: 'Success',
                     text: message,
                     timer: 2000
                 });

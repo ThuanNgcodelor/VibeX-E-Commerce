@@ -31,7 +31,7 @@ public interface UserServiceClient {
         ResponseEntity<Map<String, Object>> addRefundToWallet(
                         @RequestBody AddRefundRequestDto request);
 
-        @GetMapping("/shop-subscriptions/internal/shop/{shopOwnerId}")
+        @GetMapping("/user/shop-subscriptions/internal/shop/{shopOwnerId}")
         ResponseEntity<ShopSubscriptionDTO> getSubscriptionByShopOwnerId(
                         @PathVariable String shopOwnerId);
 

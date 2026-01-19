@@ -308,7 +308,7 @@ export default function User() {
                                     }}
                                 >
                                     <i className="fa fa-coins" style={{ width: '20px', textAlign: 'center', color: '#ffc107' }}></i>
-                                    {t('user.shopeeCoins')}
+                                    Vibe Coins
                                 </button>
 
                                 <button

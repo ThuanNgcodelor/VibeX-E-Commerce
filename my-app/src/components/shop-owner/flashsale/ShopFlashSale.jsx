@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import flashSaleAPI from '../../../api/flashSale/flashSaleAPI';
 import productAdminApi from '../../../api/productAdminApi';
-import '../ShopOwnerLayout.css'; // Import shared styles
+import '../ShopOwnerLayout.css';
 import Cookies from 'js-cookie';
 import { useTranslation } from 'react-i18next';
 
@@ -229,7 +229,7 @@ const ShopFlashSale = () => {
                                                     style={{ width: '60px', height: '60px', overflow: 'hidden' }}>
                                                     {selectedProductData.imageId ? (
                                                         <img
-                                                            src={`${API_BASE_URL}/v1/file-storage/get/${selectedProductData.imageId}`}
+                                                            src={`/v1/file-storage/get/${selectedProductData.imageId}`}
                                                             alt={selectedProductData.name}
                                                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                                         />

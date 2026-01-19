@@ -1,7 +1,8 @@
-import createApiInstance from '../createApiInstance';
-import { API_BASE_URL } from '../../config/config';
+import createApiInstance from "../createApiInstance";
 
-const api = createApiInstance(`${API_BASE_URL}/v1/user/ads`);
+
+const API_URL = "/v1/user/ads";
+const api = createApiInstance(API_URL);
 
 const adAPI = {
     createRequest: async (data) => {

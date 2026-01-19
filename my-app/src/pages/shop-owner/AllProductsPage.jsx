@@ -191,9 +191,6 @@ export default function AllProductsPage() {
                             objectFit: 'cover',
                             borderRadius: '6px'
                           }}
-                          onError={(e) => {
-                            e.target.src = 'https://via.placeholder.com/80';
-                          }}
                         />
                         <div>
                           <div style={{ fontWeight: '500' }}>{product.name}</div>

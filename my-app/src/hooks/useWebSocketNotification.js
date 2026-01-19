@@ -55,17 +55,11 @@ const useWebSocketNotification = (userId, isShopOwner = false) => {
      * Production: https://domain.com/api/ws/notifications (qua reverse proxy)
      */
     const getWebSocketUrl = () => {
-      if (process.env.NODE_ENV === 'production' || window.location.hostname !== 'localhost') {
-        // Production: Sử dụng protocol và host hiện tại
-        // Ví dụ: https://shopee-fake.id.vn/api/ws/notifications
-        const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
-        const host = window.location.host;
-        // Frontend chạy ở root, nhưng API được proxy qua /api
-        return `${protocol}//${host}/api/ws/notifications`;
-      } else {
-        // Development: Kết nối trực tiếp tới Gateway (localhost:8080)
-        return 'http://localhost/ws/notifications';
-      }
+      // WebSocket path đi qua nginx proxy, nginx route /ws/** tới gateway
+      // Gateway có route /ws/notifications/** -> notification-service
+      const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
+      const host = window.location.host;
+      return `${protocol}//${host}/ws/notifications`;
     };
 
     // Lấy WebSocket URL

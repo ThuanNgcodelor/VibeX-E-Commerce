@@ -466,7 +466,7 @@ export function CheckoutPage({
           // STEP 3: Create payment with order data + tempOrderId + per-shop shipping
           const payPayload = {
             amount: Math.max(1, Math.round(totalWithShipping)),
-            orderInfo: "Thanh toán đơn hàng",
+            orderInfo: "Checkout Orders",
             userId: userId,
             addressId: selectedAddressId,
             orderDataJson: JSON.stringify({
@@ -1056,7 +1056,7 @@ export function CheckoutPage({
               <span>VIBE</span>
             </div>
             <div className="checkout-logo-separator"></div>
-            <span style={{ color: '#ee4d2d', fontSize: '16px', fontWeight: 600 }}>Thanh Toán</span>
+            <span style={{ color: '#ee4d2d', fontSize: '16px', fontWeight: 600 }}>Checkout</span>
           </div>
         </div>
 
@@ -1335,12 +1335,12 @@ export function CheckoutPage({
                     />
                     <div className="checkout-payment-info">
                       <div className="checkout-payment-name">
-                        {t('checkout.wallet', 'Thanh toán qua Ví')} <span style={{ color: '#ee4d2d' }}>({formatVND(walletBalance)})</span>
+                        {t('checkout.wallet', 'Checkout with Wallet')} <span style={{ color: '#ee4d2d' }}>({formatVND(walletBalance)})</span>
                       </div>
                       <div className="checkout-payment-details">
                         {walletBalance < (subtotal + totalShippingFee - totalVoucherDiscount) ?
-                          <span style={{ color: 'red' }}>{t('checkout.insufficientBalance', 'Số dư không đủ')}</span>
-                          : t('checkout.walletDescription', 'Sử dụng số dư ví để thanh toán')}
+                          <span style={{ color: 'red' }}>{t('checkout.insufficientBalance', 'Insufficient balance')}</span>
+                          : t('checkout.walletDescription', 'Use wallet balance to pay')}
                       </div>
                     </div>
                   </div>
@@ -1379,7 +1379,7 @@ export function CheckoutPage({
                         MoMo
                       </div>
                       <div className="checkout-payment-details">
-                        {t('checkout.momoDescription', 'Thanh toán qua ví điện tử MoMo')}
+                        {t('checkout.momoDescription', 'Checkout with MoMo')}
                       </div>
                     </div>
                   </div>
@@ -1463,7 +1463,7 @@ export function CheckoutPage({
                     backgroundColor: '#fff'
                   }}>
                     <h5 style={{ margin: 0, fontWeight: 600, fontSize: '18px', color: '#333' }}>
-                      {t('checkoutPage.myAddresses', 'Địa Chỉ Của Tôi')}
+                      {t('checkoutPage.myAddresses', 'My Addresses')}
                     </h5>
                     <button
                       type="button"
@@ -1565,7 +1565,7 @@ export function CheckoutPage({
                                 }}
                                 style={{ color: '#1890ff', fontSize: '13px', textDecoration: 'none' }}
                               >
-                                {t('checkoutPage.update', 'Cập nhật')}
+                                {t('checkoutPage.update', 'Update')}
                               </a>
                             </div>
                           </div>

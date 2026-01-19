@@ -94,8 +94,9 @@ export default function ShopeeBanner() {
                 adAPI.getActiveAds('BANNER').catch(err => [])
             ]);
 
-            // Transform Ads
-            const adBanners = (adData || []).map(ad => ({
+            // Transform Ads - ensure adData is array
+            const adsArray = Array.isArray(adData) ? adData : [];
+            const adBanners = adsArray.map(ad => ({
                 id: `ad-${ad.id}`,
                 title: ad.title,
                 description: ad.description,
@@ -151,7 +152,6 @@ export default function ShopeeBanner() {
 
             console.log('Loaded banners with Random Ads:', finalData);
             setBanners(finalData);
-            await loadBannerImages(finalData);
 
         } catch (error) {
             console.error('Failed to fetch banners/ads:', error);
