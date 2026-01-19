@@ -60,9 +60,16 @@ export default function ShopAdRequest() {
         setLoading(true);
         try {
             const data = await adAPI.getShopAds(sId);
-            setAds(data);
+            // Defensive check: ensure data is array before setting state
+            if (Array.isArray(data)) {
+                setAds(data);
+            } else {
+                console.warn("[ShopAdRequest] API returned non-array data:", data);
+                setAds([]);
+            }
         } catch (error) {
             console.error("Failed to fetch my ads", error);
+            setAds([]); // Reset to empty array on error
         } finally {
             setLoading(false);
         }

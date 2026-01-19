@@ -1,31 +1,33 @@
 package com.example.stockservice.service.product;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
 import com.example.stockservice.client.FileStorageClient;
 import com.example.stockservice.dto.BatchDecreaseStockRequest;
 import com.example.stockservice.dto.ProductDto;
 import com.example.stockservice.dto.SizeDto;
 import com.example.stockservice.enums.InventoryLogType;
-import com.example.stockservice.request.SendNotificationRequest;
-import com.example.stockservice.service.category.CategoryService;
-import org.springframework.data.domain.Pageable;
 import com.example.stockservice.enums.ProductStatus;
 import com.example.stockservice.model.Product;
+import com.example.stockservice.model.Size;
 import com.example.stockservice.repository.ProductRepository;
+import com.example.stockservice.repository.SizeRepository;
+import com.example.stockservice.request.SendNotificationRequest;
 import com.example.stockservice.request.product.ProductCreateRequest;
 import com.example.stockservice.request.product.ProductUpdateRequest;
-import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
+import com.example.stockservice.service.category.CategoryService;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
-import com.example.stockservice.model.Size;
-import com.example.stockservice.repository.SizeRepository;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -379,13 +381,16 @@ public class ProductServiceImpl implements ProductService {
 
         if (request.getSizes() != null) {
             List<Size> managedSizes = toUpdate.getSizes();
+            
+            // Build a map of oldSizeName -> cartItems for migration
+            java.util.Map<String, List<com.example.stockservice.model.CartItem>> cartItemsBySizeName = new java.util.HashMap<>();
             if (managedSizes != null && !managedSizes.isEmpty()) {
-
                 for (Size size : managedSizes) {
-                    if (size.getCartItems() != null) {
+                    if (size.getCartItems() != null && !size.getCartItems().isEmpty()) {
+                        cartItemsBySizeName.put(size.getName(), new java.util.ArrayList<>(size.getCartItems()));
+                        // Temporarily detach cart items from old sizes
                         for (com.example.stockservice.model.CartItem cartItem : size.getCartItems()) {
                             cartItem.setSize(null);
-                            cartItemRepository.save(cartItem);
                         }
                     }
                 }
@@ -403,10 +408,26 @@ public class ProductServiceImpl implements ProductService {
                                 .product(toUpdate)
                                 .build())
                         .collect(Collectors.toList());
+                
+                // Save new sizes first to get their IDs
+                List<Size> savedNewSizes = sizeRepository.saveAll(newSizes);
+                
+                // Migrate cart items to new sizes with matching names
+                for (Size newSize : savedNewSizes) {
+                    List<com.example.stockservice.model.CartItem> matchingCartItems = cartItemsBySizeName.get(newSize.getName());
+                    if (matchingCartItems != null && !matchingCartItems.isEmpty()) {
+                        for (com.example.stockservice.model.CartItem cartItem : matchingCartItems) {
+                            cartItem.setSize(newSize);
+                            cartItemRepository.save(cartItem);
+                            System.out.println("[PRODUCT_UPDATE] Migrated cart item " + cartItem.getId() + " to new size: " + newSize.getName());
+                        }
+                    }
+                }
+                
                 if (managedSizes == null) {
-                    toUpdate.setSizes(newSizes);
+                    toUpdate.setSizes(savedNewSizes);
                 } else {
-                    managedSizes.addAll(newSizes);
+                    managedSizes.addAll(savedNewSizes);
                 }
             }
         }

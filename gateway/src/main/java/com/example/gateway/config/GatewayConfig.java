@@ -1,10 +1,11 @@
 package com.example.gateway.config;
 
-import com.example.gateway.filter.JwtAuthenticationFilter;
 import org.springframework.cloud.gateway.route.RouteLocator;
 import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import com.example.gateway.filter.JwtAuthenticationFilter;
 
 @Configuration
 public class GatewayConfig {
@@ -22,18 +23,9 @@ public class GatewayConfig {
                                                 .uri("lb://auth-service"))
                                 .route("auth-user-service", r -> r.path("/v1/auth/user/**")
                                                 .filters(f -> f.rewritePath("/v1/auth/user/(?<segment>.*)",
-                                                                "/v1/user/${segment}"))
+                                                "/v1/user/${segment}"))
                                                 .uri("lb://user-service"))
                                 .route("user-service", r -> r.path("/v1/user/**")
-                                                .filters(f -> f.filter(filter))
-                                                .uri("lb://user-service"))
-                                .route("shop-coin", r -> r.path("/v1/shop-coin/**")
-                                                .filters(f -> f.filter(filter))
-                                                .uri("lb://user-service"))
-                                .route("shop-subscriptions", r -> r.path("/v1/shop-subscriptions/**")
-                                                .filters(f -> f.filter(filter))
-                                                .uri("lb://user-service"))
-                                .route("wallet-service", r -> r.path("/v1/wallet/**")
                                                 .filters(f -> f.filter(filter))
                                                 .uri("lb://user-service"))
                                 .route("stock-domains", r -> r.path("/v1/stock/**")
@@ -53,7 +45,6 @@ public class GatewayConfig {
                                                 .uri("lb://payment-service"))
                                 .route("notification-websocket", r -> r.path("/ws/notifications/**")
                                                 .uri("lb://notification-service"))
-                                // Livestream WebSocket route
                                 .route("live-websocket", r -> r.path("/ws/live/**")
                                                 .uri("lb://notification-service"))
                                 .build();

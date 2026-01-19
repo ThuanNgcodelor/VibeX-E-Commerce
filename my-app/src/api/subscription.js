@@ -1,11 +1,11 @@
 import createApiInstance from "./createApiInstance";
 
 // User Service API for subscriptions
-const api = createApiInstance("/v1");
+const api = createApiInstance("/v1/user");
 
 export const getActivePlans = async () => {
     try {
-        const response = await api.get("/user/subscription-plan/active");
+        const response = await api.get("/subscription-plan/active");
         return response.data;
     } catch {
         throw new Error("Failed to fetch subscription plans");
@@ -16,7 +16,7 @@ export const getMySubscription = async (shopOwnerId) => {
     try {
         const response = await api.get(`/shop-subscriptions/shop/${shopOwnerId}`);
         return response.data;
-    } catch  {
+    } catch {
         throw new Error("Failed to fetch my subscription");
     }
 };

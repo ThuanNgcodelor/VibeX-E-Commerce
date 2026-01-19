@@ -1,7 +1,6 @@
 import createApiInstance from '../createApiInstance';
-import { API_BASE_URL } from '../../config/config';
 
-const api = createApiInstance(`${API_BASE_URL}/v1/shop-coin`);
+const api = createApiInstance(`/v1/shop-coin`);
 
 export const shopCoinAPI = {
   // Get current user's ShopCoins

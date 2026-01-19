@@ -31,6 +31,11 @@ const productAdminApi = {
         return res.data;
     },
 
+    async getProducts() {
+        const res = await api.get("/stock/product/listPageShopOwner?pageSize=1000&pageNo=1");
+        return res.data;
+    },
+
     /**
      * Lấy danh sách sản phẩm có phân trang
      * @param {Object} options - Tùy chọn phân trang

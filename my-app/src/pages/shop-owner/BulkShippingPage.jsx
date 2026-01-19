@@ -32,37 +32,37 @@ const GHN_STATUS_MAP = {
 const STATUS_TAB_GROUPS = {
     processing: {
         label: 'shopOwner.manageOrder.tabGroups.processing',
-        icon: '📦',
+        icon: 'fas fa-clock',
         statuses: ['PENDING', 'CONFIRMED']
     },
     shipping: {
         label: 'shopOwner.manageOrder.tabGroups.shipping',
-        icon: '🚚',
+        icon: 'fas fa-truck',
         statuses: ['READY_TO_SHIP', 'SHIPPED']
     },
     completed: {
         label: 'shopOwner.manageOrder.tabGroups.completed',
-        icon: '✅',
+        icon: 'fas fa-check-circle',
         statuses: ['DELIVERED', 'COMPLETED']
     },
     issues: {
         label: 'shopOwner.manageOrder.tabGroups.issues',
-        icon: '⚠️',
+        icon: 'fas fa-exclamation-triangle',
         statuses: ['CANCELLED', 'RETURNED']
     }
 };
 
 // GHN sub-statuses for SHIPPED orders - helps filter problematic orders
 const GHN_SHIPPED_SUB_STATUSES = {
-    all: { label: 'shopOwner.manageOrder.ghnSubFilter.all', icon: '📋' },
+    all: { label: 'shopOwner.manageOrder.ghnSubFilter.all', icon: 'fas fa-list' },
     in_transit: {
         label: 'shopOwner.manageOrder.ghnSubFilter.inTransit',
-        icon: '🛵',
+        icon: 'fas fa-shipping-fast',
         statuses: ['PICKED', 'STORING', 'TRANSPORTING', 'SORTING', 'DELIVERING', 'MONEY_COLLECT_DELIVERING']
     },
     attention: {
         label: 'shopOwner.manageOrder.ghnSubFilter.attention',
-        icon: '⚠️',
+        icon: 'fas fa-exclamation-circle',
         statuses: ['DELIVERY_FAIL', 'WAITING_TO_RETURN'],
         badgeClass: 'bg-danger'
     }
@@ -1029,7 +1029,7 @@ export default function BulkShippingPage() {
                                     alignItems: 'center',
                                     gap: '4px'
                                 }}>
-                                    <span>{group.icon}</span>
+                                    <i className={group.icon} style={{ fontSize: '12px' }}></i>
                                     <span>{t(group.label, groupKey)}</span>
                                 </span>
                                 {/* Status Tabs in Group */}
@@ -1078,8 +1078,9 @@ export default function BulkShippingPage() {
                             border: '1px solid #ffe4dd',
                             alignItems: 'center'
                         }}>
-                            <span style={{ fontSize: '13px', color: '#666', fontWeight: '500' }}>
-                                🚚 {t('shopOwner.manageOrder.ghnSubFilter.label', 'GHN Status')}:
+                            <span style={{ fontSize: '13px', color: '#666', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <i className="fas fa-truck" style={{ fontSize: '12px' }}></i>
+                                {t('shopOwner.manageOrder.ghnSubFilter.label', 'GHN Status')}:
                             </span>
                             {Object.entries(GHN_SHIPPED_SUB_STATUSES).map(([key, config]) => (
                                 <button
@@ -1103,7 +1104,7 @@ export default function BulkShippingPage() {
                                         gap: '4px'
                                     }}
                                 >
-                                    <span>{config.icon}</span>
+                                    <i className={config.icon} style={{ fontSize: '11px' }}></i>
                                     <span>{t(config.label, key)}</span>
                                     {key === 'attention' && (
                                         <span className="badge bg-warning text-dark" style={{

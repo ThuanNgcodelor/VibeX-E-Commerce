@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import flashSaleAPI from '../../../api/flashSale/flashSaleAPI';
-import axios from 'axios';
-import { API_BASE_URL } from '../../../config/config';
+import productAdminApi from '../../../api/productAdminApi';
 import '../ShopOwnerLayout.css'; // Import shared styles
 import Cookies from 'js-cookie';
 import { useTranslation } from 'react-i18next';
@@ -81,14 +80,9 @@ const ShopFlashSale = () => {
 
     const fetchMyProducts = async () => {
         try {
-            const token = Cookies.get('accessToken');
-            if (!token) return;
-
-            const response = await axios.get(`${API_BASE_URL}/v1/stock/product/listPageShopOwner?pageSize=1000&pageNo=1`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            // Ensure response.data.content is an array
-            const content = response.data?.content;
+            const response = await productAdminApi.getProducts();
+            // getProducts returns res.data directly, so access content directly
+            const content = response?.content;
             setProducts(Array.isArray(content) ? content : []);
         } catch (error) {
             console.error("Failed to fetch products", error);
@@ -99,8 +93,6 @@ const ShopFlashSale = () => {
     const handleRegister = async (e) => {
         e.preventDefault();
 
-        // Prepare sizes payload
-        // Filter sizes where quantity > 0 OR price is set (validation below will handle incomplete data)
         const sizesPayload = Object.entries(sizeConfig)
             .filter(([_, config]) => config.quantity > 0)
             .map(([sizeId, config]) => ({

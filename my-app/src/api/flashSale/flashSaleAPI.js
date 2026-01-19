@@ -1,7 +1,9 @@
-import createApiInstance from '../createApiInstance';
-import { API_BASE_URL } from '../../config/config';
+import createApiInstance from "../createApiInstance";
 
-const api = createApiInstance(`${API_BASE_URL}/v1/stock/flash-sale`);
+// Prefix for Admin Wallet endpoints
+const API_URL = "/v1/stock/flash-sale";
+const api = createApiInstance(API_URL);
+
 
 const flashSaleAPI = {
     // --- Admin ---

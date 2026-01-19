@@ -78,21 +78,21 @@ const AdminFlashSale = () => {
 
             setNewSession({ name: '', startTime: format(tomorrow), endTime: format(end), description: '' });
             fetchSessions();
-            alert('Tạo khung giờ thành công!');
+            alert('Create session successfully!');
         } catch (error) {
-            alert('Lỗi tạo khung giờ: ' + (error.response?.data?.message || 'Không xác định'));
+            alert('Error creating session: ' + (error.response?.data?.message || 'Undefined'));
         }
     };
 
     const handleOpenSession = async (sessionId, e) => {
         e.stopPropagation();
-        if (!window.confirm("Bạn muốn mở đăng ký và gửi thông báo cho các Shop?")) return;
+        if (!window.confirm("You want to open registration and send notification to shops?")) return;
         try {
             await flashSaleAPI.openSession(sessionId);
-            alert('Đã mở đăng ký!');
+            alert('Open registration successfully!');
             fetchSessions();
         } catch (error) {
-            alert('Lỗi mở phiên');
+            alert('Error opening session: ' + (error.response?.data?.message || 'Undefined'));
         }
     };
 
@@ -101,12 +101,12 @@ const AdminFlashSale = () => {
             await flashSaleAPI.approveProduct(regId);
             fetchProducts(selectedSession.id);
         } catch (error) {
-            alert('Lỗi duyệt sản phẩm');
+            alert('Error approving product: ' + (error.response?.data?.message || 'Undefined'));
         }
     };
 
     const handleReject = async (regId) => {
-        const reason = prompt("Lý do từ chối:");
+        const reason = prompt("Reason for rejection:");
         if (reason) {
             try {
                 await flashSaleAPI.rejectProduct(regId, reason);
@@ -119,27 +119,27 @@ const AdminFlashSale = () => {
 
     const handleDeleteSession = async (sessionId, e) => {
         e.stopPropagation();
-        if (!window.confirm("Bạn có chắc chắn muốn xóa phiên này không?")) return;
+        if (!window.confirm("Are you sure you want to delete this session?")) return;
         try {
             await flashSaleAPI.deleteSession(sessionId);
-            alert("Xóa phiên thành công!");
+            alert("Delete session successfully!");
             fetchSessions();
             if (selectedSession && selectedSession.id === sessionId) setSelectedSession(null);
         } catch (error) {
-            alert("Không thể xóa: " + (error.response?.data?.message || "Lỗi không xác định"));
+            alert("Error deleting session: " + (error.response?.data?.message || "Undefined"));
         }
     };
 
     const handleToggleStatus = async (sessionId, currentStatus, e) => {
         e.stopPropagation();
-        const action = currentStatus === 'ACTIVE' ? 'Hủy kích hoạt' : 'Kích hoạt';
-        if (!window.confirm(`Bạn muốn ${action} phiên này?`)) return;
+        const action = currentStatus === 'ACTIVE' ? 'Deactivate' : 'Activate';
+        if (!window.confirm(`Do you want to ${action} this session?`)) return;
 
         try {
             await flashSaleAPI.toggleSessionStatus(sessionId);
             fetchSessions();
         } catch (error) {
-            alert("Lỗi đổi trạng thái");
+            alert("Error toggling session status: " + (error.response?.data?.message || "Undefined"));
         }
     };
 
@@ -197,11 +197,6 @@ const AdminFlashSale = () => {
                     </div>
                 )}
             </div>
-
-            {/* Content Grid: Sessions List (Left equivalent) & Products (Right equivalent) could be good, 
-                but to match reference let's do Tabs or a Master-Detail view. 
-                Reference image is single table. I'll make a Sessions Table first. 
-            */}
 
             <div className="card">
                 <div className="card-header">

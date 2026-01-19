@@ -1,6 +1,6 @@
 import createApiInstance from "./createApiInstance";
 
-const SHOP_COIN_API_URL = "/v1/shop-coin";
+const SHOP_COIN_API_URL = "/v1/user/shop-coin";
 
 const shopCoinApi = createApiInstance(SHOP_COIN_API_URL);
 

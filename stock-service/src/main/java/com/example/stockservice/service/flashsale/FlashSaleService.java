@@ -1,5 +1,19 @@
 package com.example.stockservice.service.flashsale;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.scripting.support.ResourceScriptSource;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.example.stockservice.client.NotificationServiceClient;
 import com.example.stockservice.client.ShopOwnerClient;
 import com.example.stockservice.dto.ShopOwnerDto;
@@ -17,22 +31,10 @@ import com.example.stockservice.repository.SizeRepository;
 import com.example.stockservice.request.flashsale.FlashSaleProductRegistrationRequest;
 import com.example.stockservice.request.flashsale.FlashSaleSessionRequest;
 import com.example.stockservice.service.cache.RedisLockService;
+
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.data.redis.core.script.DefaultRedisScript;
-import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.scripting.support.ResourceScriptSource;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.Duration;
-import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
@@ -430,7 +432,7 @@ public class FlashSaleService {
                 String.valueOf(ttl));
 
         if (result != null && result == 1) {
-            log.info("✅ Flash Sale Reserved: {}[{}] x {} for user {}", productId, sizeId, quantity, userId);
+            log.info(" Flash Sale Reserved: {}[{}] x {} for user {}", productId, sizeId, quantity, userId);
 
             // 4. ASYNC PERSISTENCE (Write-Behind)
             stockPersistenceService.asyncDecrementFlashSaleStock(productId, sizeId, quantity);

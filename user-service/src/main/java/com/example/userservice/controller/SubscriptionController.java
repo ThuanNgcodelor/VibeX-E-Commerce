@@ -1,16 +1,18 @@
 package com.example.userservice.controller;
 
-import com.example.userservice.dto.ShopSubscriptionDTO;
-import com.example.userservice.service.shopowner.ShopSubscriptionService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.userservice.dto.ShopSubscriptionDTO;
+import com.example.userservice.service.shopowner.ShopSubscriptionService;
+
+import lombok.RequiredArgsConstructor;
+
 @RestController
-@RequestMapping("/v1/shop-subscriptions")
+@RequestMapping("/v1/user/shop-subscriptions")
 @RequiredArgsConstructor
 public class SubscriptionController {
 
@@ -21,7 +23,6 @@ public class SubscriptionController {
         return ResponseEntity.ok(shopSubscriptionService.getActiveSubscription(shopOwnerId));
     }
 
-    // Public API for Shop Owner
     @GetMapping("/shop/{shopOwnerId}")
     public ResponseEntity<ShopSubscriptionDTO> getMySubscription(@PathVariable String shopOwnerId) {
         return ResponseEntity.ok(shopSubscriptionService.getActiveSubscription(shopOwnerId));
