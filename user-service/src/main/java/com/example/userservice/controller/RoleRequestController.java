@@ -80,6 +80,14 @@ public class RoleRequestController {
                 }
         }
 
+        @PostMapping("/unlock")
+        public ResponseEntity<?> createUnlockRequest(HttpServletRequest request,
+                        @RequestParam String reason) {
+                String userId = jwtUtil.ExtractUserId(request);
+                roleRequestService.createUnlockRequest(userId, reason);
+                return ResponseEntity.ok().build();
+        }
+
         @GetMapping("/pending")
         public ResponseEntity<List<RoleRequestResponse>> getPendingRequests() {
                 List<RoleRequestResponse> responses = roleRequestService.getPendingRequests().stream()

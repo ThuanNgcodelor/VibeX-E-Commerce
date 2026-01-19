@@ -1,0 +1,14 @@
+.error-message {
+    color: #dc3545;
+    font-size: 0.875em;
+    margin-top: 0.25rem;
+    display: block;
+}
+
+.form-input.error {
+    border-color: #dc3545;
+}
+
+.form-input.error:focus {
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}

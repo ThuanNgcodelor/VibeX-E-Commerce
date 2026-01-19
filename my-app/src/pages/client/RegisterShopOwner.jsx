@@ -6,6 +6,7 @@ import createShopOwner from '../../api/role_request.js';
 import Cookies from 'js-cookie';
 import '../../assets/admin/css/RegisterShopOwner.css';
 import { useNavigate } from 'react-router-dom';
+import vibeLogo from '../../assets/images/logo.png';
 
 const RegisterShopOwner = () => {
     const { t } = useTranslation();
@@ -37,8 +38,8 @@ const RegisterShopOwner = () => {
     const [loadingDistricts, setLoadingDistricts] = useState(false);
     const [loadingWards, setLoadingWards] = useState(false);
 
-    // ✅ ĐỊNH VỊ (Step 1)
-    const [coords, setCoords] = useState(null); // {lat, lng}
+
+    const [coords, setCoords] = useState(null);
     const [locating, setLocating] = useState(false);
 
     // =========================
@@ -255,79 +256,79 @@ const RegisterShopOwner = () => {
         if (step === 1) {
             // Tên shop
             if (isEmpty(shopInfo.shopName)) {
-                errors.shopName = 'Bạn phải nhập tên shop';
+                errors.shopName = "Shop name is required";
             }
 
             // Tên chủ hàng
             if (isEmpty(shopInfo.ownerName)) {
-                errors.ownerName = 'Bạn phải nhập tên chủ cửa hàng';
+                errors.ownerName = "Owner name is required";
             }
 
             // Địa chỉ nhận hàng
             if (isEmpty(address)) {
-                errors.address = 'Bạn phải chọn địa chỉ nhận hàng';
+                errors.address = "Please select an address";
             }
 
             // Email
             if (isEmpty(shopInfo.email)) {
-                errors.email = 'Bạn phải nhập email';
+                errors.email = "Email is required";
             } else if (!isValidEmail(shopInfo.email)) {
-                errors.email = 'Email không hợp lệ, vui lòng kiểm tra lại';
+                errors.email = "Invalid email address";
             }
 
             // Số điện thoại
             if (isEmpty(shopInfo.phone)) {
-                errors.phone = 'Bạn phải nhập số điện thoại';
+                errors.phone = "Phone number is required";
             } else if (!isValidPhone(shopInfo.phone)) {
-                errors.phone = 'Số điện thoại phải bắt đầu bằng 0 và có đúng 10 chữ số';
+                errors.phone = "Phone number must start with 0 and have 10 digits"; // Consider adding key for this specific error
             }
 
             // Lý do đăng ký
             if (isEmpty(shopInfo.reason)) {
-                errors.reason = 'Bạn phải nhập lý do muốn đăng ký bán hàng';
+                errors.reason = "Reason is required";
             }
         }
 
         if (step === 2) {
             // Email kinh doanh
             if (isEmpty(taxInfo.email)) {
-                errors.taxEmail = 'Bạn phải nhập email kinh doanh';
+                errors.taxEmail = "Business email is required";
             } else if (!isValidEmail(taxInfo.email)) {
-                errors.taxEmail = 'Email kinh doanh không hợp lệ';
+                errors.taxEmail = "Invalid business email";
             }
 
             // Mã số thuế
             if (isEmpty(taxInfo.taxCode)) {
-                errors.taxCode = 'Bạn phải nhập mã số thuế';
+                errors.taxCode = "Tax code is required";
             }
         }
 
         if (step === 3) {
             // Số định danh
             if (isEmpty(idInfo.idNumber)) {
-                errors.idNumber = 'Bạn phải nhập số định danh';
+                errors.idNumber = "ID number is required";
             } else if (!isValidIdNumber(idInfo.idNumber)) {
-                errors.idNumber = 'Số định danh phải có ít nhất 9 chữ số';
+                errors.idNumber = "ID number must have at least 9 digits";
             }
 
             // Họ tên
             if (isEmpty(idInfo.fullName)) {
-                errors.fullName = 'Bạn phải nhập họ và tên đầy đủ';
+                errors.fullName = "Full name is required";
             }
 
             // Ảnh mặt trước
             if (!frontFile) {
-                errors.frontImage = 'Bạn phải tải lên ảnh mặt trước của định danh';
+                errors.frontImage = "Front ID image is required";
             }
 
             // Ảnh mặt sau
             if (!backFile) {
-                errors.backImage = 'Bạn phải tải lên ảnh mặt sau của định danh';
+                errors.backImage = "Back ID image is required";
             }
 
             // Xác nhận thỏa thuận
             if (!isAgreed) {
-                errors.agreement = 'Bạn phải xác nhận đã đọc và đồng ý với các điều khoản';
+                errors.agreement = "You must read and agree to the terms";
             }
         }
 
@@ -336,7 +337,7 @@ const RegisterShopOwner = () => {
     };
 
     const Stepper = () => (
-        <div className="shopee-stepper-container">
+        <div className="vibe-stepper-container">
             {steps.map((label, index) => {
                 const stepNum = index + 1;
                 const isDone = stepNum < currentStep;
@@ -398,7 +399,7 @@ const RegisterShopOwner = () => {
     useEffect(() => {
         const token = Cookies.get('accessToken');
         if (!token) {
-            alert('Bạn cần đăng nhập để đăng ký trở thành shop owner!');
+            alert(t('roleRequest.alerts.loginRequired'));
             navigate('/login');
         }
     }, [navigate]);
@@ -434,7 +435,7 @@ const RegisterShopOwner = () => {
         if (!file) return;
 
         if (file.size > 5 * 1024 * 1024) {
-            alert("Kích thước file không được vượt quá 5MB");
+            alert(t('roleRequest.alerts.fileSizeLimit'));
             return;
         }
 
@@ -516,7 +517,7 @@ const RegisterShopOwner = () => {
         if (locating) return;
 
         if (!navigator.geolocation) {
-            alert("Trình duyệt không hỗ trợ định vị GPS.");
+            alert(t('roleRequest.alerts.gpsNotSupported'));
             return;
         }
 
@@ -607,7 +608,7 @@ const RegisterShopOwner = () => {
 
                 } catch (err) {
                     console.error(err);
-                    alert("Không lấy được địa chỉ từ vị trí.");
+                    alert(t('roleRequest.alerts.gpsNoAddress'));
                 } finally {
                     setLocating(false);
                     setLoadingDistricts(false);
@@ -617,8 +618,8 @@ const RegisterShopOwner = () => {
             (err) => {
                 console.error(err);
                 setLocating(false);
-                if (err.code === 1) alert("Bạn đã từ chối quyền định vị.");
-                else alert("Định vị thất bại, vui lòng thử lại.");
+                if (err.code === 1) alert(t('roleRequest.alerts.gpsDenied'));
+                else alert(t('roleRequest.alerts.gpsFailed'));
             },
             { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
         );
@@ -626,11 +627,11 @@ const RegisterShopOwner = () => {
 
     const handleSaveAddress = () => {
         if (!provinceId || !districtId || !wardCode) {
-            alert('Vui lòng chọn đủ Tỉnh/TP, Quận/Huyện, Phường/Xã.');
+            alert(t('roleRequest.alerts.selectAddress'));
             return;
         }
         if (!detailAddress.trim()) {
-            alert('Vui lòng nhập địa chỉ chi tiết.');
+            alert(t('roleRequest.alerts.enterDetailAddress'));
             return;
         }
 
@@ -652,33 +653,35 @@ const RegisterShopOwner = () => {
     // RENDER
     // =========================
     return (
-        <div className="shopee-register-page">
-            <header className="shopee-header">
+        <div className="vibe-register-page">
+            <header className="vibe-header">
                 <div className="header-container">
                     <div className="header-left">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/f/fe/Shopee.svg" alt="Shopee" />
+                        <img src={vibeLogo} alt="Vibe" />
                         <span className="header-title">{t('roleRequest.headerTitle')}</span>
                     </div>
                     <div className="header-right">
                         <div className="uni-dropdown">
-                            <img src="https://deo.shopeemobile.com/shopee/shopee-pcmall-live-sg/assets/ca5a12a1012586030388.png" alt="uni icon" />
-                            <span>Shopee Uni</span>
+                            <img src={vibeLogo} alt="uni icon" style={{ height: '24px', marginRight: '8px' }} />
+                            <span>{t('roleRequest.uni')}</span>
                         </div>
                     </div>
                 </div>
             </header>
 
-            <button className="btn-back-home" onClick={() => navigate('/')}>
-                <span className="back-icon">←</span>
-                <span className="back-text">{t('roleRequest.backHome')}</span>
-            </button>
+            <div className="back-home-container">
+                <button className="btn-back-home" onClick={() => navigate('/')}>
+                    <span className="back-icon">←</span>
+                    <span className="back-text">{t('roleRequest.backHome')}</span>
+                </button>
+            </div>
 
-            <main className="shopee-main-content">
-                <div className="shopee-card">
+            <main className="vibe-main-content">
+                <div className="vibe-card">
                     {currentStep === 0 && (
                         <div className="welcome-screen animate-fade-in">
                             <div className="welcome-img-container">
-                                <img src="https://deo.shopeemobile.com/shopee/shopee-pcmall-live-sg/assets/ca5a12a1012586030388.png" alt="welcome" />
+                                <img src={vibeLogo} alt="welcome" />
                             </div>
                             <h2>{t('roleRequest.welcome.title')}</h2>
                             <p>{t('roleRequest.welcome.description')}</p>
@@ -698,7 +701,7 @@ const RegisterShopOwner = () => {
                                     value={shopInfo.shopName}
                                     onChange={handleShopChange}
                                     placeholder="VD: Vibe"
-                                    className={`shopee-input ${fieldErrors.shopName ? 'input-error' : ''}`}
+                                    className={`vibe-input ${fieldErrors.shopName ? 'input-error' : ''}`}
                                     required
                                     maxLength={30}
                                 />
@@ -710,7 +713,7 @@ const RegisterShopOwner = () => {
                                     value={shopInfo.ownerName}
                                     onChange={handleShopChange}
                                     placeholder="VD: Nguyen Van A"
-                                    className={`shopee-input ${fieldErrors.ownerName ? 'input-error' : ''}`}
+                                    className={`vibe-input ${fieldErrors.ownerName ? 'input-error' : ''}`}
                                     required
                                     maxLength={30}
                                 />
@@ -733,7 +736,7 @@ const RegisterShopOwner = () => {
                                     value={shopInfo.email}
                                     onChange={handleShopChange}
                                     placeholder="vd@gmail.com"
-                                    className={`shopee-input ${fieldErrors.email ? 'input-error' : ''}`}
+                                    className={`vibe-input ${fieldErrors.email ? 'input-error' : ''}`}
                                     required
                                 />
                             </FormGroup>
@@ -746,7 +749,7 @@ const RegisterShopOwner = () => {
                                         value={shopInfo.phone}
                                         onChange={handleShopChange}
                                         placeholder="0987654321"
-                                        className={`shopee-input ${fieldErrors.phone ? 'input-error' : ''}`}
+                                        className={`vibe-input ${fieldErrors.phone ? 'input-error' : ''}`}
                                         required
                                     />
                                 </div>
@@ -759,7 +762,7 @@ const RegisterShopOwner = () => {
                                     value={shopInfo.reason}
                                     onChange={handleShopChange}
                                     placeholder=""
-                                    className={`shopee-input ${fieldErrors.reason ? 'input-error' : ''}`}
+                                    className={`vibe-input ${fieldErrors.reason ? 'input-error' : ''}`}
                                     required
                                 />
                             </FormGroup>
@@ -797,7 +800,7 @@ const RegisterShopOwner = () => {
                                     name="email"
                                     value={taxInfo.email}
                                     onChange={handleTaxChange}
-                                    className={`shopee-input ${fieldErrors.taxEmail ? 'input-error' : ''}`}
+                                    className={`vibe-input ${fieldErrors.taxEmail ? 'input-error' : ''}`}
                                 />
                             </FormGroup>
 
@@ -808,7 +811,7 @@ const RegisterShopOwner = () => {
                                     value={taxInfo.taxCode}
                                     onChange={handleTaxChange}
                                     placeholder={t('roleRequest.modal.enterValue')}
-                                    className={`shopee-input ${fieldErrors.taxCode ? 'input-error' : ''}`}
+                                    className={`vibe-input ${fieldErrors.taxCode ? 'input-error' : ''}`}
                                 />
                             </FormGroup>
                         </div>
@@ -836,7 +839,7 @@ const RegisterShopOwner = () => {
                                     value={idInfo.idNumber}
                                     onChange={handleIdChange}
                                     placeholder={t('roleRequest.modal.enterValue')}
-                                    className={`shopee-input ${fieldErrors.idNumber ? 'input-error' : ''}`}
+                                    className={`vibe-input ${fieldErrors.idNumber ? 'input-error' : ''}`}
                                     required
                                 />
                             </FormGroup>
@@ -848,7 +851,7 @@ const RegisterShopOwner = () => {
                                     value={idInfo.fullName}
                                     onChange={handleIdChange}
                                     placeholder={t('roleRequest.modal.enterValue')}
-                                    className={`shopee-input ${fieldErrors.fullName ? 'input-error' : ''}`}
+                                    className={`vibe-input ${fieldErrors.fullName ? 'input-error' : ''}`}
                                     required
                                 />
                                 <div className="sub-label">{t('roleRequest.step3.fullNameHint')}</div>
@@ -908,7 +911,7 @@ const RegisterShopOwner = () => {
                                 <input
                                     type="checkbox"
                                     id="agree"
-                                    className={`shopee-checkbox ${fieldErrors.agreement ? 'input-error' : ''}`}
+                                    className={`vibe-checkbox ${fieldErrors.agreement ? 'input-error' : ''}`}
                                     checked={isAgreed}
                                     readOnly
                                 />
@@ -1026,41 +1029,41 @@ const RegisterShopOwner = () => {
 
             {/* ===== MODAL ĐỊA CHỈ (GHN) - STEP 1 ===== */}
             {showAddressModal && (
-                <div className="shopee-modal-overlay">
-                    <div className="shopee-modal-container animate-scale-up">
-                        <div className="shopee-modal-header">
+                <div className="vibe-modal-overlay">
+                    <div className="vibe-modal-container animate-scale-up">
+                        <div className="vibe-modal-header">
                             <span className="modal-title">{t('roleRequest.modal.addAddress')}</span>
                             <span className="modal-close-icon" onClick={() => setShowAddressModal(false)}>&times;</span>
                         </div>
 
-                        <div className="shopee-modal-body">
+                        <div className="vibe-modal-body">
                             <div className="modal-row-flex">
                                 <div className="modal-input-wrapper">
-                                    <label className="modal-inner-label">{t('roleRequest.modal.fullName')}</label>
-                                    <input type="text" placeholder={t('roleRequest.modal.enterValue')} className="modal-input-clean" />
+                                    <label className="modal-inner-label">Full Name</label>
+                                    <input type="text" placeholder="Enter value" className="modal-input-clean" />
                                 </div>
                                 <div className="modal-input-wrapper">
-                                    <label className="modal-inner-label">{t('roleRequest.modal.phone')}</label>
-                                    <input type="text" placeholder={t('roleRequest.modal.enterValue')} className="modal-input-clean" />
+                                    <label className="modal-inner-label">Phone Number</label>
+                                    <input type="text" placeholder="Enter value" className="modal-input-clean" />
                                 </div>
                             </div>
 
                             <div className="modal-section">
-                                <div className="modal-label-bold">{t('roleRequest.modal.address')}</div>
+                                <div className="modal-label-bold">Address</div>
 
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-                                    <select className="shopee-input" value={provinceId || ''} onChange={handleProvinceChange} disabled={loadingProvinces}>
-                                        <option value="">{loadingProvinces ? t('roleRequest.loading') : t('roleRequest.selectProvince')}</option>
+                                    <select className="vibe-input" value={provinceId || ''} onChange={handleProvinceChange} disabled={loadingProvinces}>
+                                        <option value="">{loadingProvinces ? "Loading..." : "Select Province/City"}</option>
                                         {provinces.map(p => <option key={p.ProvinceID} value={p.ProvinceID}>{p.ProvinceName}</option>)}
                                     </select>
 
-                                    <select className="shopee-input" value={districtId || ''} onChange={handleDistrictChange} disabled={!provinceId || loadingDistricts}>
-                                        <option value="">{loadingDistricts ? t('roleRequest.loading') : t('roleRequest.selectDistrict')}</option>
+                                    <select className="vibe-input" value={districtId || ''} onChange={handleDistrictChange} disabled={!provinceId || loadingDistricts}>
+                                        <option value="">{loadingDistricts ? "Loading..." : "Select District"}</option>
                                         {districts.map(d => <option key={d.DistrictID} value={d.DistrictID}>{d.DistrictName}</option>)}
                                     </select>
 
-                                    <select className="shopee-input" value={wardCode || ''} onChange={handleWardChange} disabled={!districtId || loadingWards}>
-                                        <option value="">{loadingWards ? t('roleRequest.loading') : t('roleRequest.selectWard')}</option>
+                                    <select className="vibe-input" value={wardCode || ''} onChange={handleWardChange} disabled={!districtId || loadingWards}>
+                                        <option value="">{loadingWards ? "Loading..." : "Select Ward"}</option>
                                         {wards.map(w => <option key={w.WardCode} value={w.WardCode}>{w.WardName}</option>)}
                                     </select>
                                 </div>
@@ -1068,16 +1071,16 @@ const RegisterShopOwner = () => {
                                 <div style={{ marginTop: 10, fontSize: 13, color: '#999' }}>
                                     {provinceName || districtName || wardName
                                         ? `${provinceName}${districtName ? ' / ' + districtName : ''}${wardName ? ' / ' + wardName : ''}`
-                                        : t('roleRequest.modal.addressPlaceholder')}
+                                        : "Please select province, district and ward"}
                                 </div>
                             </div>
 
                             <div className="modal-section">
-                                <div className="modal-label-bold">{t('roleRequest.modal.detailAddress')}</div>
+                                <div className="modal-label-bold">Detailed Address</div>
                                 <textarea
                                     value={detailAddress}
                                     onChange={(e) => setDetailAddress(e.target.value)}
-                                    placeholder={t('roleRequest.modal.detailPlaceholder')}
+                                    placeholder="Enter detailed address (e.g. House number, street name...)"
                                     className="modal-textarea-clean"
                                 />
                             </div>
@@ -1094,9 +1097,9 @@ const RegisterShopOwner = () => {
                                         </svg>
                                     </div>
                                     <div className="loc-info">
-                                        <div className="loc-title">{locating ? t('roleRequest.modal.locating') : t('roleRequest.modal.locate')}</div>
+                                        <div className="loc-title">{locating ? "Locating..." : "Use Current Location"}</div>
                                         <div className="loc-desc">
-                                            {coords ? `Lat: ${coords.lat.toFixed(6)} - Lng: ${coords.lng.toFixed(6)}` : t('roleRequest.modal.locateHelp')}
+                                            {coords ? `Lat: ${coords.lat.toFixed(6)} - Lng: ${coords.lng.toFixed(6)}` : "Click to get your GPS location"}
                                         </div>
                                     </div>
                                 </div>
@@ -1104,22 +1107,22 @@ const RegisterShopOwner = () => {
                             </div>
                         </div>
 
-                        <div className="shopee-modal-footer">
-                            <button onClick={() => setShowAddressModal(false)} className="btn-modal-cancel">{t('roleRequest.buttons.cancel')}</button>
-                            <button onClick={handleSaveAddress} className="btn-modal-submit">{t('roleRequest.buttons.save')}</button>
+                        <div className="vibe-modal-footer">
+                            <button onClick={() => setShowAddressModal(false)} className="btn-modal-cancel">Cancel</button>
+                            <button onClick={handleSaveAddress} className="btn-modal-submit">Save</button>
                         </div>
                     </div>
                 </div>
             )}
             {/* ===== MODAL CAPTCHA (MULTI-TYPE) ===== */}
             {showCaptchaModal && (
-                <div className="shopee-modal-overlay">
-                    <div className="shopee-modal-container animate-scale-up" style={{ maxWidth: '480px' }}>
-                        <div className="shopee-modal-header" style={{ paddingBottom: '20px' }}>
+                <div className="vibe-modal-overlay">
+                    <div className="vibe-modal-container animate-scale-up" style={{ maxWidth: '480px' }}>
+                        <div className="vibe-modal-header" style={{ paddingBottom: '20px' }}>
                             <span className="modal-title" style={{ fontSize: '18px', fontWeight: '600', color: '#222' }}>Xác Nhận Là Người Dùng</span>
                             <span className="modal-close-icon" onClick={() => setShowCaptchaModal(false)}>&times;</span>
                         </div>
-                        <div className="shopee-modal-body" style={{ padding: '0 30px 30px 30px' }}>
+                        <div className="vibe-modal-body" style={{ padding: '0 30px 30px 30px' }}>
 
                             {/* ===== TEXT CAPTCHA ===== */}
                             {captchaType === CAPTCHA_TYPES.TEXT && (

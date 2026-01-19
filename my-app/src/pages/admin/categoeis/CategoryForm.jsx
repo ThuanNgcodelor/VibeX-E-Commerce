@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import "../../../assets/admin/css/Validation.css";
 
 export default function CategoryForm({ category, onSubmit, onCancel, submitting }) {
     const [form, setForm] = useState({
@@ -7,6 +8,8 @@ export default function CategoryForm({ category, onSubmit, onCancel, submitting 
     });
     const [imageFile, setImageFile] = useState(null);
     const [imagePreview, setImagePreview] = useState(null);
+
+    const [errors, setErrors] = useState({});
 
     useEffect(() => {
         if (category) {
@@ -20,11 +23,16 @@ export default function CategoryForm({ category, onSubmit, onCancel, submitting 
             setImagePreview(null);
         }
         setImageFile(null);
+        setErrors({});
     }, [category]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
         setForm((prev) => ({ ...prev, [name]: value }));
+        // Clear error when user types
+        if (errors[name]) {
+            setErrors(prev => ({ ...prev, [name]: null }));
+        }
     };
 
     const handleImageChange = (e) => {
@@ -42,6 +50,10 @@ export default function CategoryForm({ category, onSubmit, onCancel, submitting 
         }
 
         setImageFile(file);
+        // Clear image error
+        if (errors.image) {
+            setErrors(prev => ({ ...prev, image: null }));
+        }
 
         const reader = new FileReader();
         reader.onloadend = () => setImagePreview(reader.result);
@@ -53,9 +65,27 @@ export default function CategoryForm({ category, onSubmit, onCancel, submitting 
         setImagePreview(null);
     };
 
+    const validate = () => {
+        const newErrors = {};
+
+        if (!form.name.trim()) {
+            newErrors.name = 'Category name is required';
+        }
+
+        // Image is required only for new categories
+        if (!category && !imageFile) {
+            newErrors.image = 'Category image is required';
+        }
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
     const handleSubmit = (e) => {
         e.preventDefault();
-        onSubmit?.(form, category?.id, imageFile);
+        if (validate()) {
+            onSubmit?.(form, category?.id, imageFile);
+        }
     };
 
     return (
@@ -71,9 +101,9 @@ export default function CategoryForm({ category, onSubmit, onCancel, submitting 
                             value={form.name}
                             onChange={handleChange}
                             placeholder="Enter category name"
-                            className="form-input"
-                            required
+                            className={`form-input ${errors.name ? 'error' : ''}`}
                         />
+                        {errors.name && <span className="error-message">{errors.name}</span>}
                     </div>
 
                     {/* Description */}
@@ -111,10 +141,10 @@ export default function CategoryForm({ category, onSubmit, onCancel, submitting 
                                     type="file"
                                     accept="image/*"
                                     onChange={handleImageChange}
-                                    className="form-input"
-                                    required={!category && !imagePreview}
+                                    className={`form-input ${errors.image ? 'error' : ''}`}
                                 />
                                 <small>Max size: 5MB. Formats: JPG, PNG, GIF</small>
+                                {errors.image && <span className="error-message">{errors.image}</span>}
                             </div>
                         </div>
                     </div>

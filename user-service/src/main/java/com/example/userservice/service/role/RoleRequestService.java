@@ -149,6 +149,28 @@ public class RoleRequestService {
     }
 
     @Transactional
+    public void createUnlockRequest(String userId, String reason) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Check pending requests
+        boolean existsPending = roleRequestRepository.existsByUserAndStatus(user, RequestStatus.PENDING);
+        if (existsPending) {
+            throw new RuntimeException("Your request has already been pending.");
+        }
+
+        RoleRequest newRequest = RoleRequest.builder()
+                .user(user)
+                .requestedRole(Role.SHOP_OWNER)
+                .reason(reason)
+                .status(RequestStatus.PENDING)
+                .type(RequestType.UNLOCK)
+                .build();
+
+        roleRequestRepository.save(newRequest);
+    }
+
+    @Transactional
     public RoleRequest approveRequest(String requestId, String adminId, String adminNote) {
         RoleRequest request = roleRequestRepository.findById(requestId)
                 .orElseThrow(() -> new RuntimeException("Request not found"));
@@ -163,9 +185,16 @@ public class RoleRequestService {
 
         Role requestedRole = request.getRequestedRole();
 
-        // Add role to user
-        user.getRoles().add(requestedRole);
-        userRepository.saveAndFlush(user);
+        if (request.getType() == RequestType.UNLOCK) {
+            ShopOwner shopOwner = shopOwnerRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("Shop owner not found"));
+            shopOwner.setActive(Active.ACTIVE);
+            shopOwnerRepository.save(shopOwner);
+        } else {
+            // Add role to user
+            user.getRoles().add(requestedRole);
+            userRepository.saveAndFlush(user);
+        }
 
         // Create ShopOwner profile if role is SHOP_OWNER
         // if (requestedRole == Role.SHOP_OWNER) {

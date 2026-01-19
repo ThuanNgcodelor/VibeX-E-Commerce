@@ -78,21 +78,21 @@ const AdminFlashSale = () => {
 
             setNewSession({ name: '', startTime: format(tomorrow), endTime: format(end), description: '' });
             fetchSessions();
-            alert('Tạo khung giờ thành công!');
+            alert('Session created successfully!');
         } catch (error) {
-            alert('Lỗi tạo khung giờ: ' + (error.response?.data?.message || 'Không xác định'));
+            alert('Error creating session: ' + (error.response?.data?.message || 'Unknown'));
         }
     };
 
     const handleOpenSession = async (sessionId, e) => {
         e.stopPropagation();
-        if (!window.confirm("Bạn muốn mở đăng ký và gửi thông báo cho các Shop?")) return;
+        if (!window.confirm("Do you want to open registration and notify shops?")) return;
         try {
             await flashSaleAPI.openSession(sessionId);
-            alert('Đã mở đăng ký!');
+            alert('Registration opened!');
             fetchSessions();
         } catch (error) {
-            alert('Lỗi mở phiên');
+            alert('Error opening session');
         }
     };
 
@@ -101,45 +101,45 @@ const AdminFlashSale = () => {
             await flashSaleAPI.approveProduct(regId);
             fetchProducts(selectedSession.id);
         } catch (error) {
-            alert('Lỗi duyệt sản phẩm');
+            alert('Error approving product');
         }
     };
 
     const handleReject = async (regId) => {
-        const reason = prompt("Lý do từ chối:");
+        const reason = prompt("Rejection reason:");
         if (reason) {
             try {
                 await flashSaleAPI.rejectProduct(regId, reason);
                 fetchProducts(selectedSession.id);
             } catch (error) {
-                alert('Lỗi từ chối');
+                alert('Error rejecting');
             }
         }
     };
 
     const handleDeleteSession = async (sessionId, e) => {
         e.stopPropagation();
-        if (!window.confirm("Bạn có chắc chắn muốn xóa phiên này không?")) return;
+        if (!window.confirm("Are you sure you want to delete this session?")) return;
         try {
             await flashSaleAPI.deleteSession(sessionId);
-            alert("Xóa phiên thành công!");
+            alert("Session deleted successfully!");
             fetchSessions();
             if (selectedSession && selectedSession.id === sessionId) setSelectedSession(null);
         } catch (error) {
-            alert("Không thể xóa: " + (error.response?.data?.message || "Lỗi không xác định"));
+            alert("Cannot delete: " + (error.response?.data?.message || "Unknown error"));
         }
     };
 
     const handleToggleStatus = async (sessionId, currentStatus, e) => {
         e.stopPropagation();
-        const action = currentStatus === 'ACTIVE' ? 'Hủy kích hoạt' : 'Kích hoạt';
-        if (!window.confirm(`Bạn muốn ${action} phiên này?`)) return;
+        const action = currentStatus === 'ACTIVE' ? 'Deactivate' : 'Activate';
+        if (!window.confirm(`Do you want to ${action.toLowerCase()} this session?`)) return;
 
         try {
             await flashSaleAPI.toggleSessionStatus(sessionId);
             fetchSessions();
         } catch (error) {
-            alert("Lỗi đổi trạng thái");
+            alert("Error changing status");
         }
     };
 

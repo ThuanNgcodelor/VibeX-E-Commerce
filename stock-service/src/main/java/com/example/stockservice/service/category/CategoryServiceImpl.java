@@ -115,25 +115,25 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     public void deleteCategory(String id) {
-        // Không cho xóa category nếu vẫn còn sản phẩm đang sử dụng category này
-        long productCount = productRepository.countByCategory_Id(id);
-        if (productCount > 0) {
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT,
-                    "Cannot delete category because it is assigned to " + productCount + " product(s)");
-        }
-
-        // Get category to retrieve imageId before deletion
         Category category = findCategoryById(id);
-        String imageId = category.getImageId();
 
-        // Delete category
-        categoryRepository.deleteById(id);
-        log.info("Category deleted: {}", id);
+        // Check if category has products
+        long productCount = productRepository.countByCategory_Id(id);
 
-        // Delete associated image if exists
-        if (imageId != null && !imageId.isEmpty()) {
-            deleteImageSafely(imageId);
+        if (productCount > 0) {
+            // Soft delete: Mark as inactive
+            categoryRepository.save(category);
+            log.info("Category soft deleted (set inactive) due to active products: {}", id);
+        } else {
+            // Hard delete: No products, safe to delete
+            String imageId = category.getImageId();
+            categoryRepository.deleteById(id);
+            log.info("Category hard deleted: {}", id);
+
+            // Delete associated image if exists
+            if (imageId != null && !imageId.isEmpty()) {
+                deleteImageSafely(imageId);
+            }
         }
     }
 

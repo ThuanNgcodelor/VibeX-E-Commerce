@@ -128,7 +128,7 @@ const PricingManagement = ({
                             </div>
 
                             <div className="form-group">
-                                <label>Price (VNĐ) *</label>
+                                <label>Price (VND) *</label>
                                 <input
                                     type="number"
                                     className="form-input"

@@ -66,12 +66,42 @@ const SearchProduct = () => {
         loadCategories();
     }, []);
 
+    // Sync URL category param with filter state
+    // Sync URL category param with filter state
+    const catId = searchParams.get('category');
+    useEffect(() => {
+        if (availableCategories.length > 0) {
+            if (catId) {
+                const found = availableCategories.find(c => String(c.id) === String(catId));
+                if (found) {
+                    // Replace existing categories with the one from URL (Fresh start/Refresh)
+                    setCategories([found.name]);
+                }
+            } else {
+                // If no category param, clear category filters
+                setCategories([]);
+            }
+        }
+    }, [catId, availableCategories]);
+
     // Load products with search API
     useEffect(() => {
+        let isActive = true;
         const loadProducts = async () => {
-            setLoading(true);
-            // Clear products at start to prevent flash of old results
-            setProducts([]);
+            // Avoid fetching "all products" while waiting for categories to load if a category is requested
+            const urlCategory = searchParams.get('category');
+            if (urlCategory && availableCategories.length === 0) {
+                return;
+            }
+
+            if (isActive) {
+                setLoading(true);
+                // only clear if we are starting a new valid fetch, 
+                // but strictly we might not want to clear if we want to keep previous results visible until new ones load.
+                // However, matching previous behavior:
+                setProducts([]);
+            }
+
             try {
                 const response = await searchProducts({
                     query: debouncedQuery,
@@ -86,26 +116,36 @@ const SearchProduct = () => {
                     sortBy: sortBy
                 });
 
-                setProducts(response.products || []);
-                setTotal(response.total || 0);
-                setTotalPages(response.totalPages || 1);
-                setCached(response.cached || false);
+                if (isActive) {
+                    setProducts(response.products || []);
+                    setTotal(response.total || 0);
+                    setTotalPages(response.totalPages || 1);
+                    setCached(response.cached || false);
 
-                // Track search if has query
-                if (debouncedQuery && debouncedQuery.trim().length >= 2) {
-                    trackSearch(debouncedQuery, response.total || 0);
+                    // Track search if has query
+                    if (debouncedQuery && debouncedQuery.trim().length >= 2) {
+                        trackSearch(debouncedQuery, response.total || 0);
+                    }
                 }
             } catch (error) {
-                console.error("Failed to search products:", error);
-                setProducts([]);
-                setTotal(0);
-                setTotalPages(1);
+                if (isActive) {
+                    console.error("Failed to search products:", error);
+                    setProducts([]);
+                    setTotal(0);
+                    setTotalPages(1);
+                }
             } finally {
-                setLoading(false);
+                if (isActive) {
+                    setLoading(false);
+                }
             }
         };
         loadProducts();
-    }, [debouncedQuery, page, sortBy, priceMin, priceMax, categories, selectedAreas]);
+
+        return () => {
+            isActive = false;
+        };
+    }, [debouncedQuery, page, sortBy, priceMin, priceMax, categories, selectedAreas, availableCategories, searchParams]);
 
     useEffect(() => {
         const urlQuery = searchParams.get('q') || "";
