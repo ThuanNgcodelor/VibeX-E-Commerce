@@ -1,12 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useTranslation } from "react-i18next";
 import { getUserRole, isAuthenticated, login, register } from "../../api/auth.js";
 import { checkEmailExists } from "../../api/user.js";
 import { GOOGLE_CLIENT_ID, GOOGLE_REDIRECT_URI, FACEBOOK_CLIENT_ID, FACEBOOK_REDIRECT_URI } from "../../config/config.js";
 
 export default function Auth() {
-    const { t } = useTranslation();
     const [loginData, setLoginData] = useState({
         email: '',
         password: ''
@@ -79,7 +77,7 @@ export default function Auth() {
             ...registerData,
             [e.target.name]: e.target.value,
         });
-        // Clear field error khi user thay đổi input
+        // Clear field error when user changes input
         if (fieldErrors[e.target.name]) {
             setFieldErrors({
                 ...fieldErrors,
@@ -98,7 +96,7 @@ export default function Auth() {
         setSuccess('');
         setLoading(true);
         if (loginData.email === '' || loginData.password === '') {
-            setError(t('auth.login.fillAllFields'));
+            setError('Please fill in all fields');
             return;
         }
 
@@ -116,7 +114,7 @@ export default function Auth() {
         } catch (error) {
             console.log(loginData);
 
-            setError(error.response?.data?.message || t('auth.login.loginFailed'));
+            setError(error.response?.data?.message || 'Login failed. Please check your credentials.');
         } finally {
             setLoading(false);
         }
@@ -130,29 +128,29 @@ export default function Auth() {
 
         // Check empty fields
         if (!registerData.username.trim()) {
-            setError(t('auth.register.usernameRequired') || 'Username is required');
-            setFieldErrors(prev => ({ ...prev, username: t('auth.register.usernameRequired') || 'Username is required' }));
+            setError('Username is required');
+            setFieldErrors(prev => ({ ...prev, username: 'Username is required' }));
             return;
         }
         if (!registerData.email.trim()) {
-            setError(t('auth.register.emailRequired') || 'Email is required');
-            setFieldErrors(prev => ({ ...prev, email: t('auth.register.emailRequired') || 'Email is required' }));
+            setError('Email is required');
+            setFieldErrors(prev => ({ ...prev, email: 'Email is required' }));
             return;
         }
         // Validate email format
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(registerData.email)) {
-            setError(t('auth.register.invalidEmail') || 'Invalid email format');
-            setFieldErrors(prev => ({ ...prev, email: t('auth.register.invalidEmail') || 'Invalid email format' }));
+            setError('Invalid email format');
+            setFieldErrors(prev => ({ ...prev, email: 'Invalid email format' }));
             return;
         }
 
         if (registerData.password !== registerData.confirmPassword) {
-            setError(t('auth.register.passwordsNotMatch'));
+            setError('Passwords do not match');
             return;
         }
         if (registerData.password.length < 6) {
-            setError(t('auth.register.passwordMinLength'));
+            setError('Password must be at least 6 characters');
             return;
         }
 
@@ -161,12 +159,16 @@ export default function Auth() {
         try {
             const exists = await checkEmailExists(registerData.email);
             if (exists) {
-                setError(t('auth.register.emailExists'));
+                setError('Email already exists');
                 return;
             }
 
-            await register(registerData);
-            setSuccess(t('auth.register.registerSuccess'));
+            await register({
+                username: registerData.username,
+                email: registerData.email,
+                password: registerData.password
+            });
+            setSuccess('Registration successful! You can now login.');
             setRegisterData({ username: "", email: "", password: "", confirmPassword: "" });
             setFieldErrors({});
         } catch (err) {
@@ -196,7 +198,7 @@ export default function Auth() {
                 }
             } else {
                 const apiMsg = responseData?.message || responseData?.error || responseData?.detail || err?.message;
-                setError(apiMsg || t('auth.register.registerError'));
+                setError(apiMsg || 'Registration failed. Please try again.');
             }
         } finally {
             setLoading(false);
@@ -222,7 +224,7 @@ export default function Auth() {
                                     border: "1px solid #ffcdd2",
                                     textAlign: "center"
                                 }}>
-                                    <strong>{t('auth.error')}:</strong> {error}
+                                    <strong>Error:</strong> {error}
                                 </div>
                             </div>
                         </div>
@@ -240,7 +242,7 @@ export default function Auth() {
                                     border: "1px solid #c8e6c9",
                                     textAlign: "center"
                                 }}>
-                                    <strong>{t('auth.success')}:</strong> {success}
+                                    <strong>Success:</strong> {success}
                                 </div>
                             </div>
                         </div>
@@ -251,8 +253,8 @@ export default function Auth() {
                         <div className="col-md-5 login-register-border">
                             <div className="login-register-content">
                                 <div className="login-register-title mb-30">
-                                    <h2>{t('auth.login.title')}</h2>
-                                    <p>{t('auth.login.subtitle')}</p>
+                                    <h2>Login</h2>
+                                    <p>Please login to your account</p>
                                 </div>
                                 <div className="login-register-style login-register-pr">
                                     <form action="" method="post">
@@ -262,7 +264,7 @@ export default function Auth() {
                                                 name="email"
                                                 value={loginData.email}
                                                 onChange={handleLogin}
-                                                placeholder={t('auth.login.emailPlaceholder')}
+                                                placeholder="Email address"
                                             />
                                         </div>
                                         <div className="login-register-input">
@@ -271,19 +273,19 @@ export default function Auth() {
                                                 name="password"
                                                 value={loginData.password}
                                                 onChange={handleLogin}
-                                                placeholder={t('auth.login.passwordPlaceholder')}
+                                                placeholder="Password"
                                             />
                                             <div className="forgot">
-                                                <a onClick={handleForgotPassword}>{t('auth.login.forgot')}</a>
+                                                <a onClick={handleForgotPassword}>Forgot password?</a>
                                             </div>
                                         </div>
                                         <div className="remember-me-btn">
                                             <input type="checkbox" />
-                                            <label>{t('auth.login.rememberMe')}</label>
+                                            <label>Remember me</label>
                                         </div>
                                         <div className="btn-register">
                                             <button className="btn-register-now"
-                                                onClick={handleLoginSubmit}>{t('auth.login.button')}
+                                                onClick={handleLoginSubmit}>Login
                                             </button>
                                         </div>
                                         <br />
@@ -310,7 +312,7 @@ export default function Auth() {
                                                     alt="Google"
                                                     style={{ width: 26, height: 10, marginRight: 10 }}
                                                 />
-                                                {t('auth.login.googleLogin')}
+                                                Google
                                             </button>
 
                                             <button
@@ -343,8 +345,8 @@ export default function Auth() {
                         <div className="col-md-7">
                             <div className="login-register-content login-register-pl">
                                 <div className="login-register-title mb-30">
-                                    <h2>{t('auth.register.title')}</h2>
-                                    <p>{t('auth.register.subtitle')}</p>
+                                    <h2>Register</h2>
+                                    <p>Create a new account</p>
                                 </div>
                                 <div className="login-register-style">
                                     <form method="post">
@@ -426,7 +428,7 @@ export default function Auth() {
                                     </form>
                                     <div className="register-benefits">
                                         <h3>Sign up today and you will be able to :</h3>
-                                        <p>The Loke Buyer Protection has you covered from click to delivery. Sign up <br />or sign in and you will be able to:</p>
+                                        <p>The Vibe Buyer Protection has you covered from click to delivery. Sign up <br />or sign in and you will be able to:</p>
                                         <ul>
                                             <li><i className="fa fa-check-circle-o"></i> Speed your way through checkout</li>
                                             <li><i className="fa fa-check-circle-o"></i> Track your orders easily</li>
