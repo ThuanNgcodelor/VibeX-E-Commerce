@@ -175,7 +175,25 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
         }
 
         return orderPage.getContent().stream()
-                .map(order -> modelMapper.map(order, OrderDto.class))
+                .map(order -> {
+                    OrderDto dto = modelMapper.map(order, OrderDto.class);
+                    if (order.getUserId() != null) {
+                        try {
+                            // Fetch user name
+                            ResponseEntity<com.example.orderservice.dto.UserDto> userResp = userServiceClient
+                                    .getUserById(order.getUserId());
+                            if (userResp.getBody() != null) {
+                                dto.setCustomerName(userResp.getBody().getUsername()); // Or getFullName() if available
+                            }
+                        } catch (Exception e) {
+                            log.error("Failed to fetch user info for order " + order.getId(), e);
+                            dto.setCustomerName("Unknown User");
+                        }
+                    } else {
+                        dto.setCustomerName("Guest");
+                    }
+                    return dto;
+                })
                 .collect(Collectors.toList());
     }
 

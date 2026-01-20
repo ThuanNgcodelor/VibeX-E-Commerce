@@ -14,6 +14,8 @@ const pageSize = 8;
 const normalizeReq = (r) => {
   const requestedRole = r?.requestedRole ?? "";
   const statusRaw = r?.status ?? null;
+  // Use 'type' returned by backend, default to 'REGISTRATION' if missing
+  const requestType = r?.type || "REGISTRATION";
 
   return {
     id: r?.id ?? `unknown-${requestedRole}`,
@@ -25,8 +27,11 @@ const normalizeReq = (r) => {
       : "Pending",
     reason: r?.reason ?? "",
     createdAt: r?.creationTimestamp ?? null,
+    requestType: requestType,
   };
 };
+
+
 
 export default function RolesPage() {
   const [roles, setRoles] = useState([]);
@@ -291,9 +296,10 @@ export default function RolesPage() {
                       <tr key={r.id} className={expandedRow === r.id ? "table-active" : ""}>
                         <td className="text-center">
                           <button
-                            className={`btn btn-sm btn-link text-decoration-none ${expandedRow === r.id ? 'text-danger' : 'text-primary'}`}
+                            className="btn border-0 bg-transparent p-0 shadow-none"
                             onClick={() => toggleRow(r.id)}
                             title="View Details"
+                            style={{ color: expandedRow === r.id ? '#dc3545' : '#0d6efd' }}
                           >
                             <i className={`fas fa-${expandedRow === r.id ? 'chevron-up' : 'eye'}`}></i>
                           </button>
@@ -303,8 +309,8 @@ export default function RolesPage() {
                           <small className="text-muted">{r.reason ? `Reason: ${r.reason.substring(0, 30)}${r.reason.length > 30 ? '...' : ''}` : ''}</small>
                         </td>
                         <td>
-                          <span className="badge bg-primary-subtle text-primary border border-primary-subtle">
-                            {r.role_request}
+                          <span className={`badge ${r.requestType === 'UNLOCK' ? 'bg-warning text-dark' : 'bg-primary-subtle text-primary border border-primary-subtle'}`}>
+                            {r.requestType === 'UNLOCK' ? 'UNLOCK SHOP' : r.role_request}
                           </span>
                         </td>
                         <td>

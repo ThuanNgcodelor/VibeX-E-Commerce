@@ -486,7 +486,7 @@ const AdminDashboard = () => {
                                             </td>
                                             <td>
                                                 <div className="customer-cell-compact">
-                                                    <span>{order.userId ? order.userId.substring(0, 8) + '...' : 'Guest'}</span>
+                                                    <span>{order.customerName || (order.userId ? order.userId.substring(0, 8) + '...' : 'Guest')}</span>
                                                 </div>
                                             </td>
                                             <td>
