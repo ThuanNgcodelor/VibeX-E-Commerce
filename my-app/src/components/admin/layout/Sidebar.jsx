@@ -181,6 +181,18 @@ const Sidebar = ({ isOpen = true, toggleSidebar }) => {
                     <span>Wallet</span>
                 </Link>
             </li>
+
+            {/* Notifications */}
+            <li className="nav-item-ezmart">
+                <Link
+                    className={`nav-link-ezmart ${isActive("/admin/notifications") ? "active" : ""}`}
+                    to="/admin/notifications"
+                >
+                    <i className="fas fa-bell"></i>
+                    <span>Notifications</span>
+                </Link>
+            </li>
+
             {/* Logout */}
             <li className="nav-item-ezmart">
                 <Link

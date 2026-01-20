@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
 import { Form, Button, Row, Col, Image, Spinner, Card } from 'react-bootstrap';
-import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
 import { uploadImage, getImageUrl } from '../../../../api/image';
 
 const BannerWidget = ({ data, onChange }) => {
-    const { t } = useTranslation();
     const [uploadingIndex, setUploadingIndex] = useState(null);
     const images = data.images || [];
 
@@ -37,11 +35,11 @@ const BannerWidget = ({ data, onChange }) => {
             const imageId = await uploadImage(file);
             if (imageId) {
                 handleImageChange(index, 'imageId', imageId);
-                toast.success(t('shopOwner.decoration.savedSuccess'));
+                toast.success('Image uploaded successfully');
             }
         } catch (error) {
             console.error(error);
-            toast.error(t('shopOwner.decoration.saveFailed'));
+            toast.error('Failed to upload image');
         } finally {
             setUploadingIndex(null);
             e.target.value = '';
@@ -52,16 +50,16 @@ const BannerWidget = ({ data, onChange }) => {
         <div className="p-2">
             <h5 className="mb-1 fw-bold text-primary">
                 <i className="bi bi-images me-2"></i>
-                {t('shopOwner.decoration.widgets.bannerTitle')}
+                Banner Carousel
             </h5>
             <div className="text-muted small mb-3 fst-italic">
-                {t('shopOwner.decoration.widgets.bannerSizeHint')}
+                Recommended size: 1920x600px for best display
             </div>
 
 
             <div className="card p-3 mb-3 bg-light">
                 <Form.Group className="mb-3">
-                    <Form.Label className="fw-bold small">{t('shopOwner.decoration.widgets.bannerHeight')} ({data.height || 400}px)</Form.Label>
+                    <Form.Label className="fw-bold small">Banner Height ({data.height || 400}px)</Form.Label>
                     <Form.Range
                         min={100}
                         max={1000}
@@ -71,15 +69,15 @@ const BannerWidget = ({ data, onChange }) => {
                     />
                 </Form.Group>
                 <Form.Group>
-                    <Form.Label className="fw-bold small">{t('shopOwner.decoration.widgets.imageFit')}</Form.Label>
+                    <Form.Label className="fw-bold small">Image Fit</Form.Label>
                     <Form.Select
                         size="sm"
                         value={data.objectFit || 'cover'}
                         onChange={(e) => handleSettingChange('objectFit', e.target.value)}
                     >
-                        <option value="cover">{t('shopOwner.decoration.widgets.fitCover')}</option>
-                        <option value="contain">{t('shopOwner.decoration.widgets.fitContain')}</option>
-                        <option value="fill">{t('shopOwner.decoration.widgets.fitFill')}</option>
+                        <option value="cover">Cover (Crop to fill)</option>
+                        <option value="contain">Contain (Show full image)</option>
+                        <option value="fill">Fill (Stretch)</option>
                     </Form.Select>
                 </Form.Group>
             </div>
@@ -116,7 +114,7 @@ const BannerWidget = ({ data, onChange }) => {
                                         ) : (
                                             <div className="d-flex flex-column align-items-center justify-content-center h-100 border border-2 border-dashed rounded bg-light text-muted p-3">
                                                 <i className="bi bi-image fs-1 mb-2 opacity-50"></i>
-                                                <small>{t('shopOwner.decoration.widgets.noImage')}</small>
+                                                <small>No image selected</small>
                                             </div>
                                         )}
                                     </div>
@@ -141,7 +139,7 @@ const BannerWidget = ({ data, onChange }) => {
                                                     {uploadingIndex === index ? (
                                                         <Spinner animation="border" size="sm" />
                                                     ) : (
-                                                        <><i className="bi bi-upload"></i> {t('shopOwner.decoration.widgets.imageUrl') || 'Select Image'}</>
+                                                        <><i className="bi bi-upload"></i> Select Image</>
                                                     )}
                                                 </label>
                                             </div>
@@ -161,7 +159,7 @@ const BannerWidget = ({ data, onChange }) => {
                 onClick={handleAddImage}
                 style={{ letterSpacing: '0.5px' }}
             >
-                <i className="bi bi-plus-circle me-2"></i> {t('shopOwner.decoration.widgets.addSlide')}
+                <i className="bi bi-plus-circle me-2"></i> Add Slide
             </Button>
         </div>
     );

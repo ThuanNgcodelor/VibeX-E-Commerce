@@ -1,28 +1,36 @@
-// API Configuration
-const getApiBaseUrl = () => {
-  // Trong production build, sử dụng relative path hoặc env variable
-  if (import.meta.env.MODE === 'production') {
-    // Sử dụng relative path để Nginx proxy đúng
-    return '/api'
-  }
-  // Development mode
-  return import.meta.env.VITE_API_BASE_URL || 'http://localhost'
-}
+// ===== ENVIRONMENT DETECTION =====
+const isProduction = import.meta.env.MODE === 'production';
 
+// ===== DYNAMIC BASE URL =====
+// Trong production: sử dụng origin hiện tại (localhost:80 hoặc domain)
+// Trong development: sử dụng Vite dev server origin (localhost:5173)
+const getBaseUrl = () => {
+  return window.location.origin;
+};
+
+// ===== API BASE URL =====
+// Production: relative path (nginx sẽ proxy /v1/* tới gateway)
+// Development: empty string (Vite sẽ proxy /v1/* tới gateway)
+export const API_BASE_URL = '';
+
+// ===== LOCAL BASE URL (cho các API cần full URL) =====
+export const LOCAL_BASE_URL = getBaseUrl();
+
+// ===== WEBSOCKET URL =====
+export const NOTIFICATION_WS_URL = getBaseUrl();
+
+// ===== OAUTH REDIRECT URI =====
 const getGoogleRedirectUri = () => {
-  if (import.meta.env.MODE === 'production') {
-    // Use explicit port 80 for localhost to match Google Console
-    return import.meta.env.VITE_GOOGLE_REDIRECT_URI || window.location.origin + '/oauth2/callback'
+  if (isProduction) {
+    // Production: use origin from env or window.location
+    return import.meta.env.VITE_GOOGLE_REDIRECT_URI || `${getBaseUrl()}/oauth2/callback`;
   }
-  return import.meta.env.VITE_GOOGLE_REDIRECT_URI || 'http://localhost:5173/oauth2/callback'
-}
+  // Development: sử dụng 5173 port
+  return import.meta.env.VITE_GOOGLE_REDIRECT_URI || `${getBaseUrl()}/oauth2/callback`;
+};
 
-export const API_BASE_URL = getApiBaseUrl()
-export const LOCAL_BASE_URL = 'http://localhost'
-// WebSocket URL for notification-service (runs on port 8084, not through gateway)
-export const NOTIFICATION_WS_URL = import.meta.env.VITE_NOTIFICATION_WS_URL || 'http://localhost'
-export const GOOGLE_REDIRECT_URI = getGoogleRedirectUri()
-export const GOOGLE_CLIENT_ID = '941069814660-or8vut20mcc30h2lp3lgdrfqd48j4qkc.apps.googleusercontent.com'
+export const GOOGLE_REDIRECT_URI = getGoogleRedirectUri();
+export const GOOGLE_CLIENT_ID = '941069814660-or8vut20mcc30h2lp3lgdrfqd48j4qkc.apps.googleusercontent.com';
 
-export const FACEBOOK_CLIENT_ID = '1404318728067713'
-export const FACEBOOK_REDIRECT_URI = GOOGLE_REDIRECT_URI
+export const FACEBOOK_CLIENT_ID = '1404318728067713';
+export const FACEBOOK_REDIRECT_URI = GOOGLE_REDIRECT_URI;

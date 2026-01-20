@@ -1,12 +1,8 @@
 import createApiInstance from "./createApiInstance.js";
-import { LOCAL_BASE_URL } from "../config/config.js";
 
-const getApiBaseUrl = () => {
-    return LOCAL_BASE_URL || 'http://localhost';
-};
-
+// Use relative URL - Vite proxy (dev) / Nginx (prod) handles routing
 const API_URL = "/v1/notifications/live";
-const api = createApiInstance(`${getApiBaseUrl()}${API_URL}`);
+const api = createApiInstance(API_URL);
 
 // ==================== ROOM MANAGEMENT ====================
 
@@ -218,25 +214,29 @@ export const sendChatMessage = async (roomId, message) => {
 
 /**
  * Lấy WebSocket URL cho live room
- * @returns {string} - WebSocket URL
+ * @returns {string} - WebSocket URL (dynamic based on current location)
  */
 export const getWebSocketUrl = () => {
-    const baseUrl = getApiBaseUrl().replace('http://', 'ws://').replace('https://', 'wss://');
-    return `${baseUrl}/ws/live`;
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${protocol}//${window.location.host}/ws/live`;
 };
 
 /**
  * Lấy HLS stream URL
  * @param {string} streamKey - Stream key của phòng
- * @returns {string} - HLS URL
+ * @returns {string} - HLS URL (use nginx-rtmp service)
  */
 export const getStreamUrl = (streamKey) => {
-    return `http://localhost:8088/hls/${streamKey}.m3u8`;
+    // In production (Docker), nginx-rtmp is accessible via port 8088
+    // In development, you may need to run nginx-rtmp separately or adjust this
+    const protocol = window.location.protocol;
+    const hostname = window.location.hostname;
+    return `${protocol}//${hostname}:8088/hls/${streamKey}.m3u8`;
 };
 
 // ==================== LIVE CART (stock-service) ====================
 
-const stockApi = createApiInstance(`${getApiBaseUrl()}/v1/stock/cart`);
+const stockApi = createApiInstance('/v1/stock/cart');
 
 /**
  * Thêm sản phẩm từ Live vào giỏ hàng với giá live

@@ -1,14 +1,24 @@
 package com.example.userservice.service.user;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import org.modelmapper.ModelMapper;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
 import com.example.userservice.client.AuthServiceClient;
 import com.example.userservice.client.FileStorageClient;
 import com.example.userservice.client.StockServiceClient;
 import com.example.userservice.dto.CartDto;
 import com.example.userservice.dto.SendUserUpdateEmailRequest;
 import com.example.userservice.dto.UserInformationDto;
-import com.example.userservice.exception.NotFoundException;
 import com.example.userservice.enums.Active;
 import com.example.userservice.enums.Role;
+import com.example.userservice.exception.NotFoundException;
 import com.example.userservice.model.RoleRequest;
 import com.example.userservice.model.User;
 import com.example.userservice.model.UserDetails;
@@ -16,17 +26,9 @@ import com.example.userservice.repository.UserRepository;
 import com.example.userservice.request.RegisterRequest;
 import com.example.userservice.request.UserUpdateRequest;
 import com.example.userservice.service.role.RoleRequestService;
+
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
-import org.modelmapper.ModelMapper;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
-
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 @RequiredArgsConstructor
 @Service("userService")
@@ -272,5 +274,10 @@ public class UserServiceImpl implements UserService {
     @Override
     public Long countActiveUsers() {
         return userRepository.countByActive(Active.ACTIVE);
+    }
+
+    @Override
+    public List<String> getAllActiveUserIds() {
+        return userRepository.findAllActiveUserIds();
     }
 }

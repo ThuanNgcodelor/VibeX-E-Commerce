@@ -62,6 +62,8 @@ import ShopFlashSale from "./components/shop-owner/flashsale/ShopFlashSale.jsx";
 import ShopDecorationPage from "./pages/shop-owner/ShopDecorationPage.jsx";
 import GamePage from "./pages/client/GamePage.jsx";
 import AdminWalletPage from "./pages/admin/AdminWalletPage.jsx";
+import AdminNotificationPage from "./pages/admin/AdminNotificationPage.jsx";
+import ShopNotifyFollowersPage from "./pages/shop-owner/ShopNotifyFollowersPage.jsx";
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -161,6 +163,7 @@ export default function App() {
             <Route path="ads" element={<AdManagement />} />
             <Route path="coins" element={<CoinManagement />} />
             <Route path="wallet" element={<AdminWalletPage />} />
+            <Route path="notifications" element={<AdminNotificationPage />} />
             <Route path="suspicious-activity" element={<SuspiciousActivityPage />} />
             <Route path="logout" element={<Logout />} />
           </Route>
@@ -190,6 +193,7 @@ export default function App() {
             <Route path="analytics" element={<AnalyticsPage />} />
             <Route path="chat" element={<ChatPage />} />
             <Route path="notifications" element={<NotificationPage />} />
+            <Route path="notify-followers" element={<ShopNotifyFollowersPage />} />
             <Route path="wallet" element={<WalletPage />} />
             <Route path="subscription" element={<SubscriptionPage />} />
             <Route path="settings" element={<SettingsPage />} />

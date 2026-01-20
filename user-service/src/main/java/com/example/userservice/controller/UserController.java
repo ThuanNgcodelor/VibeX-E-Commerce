@@ -115,4 +115,13 @@ public class UserController {
     public ResponseEntity<Long> countActiveUsers() {
         return ResponseEntity.ok(userService.countActiveUsers());
     }
+
+    /**
+     * Get all active user IDs
+     * Used by notification-service for admin broadcast notifications
+     */
+    @GetMapping("/all-ids")
+    public ResponseEntity<java.util.List<String>> getAllActiveUserIds() {
+        return ResponseEntity.ok(userService.getAllActiveUserIds());
+    }
 }

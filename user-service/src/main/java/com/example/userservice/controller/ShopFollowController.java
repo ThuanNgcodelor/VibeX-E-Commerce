@@ -1,11 +1,18 @@
 package com.example.userservice.controller;
 
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.example.userservice.jwt.JwtUtil;
 import com.example.userservice.service.shopfollow.ShopFollowService;
+
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/v1/user/follow")
@@ -49,5 +56,14 @@ public class ShopFollowController {
         } catch (Exception e) {
             return ResponseEntity.ok(false);
         }
+    }
+
+    /**
+     * Get all follower IDs for a shop
+     * Called by notification-service to send notifications to followers
+     */
+    @GetMapping("/{shopId}/follower-ids")
+    public ResponseEntity<java.util.List<String>> getFollowerIds(@PathVariable String shopId) {
+        return ResponseEntity.ok(shopFollowService.getFollowerIds(shopId));
     }
 }

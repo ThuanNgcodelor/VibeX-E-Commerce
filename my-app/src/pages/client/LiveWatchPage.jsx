@@ -9,7 +9,6 @@ import Footer from '../../components/client/Footer';
 import { getLiveRoom, getRecentChats, getLiveProducts, addLiveItemToCart } from '../../api/live';
 import { fetchProductById } from '../../api/product';
 import { getUser } from '../../api/user';
-import { LOCAL_BASE_URL } from '../../config/config.js';
 
 import { useTranslation } from 'react-i18next'; // Added import
 
@@ -62,8 +61,8 @@ export default function LiveWatchPage() {
     useEffect(() => {
         if (!roomId) return;
 
-        // WebSocket connects through Gateway (port 8080) which routes to notification-service
-        const wsUrl = (LOCAL_BASE_URL || 'http://localhost') + '/ws/live';
+        // WebSocket connects through Gateway - use dynamic URL based on current location
+        const wsUrl = `${window.location.origin}/ws/live`;
 
         const client = new Client({
             webSocketFactory: () => new SockJS(wsUrl),

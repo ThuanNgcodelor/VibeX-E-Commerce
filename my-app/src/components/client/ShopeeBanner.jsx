@@ -7,56 +7,8 @@ export default function ShopeeBanner() {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [banners, setBanners] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [bannerImageUrls, setBannerImageUrls] = useState({}); // Store loaded image URLs by banner ID
-    const createdUrlsRef = useRef([]); // Track created blob URLs for cleanup
-
-    // Default fallback banners (hardcoded)
-    const defaultBanners = {
-        LEFT_MAIN: [
-            {
-                id: 'default-1',
-                title: '12:12 5 DAYS LEFT',
-                description: 'INTERNATIONAL WAREHOUSE FAST DELIVERY',
-                imageUrl: null,
-                bg: 'linear-gradient(135deg, #ff6b6b 0%, #ee4d2d 100%)',
-                textColor: 'white'
-            },
-            {
-                id: 'default-2',
-                title: 'FREESHIP XTRA',
-                description: 'Orders from 0₫ - Max 30k',
-                imageUrl: null,
-                bg: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-                textColor: 'white'
-            },
-            {
-                id: 'default-3',
-                title: 'DISCOUNT CODE',
-                description: 'Voucher 25% off',
-                imageUrl: null,
-                bg: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-                textColor: 'white'
-            }
-        ],
-        RIGHT_TOP: [
-            {
-                id: 'default-top',
-                title: '12:12 1 TAP DOWNLOAD APP 1,000,000',
-                imageUrl: null,
-                bg: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                textColor: 'white'
-            }
-        ],
-        RIGHT_BOTTOM: [
-            {
-                id: 'default-bottom',
-                title: '12:12 UP TO 50% OFF ON APP',
-                imageUrl: null,
-                bg: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-                textColor: 'white'
-            }
-        ]
-    };
+    const [bannerImageUrls, setBannerImageUrls] = useState({});
+    const createdUrlsRef = useRef([]);
 
     // Fetch banners from API
     useEffect(() => {
@@ -73,30 +25,23 @@ export default function ShopeeBanner() {
     const buildImageUrl = (imageUrl) => {
         if (!imageUrl) return null;
 
-        // If already a full URL (starts with http:// or https://), return as-is
         if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
             return imageUrl;
         }
 
-        // For relative paths (e.g., /file-storage/get/xxx or file-storage/get/xxx):
-        // In development: Vite proxy will forward /file-storage/* to backend
-        // In production: nginx/API gateway handles the routing
-        // So we just need to ensure the path starts with /
         const path = imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`;
         return path;
     };
 
     const fetchBanners = async () => {
         try {
-            // Fetch both System Banners and Advertisements
-            // We fetch 'BANNER' placement ads. Assumes this covers the homepage slots.
             let bannerData = null;
             let adData = [];
 
             try {
                 bannerData = await getActiveBanners();
             } catch (bannerErr) {
-                console.warn('Failed to fetch banners, using defaults:', bannerErr.message);
+                console.warn('Failed to fetch banners:', bannerErr.message);
             }
 
             try {
@@ -111,42 +56,41 @@ export default function ShopeeBanner() {
                 id: `ad-${ad.id}`,
                 title: ad.title,
                 description: ad.description,
-                imageUrl: ad.imageUrl, // For video ads, this might be the video URL
+                imageUrl: ad.imageUrl,
                 linkUrl: ad.targetUrl,
                 openInNewTab: true,
                 bg: '#f0f0f0',
                 textColor: 'black',
                 isAd: true,
-                adType: ad.adType // Preserving adType (BANNER or VIDEO)
+                adType: ad.adType
             }));
 
             // Shuffle Ads
             const shuffledAds = adBanners.sort(() => 0.5 - Math.random());
 
-            // Use defaults as base if bannerData is null, empty, or invalid format
-            let finalData = defaultBanners;
+            // Initialize empty structure - NO DEFAULTS
+            let finalData = {
+                LEFT_MAIN: [],
+                RIGHT_TOP: [],
+                RIGHT_BOTTOM: []
+            };
 
-            // Check if bannerData is valid (has LEFT_MAIN array with content)
-            if (bannerData && typeof bannerData === 'object' &&
-                bannerData.LEFT_MAIN && Array.isArray(bannerData.LEFT_MAIN) &&
-                bannerData.LEFT_MAIN.length > 0) {
-                finalData = JSON.parse(JSON.stringify(bannerData)); // Deep copy
-            } else {
-                finalData = JSON.parse(JSON.stringify(defaultBanners)); // Deep copy defaults
+            // Check if bannerData is valid
+            if (bannerData && typeof bannerData === 'object') {
+                if (bannerData.LEFT_MAIN && Array.isArray(bannerData.LEFT_MAIN)) {
+                    finalData.LEFT_MAIN = [...bannerData.LEFT_MAIN];
+                }
+                if (bannerData.RIGHT_TOP && Array.isArray(bannerData.RIGHT_TOP)) {
+                    finalData.RIGHT_TOP = [...bannerData.RIGHT_TOP];
+                }
+                if (bannerData.RIGHT_BOTTOM && Array.isArray(bannerData.RIGHT_BOTTOM)) {
+                    finalData.RIGHT_BOTTOM = [...bannerData.RIGHT_BOTTOM];
+                }
             }
 
-            // Distribute Ads Randomly to 3 Slots: LEFT_MAIN, RIGHT_TOP, RIGHT_BOTTOM (Round Robin to fill arrays)
-            // Pool: shuffledAds
+            // Distribute Ads Round Robin to 3 Slots
             let adIndex = 0;
-
-            // Ensure arrays exist in finalData
-            if (!finalData.RIGHT_TOP) finalData.RIGHT_TOP = defaultBanners.RIGHT_TOP ? [...defaultBanners.RIGHT_TOP] : [];
-            if (!finalData.RIGHT_BOTTOM) finalData.RIGHT_BOTTOM = defaultBanners.RIGHT_BOTTOM ? [...defaultBanners.RIGHT_BOTTOM] : [];
-            if (!finalData.LEFT_MAIN) finalData.LEFT_MAIN = defaultBanners.LEFT_MAIN ? [...defaultBanners.LEFT_MAIN] : [];
-
-            // Round Robin Distribution:
             while (adIndex < shuffledAds.length) {
-                // 0 -> Top, 1 -> Bottom, 2 -> Main ... repeat
                 const remainder = adIndex % 3;
                 if (remainder === 0) {
                     finalData.RIGHT_TOP.unshift(shuffledAds[adIndex]);
@@ -158,24 +102,25 @@ export default function ShopeeBanner() {
                 adIndex++;
             }
 
-            console.log('Loaded banners with Random Ads:', finalData);
+            console.log('Loaded banners with Ads:', finalData);
             setBanners(finalData);
 
         } catch (error) {
             console.error('Failed to fetch banners/ads:', error);
-            // Use defaults on error
             setBanners(null);
         } finally {
             setLoading(false);
         }
     };
 
-
-    // Use database banners if available, otherwise use defaults
-    const displayBanners = banners || defaultBanners;
+    // Use database banners only - no defaults
+    const displayBanners = banners || { LEFT_MAIN: [], RIGHT_TOP: [], RIGHT_BOTTOM: [] };
     const mainBanners = displayBanners.LEFT_MAIN || [];
     const rightTopBanners = displayBanners.RIGHT_TOP || [];
     const rightBottomBanners = displayBanners.RIGHT_BOTTOM || [];
+
+    // Check if we have any banners at all
+    const hasAnyBanners = mainBanners.length > 0 || rightTopBanners.length > 0 || rightBottomBanners.length > 0;
 
     const [autoPlay, setAutoPlay] = useState(true);
     const [topIndex, setTopIndex] = useState(0);
@@ -184,7 +129,7 @@ export default function ShopeeBanner() {
     const [topAutoPlay, setTopAutoPlay] = useState(true);
     const [bottomAutoPlay, setBottomAutoPlay] = useState(true);
 
-    // Auto-rotate carousel for main banners (4s)
+    // Auto-rotate carousel for main banners (4s) - ONLY if more than 1 banner
     useEffect(() => {
         if (mainBanners.length > 1 && autoPlay) {
             const interval = setInterval(() => {
@@ -194,7 +139,7 @@ export default function ShopeeBanner() {
         }
     }, [mainBanners.length, autoPlay]);
 
-    // Auto-rotate Right Top Banner (2s)
+    // Auto-rotate Right Top Banner (2s) - ONLY if more than 1 banner
     useEffect(() => {
         if (rightTopBanners.length > 1 && topAutoPlay) {
             const interval = setInterval(() => {
@@ -204,7 +149,7 @@ export default function ShopeeBanner() {
         }
     }, [rightTopBanners.length, topAutoPlay]);
 
-    // Auto-rotate Right Bottom Banner (2s)
+    // Auto-rotate Right Bottom Banner (2s) - ONLY if more than 1 banner
     useEffect(() => {
         if (rightBottomBanners.length > 1 && bottomAutoPlay) {
             const interval = setInterval(() => {
@@ -214,8 +159,8 @@ export default function ShopeeBanner() {
         }
     }, [rightBottomBanners.length, bottomAutoPlay]);
 
-    // Helper to render carousel controls
-    const renderCarouselControls = (items, index, setIndex, isHovering, setHovering) => {
+    // Helper to render carousel controls - ONLY show if more than 1 item
+    const renderCarouselControls = (items, index, setIndex) => {
         if (items.length <= 1) return null;
         return (
             <>
@@ -231,8 +176,8 @@ export default function ShopeeBanner() {
                         transform: 'translateY(-50%)',
                         background: 'rgba(0,0,0,0.18)',
                         border: 'none',
-                        width: '24px', // Smaller for side
-                        height: '40px', // Smaller for side
+                        width: '24px',
+                        height: '40px',
                         color: 'white',
                         fontSize: '18px',
                         cursor: 'pointer',
@@ -281,36 +226,29 @@ export default function ShopeeBanner() {
 
     const handleBannerClick = (banner) => {
         if (!banner) return;
-        if (!banner.id?.startsWith('default-')) {
-            trackBannerClick(banner.id).catch(err => console.error(err));
-        }
+        trackBannerClick(banner.id).catch(err => console.error(err));
         if (banner.linkUrl) {
             if (banner.openInNewTab) window.open(banner.linkUrl, '_blank', 'noopener,noreferrer');
             else window.location.href = banner.linkUrl;
         }
     };
 
-
-
-
     const renderBanner = (banner, isMain = false) => {
         if (!banner) return null;
 
-        // Check if we have loaded image URL for this banner
         const loadedImageUrl = bannerImageUrls[banner.id];
         const hasImage = loadedImageUrl || (banner.imageUrl && !banner.imageUrl.includes('default'));
         const imageUrl = loadedImageUrl || (banner.imageUrl ? buildImageUrl(banner.imageUrl) : null);
 
-        // If no image, use gradient
         const background = !hasImage
             ? (banner.bg || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)')
-            : '#f0f0f0'; // Placeholder color while image loads or behind image
+            : '#f0f0f0';
 
         const isVideo = banner.adType === 'VIDEO';
 
         return (
             <div
-                key={banner.id} // Add key for React reconciliation during rotation
+                key={banner.id}
                 onClick={() => !isVideo && handleBannerClick(banner)}
                 style={{
                     height: isMain ? 'clamp(200px, 30vw, 300px)' : 'clamp(100px, 20vw, 143px)',
@@ -332,7 +270,6 @@ export default function ShopeeBanner() {
                 onMouseEnter={(e) => banner.linkUrl && (e.currentTarget.style.transform = 'scale(1.02)')}
                 onMouseLeave={(e) => banner.linkUrl && (e.currentTarget.style.transform = 'scale(1)')}
             >
-                {/* Render Media (Video or Image) */}
                 {isVideo ? (
                     <video
                         src={imageUrl}
@@ -364,7 +301,7 @@ export default function ShopeeBanner() {
                             style={{
                                 width: '100%',
                                 height: '100%',
-                                objectFit: 'cover', // Ensures image fills container
+                                objectFit: 'cover',
                                 objectPosition: 'center',
                                 position: 'absolute',
                                 top: 0,
@@ -372,13 +309,12 @@ export default function ShopeeBanner() {
                                 zIndex: 1
                             }}
                             onError={(e) => {
-                                e.target.style.display = 'none'; // Fallback to background text if image fails
+                                e.target.style.display = 'none';
                             }}
                         />
                     )
                 )}
 
-                {/* Overlay for text readability (only if image/video exists) */}
                 {hasImage && !isVideo && (
                     <div style={{
                         position: 'absolute',
@@ -386,17 +322,11 @@ export default function ShopeeBanner() {
                         left: 0,
                         right: 0,
                         bottom: 0,
-                        zIndex: 1, // Same level as content bottom layer, but text is Z=2
-                        background: 'rgba(0,0,0,0.1)' // Slight dim for text pop
+                        zIndex: 1,
+                        background: 'rgba(0,0,0,0.1)'
                     }} />
                 )}
 
-                {/* Content (Title/Desc) - Only show if NO Image/Video OR if the design explicitly overlays text on image. 
-                    Usually Banner Ads have text IN the image. System banners might use text overlay.
-                    Let's show text ONLY if it's a System Banner (usually defaults) OR if specific flag checking.
-                    For now, if it's an Ad with an image, we probably don't want text overlay cluttering it.
-                */}
-                {/* Content (Title/Desc) - Show overlay text for Images, but hide for Video */}
                 {!isVideo && (
                     <div style={{ position: 'relative', zIndex: 2, textAlign: 'center', padding: '16px' }}>
                         {isMain ? (
@@ -406,7 +336,7 @@ export default function ShopeeBanner() {
                                         fontSize: 'clamp(24px, 5vw, 48px)',
                                         fontWeight: 700,
                                         marginBottom: '12px',
-                                        textShadow: '2px 2px 4px rgba(0,0,0,0.5)' // Added shadow back for readability over images
+                                        textShadow: '2px 2px 4px rgba(0,0,0,0.5)'
                                     }}>
                                         {banner.title}
                                     </h1>
@@ -415,7 +345,7 @@ export default function ShopeeBanner() {
                                     <p style={{
                                         fontSize: 'clamp(16px, 3vw, 24px)',
                                         marginBottom: 0,
-                                        textShadow: '1px 1px 2px rgba(0,0,0,0.5)' // Added shadow back
+                                        textShadow: '1px 1px 2px rgba(0,0,0,0.5)'
                                     }}>
                                         {banner.description}
                                     </p>
@@ -426,7 +356,7 @@ export default function ShopeeBanner() {
                                 <div style={{
                                     fontSize: 'clamp(14px, 2.5vw, 18px)',
                                     fontWeight: 600,
-                                    textShadow: '1px 1px 2px rgba(0,0,0,0.5)' // Added shadow back
+                                    textShadow: '1px 1px 2px rgba(0,0,0,0.5)'
                                 }}>
                                     {banner.title}
                                 </div>
@@ -438,6 +368,7 @@ export default function ShopeeBanner() {
         );
     };
 
+    // Loading state
     if (loading) {
         return (
             <div style={{ background: '#F5F5F5', padding: '16px 0' }}>
@@ -469,130 +400,141 @@ export default function ShopeeBanner() {
         );
     }
 
+    // If no banners at all, don't render the component
+    if (!hasAnyBanners) {
+        return null;
+    }
+
     return (
         <div style={{ background: '#F5F5F5', padding: '16px 0' }}>
             <div className="container" style={{ maxWidth: '1200px' }}>
                 <div className="row g-3">
-                    {/* Main Banner Carousel */}
-                    <div className="col-12 col-lg-8">
-                        <div style={{ position: 'relative' }}
-                            onMouseEnter={() => setAutoPlay(false)}
-                            onMouseLeave={() => setAutoPlay(true)}>
+                    {/* Main Banner Carousel - only show if has banners */}
+                    {mainBanners.length > 0 && (
+                        <div className={rightTopBanners.length > 0 || rightBottomBanners.length > 0 ? "col-12 col-lg-8" : "col-12"}>
+                            <div style={{ position: 'relative' }}
+                                onMouseEnter={() => setAutoPlay(false)}
+                                onMouseLeave={() => setAutoPlay(true)}>
 
-                            {mainBanners.length > 0 && renderBanner(mainBanners[currentIndex], true)}
+                                {renderBanner(mainBanners[currentIndex], true)}
 
-                            {/* Arrow Navigation */}
-                            {mainBanners.length > 1 && (
-                                <>
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setCurrentIndex(prev => (prev - 1 + mainBanners.length) % mainBanners.length);
-                                        }}
-                                        style={{
-                                            position: 'absolute',
-                                            top: '50%',
-                                            left: '0',
-                                            transform: 'translateY(-50%)',
-                                            background: 'rgba(0,0,0,0.18)',
-                                            border: 'none',
-                                            width: '32px',
-                                            height: '60px',
-                                            color: 'white',
-                                            fontSize: '24px',
-                                            cursor: 'pointer',
-                                            zIndex: 2,
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            transition: 'background 0.3s'
-                                        }}
-                                        className="banner-arrow"
-                                        onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.32)'}
-                                        onMouseOut={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.18)'}
-                                    >
-                                        &#10094;
-                                    </button>
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setCurrentIndex(prev => (prev + 1) % mainBanners.length);
-                                        }}
-                                        style={{
-                                            position: 'absolute',
-                                            top: '50%',
-                                            right: '0',
-                                            transform: 'translateY(-50%)',
-                                            background: 'rgba(0,0,0,0.18)',
-                                            border: 'none',
-                                            width: '32px',
-                                            height: '60px',
-                                            color: 'white',
-                                            fontSize: '24px',
-                                            cursor: 'pointer',
-                                            zIndex: 2,
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            transition: 'background 0.3s'
-                                        }}
-                                        className="banner-arrow"
-                                        onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.32)'}
-                                        onMouseOut={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.18)'}
-                                    >
-                                        &#10095;
-                                    </button>
-                                </>
-                            )}
-                            {/* Correct Right Arrow Content in JSX instead of CSS content hack which is messy for inline */}
-                            {/* Actually simpler to just put the char in JSX above, waiting for correction in next step if needed, but I'll fix it inline below */}
-
-                            {/* Navigation Dots */}
-                            {mainBanners.length > 1 && (
-                                <div
-                                    className="d-flex gap-2 justify-content-center"
-                                    style={{ position: 'absolute', bottom: '16px', left: '50%', transform: 'translateX(-50%)', zIndex: 3 }}
-                                >
-                                    {mainBanners.map((_, idx) => (
-                                        <div
-                                            key={idx}
-                                            onClick={() => setCurrentIndex(idx)}
-                                            style={{
-                                                width: currentIndex === idx ? '24px' : '8px',
-                                                height: '8px',
-                                                borderRadius: '4px',
-                                                background: currentIndex === idx ? 'white' : 'rgba(255,255,255,0.5)',
-                                                cursor: 'pointer',
-                                                transition: 'all 0.3s',
-                                                boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                                {/* Arrow Navigation - only show if more than 1 banner */}
+                                {mainBanners.length > 1 && (
+                                    <>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setCurrentIndex(prev => (prev - 1 + mainBanners.length) % mainBanners.length);
                                             }}
-                                        />
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    </div>
+                                            style={{
+                                                position: 'absolute',
+                                                top: '50%',
+                                                left: '0',
+                                                transform: 'translateY(-50%)',
+                                                background: 'rgba(0,0,0,0.18)',
+                                                border: 'none',
+                                                width: '32px',
+                                                height: '60px',
+                                                color: 'white',
+                                                fontSize: '24px',
+                                                cursor: 'pointer',
+                                                zIndex: 2,
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                transition: 'background 0.3s'
+                                            }}
+                                            className="banner-arrow"
+                                            onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.32)'}
+                                            onMouseOut={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.18)'}
+                                        >
+                                            &#10094;
+                                        </button>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setCurrentIndex(prev => (prev + 1) % mainBanners.length);
+                                            }}
+                                            style={{
+                                                position: 'absolute',
+                                                top: '50%',
+                                                right: '0',
+                                                transform: 'translateY(-50%)',
+                                                background: 'rgba(0,0,0,0.18)',
+                                                border: 'none',
+                                                width: '32px',
+                                                height: '60px',
+                                                color: 'white',
+                                                fontSize: '24px',
+                                                cursor: 'pointer',
+                                                zIndex: 2,
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                transition: 'background 0.3s'
+                                            }}
+                                            className="banner-arrow"
+                                            onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.32)'}
+                                            onMouseOut={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.18)'}
+                                        >
+                                            &#10095;
+                                        </button>
+                                    </>
+                                )}
 
-                    {/* Side Banners (Rotating) */}
-                    <div className="col-12 col-lg-4">
-                        <div className="d-flex flex-column gap-3">
-                            {/* Right Top Banner */}
-                            <div style={{ position: 'relative' }}
-                                onMouseEnter={() => setTopAutoPlay(false)}
-                                onMouseLeave={() => setTopAutoPlay(true)}>
-                                {rightTopBanners.length > 0 && renderBanner(rightTopBanners[topIndex])}
-                                {renderCarouselControls(rightTopBanners, topIndex, setTopIndex)}
-                            </div>
-
-                            {/* Right Bottom Banner */}
-                            <div style={{ position: 'relative' }}
-                                onMouseEnter={() => setBottomAutoPlay(false)}
-                                onMouseLeave={() => setBottomAutoPlay(true)}>
-                                {rightBottomBanners.length > 0 && renderBanner(rightBottomBanners[bottomIndex])}
-                                {renderCarouselControls(rightBottomBanners, bottomIndex, setBottomIndex)}
+                                {/* Navigation Dots - only show if more than 1 banner */}
+                                {mainBanners.length > 1 && (
+                                    <div
+                                        className="d-flex gap-2 justify-content-center"
+                                        style={{ position: 'absolute', bottom: '16px', left: '50%', transform: 'translateX(-50%)', zIndex: 3 }}
+                                    >
+                                        {mainBanners.map((_, idx) => (
+                                            <div
+                                                key={idx}
+                                                onClick={() => setCurrentIndex(idx)}
+                                                style={{
+                                                    width: currentIndex === idx ? '24px' : '8px',
+                                                    height: '8px',
+                                                    borderRadius: '4px',
+                                                    background: currentIndex === idx ? 'white' : 'rgba(255,255,255,0.5)',
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.3s',
+                                                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                                                }}
+                                            />
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
-                    </div>
+                    )}
+
+                    {/* Side Banners - only show if has banners */}
+                    {(rightTopBanners.length > 0 || rightBottomBanners.length > 0) && (
+                        <div className={mainBanners.length > 0 ? "col-12 col-lg-4" : "col-12"}>
+                            <div className="d-flex flex-column gap-3">
+                                {/* Right Top Banner */}
+                                {rightTopBanners.length > 0 && (
+                                    <div style={{ position: 'relative' }}
+                                        onMouseEnter={() => setTopAutoPlay(false)}
+                                        onMouseLeave={() => setTopAutoPlay(true)}>
+                                        {renderBanner(rightTopBanners[topIndex])}
+                                        {renderCarouselControls(rightTopBanners, topIndex, setTopIndex)}
+                                    </div>
+                                )}
+
+                                {/* Right Bottom Banner */}
+                                {rightBottomBanners.length > 0 && (
+                                    <div style={{ position: 'relative' }}
+                                        onMouseEnter={() => setBottomAutoPlay(false)}
+                                        onMouseLeave={() => setBottomAutoPlay(true)}>
+                                        {renderBanner(rightBottomBanners[bottomIndex])}
+                                        {renderCarouselControls(rightBottomBanners, bottomIndex, setBottomIndex)}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

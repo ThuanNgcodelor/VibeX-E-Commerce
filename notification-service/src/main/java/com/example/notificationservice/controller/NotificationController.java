@@ -76,4 +76,28 @@ public class NotificationController {
         notificationService.markAllAsReadByShopId(shopId);
         return ResponseEntity.ok().build();
     }
+
+    // =============== NEW BROADCAST ENDPOINTS ===============
+
+    /**
+     * Admin broadcast notification to all users
+     * POST /v1/notifications/admin/broadcast
+     */
+    @PostMapping("/admin/broadcast")
+    public ResponseEntity<com.example.notificationservice.dto.BroadcastResult> adminBroadcast(
+            @RequestBody com.example.notificationservice.request.AdminBroadcastRequest request) {
+        return ResponseEntity.ok(notificationService.broadcastToAllUsers(request));
+    }
+
+    /**
+     * Shop owner notify all followers
+     * POST /v1/notifications/shop/notify-followers
+     */
+    @PostMapping("/shop/notify-followers")
+    public ResponseEntity<com.example.notificationservice.dto.BroadcastResult> notifyFollowers(
+            HttpServletRequest request,
+            @RequestBody com.example.notificationservice.request.ShopNotifyRequest body) {
+        String shopId = jwtUtil.ExtractUserId(request);
+        return ResponseEntity.ok(notificationService.notifyFollowers(shopId, body));
+    }
 }

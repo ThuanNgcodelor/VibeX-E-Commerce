@@ -43,4 +43,12 @@ public class ShopFollowService {
     public boolean isFollowing(String followerId, String shopId) {
         return shopFollowRepository.existsByFollowerIdAndShopId(followerId, shopId);
     }
+
+    /**
+     * Get all follower IDs for a shop
+     * Used by notification-service to send notifications to followers
+     */
+    public java.util.List<String> getFollowerIds(String shopId) {
+        return shopFollowRepository.findFollowerIdsByShopId(shopId);
+    }
 }

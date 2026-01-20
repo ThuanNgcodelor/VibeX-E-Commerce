@@ -1,10 +1,8 @@
 package com.example.notificationservice.model;
 
+import com.example.notificationservice.enums.NotificationType;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.GenericGenerator;
@@ -28,6 +26,16 @@ public class Notification {
     private String shopId;
     private String orderId;
     private String message;
+
+    // NEW: Title for the notification
+    private String title;
+    
+    // NEW: Type of notification for categorization
+    @Enumerated(EnumType.STRING)
+    private NotificationType type;
+    
+    // NEW: Action URL - where to navigate when clicked
+    private String actionUrl;
 
     @Column(name = "is_read")
     @JsonProperty("isRead")

@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Button, Form, ListGroup, Image, Spinner, InputGroup } from 'react-bootstrap';
-import { useTranslation } from 'react-i18next';
 import { fetchProducts } from '../../../api/product';
 import { getImageUrl } from '../../../api/image';
 
 const ProductSelectorModal = ({ show, onHide, onSelect, initialSelectedIds = [] }) => {
-    const { t } = useTranslation();
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -22,8 +20,6 @@ const ProductSelectorModal = ({ show, onHide, onSelect, initialSelectedIds = [] 
         setLoading(true);
         try {
             const res = await fetchProducts();
-            // Adjust based on actual API response structure (e.g., res.data or res)
-            // Assuming fetchProducts returns { data: [...] } or [...]
             const productList = Array.isArray(res) ? res : (res.data || []);
             setProducts(productList);
         } catch (error) {
@@ -48,7 +44,6 @@ const ProductSelectorModal = ({ show, onHide, onSelect, initialSelectedIds = [] 
         onHide();
     };
 
-    // Filter products based on search term
     const filteredProducts = products.filter(p =>
         p.productName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.id?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -57,7 +52,7 @@ const ProductSelectorModal = ({ show, onHide, onSelect, initialSelectedIds = [] 
     return (
         <Modal show={show} onHide={onHide} size="lg" scrollable>
             <Modal.Header closeButton>
-                <Modal.Title>{t('shopOwner.decoration.widgets.selectProducts') || "Select Products"}</Modal.Title>
+                <Modal.Title>Select Products</Modal.Title>
             </Modal.Header>
             <Modal.Body>
                 <InputGroup className="mb-3">
@@ -65,7 +60,7 @@ const ProductSelectorModal = ({ show, onHide, onSelect, initialSelectedIds = [] 
                         <i className="bi bi-search"></i>
                     </InputGroup.Text>
                     <Form.Control
-                        placeholder={t('shopOwner.decoration.widgets.searchProducts') || "Search products..."}
+                        placeholder="Search products..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -107,7 +102,7 @@ const ProductSelectorModal = ({ show, onHide, onSelect, initialSelectedIds = [] 
                             ))
                         ) : (
                             <div className="text-center text-muted py-4">
-                                {t('shopOwner.decoration.widgets.noProductsFound') || "No products found"}
+                                No products found
                             </div>
                         )}
                     </ListGroup>
@@ -115,10 +110,10 @@ const ProductSelectorModal = ({ show, onHide, onSelect, initialSelectedIds = [] 
             </Modal.Body>
             <Modal.Footer>
                 <Button variant="secondary" onClick={onHide}>
-                    {t('shopOwner.decoration.widgets.cancel') || "Cancel"}
+                    Cancel
                 </Button>
                 <Button variant="primary" onClick={handleConfirm}>
-                    {t('shopOwner.decoration.widgets.confirm') || "Confirm"} ({selectedIds.size})
+                    Confirm ({selectedIds.size})
                 </Button>
             </Modal.Footer>
         </Modal>

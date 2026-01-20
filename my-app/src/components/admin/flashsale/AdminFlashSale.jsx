@@ -2,9 +2,8 @@ import React, { useState, useEffect } from 'react';
 import flashSaleAPI from '../../../api/flashSale/flashSaleAPI';
 import './AdminFlashSale.css';
 
-const API_BASE_URL = import.meta.env.MODE === 'production'
-    ? ''
-    : (import.meta.env.VITE_API_BASE_URL || 'http://localhost');
+// Use empty string - Vite proxy (dev) / Nginx (prod) handles /v1/* routing
+const API_BASE_URL = '';
 
 const AdminFlashSale = () => {
     const [sessions, setSessions] = useState([]);

@@ -1,15 +1,17 @@
 package com.example.userservice.service.user;
 
+import java.util.List;
+
+import org.springframework.web.multipart.MultipartFile;
+
 import com.example.userservice.dto.CartDto;
 import com.example.userservice.dto.UserInformationDto;
 import com.example.userservice.model.User;
 import com.example.userservice.model.UserDetails;
 import com.example.userservice.request.RegisterRequest;
 import com.example.userservice.request.UserUpdateRequest;
-import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
+import jakarta.servlet.http.HttpServletRequest;
 
 public interface UserService {
     User SaveUser(RegisterRequest registerRequest);
@@ -53,4 +55,10 @@ public interface UserService {
     com.example.userservice.dto.UserAdminDto toUserAdminDto(User user);
 
     Long countActiveUsers();
+
+    /**
+     * Get all active user IDs
+     * Used by notification-service for admin broadcast notifications
+     */
+    List<String> getAllActiveUserIds();
 }

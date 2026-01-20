@@ -1,51 +1,79 @@
 package com.example.orderservice.service;
 
-import com.example.orderservice.client.GhnApiClient;
-import com.example.orderservice.client.PaymentServiceClient;
-import com.example.orderservice.client.StockServiceClient;
-import com.example.orderservice.client.FlashSaleClient;
-import com.example.orderservice.client.UserServiceClient;
-import com.example.orderservice.dto.AddRefundRequestDto;
-import com.example.orderservice.dto.PaymentDto;
-import com.example.orderservice.dto.*;
-import com.example.orderservice.dto.PaymentEvent;
-import com.example.orderservice.enums.OrderStatus;
-import com.example.orderservice.model.Order;
-import com.example.orderservice.model.OrderItem;
-import com.example.orderservice.model.ShippingOrder;
-import com.example.orderservice.repository.OrderRepository;
-import com.example.orderservice.repository.OrderItemRepository;
-import com.example.orderservice.repository.ShippingOrderRepository;
-import com.example.orderservice.request.*;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.math.BigDecimal;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
 import org.apache.kafka.clients.admin.NewTopic;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-
-import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.HttpClientErrorException;
+
+import com.example.orderservice.client.FlashSaleClient;
+import com.example.orderservice.client.GhnApiClient;
+import com.example.orderservice.client.PaymentServiceClient;
+import com.example.orderservice.client.StockServiceClient;
+import com.example.orderservice.client.UserServiceClient;
+import com.example.orderservice.dto.AddRefundRequestDto;
+import com.example.orderservice.dto.AddressDto;
+import com.example.orderservice.dto.AnalyticsDto;
+import com.example.orderservice.dto.BatchGetProductsRequest;
+import com.example.orderservice.dto.FrontendOrderRequest;
+import com.example.orderservice.dto.GhnAvailableServicesResponse;
+import com.example.orderservice.dto.GhnCreateOrderRequest;
+import com.example.orderservice.dto.GhnCreateOrderResponse;
+import com.example.orderservice.dto.GhnItemDto;
+import com.example.orderservice.dto.OrderCompensationEvent;
+import com.example.orderservice.dto.PaymentDto;
+import com.example.orderservice.dto.PaymentEvent;
+import com.example.orderservice.dto.ProductDto;
+import com.example.orderservice.dto.SelectedItemDto;
+import com.example.orderservice.dto.ShopOwnerDto;
+import com.example.orderservice.dto.SizeDto;
+import com.example.orderservice.dto.StockDecreaseEvent;
+import com.example.orderservice.dto.TopProductDto;
+import com.example.orderservice.dto.UpdateOrderRequest;
+import com.example.orderservice.dto.UpdateStatusOrderRequest;
+import com.example.orderservice.enums.OrderStatus;
+import com.example.orderservice.model.Order;
+import com.example.orderservice.model.OrderItem;
+import com.example.orderservice.model.ShippingOrder;
+import com.example.orderservice.repository.OrderItemRepository;
+import com.example.orderservice.repository.OrderRepository;
+import com.example.orderservice.repository.ShippingOrderRepository;
+import com.example.orderservice.request.CheckOutKafkaRequest;
+import com.example.orderservice.request.DecreaseStockRequest;
+import com.example.orderservice.request.RemoveCartItemByUserIdRequest;
+import com.example.orderservice.request.SendNotificationRequest;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -1211,9 +1239,9 @@ public class OrderServiceImpl implements OrderService {
             throw new RuntimeException("Selected items cannot be empty");
 
         // Validate Shop Status
-        validateShopsActive(orderRequest.getSelectedItems().stream()
-                .map(SelectedItemDto::getProductId)
-                .collect(Collectors.toList()));
+        // validateShopsActive(orderRequest.getSelectedItems().stream()
+        //         .map(SelectedItemDto::getProductId)
+        //         .collect(Collectors.toList()));
         if (orderRequest.getAddressId() == null || orderRequest.getAddressId().isBlank())
             throw new RuntimeException("Address ID is required");
 
@@ -1415,10 +1443,10 @@ public class OrderServiceImpl implements OrderService {
         }
 
         // Validate Shop Status
-        List<String> productIds = selectedItemsRaw.stream()
-                .map(item -> (String) item.get("productId"))
-                .collect(Collectors.toList());
-        validateShopsActive(productIds);
+        // List<String> productIds = selectedItemsRaw.stream()
+        //         .map(item -> (String) item.get("productId"))
+        //         .collect(Collectors.toList());
+        // validateShopsActive(productIds);
 
         // 2. Parse shippingFee (handle multiple types)
         BigDecimal shippingFee = null;
@@ -1474,9 +1502,9 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public Order createOrderFromWallet(FrontendOrderRequest request, String userId) {
         // Validate Shop Status
-        validateShopsActive(request.getSelectedItems().stream()
-                .map(SelectedItemDto::getProductId)
-                .collect(Collectors.toList()));
+        // validateShopsActive(request.getSelectedItems().stream()
+        //         .map(SelectedItemDto::getProductId)
+        //         .collect(Collectors.toList()));
 
         // ========== PHASE 1: PREPARE SELECTED ITEMS ==========
         // Extract per-shop shipping fees map from request
@@ -2309,7 +2337,6 @@ public class OrderServiceImpl implements OrderService {
             } catch (Exception e) {
 
                 failedCount++;
-                // KHÔNG throw exception → Tiếp tục xử lý event tiếp theo
             }
         }
 

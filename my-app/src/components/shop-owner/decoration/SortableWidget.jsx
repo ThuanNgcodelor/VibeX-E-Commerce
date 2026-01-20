@@ -2,10 +2,8 @@ import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Card, Button } from 'react-bootstrap';
-import { useTranslation } from 'react-i18next';
 
 const SortableWidget = ({ widget, index, total, renderWidget, onRemove }) => {
-    const { t } = useTranslation();
     const {
         attributes,
         listeners,
@@ -24,6 +22,15 @@ const SortableWidget = ({ widget, index, total, renderWidget, onRemove }) => {
         zIndex: isDragging ? 999 : 1
     };
 
+    const getWidgetLabel = (type) => {
+        switch (type) {
+            case 'banner': return 'Banner';
+            case 'video': return 'Video';
+            case 'products': return 'Products';
+            default: return 'Unknown Widget';
+        }
+    };
+
     return (
         <div ref={setNodeRef} style={style}>
             <Card className="border shadow-sm">
@@ -35,7 +42,7 @@ const SortableWidget = ({ widget, index, total, renderWidget, onRemove }) => {
                             style={{ cursor: 'grab', width: '36px', height: '36px' }}
                             {...attributes}
                             {...listeners}
-                            title={t('shopOwner.decoration.move', 'Di chuyển')}
+                            title="Move"
                         >
                             <i className="bi bi-grip-vertical fs-5"></i>
                         </div>
@@ -43,10 +50,7 @@ const SortableWidget = ({ widget, index, total, renderWidget, onRemove }) => {
                         {/* Widget Title */}
                         <span className="fw-bold text-uppercase text-primary small d-flex align-items-center">
                             <i className="bi bi-layers me-2"></i>
-                            {widget.type === 'banner' ? t('shopOwner.decoration.widgets.banner') :
-                                widget.type === 'video' ? t('shopOwner.decoration.widgets.video') :
-                                    widget.type === 'products' ? t('shopOwner.decoration.widgets.products') :
-                                        t('shopOwner.decoration.unknownWidget')}
+                            {getWidgetLabel(widget.type)}
                         </span>
                     </div>
 
@@ -56,7 +60,7 @@ const SortableWidget = ({ widget, index, total, renderWidget, onRemove }) => {
                         className="d-flex align-items-center justify-content-center"
                         style={{ width: '36px', height: '36px' }}
                         onClick={() => onRemove(widget.id)}
-                        title={t('shopOwner.decoration.delete')}
+                        title="Delete"
                         onPointerDown={(e) => e.stopPropagation()}
                     >
                         <i className="bi bi-trash3-fill fs-5"></i>

@@ -1,12 +1,7 @@
 import createApiInstance from "./createApiInstance.js";
-import { LOCAL_BASE_URL } from "../config/config.js";
-
-const getApiBaseUrl = () => {
-    return LOCAL_BASE_URL || 'http://localhost';
-};
 
 const API_URL = "/v1/notifications";
-const api = createApiInstance(`${getApiBaseUrl()}${API_URL}`);
+const api = createApiInstance(API_URL);
 
 /**
  * Lấy tất cả thông báo của người dùng hiện tại
@@ -29,7 +24,7 @@ export const getNotificationsByShopId = async () => {
     try {
         const response = await api.get(`/getAllByShopId`);
         return response.data;
-    } catch  {
+    } catch {
         throw new Error("Failed to fetch shop notifications");
     }
 };
@@ -57,7 +52,7 @@ export const deleteNotification = async (notificationId) => {
     try {
         const response = await api.delete(`/delete/${notificationId}`);
         return response.data;
-    } catch{
+    } catch {
         throw new Error("Failed to delete notification");
     }
 };
@@ -70,7 +65,7 @@ export const deleteAllNotifications = async () => {
     try {
         const response = await api.delete(`/deleteAllByUserId`);
         return response.data;
-    } catch  {
+    } catch {
         throw new Error("Failed to delete all notifications");
     }
 };
@@ -113,3 +108,34 @@ export const markAllShopNotificationsAsRead = async () => {
         throw new Error("Failed to mark all shop notifications as read");
     }
 };
+
+// =============== NEW BROADCAST FUNCTIONS ===============
+
+/**
+ * Admin: Gửi thông báo đến tất cả users
+ * @param {Object} data - { title, message, type, actionUrl }
+ * @returns {Promise<Object>} - { success, sentCount, message }
+ */
+export const adminBroadcast = async (data) => {
+    try {
+        const response = await api.post(`/admin/broadcast`, data);
+        return response.data;
+    } catch (error) {
+        throw new Error("Failed to send broadcast notification");
+    }
+};
+
+/**
+ * Shop Owner: Gửi thông báo đến tất cả followers
+ * @param {Object} data - { title, message, type, actionUrl }
+ * @returns {Promise<Object>} - { success, sentCount, message }
+ */
+export const shopNotifyFollowers = async (data) => {
+    try {
+        const response = await api.post(`/shop/notify-followers`, data);
+        return response.data;
+    } catch (error) {
+        throw new Error("Failed to notify followers");
+    }
+};
+

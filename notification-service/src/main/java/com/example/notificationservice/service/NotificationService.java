@@ -1,5 +1,6 @@
 package com.example.notificationservice.service;
 
+import com.example.notificationservice.client.UserServiceClient;
 import com.example.notificationservice.model.Notification;
 import com.example.notificationservice.repository.NotificationRepository;
 import com.example.notificationservice.request.SendNotificationRequest;
@@ -16,6 +17,7 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final WebSocketNotificationService webSocketNotificationService;
+    private final UserServiceClient userServiceClient;
 
     public Notification save(SendNotificationRequest request) {
         String userId = request.getUserId();
@@ -167,5 +169,122 @@ public class NotificationService {
                 .build();
 
         webSocketNotificationService.broadcastUpdate(shopId, shopId, true, updateEvent);
+    }
+
+    // =============== NEW BROADCAST METHODS ===============
+
+    /**
+     * Broadcast notification to ALL active users (Admin only)
+     */
+    @Transactional
+    public com.example.notificationservice.dto.BroadcastResult broadcastToAllUsers(
+            com.example.notificationservice.request.AdminBroadcastRequest request) {
+        
+        List<String> userIds;
+        try {
+            // Get all active user IDs from user-service
+            userIds = userServiceClient.getAllActiveUserIds().getBody();
+        } catch (Exception e) {
+            System.err.println("Failed to fetch active user IDs: " + e.getMessage());
+            return com.example.notificationservice.dto.BroadcastResult.builder()
+                    .success(false)
+                    .sentCount(0)
+                    .message("Failed to fetch user list: " + e.getMessage())
+                    .build();
+        }
+        
+        if (userIds == null || userIds.isEmpty()) {
+            return com.example.notificationservice.dto.BroadcastResult.builder()
+                    .success(false)
+                    .sentCount(0)
+                    .message("No active users found")
+                    .build();
+        }
+
+        int sentCount = 0;
+        for (String userId : userIds) {
+            try {
+                var notification = Notification.builder()
+                        .userId(userId)
+                        .shopId(userId)
+                        .title(request.getTitle())
+                        .message(request.getMessage())
+                        .type(request.getType())
+                        .actionUrl(request.getActionUrl())
+                        .read(false)
+                        .shopOwnerNotification(false)
+                        .build();
+                
+                Notification saved = notificationRepository.save(notification);
+                webSocketNotificationService.pushNotification(saved);
+                sentCount++;
+            } catch (Exception e) {
+                System.err.println("Failed to send notification to user " + userId + ": " + e.getMessage());
+            }
+        }
+
+        return com.example.notificationservice.dto.BroadcastResult.builder()
+                .success(true)
+                .sentCount(sentCount)
+                .message("Broadcast sent to " + sentCount + " users")
+                .build();
+    }
+
+    /**
+     * Send notification to all followers of a shop (Shop Owner only)
+     */
+    @Transactional
+    public com.example.notificationservice.dto.BroadcastResult notifyFollowers(
+            String shopId,
+            com.example.notificationservice.request.ShopNotifyRequest request) {
+        
+        List<String> followerIds;
+        try {
+            // Get all active user IDs from user-service
+            followerIds = userServiceClient.getFollowerIds(shopId).getBody();
+        } catch (Exception e) {
+             System.err.println("Failed to fetch followers: " + e.getMessage());
+             return com.example.notificationservice.dto.BroadcastResult.builder()
+                     .success(false)
+                     .sentCount(0)
+                     .message("Failed to fetch followers: " + e.getMessage())
+                     .build();
+        }
+        
+        if (followerIds == null || followerIds.isEmpty()) {
+            return com.example.notificationservice.dto.BroadcastResult.builder()
+                    .success(false)
+                    .sentCount(0)
+                    .message("No followers found for this shop")
+                    .build();
+        }
+
+        int sentCount = 0;
+        for (String followerId : followerIds) {
+            try {
+                var notification = Notification.builder()
+                        .userId(followerId)
+                        .shopId(shopId)
+                        .title(request.getTitle())
+                        .message(request.getMessage())
+                        .type(request.getType())
+                        .actionUrl(request.getActionUrl())
+                        .read(false)
+                        .shopOwnerNotification(false) // Notification goes to USER, not shop owner
+                        .build();
+                
+                Notification saved = notificationRepository.save(notification);
+                webSocketNotificationService.pushNotification(saved);
+                sentCount++;
+            } catch (Exception e) {
+                System.err.println("Failed to send notification to follower " + followerId + ": " + e.getMessage());
+            }
+        }
+
+        return com.example.notificationservice.dto.BroadcastResult.builder()
+                .success(true)
+                .sentCount(sentCount)
+                .message("Notification sent to " + sentCount + " followers")
+                .build();
     }
 }

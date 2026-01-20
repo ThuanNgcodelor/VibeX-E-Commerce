@@ -289,6 +289,14 @@ const ShopOwnerSidebar = ({ isOpen, onClose }) => {
                                 <i className="fas fa-ticket-alt"></i>
                                 <span>{t('shopOwner.sidebar.vouchers') || "Vouchers"}</span>
                             </Link>
+                            <Link
+                                className={`sidebar-item ${isActive('/shop-owner/notify-followers') ? 'active' : ''}`}
+                                to="/shop-owner/notify-followers"
+                                onClick={handleLinkClick}
+                            >
+                                <i className="fas fa-bullhorn"></i>
+                                <span>{t('shopOwner.sidebar.notifyFollowers') || "Notify Followers"}</span>
+                            </Link>
                         </div>
                     )}
                 </div>

@@ -1,29 +1,47 @@
 package com.example.orderservice.controller;
 
-import com.example.orderservice.client.GhnApiClient;
-import com.example.orderservice.client.StockServiceClient;
-import com.example.orderservice.client.UserServiceClient;
-import com.example.orderservice.dto.*;
-import com.example.orderservice.jwt.JwtUtil;
-import com.example.orderservice.model.Order;
-import com.example.orderservice.repository.ShippingOrderRepository;
-import com.example.orderservice.service.OrderService;
-import jakarta.servlet.http.HttpServletRequest;
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.modelmapper.ModelMapper;
-import org.springframework.data.domain.Page;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
-
-import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+
+import com.example.orderservice.client.GhnApiClient;
+import com.example.orderservice.client.StockServiceClient;
+import com.example.orderservice.client.UserServiceClient;
+import com.example.orderservice.dto.AddressDto;
+import com.example.orderservice.dto.BulkUpdateStatusRequest;
+import com.example.orderservice.dto.CalculateShippingFeeRequest;
+import com.example.orderservice.dto.FrontendOrderRequest;
+import com.example.orderservice.dto.GhnAvailableServicesResponse;
+import com.example.orderservice.dto.OrderDto;
+import com.example.orderservice.dto.OrderItemDto;
+import com.example.orderservice.dto.ProductDto;
+import com.example.orderservice.dto.ShopOwnerDto;
+import com.example.orderservice.dto.SizeDto;
+import com.example.orderservice.dto.UpdateOrderRequest;
+import com.example.orderservice.jwt.JwtUtil;
+import com.example.orderservice.model.Order;
+import com.example.orderservice.repository.ShippingOrderRepository;
+import com.example.orderservice.service.OrderService;
+
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @RestController
 @RequestMapping("/v1/order")
@@ -42,6 +60,12 @@ public class OrderController {
 
     private OrderDto enrichOrderDto(Order order) {
         OrderDto dto = modelMapper.map(order, OrderDto.class);
+
+        // CRITICAL FIX: Explicit Enum to String conversion for orderStatus
+        // ModelMapper may not correctly convert OrderStatus Enum to String
+        if (order.getOrderStatus() != null) {
+            dto.setOrderStatus(order.getOrderStatus().name());
+        }
 
         // Set addressId from order
         if (order.getAddressId() != null && !order.getAddressId().isBlank()) {

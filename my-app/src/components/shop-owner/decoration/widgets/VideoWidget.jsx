@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
 import { Form, Spinner, Row, Col } from 'react-bootstrap';
-import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
 import { uploadVideo, getVideoUrl } from '../../../../api/image';
 
 const VideoWidget = ({ data, onChange }) => {
-    const { t } = useTranslation();
     const [uploading, setUploading] = useState(false);
 
     // Constants for validation
@@ -18,12 +16,12 @@ const VideoWidget = ({ data, onChange }) => {
 
         // Validation
         if (!ALLOWED_TYPES.includes(file.type)) {
-            toast.error(t('shopOwner.decoration.widgets.videoFormatError') || 'Only MP4 and WebM are supported');
+            toast.error('Only MP4 and WebM formats are supported');
             return;
         }
 
         if (file.size > MAX_FILE_SIZE) {
-            toast.error(t('shopOwner.decoration.widgets.videoSizeError') || 'File size must be less than 50MB');
+            toast.error('File size must be less than 50MB');
             return;
         }
 
@@ -31,13 +29,12 @@ const VideoWidget = ({ data, onChange }) => {
         try {
             const videoId = await uploadVideo(file);
             if (videoId) {
-                // Force sourceType to 'upload' or just rely on videoId existence
-                onChange({ ...data, videoId: videoId, sourceType: 'upload', url: '' }); // Clear URL if any
-                toast.success(t('shopOwner.decoration.savedSuccess'));
+                onChange({ ...data, videoId: videoId, sourceType: 'upload', url: '' });
+                toast.success('Video uploaded successfully');
             }
         } catch (error) {
             console.error(error);
-            toast.error(t('shopOwner.decoration.saveFailed'));
+            toast.error('Failed to upload video');
         } finally {
             setUploading(false);
             e.target.value = ''; // Reset input
@@ -46,10 +43,10 @@ const VideoWidget = ({ data, onChange }) => {
 
     return (
         <div className="p-2">
-            <h5 className="mb-3">{t('shopOwner.decoration.widgets.videoTitle')}</h5>
+            <h5 className="mb-3">Video Widget</h5>
 
             <Form.Group className="mb-3">
-                <Form.Label>{t('shopOwner.decoration.widgets.uploadVideo') || 'Upload Local Video'}</Form.Label>
+                <Form.Label>Upload Local Video</Form.Label>
                 <div className="d-flex gap-2 align-items-center">
                     <div className="position-relative">
                         <input

@@ -16,6 +16,7 @@ const getStatusConfig = (t) => ({
     ALL: { label: t('orders.all'), color: "#555", bg: "#f8f8f8" },
     PENDING: { label: t('orders.pending'), color: "#ee4d2d", bg: "#fff5f0" },
     CONFIRMED: { label: t('orders.confirmed') || 'Confirmed', color: "#ff9800", bg: "#fff7ed" },
+    READY_TO_SHIP: { label: t('orders.readyToShip') || 'Ready to Ship', color: "#9c27b0", bg: "#f3e5f5" },
     PROCESSING: { label: t('orders.processing'), color: "#2673dd", bg: "#e8f4ff" },
     SHIPPED: { label: t('orders.shipped'), color: "#2673dd", bg: "#e8f4ff" },
     DELIVERED: { label: t('orders.delivered'), color: "#26aa99", bg: "#e8f9f7" },
@@ -24,15 +25,17 @@ const getStatusConfig = (t) => ({
     RETURNED: { label: t('orders.returned'), color: "#ee4d2d", bg: "#fff5f0" }
 });
 
+// MUST match backend OrderStatus.java enum order:
+// PENDING(0), CONFIRMED(1), READY_TO_SHIP(2), SHIPPED(3), DELIVERED(4), COMPLETED(5), CANCELLED(6), RETURNED(7)
 const STATUS_NUMERIC_MAP = {
     0: "PENDING",
-    1: "PROCESSING",
-    2: "SHIPPED",
-    3: "DELIVERED",
-    4: "CANCELLED",
-    5: "RETURNED",
-    6: "CONFIRMED",
-    7: "COMPLETED",
+    1: "CONFIRMED",
+    2: "READY_TO_SHIP",
+    3: "SHIPPED",
+    4: "DELIVERED",
+    5: "COMPLETED",
+    6: "CANCELLED",
+    7: "RETURNED",
 };
 
 // Styles for action buttons
@@ -418,9 +421,9 @@ export default function OrderList() {
         // Filter by active tab
         if (activeTab && activeTab !== "ALL") {
             const tabMap = {
-                'TO_PAY': ['PENDING'],                    // Chờ thanh toán - chỉ PENDING
-                'TO_SHIP': ['CONFIRMED', 'PROCESSING'],   // Chờ vận chuyển - CONFIRMED (đã confirm, chờ ship lấy)
-                'TO_RECEIVE': ['SHIPPED'],                // Chờ nhận hàng - đang giao
+                'TO_PAY': ['PENDING'],                              // Chờ thanh toán - chỉ PENDING
+                'TO_SHIP': ['CONFIRMED', 'READY_TO_SHIP'],          // Chờ vận chuyển - CONFIRMED, READY_TO_SHIP
+                'TO_RECEIVE': ['SHIPPED'],                          // Chờ nhận hàng - đang giao
                 'COMPLETED': ['DELIVERED', 'COMPLETED'],
                 'CANCELLED': ['CANCELLED'],
                 'RETURNED': ['RETURNED']
@@ -556,7 +559,7 @@ export default function OrderList() {
                         {[
                             { id: 'ALL', label: t('orders.all') },
                             { id: 'TO_PAY', label: t('orders.toPay'), statuses: ['PENDING'] },
-                            { id: 'TO_SHIP', label: t('orders.toShip'), statuses: ['CONFIRMED', 'PROCESSING'] },
+                            { id: 'TO_SHIP', label: t('orders.toShip'), statuses: ['CONFIRMED', 'READY_TO_SHIP'] },
                             { id: 'TO_RECEIVE', label: t('orders.toReceive'), statuses: ['SHIPPED'] },
                             { id: 'COMPLETED', label: t('orders.completed'), statuses: ['DELIVERED', 'COMPLETED'] },
                             { id: 'CANCELLED', label: t('orders.cancelled'), statuses: ['CANCELLED'] },

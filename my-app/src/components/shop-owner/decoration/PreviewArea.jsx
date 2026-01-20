@@ -1,6 +1,5 @@
 import React from 'react';
 import { Stack } from 'react-bootstrap';
-import { useTranslation } from 'react-i18next';
 import {
     DndContext,
     closestCenter,
@@ -23,8 +22,6 @@ import ProductsWidget from './widgets/ProductsWidget';
 import SortableWidget from './SortableWidget';
 
 const PreviewArea = ({ widgets, onRemove, onUpdate, onReorder }) => {
-    const { t } = useTranslation();
-
     const sensors = useSensors(
         useSensor(PointerSensor),
         useSensor(KeyboardSensor, {
@@ -54,12 +51,12 @@ const PreviewArea = ({ widgets, onRemove, onUpdate, onReorder }) => {
             case 'banner': return <BannerWidget {...props} />;
             case 'video': return <VideoWidget {...props} />;
             case 'products': return <ProductsWidget {...props} />;
-            default: return <div>{t('shopOwner.decoration.unknownWidget')}</div>;
+            default: return <div>Unknown Widget</div>;
         }
     };
 
     if (!widgets || !Array.isArray(widgets) || widgets.length === 0) {
-        return <div className="text-center text-muted mt-5">{t('shopOwner.decoration.selectComponent')}</div>;
+        return <div className="text-center text-muted mt-5">Select a component to add</div>;
     }
 
     return (

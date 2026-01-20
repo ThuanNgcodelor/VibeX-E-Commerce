@@ -237,12 +237,12 @@ export default function AllProductsPage() {
                         >
                           <i className="fas fa-edit"></i>
                         </button>
-                        <button
+                        {/* <button
                           className="btn btn-sm btn-outline-danger"
                           onClick={() => handleDelete(product.id)}
                         >
                           <i className="fas fa-trash"></i>
-                        </button>
+                        </button> */}
                       </div>
                     </td>
                   </tr>

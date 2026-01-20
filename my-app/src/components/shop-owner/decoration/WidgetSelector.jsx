@@ -1,14 +1,11 @@
 import React from 'react';
 import { Button, Stack } from 'react-bootstrap';
-import { useTranslation } from 'react-i18next';
 
 const WidgetSelector = ({ onAdd }) => {
-    const { t } = useTranslation();
-
     const widgets = [
-        { type: 'banner', label: t('shopOwner.decoration.widgets.banner'), icon: 'bi-images' },
-        { type: 'video', label: t('shopOwner.decoration.widgets.video'), icon: 'bi-play-btn' },
-        { type: 'products', label: t('shopOwner.decoration.widgets.products'), icon: 'bi-grid' }
+        { type: 'banner', label: 'Banner', icon: 'bi-images' },
+        { type: 'video', label: 'Video', icon: 'bi-play-btn' },
+        { type: 'products', label: 'Products', icon: 'bi-grid' }
     ];
 
     return (

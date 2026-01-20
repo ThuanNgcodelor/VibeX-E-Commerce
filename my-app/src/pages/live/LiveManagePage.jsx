@@ -19,7 +19,6 @@ import {
 import { getProducts, searchProducts } from '../../api/shopOwner';
 import { fetchProductImageById } from '../../api/product';
 import { getShopOwnerInfo } from '../../api/user';
-import { LOCAL_BASE_URL } from '../../config/config';
 import imgFallback from '../../assets/images/shop/6.png';
 import { uploadImage } from '../../api/image';
 import { getToken } from "../../api/auth.js";
@@ -101,7 +100,8 @@ export default function LiveManagePage() {
     useEffect(() => {
         if (step === 'streaming' && currentRoom?.id) {
             const token = getToken();
-            const wsUrl = (LOCAL_BASE_URL || 'http://localhost') + '/ws/live';
+            // Use dynamic URL based on current location
+            const wsUrl = `${window.location.origin}/ws/live`;
 
             const client = new Client({
                 webSocketFactory: () => new SockJS(wsUrl),

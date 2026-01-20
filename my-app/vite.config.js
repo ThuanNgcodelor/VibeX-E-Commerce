@@ -11,9 +11,16 @@ export default defineConfig(({ mode }) => {
       open: true,
       host: true,
       proxy: {
+        // Proxy API requests to Gateway
         '/v1': {
           target: env.VITE_API_BASE_URL || 'http://localhost:8080',
           changeOrigin: true,
+        },
+        // Proxy WebSocket to Gateway (for notifications/chat)
+        '/ws': {
+          target: 'http://localhost:8080',
+          changeOrigin: true,
+          ws: true, // Enable WebSocket proxy
         }
       }
     },

@@ -1,17 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Form, Button, Card, Row, Col, Badge } from 'react-bootstrap';
-import { useTranslation } from 'react-i18next';
 import ProductSelectorModal from '../ProductSelectorModal';
 import { fetchProducts } from '../../../../api/product';
 import { getImageUrl } from '../../../../api/image';
 
 const ProductsWidget = ({ data, onChange }) => {
-    const { t } = useTranslation();
     const [showModal, setShowModal] = useState(false);
     const [previewProducts, setPreviewProducts] = useState([]);
     const [loadingPreview, setLoadingPreview] = useState(false);
 
-    // Initial load of product details for preview if IDs exist
     useEffect(() => {
         if (data.productIds && data.productIds.length > 0) {
             loadPreviewProducts(data.productIds);
@@ -23,9 +20,6 @@ const ProductsWidget = ({ data, onChange }) => {
     const loadPreviewProducts = async (ids) => {
         setLoadingPreview(true);
         try {
-            // Ideally we should have an API to fetch by list of IDs, 
-            // but for now we might fetch all and filter, or fetch individually.
-            // Assuming fetchProducts returns all shop products for now (simplest integration)
             const res = await fetchProducts();
             const allProducts = Array.isArray(res) ? res : (res.data || []);
             const validProducts = allProducts.filter(p => ids.includes(p.id));
@@ -50,25 +44,25 @@ const ProductsWidget = ({ data, onChange }) => {
         <div className="p-2">
             <h5 className="mb-3 fw-bold text-primary">
                 <i className="bi bi-grid-3x3-gap me-2"></i>
-                {t('shopOwner.decoration.widgets.productListTitle')}
+                Product List
             </h5>
 
             <Form.Group className="mb-3">
-                <Form.Label className="small fw-bold text-muted">{t('shopOwner.decoration.widgets.title')}</Form.Label>
+                <Form.Label className="small fw-bold text-muted">Title</Form.Label>
                 <Form.Control
                     type="text"
                     value={data.title || ''}
-                    placeholder={t('shopOwner.decoration.defaultCollectionTitle')}
+                    placeholder="Featured Products"
                     onChange={(e) => onChange({ ...data, title: e.target.value })}
                 />
             </Form.Group>
 
             <div className="d-flex justify-content-between align-items-center mb-2">
                 <Form.Label className="small fw-bold text-muted mb-0">
-                    {t('shopOwner.decoration.widgets.productsSelected')} ({data.productIds?.length || 0})
+                    Products Selected ({data.productIds?.length || 0})
                 </Form.Label>
                 <Button variant="outline-primary" size="sm" onClick={() => setShowModal(true)}>
-                    <i className="bi bi-plus-lg me-1"></i> {t('shopOwner.decoration.widgets.selectProducts') || "Select Products"}
+                    <i className="bi bi-plus-lg me-1"></i> Select Products
                 </Button>
             </div>
 
@@ -111,9 +105,9 @@ const ProductsWidget = ({ data, onChange }) => {
                 ) : (
                     <div className="text-center text-muted py-4 d-flex flex-column align-items-center">
                         <i className="bi bi-basket fs-1 mb-2 opacity-50"></i>
-                        <small>{t('shopOwner.decoration.widgets.noProductsSelected') || "No products selected"}</small>
+                        <small>No products selected</small>
                         <Button variant="link" size="sm" onClick={() => setShowModal(true)}>
-                            {t('shopOwner.decoration.widgets.chooseNow') || "Choose now"}
+                            Choose now
                         </Button>
                     </div>
                 )}
