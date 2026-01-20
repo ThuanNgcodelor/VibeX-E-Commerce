@@ -261,14 +261,14 @@ export default function CoinManagement() {
                                         </button>
                                     )}
                                 </div>
-                                <div className="form-row">
-                                    <div className="form-group col-md-3">
+                                <div className="row">
+                                    <div className="form-group col-md-3 col-sm-6 mb-3">
                                         <label>Title</label>
                                         <input type="text" className="form-control" required
                                             value={newMission.title}
                                             onChange={(e) => setNewMission({ ...newMission, title: e.target.value })} />
                                     </div>
-                                    <div className="form-group col-md-3">
+                                    <div className="form-group col-md-3 col-sm-6 mb-3">
                                         <label>Action Code (Unique)</label>
                                         <select className="form-control" required
                                             value={newMission.actionCode}
@@ -280,19 +280,20 @@ export default function CoinManagement() {
                                             <option value="FOLLOW_SHOP">FOLLOW_SHOP (Follow Shop)</option>
                                         </select>
                                     </div>
-                                    <div className="form-group col-md-2">
+                                    <div className="form-group col-md-3 col-sm-6 mb-3">
                                         <label>Reward (Coins)</label>
                                         <input type="number" className="form-control" required
                                             value={newMission.rewardAmount}
                                             onChange={(e) => setNewMission({ ...newMission, rewardAmount: parseInt(e.target.value) })} />
                                     </div>
-                                    <div className="form-group col-md-2">
+                                    <div className="form-group col-md-3 col-sm-6 mb-3">
                                         <label>Target Count</label>
                                         <input type="number" className="form-control" required min="1"
                                             value={newMission.targetCount}
                                             onChange={(e) => setNewMission({ ...newMission, targetCount: parseInt(e.target.value) })} />
                                     </div>
                                 </div>
+
                                 <div className="form-group">
                                     <label>Description</label>
                                     <input type="text" className="form-control" required

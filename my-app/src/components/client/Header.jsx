@@ -276,13 +276,12 @@ export default function Header() {
           <div className="d-flex justify-content-between align-items-center flex-wrap">
             {/* Left links */}
             <div className="d-none d-md-flex gap-3 align-items-center" style={{ fontSize: '12px' }}>
-              {/* Shop Owner: Show Seller Center + Shopee Live */}
               {hasRole("ROLE_SHOP_OWNER") && (
                 <>
                   <Link to="/shop-owner" style={{ color: 'white', textDecoration: 'none', opacity: 0.9 }}>
                     {t('header.sellerCenter')}
                   </Link>
-                  <Link to="/live/manage" style={{
+                  {/* <Link to="/live/manage" style={{
                     color: 'white',
                     textDecoration: 'none',
                     display: 'flex',
@@ -293,7 +292,7 @@ export default function Header() {
                     borderRadius: '4px'
                   }}>
                     🔴 {t('header.shopeeLive')}
-                  </Link>
+                  </Link> */}
                 </>
               )}
               {/* Logged-in Client without Shop Owner: Show Register Shop Owner link */}
@@ -523,31 +522,19 @@ export default function Header() {
       </div>
 
       {/* Main Header - Shopee Style */}
-      <div className="container py-3" style={{ maxWidth: '1200px' }}>
-        <div className="row align-items-center g-3">
+      <div className="container" style={{ maxWidth: '1200px', padding: '8px 15px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
           {/* Logo */}
-          <div className="col-auto">
-            <Link to="/" onClick={closeMobile} style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
-              <div style={{
-                width: '40px',
-                height: '40px',
-                background: 'white',
-                borderRadius: '4px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 'bold',
-                color: '#ee4d2d',
-                fontSize: '20px'
-              }}>
-                V
-              </div>
-              <span className="d-none d-md-inline" style={{ color: 'white', fontSize: '24px', fontWeight: 'bold' }}>Vibe</span>
-            </Link>
-          </div>
+          <Link to="/" onClick={closeMobile} style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', flexShrink: 0 }}>
+            <img
+              src="/game/assets/logo.png"
+              alt="Vibe"
+              style={{ height: '65px', width: 'auto', objectFit: 'contain' }}
+            />
+          </Link>
 
           {/* Mobile Actions: Cart + Menu */}
-          <div className="col-auto d-lg-none ms-auto d-flex align-items-center gap-3">
+          <div className="d-lg-none ms-auto d-flex align-items-center gap-3">
             {/* Mobile Cart */}
             <button
               onClick={handleGoToCart}
@@ -585,7 +572,7 @@ export default function Header() {
           </div>
 
           {/* Desktop: Search */}
-          <div className="col d-none d-lg-block" ref={searchRef} style={{ position: 'relative' }}>
+          <div className="d-none d-lg-block" ref={searchRef} style={{ position: 'relative', flex: 1 }}>
             <form
               onSubmit={handleSearchSubmit}
               className="d-flex position-relative"
@@ -750,113 +737,113 @@ export default function Header() {
               )}
             </button>
           </div>
+        </div>
 
-          {/* Mobile Search Bar (Full Width) */}
-          <div className="col-12 d-lg-none" ref={mobileSearchRef} style={{ position: 'relative' }}>
-            <form
-              onSubmit={handleSearchSubmit}
-              className="d-flex position-relative"
-              style={{ height: '36px' }}
+        {/* Mobile Search Bar (Full Width) - Outside flexbox */}
+        <div className="d-lg-none" ref={mobileSearchRef} style={{ position: 'relative', marginTop: '10px' }}>
+          <form
+            onSubmit={handleSearchSubmit}
+            className="d-flex position-relative"
+            style={{ height: '36px' }}
+          >
+            <input
+              type="text"
+              className="form-control"
+              placeholder={t('header.searchPlaceholder')}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => {
+                if (searchQuery.trim() || searchSuggestions.length > 0) {
+                  setShowSearchSuggestions(true);
+                }
+              }}
+              style={{
+                height: '100%',
+                border: 'none',
+                borderRadius: '2px 0 0 2px',
+                paddingLeft: '12px',
+                paddingRight: '12px',
+                fontSize: '13px',
+                outline: 'none',
+                background: 'white'
+              }}
+            />
+            <button
+              type="submit"
+              style={{
+                height: '100%',
+                border: 'none',
+                borderRadius: '0 2px 2px 0',
+                background: '#fb5533',
+                color: 'white',
+                padding: '0 15px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
             >
-              <input
-                type="text"
-                className="form-control"
-                placeholder={t('header.searchPlaceholder')}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onFocus={() => {
-                  if (searchQuery.trim() || searchSuggestions.length > 0) {
-                    setShowSearchSuggestions(true);
-                  }
-                }}
-                style={{
-                  height: '100%',
-                  border: 'none',
-                  borderRadius: '2px 0 0 2px',
-                  paddingLeft: '12px',
-                  paddingRight: '12px',
-                  fontSize: '13px',
-                  outline: 'none',
-                  background: 'white'
-                }}
-              />
-              <button
-                type="submit"
-                style={{
-                  height: '100%',
-                  border: 'none',
-                  borderRadius: '0 2px 2px 0',
-                  background: '#fb5533',
-                  color: 'white',
-                  padding: '0 15px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <i className="fa fa-search"></i>
-              </button>
-            </form>
+              <i className="fa fa-search"></i>
+            </button>
+          </form>
 
-            {/* Mobile Suggestions Dropdown */}
-            {showSearchSuggestions && searchSuggestions.length > 0 && (
-              <div style={{
-                position: 'absolute',
-                top: '100%',
-                left: 0,
-                right: 0,
-                background: 'white',
-                borderRadius: '2px',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                zIndex: 1000,
-                marginTop: '4px',
-                maxHeight: '300px',
-                overflowY: 'auto'
-              }}>
-                {searchSuggestions.map((suggestion, idx) => (
-                  <div
-                    key={idx}
-                    onClick={() => handleSuggestionClick(suggestion)}
-                    style={{
-                      padding: '10px 12px',
-                      cursor: 'pointer',
-                      borderBottom: idx < searchSuggestions.length - 1 ? '1px solid #f0f0f0' : 'none',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      color: '#333'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
-                      <div style={{ minWidth: '16px', display: 'flex', justifyContent: 'center' }}>
-                        {suggestion.type === 'history' && <i className="fa fa-history" style={{ color: '#999', fontSize: '12px' }}></i>}
-                        {suggestion.type === 'product' && <i className="fa fa-box" style={{ color: '#999', fontSize: '12px' }}></i>}
-                        {suggestion.type === 'keyword' && <i className="fa fa-search" style={{ color: '#999', fontSize: '12px' }}></i>}
-                      </div>
-                      <div style={{ fontSize: '13px' }}>{suggestion.name}</div>
+          {/* Mobile Suggestions Dropdown */}
+          {showSearchSuggestions && searchSuggestions.length > 0 && (
+            <div style={{
+              position: 'absolute',
+              top: '100%',
+              left: 0,
+              right: 0,
+              background: 'white',
+              borderRadius: '2px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+              zIndex: 1000,
+              marginTop: '4px',
+              maxHeight: '300px',
+              overflowY: 'auto'
+            }}>
+              {searchSuggestions.map((suggestion, idx) => (
+                <div
+                  key={idx}
+                  onClick={() => handleSuggestionClick(suggestion)}
+                  style={{
+                    padding: '10px 12px',
+                    cursor: 'pointer',
+                    borderBottom: idx < searchSuggestions.length - 1 ? '1px solid #f0f0f0' : 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    color: '#333'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
+                    <div style={{ minWidth: '16px', display: 'flex', justifyContent: 'center' }}>
+                      {suggestion.type === 'history' && <i className="fa fa-history" style={{ color: '#999', fontSize: '12px' }}></i>}
+                      {suggestion.type === 'product' && <i className="fa fa-box" style={{ color: '#999', fontSize: '12px' }}></i>}
+                      {suggestion.type === 'keyword' && <i className="fa fa-search" style={{ color: '#999', fontSize: '12px' }}></i>}
                     </div>
-                    {suggestion.type === 'history' && (
-                      <button
-                        onClick={(e) => handleRemoveHistoryItem(e, suggestion)}
-                        style={{
-                          background: 'transparent',
-                          border: 'none',
-                          color: '#999',
-                          cursor: 'pointer',
-                          padding: '2px 6px',
-                          fontSize: '16px',
-                          lineHeight: 1
-                        }}
-                      >
-                        ×
-                      </button>
-                    )}
+                    <div style={{ fontSize: '13px' }}>{suggestion.name}</div>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
+                  {suggestion.type === 'history' && (
+                    <button
+                      onClick={(e) => handleRemoveHistoryItem(e, suggestion)}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#999',
+                        cursor: 'pointer',
+                        padding: '2px 6px',
+                        fontSize: '16px',
+                        lineHeight: 1
+                      }}
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -874,21 +861,11 @@ export default function Header() {
           >
             <div className="offcanvas-header border-bottom">
               <Link to="/" onClick={closeMobile} style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
-                <div style={{
-                  width: '32px',
-                  height: '32px',
-                  background: '#ee4d2d',
-                  borderRadius: '4px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 'bold',
-                  color: 'white',
-                  fontSize: '18px'
-                }}>
-                  V
-                </div>
-                <span style={{ color: '#ee4d2d', fontSize: '20px', fontWeight: 'bold' }}>Vibe</span>
+                <img
+                  src="/game/assets/logo.png"
+                  alt="Vibe"
+                  style={{ height: '50px', width: 'auto' }}
+                />
               </Link>
               <button
                 type="button"

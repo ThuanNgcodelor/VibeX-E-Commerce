@@ -3,10 +3,8 @@ import flashSaleAPI from '../../../api/flashSale/flashSaleAPI';
 import productAdminApi from '../../../api/productAdminApi';
 import '../ShopOwnerLayout.css';
 import Cookies from 'js-cookie';
-import { useTranslation } from 'react-i18next';
 
 const ShopFlashSale = () => {
-    const { t } = useTranslation();
     const [sessions, setSessions] = useState([]);
     const [myRegistrations, setMyRegistrations] = useState([]);
     const [products, setProducts] = useState([]);
@@ -21,7 +19,7 @@ const ShopFlashSale = () => {
     const [salePrice, setSalePrice] = useState('');
 
     const [selectedProductData, setSelectedProductData] = useState(null);
-    const [sizeConfig, setSizeConfig] = useState({}); // { [sizeId]: { quantity: 0, salePrice: 0 } }
+    const [sizeConfig, setSizeConfig] = useState({});
 
     useEffect(() => {
         const token = Cookies.get('accessToken');
@@ -34,12 +32,11 @@ const ShopFlashSale = () => {
         fetchMyProducts();
     }, []);
 
-    // Update selected product data when ID changes
     useEffect(() => {
         if (selectedProductId) {
             const product = products.find(p => p.id === selectedProductId);
             setSelectedProductData(product || null);
-            setSizeConfig({}); // Reset
+            setSizeConfig({});
         } else {
             setSelectedProductData(null);
             setSizeConfig({});
@@ -49,7 +46,6 @@ const ShopFlashSale = () => {
     const fetchSessions = async () => {
         try {
             const data = await flashSaleAPI.getAllSessions();
-            // Ensure data is an array before filtering
             if (Array.isArray(data)) {
                 setSessions(data.filter(s => s.status === 'ACTIVE' || new Date(s.endTime) > new Date()));
             } else {
@@ -65,7 +61,6 @@ const ShopFlashSale = () => {
     const fetchMyRegistrations = async () => {
         try {
             const data = await flashSaleAPI.getMyRegistrations();
-            // Ensure data is an array before setting
             if (Array.isArray(data)) {
                 setMyRegistrations(data);
             } else {
@@ -81,7 +76,6 @@ const ShopFlashSale = () => {
     const fetchMyProducts = async () => {
         try {
             const response = await productAdminApi.getProducts();
-            // getProducts returns res.data directly, so access content directly
             const content = response?.content;
             setProducts(Array.isArray(content) ? content : []);
         } catch (error) {
@@ -102,11 +96,10 @@ const ShopFlashSale = () => {
             }));
 
         if (sizesPayload.length === 0) {
-            alert(t('shopOwner.flashSale.errorSizeRequired'));
+            alert('Please select at least one size with quantity');
             return;
         }
 
-        // Validate prices
         for (const item of sizesPayload) {
             if (!item.salePrice || item.salePrice <= 0) {
                 alert("Please enter a valid flash sale price for all selected sizes.");
@@ -114,7 +107,6 @@ const ShopFlashSale = () => {
             }
         }
 
-        // Calculate min price for root salePrice (display purpose)
         const minPrice = Math.min(...sizesPayload.map(s => s.salePrice));
 
         try {
@@ -125,16 +117,15 @@ const ShopFlashSale = () => {
                 salePrice: minPrice,
                 sizes: sizesPayload
             });
-            alert(t('shopOwner.flashSale.successMessage'));
+            alert('Product registered successfully!');
             fetchMyRegistrations();
-            // Reset form
             setSalePrice('');
             setSizeConfig({});
             setSelectedProductId('');
             setIsRegistering(false);
         } catch (error) {
             console.error(error);
-            alert(t('shopOwner.flashSale.errorMessage', { message: error.response?.data?.message || 'Error' }));
+            alert('Registration failed: ' + (error.response?.data?.message || 'Error'));
         } finally {
             setLoading(false);
         }
@@ -146,11 +137,11 @@ const ShopFlashSale = () => {
             <div className="dashboard-header">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                        <h1>{isRegistering ? t('shopOwner.flashSale.registerTitle') : t('shopOwner.flashSale.title')}</h1>
+                        <h1>{isRegistering ? 'Register for Flash Sale' : 'Flash Sale Management'}</h1>
                         <p className="text-muted">
                             {isRegistering
-                                ? t('shopOwner.flashSale.registerDescription')
-                                : t('shopOwner.flashSale.description')}
+                                ? 'Fill in the form below to register your product for a flash sale session'
+                                : 'Manage your flash sale registrations and view history'}
                         </p>
                     </div>
                     {isRegistering ? (
@@ -158,70 +149,62 @@ const ShopFlashSale = () => {
                             className="btn btn-secondary-shop"
                             onClick={() => setIsRegistering(false)}
                         >
-                            <i className="fas fa-arrow-left"></i> {t('shopOwner.flashSale.backButton')}
+                            <i className="fas fa-arrow-left"></i> Back
                         </button>
                     ) : (
                         <button
                             className="btn btn-primary-shop"
                             onClick={() => setIsRegistering(true)}
                         >
-                            <i className="fas fa-plus"></i> {t('shopOwner.flashSale.registerButton')}
+                            <i className="fas fa-plus"></i> Register Product
                         </button>
                     )}
                 </div>
             </div>
 
             {isRegistering ? (
-                /* Registration Form View */
                 <form onSubmit={handleRegister}>
                     <div className="row">
                         <div className="col-md-8">
                             <div className="card" style={{ marginBottom: '20px' }}>
                                 <div className="card-header">
-                                    <h5><i className="fas fa-info-circle"></i> {t('shopOwner.flashSale.registrationInfo')}</h5>
+                                    <h5><i className="fas fa-info-circle"></i> Registration Information</h5>
                                 </div>
                                 <div className="card-body">
-                                    {/* Session Selection */}
                                     <div className="mb-3">
-                                        <label className="form-label">{t('shopOwner.flashSale.selectSessionRequired')} <span style={{ color: 'red' }}>*</span></label>
+                                        <label className="form-label">Select Session <span style={{ color: 'red' }}>*</span></label>
                                         <select
                                             className="form-select"
                                             value={selectedSessionId}
                                             onChange={e => setSelectedSessionId(e.target.value)}
                                             required
                                         >
-
-
-                                            <option value="">{t('shopOwner.flashSale.selectSessionPlaceholder')}</option>
+                                            <option value="">-- Select a session --</option>
                                             {sessions.map(s => (
                                                 <option key={s.id} value={s.id}>
-                                                    {s.name} ({new Date(s.startTime).toLocaleString('vi-VN')} - {new Date(s.endTime).toLocaleString('vi-VN')})
+                                                    {s.name} ({new Date(s.startTime).toLocaleString('en-US')} - {new Date(s.endTime).toLocaleString('en-US')})
                                                 </option>
                                             ))}
-
-
                                         </select>
                                     </div>
 
-                                    {/* Product Selection */}
                                     <div className="mb-3">
-                                        <label className="form-label">{t('shopOwner.flashSale.selectProductRequired')} <span style={{ color: 'red' }}>*</span></label>
+                                        <label className="form-label">Select Product <span style={{ color: 'red' }}>*</span></label>
                                         <select
                                             className="form-select"
                                             value={selectedProductId}
                                             onChange={e => setSelectedProductId(e.target.value)}
                                             required
                                         >
-                                            <option value="">{t('shopOwner.flashSale.selectProductPlaceholder')}</option>
+                                            <option value="">-- Select a product --</option>
                                             {products.map(p => (
                                                 <option key={p.id} value={p.id}>
-                                                    {p.name} - {t('shopOwner.flashSale.originalPrice')}: {p.price?.toLocaleString()}đ ({t('shopOwner.flashSale.stockAvailable')}: {p.totalStock})
+                                                    {p.name} - Original: {p.price?.toLocaleString()}đ (Stock: {p.totalStock})
                                                 </option>
                                             ))}
                                         </select>
                                     </div>
 
-                                    {/* Product Details Display (Read-only) */}
                                     {selectedProductData && (
                                         <div className="alert alert-info border-0 bg-blue-50 text-blue-700">
                                             <div className="d-flex align-items-center gap-3">
@@ -239,16 +222,15 @@ const ShopFlashSale = () => {
                                                 </div>
                                                 <div>
                                                     <div className="fw-bold fs-5">{selectedProductData.name}</div>
-                                                    <div className="text-sm">Danh mục: {selectedProductData.categoryName}</div>
+                                                    <div className="text-sm">Category: {selectedProductData.categoryName}</div>
                                                 </div>
                                             </div>
                                         </div>
                                     )}
 
-                                    {/* Size Quantities Input */}
                                     {selectedProductData && selectedProductData.sizes && (
                                         <div className="mb-3">
-                                            <label className="form-label">{t('shopOwner.flashSale.sizeQuantityLabel') || 'Cấu hình chi tiết theo Size'}: <span style={{ color: 'red' }}>*</span></label>
+                                            <label className="form-label">Size Configuration: <span style={{ color: 'red' }}>*</span></label>
                                             <div className="table-responsive border rounded p-2 bg-light">
                                                 <table className="table table-sm table-borderless mb-0 align-middle">
                                                     <thead>
@@ -295,7 +277,7 @@ const ShopFlashSale = () => {
                                                                                 type="number"
                                                                                 className="form-control"
                                                                                 min="1000"
-                                                                                placeholder="Giá bán"
+                                                                                placeholder="Sale Price"
                                                                                 value={sizeConfig[size.id]?.salePrice || ''}
                                                                                 onChange={(e) => {
                                                                                     const val = parseFloat(e.target.value) || 0;
@@ -329,22 +311,18 @@ const ShopFlashSale = () => {
                                             <small className="text-muted">Enter flash sale quantity and price for each size.</small>
                                         </div>
                                     )}
-
-                                    {/* Global Sale Price Input Removed - Handled per size */}
-
                                 </div>
                             </div>
                         </div>
 
-                        {/* Sidebar Info */}
                         <div className="col-md-4">
                             <div className="card" style={{ position: 'sticky', top: '20px' }}>
                                 <div className="card-header">
-                                    <h5><i className="fas fa-check-circle"></i> {t('shopOwner.flashSale.confirmHeader')}</h5>
+                                    <h5><i className="fas fa-check-circle"></i> Confirm Registration</h5>
                                 </div>
                                 <div className="card-body">
                                     <p className="text-muted small mb-3">
-                                        {t('shopOwner.flashSale.confirmText')}
+                                        Please review all information before submitting your registration.
                                     </p>
                                     <div className="d-grid gap-2">
                                         <button
@@ -353,9 +331,9 @@ const ShopFlashSale = () => {
                                             disabled={loading}
                                         >
                                             {loading ? (
-                                                <><i className="fas fa-spinner fa-spin"></i> {t('shopOwner.flashSale.loading')}</>
+                                                <><i className="fas fa-spinner fa-spin"></i> Processing...</>
                                             ) : (
-                                                <><i className="fas fa-paper-plane"></i> {t('shopOwner.flashSale.submitRegister')}</>
+                                                <><i className="fas fa-paper-plane"></i> Submit Registration</>
                                             )}
                                         </button>
                                         <button
@@ -363,7 +341,7 @@ const ShopFlashSale = () => {
                                             className="btn btn-secondary-shop"
                                             onClick={() => setIsRegistering(false)}
                                         >
-                                            {t('shopOwner.flashSale.cancel')}
+                                            Cancel
                                         </button>
                                     </div>
                                 </div>
@@ -372,28 +350,27 @@ const ShopFlashSale = () => {
                     </div>
                 </form>
             ) : (
-                /* List View */
                 <div className="card pb-5">
                     <div className="table-header">
-                        <h5 className="table-title mb-0">{t('shopOwner.flashSale.historyTitle')}</h5>
+                        <h5 className="table-title mb-0">Registration History</h5>
                     </div>
                     <div className="card-body p-0">
                         {myRegistrations.length === 0 ? (
                             <div className="text-center py-5">
                                 <div className="text-gray-300 text-5xl mb-3"><i className="fas fa-inbox"></i></div>
-                                <p className="text-gray-500">{t('shopOwner.flashSale.noRegistrations')}</p>
+                                <p className="text-gray-500">No registrations found</p>
                             </div>
                         ) : (
                             <div className="table-responsive">
                                 <table className="table table-hover mb-0">
                                     <thead className="bg-light text-muted">
                                         <tr>
-                                            <th className="ps-4 py-3">{t('shopOwner.flashSale.product')}</th>
-                                            <th className="py-3">{t('shopOwner.flashSale.program')}</th>
-                                            <th className="py-3">{t('shopOwner.flashSale.originalPrice')}</th>
-                                            <th className="py-3">{t('shopOwner.flashSale.salePrice')}</th>
-                                            <th className="py-3">{t('shopOwner.flashSale.stock')}</th>
-                                            <th className="py-3 text-center">{t('shopOwner.flashSale.status')}</th>
+                                            <th className="ps-4 py-3">Product</th>
+                                            <th className="py-3">Program</th>
+                                            <th className="py-3">Original Price</th>
+                                            <th className="py-3">Sale Price</th>
+                                            <th className="py-3">Stock</th>
+                                            <th className="py-3 text-center">Status</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -408,8 +385,8 @@ const ShopFlashSale = () => {
                                                                 <i className="fas fa-box text-secondary"></i>
                                                             </div>
                                                             <div>
-                                                                <div className="fw-bold text-dark">{product?.name || 'Sản phẩm ' + reg.productId}</div>
-                                                                <small className="text-muted">Mã: {reg.productId.substring(0, 8)}</small>
+                                                                <div className="fw-bold text-dark">{product?.name || 'Product ' + reg.productId}</div>
+                                                                <small className="text-muted">ID: {reg.productId.substring(0, 8)}</small>
                                                             </div>
                                                         </div>
                                                     </td>
@@ -448,9 +425,9 @@ const ShopFlashSale = () => {
                                                         <span className={`badge rounded-pill ${reg.status === 'APPROVED' ? 'bg-success' :
                                                             reg.status === 'REJECTED' ? 'bg-danger' : 'bg-warning text-dark'
                                                             }`}>
-                                                            {reg.status === 'APPROVED' ? t('shopOwner.flashSale.approved') :
-                                                                reg.status === 'REJECTED' ? t('shopOwner.flashSale.rejected') :
-                                                                    t('shopOwner.flashSale.pending')}
+                                                            {reg.status === 'APPROVED' ? 'Approved' :
+                                                                reg.status === 'REJECTED' ? 'Rejected' :
+                                                                    'Pending'}
                                                         </span>
                                                         {reg.rejectionReason && (
                                                             <div className="text-danger small mt-1" style={{ fontSize: '11px', maxWidth: '150px', margin: '0 auto' }}>

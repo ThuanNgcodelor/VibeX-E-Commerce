@@ -128,6 +128,25 @@ export default function Auth() {
         setSuccess("");
         setFieldErrors({}); // Clear field errors
 
+        // Check empty fields
+        if (!registerData.username.trim()) {
+            setError(t('auth.register.usernameRequired') || 'Username is required');
+            setFieldErrors(prev => ({ ...prev, username: t('auth.register.usernameRequired') || 'Username is required' }));
+            return;
+        }
+        if (!registerData.email.trim()) {
+            setError(t('auth.register.emailRequired') || 'Email is required');
+            setFieldErrors(prev => ({ ...prev, email: t('auth.register.emailRequired') || 'Email is required' }));
+            return;
+        }
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(registerData.email)) {
+            setError(t('auth.register.invalidEmail') || 'Invalid email format');
+            setFieldErrors(prev => ({ ...prev, email: t('auth.register.invalidEmail') || 'Invalid email format' }));
+            return;
+        }
+
         if (registerData.password !== registerData.confirmPassword) {
             setError(t('auth.register.passwordsNotMatch'));
             return;
@@ -136,6 +155,7 @@ export default function Auth() {
             setError(t('auth.register.passwordMinLength'));
             return;
         }
+
 
         setLoading(true);
         try {

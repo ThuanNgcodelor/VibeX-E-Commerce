@@ -59,7 +59,9 @@ const createApiInstance = (baseURL) => {
         "/order/track/",
         "/stock/search/query", // Public - allow guest to search products
         "/stock/search/autocomplete", // Public - allow guest to use autocomplete
-        "/auth/forgotPassword"
+        "/auth/forgotPassword",
+        "/stock/flash-sale/public/", // Public - flash sale sessions and products
+        "/stock/analytics/recommendations/", // Public - trending/recommendations
     ];
 
     api.interceptors.response.use(

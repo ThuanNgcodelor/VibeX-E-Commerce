@@ -1,6 +1,8 @@
 package com.example.gateway.filter;
 
-import com.example.gateway.util.JwtUtil;
+import java.util.List;
+import java.util.function.Predicate;
+
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.http.HttpStatus;
@@ -8,10 +10,10 @@ import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
-import reactor.core.publisher.Mono;
 
-import java.util.List;
-import java.util.function.Predicate;
+import com.example.gateway.util.JwtUtil;
+
+import reactor.core.publisher.Mono;
 
 @Component
 public class JwtAuthenticationFilter implements GatewayFilter {
@@ -54,10 +56,13 @@ public class JwtAuthenticationFilter implements GatewayFilter {
                 // Search endpoints - Public for guest users
                 "/v1/stock/search/query",
                 "/v1/stock/search/autocomplete",
-                "/v1/user/ads/active",
                 "/v1/stock/analytics/view/",
                 "/v1/stock/analytics/visit",
                 "/v1/stock/analytics/cart-add",
+                // Analytics recommendations - Public
+                "/v1/stock/analytics/recommendations/",
+                // Flash Sale public endpoints
+                "/v1/stock/flash-sale/public/",
                 "/v1/user/banner/getAllBanner",
                 "/v1/user/banner/active",
                 "/v1/stock/category/getAll"

@@ -105,17 +105,18 @@ const BannerManagementPage = () => {
     // Helper to build full image URL from relative path or return full URL as-is
     const buildImageUrl = (imageUrl) => {
         if (!imageUrl) return null;
+
         // If already a full URL (starts with http:// or https://), return as-is
         if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
             return imageUrl;
         }
-        // If relative path, build full URL using API base URL
-        const API_BASE_URL = import.meta.env.MODE === 'production'
-            ? '/api'
-            : (import.meta.env.VITE_API_BASE_URL || 'http://localhost');
-        // Remove leading slash if present to avoid double slashes
-        const path = imageUrl.startsWith('/') ? imageUrl.substring(1) : imageUrl;
-        return `${API_BASE_URL}/${path}`;
+
+        // For relative paths (e.g., /file-storage/get/xxx or file-storage/get/xxx):
+        // In development: Vite proxy will forward /file-storage/* to backend
+        // In production: nginx/API gateway handles the routing
+        // So we just need to ensure the path starts with /
+        const path = imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`;
+        return path;
     };
 
     const filterBanners = () => {

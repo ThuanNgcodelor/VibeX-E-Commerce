@@ -44,6 +44,15 @@ const DataTablesPage = () => {
     birthDate: "",
   });
   const [file, setFile] = useState(null);
+  const [errors, setErrors] = useState({});
+
+  // Handle form input changes and clear error
+  const handleInputChange = (field, value) => {
+    setForm({ ...form, [field]: value });
+    if (errors[field]) {
+      setErrors({ ...errors, [field]: null });
+    }
+  };
 
   // Debounce search term
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(searchTerm);

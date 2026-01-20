@@ -392,9 +392,9 @@
 }
 
 .btn-primary {
-    background: #ee4d2d;
-    color: #fff;
-    border: 1px solid #ee4d2d;
+    background: #ee4d2d !important;
+    color: #fff !important;
+    border: 1px solid #ee4d2d !important;
     padding: 10px 24px;
     border-radius: 2px;
     cursor: pointer;
@@ -404,12 +404,17 @@
 }
 
 .btn-primary:hover {
-    background: #d73211;
-    border-color: #d73211;
+    background: #d73211 !important;
+    border-color: #d73211 !important;
 }
 
 .btn-primary:active {
     transform: translateY(1px);
+}
+
+.btn-large {
+    padding: 14px 40px;
+    font-size: 16px;
 }
 
 .btn-outline {

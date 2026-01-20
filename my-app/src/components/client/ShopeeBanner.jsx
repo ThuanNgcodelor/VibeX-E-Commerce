@@ -72,27 +72,38 @@ export default function ShopeeBanner() {
     // Helper to build full image URL from relative path or return full URL as-is
     const buildImageUrl = (imageUrl) => {
         if (!imageUrl) return null;
+
         // If already a full URL (starts with http:// or https://), return as-is
         if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
             return imageUrl;
         }
-        // If relative path, build full URL using API base URL
-        const API_BASE_URL = import.meta.env.MODE === 'production'
-            ? '/api'
-            : (import.meta.env.VITE_API_BASE_URL || 'http://localhost');
-        // Remove leading slash if present to avoid double slashes
-        const path = imageUrl.startsWith('/') ? imageUrl.substring(1) : imageUrl;
-        return `${API_BASE_URL}/${path}`;
+
+        // For relative paths (e.g., /file-storage/get/xxx or file-storage/get/xxx):
+        // In development: Vite proxy will forward /file-storage/* to backend
+        // In production: nginx/API gateway handles the routing
+        // So we just need to ensure the path starts with /
+        const path = imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`;
+        return path;
     };
 
     const fetchBanners = async () => {
         try {
             // Fetch both System Banners and Advertisements
             // We fetch 'BANNER' placement ads. Assumes this covers the homepage slots.
-            const [bannerData, adData] = await Promise.all([
-                getActiveBanners().catch(err => null),
-                adAPI.getActiveAds('BANNER').catch(err => [])
-            ]);
+            let bannerData = null;
+            let adData = [];
+
+            try {
+                bannerData = await getActiveBanners();
+            } catch (bannerErr) {
+                console.warn('Failed to fetch banners, using defaults:', bannerErr.message);
+            }
+
+            try {
+                adData = await adAPI.getActiveAds('BANNER');
+            } catch (adErr) {
+                console.warn('Failed to fetch ads:', adErr.message);
+            }
 
             // Transform Ads - ensure adData is array
             const adsArray = Array.isArray(adData) ? adData : [];
@@ -112,10 +123,15 @@ export default function ShopeeBanner() {
             // Shuffle Ads
             const shuffledAds = adBanners.sort(() => 0.5 - Math.random());
 
-            let finalData = bannerData || {};
+            // Use defaults as base if bannerData is null, empty, or invalid format
+            let finalData = defaultBanners;
 
-            // If no database banners, use DEFAULTS as base
-            if (!bannerData || !bannerData.LEFT_MAIN || bannerData.LEFT_MAIN.length === 0) {
+            // Check if bannerData is valid (has LEFT_MAIN array with content)
+            if (bannerData && typeof bannerData === 'object' &&
+                bannerData.LEFT_MAIN && Array.isArray(bannerData.LEFT_MAIN) &&
+                bannerData.LEFT_MAIN.length > 0) {
+                finalData = JSON.parse(JSON.stringify(bannerData)); // Deep copy
+            } else {
                 finalData = JSON.parse(JSON.stringify(defaultBanners)); // Deep copy defaults
             }
 
@@ -123,19 +139,11 @@ export default function ShopeeBanner() {
             // Pool: shuffledAds
             let adIndex = 0;
 
-            // Ensure arrays exist in finalData (mix with existing system/defaults if strictly needed, 
-            // but for "random" request, we might want to prioritize ads. 
-            // Let's ensure they are initialized as arrays of existing system banners, then we append Ads.)
-            // Note: finalData comes from bannerData, which might contain arrays.
-
+            // Ensure arrays exist in finalData
             if (!finalData.RIGHT_TOP) finalData.RIGHT_TOP = defaultBanners.RIGHT_TOP ? [...defaultBanners.RIGHT_TOP] : [];
             if (!finalData.RIGHT_BOTTOM) finalData.RIGHT_BOTTOM = defaultBanners.RIGHT_BOTTOM ? [...defaultBanners.RIGHT_BOTTOM] : [];
             if (!finalData.LEFT_MAIN) finalData.LEFT_MAIN = defaultBanners.LEFT_MAIN ? [...defaultBanners.LEFT_MAIN] : [];
 
-            // Clearing defaults if we want purely random ads? 
-            // User said "Ngẫu nhiên vào 3 ô". If we append, we get mix. 
-            // Let's Append to mix Ads with System Banners. 
-            // But to ensure Ads are seen, let's Unshift (prepend) or Random Insert?
             // Round Robin Distribution:
             while (adIndex < shuffledAds.length) {
                 // 0 -> Top, 1 -> Bottom, 2 -> Main ... repeat
@@ -155,10 +163,13 @@ export default function ShopeeBanner() {
 
         } catch (error) {
             console.error('Failed to fetch banners/ads:', error);
+            // Use defaults on error
+            setBanners(null);
         } finally {
             setLoading(false);
         }
     };
+
 
     // Use database banners if available, otherwise use defaults
     const displayBanners = banners || defaultBanners;

@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import flashSaleAPI from '../../../api/flashSale/flashSaleAPI';
-import { API_BASE_URL } from '../../../config/config';
 import './AdminFlashSale.css';
+
+const API_BASE_URL = import.meta.env.MODE === 'production'
+    ? ''
+    : (import.meta.env.VITE_API_BASE_URL || 'http://localhost');
 
 const AdminFlashSale = () => {
     const [sessions, setSessions] = useState([]);
@@ -112,7 +115,7 @@ const AdminFlashSale = () => {
                 await flashSaleAPI.rejectProduct(regId, reason);
                 fetchProducts(selectedSession.id);
             } catch (error) {
-                alert('Lỗi từ chối');
+                alert('Error rejecting product: ' + (error.response?.data?.message || 'Undefined'));
             }
         }
     };

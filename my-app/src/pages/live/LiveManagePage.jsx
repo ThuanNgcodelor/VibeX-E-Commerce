@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import Hls from 'hls.js';
 import SockJS from 'sockjs-client';
 import { Client } from '@stomp/stompjs';
@@ -26,12 +25,7 @@ import { uploadImage } from '../../api/image';
 import { getToken } from "../../api/auth.js";
 
 export default function LiveManagePage() {
-    const { t, i18n } = useTranslation();
     const navigate = useNavigate();
-    const changeLanguage = () => {
-        const newLang = i18n.language === 'en' ? 'vi' : 'en';
-        i18n.changeLanguage(newLang);
-    };
     const videoRef = useRef(null);
     const containerRef = useRef(null);
     const chatContainerRef = useRef(null);
@@ -452,7 +446,7 @@ export default function LiveManagePage() {
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
-                        <span style={{ color: '#ee4d2d', fontWeight: 'bold', fontSize: '24px' }}>Shopee</span>
+                        <span style={{ color: '#ee4d2d', fontWeight: 'bold', fontSize: '24px' }}>Vibe</span>
                         <span style={{ color: '#ee4d2d', fontSize: '18px' }}>Live</span>
                     </Link>
                 </div>
@@ -465,7 +459,7 @@ export default function LiveManagePage() {
                         textDecoration: 'none',
                         fontSize: '14px'
                     }}>
-                        Kênh cho Người Sáng Tạo
+                        Creator Channel
                     </Link>
                     <div style={{
                         display: 'flex',
@@ -486,22 +480,8 @@ export default function LiveManagePage() {
                         }}>
                             S
                         </div>
-                        <span style={{ fontSize: '14px' }}>Shop của bạn</span>
+                        <span style={{ fontSize: '14px' }}>Your Shop</span>
                     </div>
-                    <button
-                        onClick={changeLanguage}
-                        style={{
-                            padding: '6px 12px',
-                            border: '1px solid #ddd',
-                            borderRadius: '4px',
-                            background: 'white',
-                            cursor: 'pointer',
-                            fontSize: '12px',
-                            color: '#333'
-                        }}
-                    >
-                        🌐 {i18n.language === 'en' ? 'VI' : 'EN'}
-                    </button>
                 </div>
             </header>
 
@@ -518,7 +498,7 @@ export default function LiveManagePage() {
                                 alignItems: 'center',
                                 marginBottom: '30px'
                             }}>
-                                <h1 style={{ fontSize: '24px', margin: 0 }}>{t('liveStream.title')}</h1>
+                                <h1 style={{ fontSize: '24px', margin: 0 }}>Live Stream Management</h1>
                                 <button
                                     onClick={() => setStep('create')}
                                     style={{
@@ -532,7 +512,7 @@ export default function LiveManagePage() {
                                         fontWeight: '500'
                                     }}
                                 >
-                                    + {t('liveStream.createRoom')}
+                                    + Create Room
                                 </button>
                             </div>
 
@@ -541,15 +521,15 @@ export default function LiveManagePage() {
                             ) : rooms.length === 0 ? (
                                 <div style={{ textAlign: 'center', padding: '60px', color: '#999' }}>
                                     <div style={{ fontSize: '48px', marginBottom: '20px' }}>📺</div>
-                                    <p>{t('liveStream.empty.message')}</p>
+                                    <p>No live rooms yet. Create your first room!</p>
                                 </div>
                             ) : (
                                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                     <thead>
                                         <tr style={{ borderBottom: '2px solid #eee' }}>
-                                            <th style={{ padding: '12px', textAlign: 'left' }}>{t('liveStream.table.title')}</th>
-                                            <th style={{ padding: '12px', textAlign: 'left' }}>{t('liveStream.table.status')}</th>
-                                            <th style={{ padding: '12px', textAlign: 'center' }}>{t('liveStream.table.actions')}</th>
+                                            <th style={{ padding: '12px', textAlign: 'left' }}>Title</th>
+                                            <th style={{ padding: '12px', textAlign: 'left' }}>Status</th>
+                                            <th style={{ padding: '12px', textAlign: 'center' }}>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -557,9 +537,9 @@ export default function LiveManagePage() {
                                             <tr key={room.id} style={{ borderBottom: '1px solid #eee' }}>
                                                 <td style={{ padding: '12px' }}>{room.title}</td>
                                                 <td style={{ padding: '12px' }}>
-                                                    {room.status === 'LIVE' && <span style={{ color: '#ee4d2d' }}>{t('liveStream.status.live')}</span>}
-                                                    {room.status === 'PENDING' && <span style={{ color: '#ffc107' }}>{t('liveStream.status.pending')}</span>}
-                                                    {room.status === 'ENDED' && <span style={{ color: '#999' }}>{t('liveStream.status.ended')}</span>}
+                                                    {room.status === 'LIVE' && <span style={{ color: '#ee4d2d' }}>🔴 Live</span>}
+                                                    {room.status === 'PENDING' && <span style={{ color: '#ffc107' }}>⏳ Pending</span>}
+                                                    {room.status === 'ENDED' && <span style={{ color: '#999' }}>Ended</span>}
                                                 </td>
                                                 <td style={{ padding: '12px', textAlign: 'center' }}>
                                                     {room.status !== 'ENDED' && (
@@ -574,7 +554,7 @@ export default function LiveManagePage() {
                                                                 cursor: 'pointer'
                                                             }}
                                                         >
-                                                            {t('liveStream.actions.start')}
+                                                            Manage
                                                         </button>
                                                     )}
                                                 </td>
@@ -591,18 +571,18 @@ export default function LiveManagePage() {
                 {
                     step === 'create' && (
                         <div style={{ background: 'white', borderRadius: '8px', padding: '30px', maxWidth: '600px', margin: '0 auto' }}>
-                            <h2 style={{ marginBottom: '30px' }}>{t('liveStream.createModal.title')}</h2>
+                            <h2 style={{ marginBottom: '30px' }}>Create Live Room</h2>
 
                             <form onSubmit={handleCreateRoom}>
                                 <div style={{ marginBottom: '20px' }}>
                                     <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                                        <span style={{ color: 'red' }}>*</span> {t('liveStream.createModal.roomTitle')}
+                                        <span style={{ color: 'red' }}>*</span> Room Title
                                     </label>
                                     <input
                                         type="text"
                                         value={newRoom.title}
                                         onChange={(e) => setNewRoom({ ...newRoom, title: e.target.value })}
-                                        placeholder={t('liveStream.createModal.roomTitlePlaceholder')}
+                                        placeholder="Enter your live room title"
                                         style={{
                                             width: '100%',
                                             padding: '12px',
@@ -613,18 +593,18 @@ export default function LiveManagePage() {
                                         required
                                     />
                                     <div style={{ fontSize: '12px', color: '#999', marginTop: '4px' }}>
-                                        {t('liveStream.createModal.titleLimit')}
+                                        Max 50 characters
                                     </div>
                                 </div>
 
                                 <div style={{ marginBottom: '20px' }}>
                                     <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                                        {t('liveStream.createModal.description')}
+                                        Description
                                     </label>
                                     <textarea
                                         value={newRoom.description}
                                         onChange={(e) => setNewRoom({ ...newRoom, description: e.target.value })}
-                                        placeholder={t('liveStream.createModal.descriptionPlaceholder')}
+                                        placeholder="Tell viewers about your live stream"
                                         rows={4}
                                         style={{
                                             width: '100%',
@@ -643,7 +623,7 @@ export default function LiveManagePage() {
                                 {/* Thumbnail Upload */}
                                 <div style={{ marginBottom: '20px' }}>
                                     <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                                        {t('liveStream.createModal.thumbnail')}
+                                        Thumbnail
                                     </label>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                                         <div style={{
@@ -665,7 +645,7 @@ export default function LiveManagePage() {
                                                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                                 />
                                             ) : (
-                                                <span style={{ color: '#999', fontSize: '12px' }}>{t('liveStream.createModal.noImage')}</span>
+                                                <span style={{ color: '#999', fontSize: '12px' }}>No image</span>
                                             )}
                                         </div>
                                         <div>
@@ -696,10 +676,10 @@ export default function LiveManagePage() {
                                                     display: 'inline-block'
                                                 }}
                                             >
-                                                {t('liveStream.createModal.selectImage')}
+                                                Select Image
                                             </label>
                                             <div style={{ fontSize: '12px', color: '#999', marginTop: '4px' }}>
-                                                {t('liveStream.createModal.imageNote')}
+                                                Recommended: 16:9 ratio
                                             </div>
                                         </div>
                                     </div>
@@ -708,7 +688,7 @@ export default function LiveManagePage() {
                                 {/* Product Selection Section */}
                                 <div style={{ marginBottom: '20px', paddingTop: '20px', borderTop: '1px solid #eee' }}>
                                     <label style={{ display: 'block', marginBottom: '12px', fontWeight: '500' }}>
-                                        {t('liveStream.createModal.relatedProducts')}
+                                        Related Products
                                     </label>
 
                                     {/* Selected Products Grid */}
@@ -791,10 +771,10 @@ export default function LiveManagePage() {
                                             gap: '6px'
                                         }}
                                     >
-                                        + {t('liveStream.createModal.addProduct')} ({selectedProducts.length}/500)
+                                        + Add Product ({selectedProducts.length}/500)
                                     </button>
                                     <div style={{ fontSize: '12px', color: '#999', marginTop: '6px' }}>
-                                        {t('liveStream.createModal.productSelectionNote')}
+                                        Products will be featured during your live stream
                                     </div>
                                 </div>
 
@@ -810,7 +790,7 @@ export default function LiveManagePage() {
                                             cursor: 'pointer'
                                         }}
                                     >
-                                        {t('liveStream.createModal.cancel')}
+                                        Cancel
                                     </button>
                                     <button
                                         type="submit"
@@ -823,7 +803,7 @@ export default function LiveManagePage() {
                                             cursor: 'pointer'
                                         }}
                                     >
-                                        {t('liveStream.createModal.continue')}
+                                        Continue
                                     </button>
                                 </div>
                             </form>
@@ -851,7 +831,7 @@ export default function LiveManagePage() {
                                     }}
                                 >
                                     <div style={{ fontSize: '28px', marginBottom: '4px' }}>�</div>
-                                    <div style={{ fontSize: '11px', color: '#333' }}>Sản phẩm</div>
+                                    <div style={{ fontSize: '11px', color: '#333' }}>Products</div>
                                     {selectedProducts.length > 0 && (
                                         <div style={{
                                             fontSize: '10px',
@@ -879,7 +859,7 @@ export default function LiveManagePage() {
                                     <div>
                                         <h2 style={{ margin: 0 }}>{currentRoom.title}</h2>
                                         <p style={{ color: '#666', margin: '5px 0 0', fontSize: '14px' }}>
-                                            {currentRoom.description || 'Không có mô tả'}
+                                            {currentRoom.description || 'No description'}
                                         </p>
                                     </div>
                                     <div style={{ display: 'flex', gap: '10px' }}>
@@ -893,7 +873,7 @@ export default function LiveManagePage() {
                                                 cursor: 'pointer'
                                             }}
                                         >
-                                            Trở lại
+                                            Back
                                         </button>
                                         {currentRoom.status === 'PENDING' && (
                                             <button
@@ -907,7 +887,7 @@ export default function LiveManagePage() {
                                                     cursor: 'pointer'
                                                 }}
                                             >
-                                                {t('liveStream.actions.start')}
+                                                Start Live
                                             </button>
                                         )}
                                         {currentRoom.status === 'LIVE' && (
@@ -922,7 +902,7 @@ export default function LiveManagePage() {
                                                     cursor: 'pointer'
                                                 }}
                                             >
-                                                {t('liveStream.actions.end')}
+                                                End Live
                                             </button>
                                         )}
                                     </div>
@@ -936,7 +916,7 @@ export default function LiveManagePage() {
                                     marginBottom: '20px'
                                 }}>
                                     <h3 style={{ color: 'white', marginBottom: '25px', textAlign: 'center' }}>
-                                        {t('liveStream.obs.title')}
+                                        OBS Setup Guide
                                     </h3>
 
                                     {/* Steps Diagram */}
@@ -946,19 +926,19 @@ export default function LiveManagePage() {
                                         gap: '30px',
                                         marginBottom: '30px'
                                     }}>
-                                        <StepBox number={1} title={t('liveStream.obs.step1')} subtitle={t('liveStream.obs.step1sub')} color="#ee4d2d" />
+                                        <StepBox number={1} title="Copy URL" subtitle="RTMP URL" color="#ee4d2d" />
                                         <Arrow />
-                                        <StepBox number={2} title={t('liveStream.obs.step2')} subtitle={t('liveStream.obs.step2sub')} color="#ee4d2d" />
+                                        <StepBox number={2} title="Copy Key" subtitle="Stream Key" color="#ee4d2d" />
                                         <Arrow />
-                                        <StepBox number={3} title={t('liveStream.obs.step3')} subtitle={t('liveStream.obs.step3sub')} color="#28a745" />
+                                        <StepBox number={3} title="Start OBS" subtitle="Start Streaming" color="#28a745" />
                                         <Arrow />
-                                        <StepBox number={4} title={t('liveStream.obs.step4')} subtitle={t('liveStream.obs.step4sub')} color="#ee4d2d" />
+                                        <StepBox number={4} title="Go Live" subtitle="Click Start" color="#ee4d2d" />
                                     </div>
 
                                     {/* URL and Key */}
                                     <div style={{ maxWidth: '600px', margin: '0 auto' }}>
                                         <div style={{ marginBottom: '15px' }}>
-                                            <label style={{ color: '#999', fontSize: '12px', display: 'block', marginBottom: '5px' }}>{t('liveStream.obs.url')}</label>
+                                            <label style={{ color: '#999', fontSize: '12px', display: 'block', marginBottom: '5px' }}>RTMP URL</label>
                                             <div style={{ display: 'flex', gap: '10px' }}>
                                                 <input
                                                     type="text"
@@ -992,11 +972,11 @@ export default function LiveManagePage() {
                                         </div>
 
                                         <div>
-                                            <label style={{ color: '#999', fontSize: '12px', display: 'block', marginBottom: '5px' }}>{t('liveStream.obs.key')}</label>
+                                            <label style={{ color: '#999', fontSize: '12px', display: 'block', marginBottom: '5px' }}>Stream Key</label>
                                             <div style={{ display: 'flex', gap: '10px' }}>
                                                 <input
                                                     type="text"
-                                                    value={currentRoom.streamKey || t('liveStream.loading')}
+                                                    value={currentRoom.streamKey || 'Loading...'}
                                                     readOnly
                                                     style={{
                                                         flex: 1,
@@ -1036,19 +1016,19 @@ export default function LiveManagePage() {
                                         borderTop: '1px solid #eee'
                                     }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                                            <h3 style={{ margin: 0, fontSize: '18px' }}>{t('liveStream.obs.activeProducts')} ({liveProducts.length})</h3>
+                                            <h3 style={{ margin: 0, fontSize: '18px' }}>Active Products ({liveProducts.length})</h3>
                                             <button
                                                 onClick={handleOpenProductModal}
                                                 style={{
                                                     background: '#ee4d2d', color: 'white', border: 'none',
                                                     padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px'
                                                 }}
-                                            >+ {t('liveStream.obs.add')}</button>
+                                            >+ Add</button>
                                         </div>
 
                                         {liveProducts.length === 0 ? (
                                             <div style={{ color: '#999', textAlign: 'center', padding: '20px', background: '#f9f9f9', borderRadius: '4px' }}>
-                                                {t('liveStream.obs.noActiveProducts')}
+                                                No active products. Add products to feature during live.
                                             </div>
                                         ) : (
                                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '15px' }}>
@@ -1063,7 +1043,7 @@ export default function LiveManagePage() {
                                                             />
                                                             <div style={{ overflow: 'hidden' }}>
                                                                 <div style={{ fontSize: '14px', fontWeight: '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                                                    {p.productName || t('liveStream.obs.updating')}
+                                                                    {p.productName || 'Updating...'}
                                                                 </div>
                                                                 <div style={{ color: '#ee4d2d', fontWeight: 'bold', fontSize: '14px' }}>
                                                                     ₫{p.livePrice?.toLocaleString()}
@@ -1088,7 +1068,7 @@ export default function LiveManagePage() {
                                                                     cursor: 'pointer', fontSize: '12px', fontWeight: '600'
                                                                 }}
                                                             >
-                                                                {t('liveStream.obs.remove')}
+                                                                Remove
                                                             </button>
                                                         </div>
                                                     </div>
@@ -1542,7 +1522,7 @@ export default function LiveManagePage() {
                                     overflow: 'auto'
                                 }}>
                                     <div style={{ fontSize: '13px', fontWeight: '600', marginBottom: '10px', color: '#333' }}>
-                                        Sản phẩm đã chọn ({selectedProducts.length}) - Nhập giá Live:
+                                        Selected Products ({selectedProducts.length}) - Enter Live Price:
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                         {selectedProducts.map(product => (
@@ -1565,13 +1545,13 @@ export default function LiveManagePage() {
                                                         {product.name}
                                                     </div>
                                                     <div style={{ fontSize: '11px', color: '#888' }}>
-                                                        Giá gốc: ₫{product.price?.toLocaleString() || '0'} | Tồn kho: {product.totalStock || 0}
+                                                        Original: ₫{product.price?.toLocaleString() || '0'} | Stock: {product.totalStock || 0}
                                                     </div>
                                                 </div>
                                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                                     {/* Live Price Input */}
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                        <span style={{ fontSize: '11px', color: '#666', width: '70px' }}>Giá Live:</span>
+                                                        <span style={{ fontSize: '11px', color: '#666', width: '70px' }}>Live Price:</span>
                                                         <input
                                                             type="number"
                                                             value={productPrices[product.id] || product.price || ''}
@@ -1580,7 +1560,7 @@ export default function LiveManagePage() {
                                                                 [product.id]: e.target.value
                                                             }))}
                                                             onClick={(e) => e.stopPropagation()}
-                                                            placeholder="Nhập giá"
+                                                            placeholder="Enter price"
                                                             style={{
                                                                 width: '110px',
                                                                 padding: '4px 8px',
@@ -1639,11 +1619,11 @@ export default function LiveManagePage() {
                                             }
                                         }}
                                     />
-                                    <span style={{ fontSize: '14px' }}>Chọn tất cả</span>
+                                    <span style={{ fontSize: '14px' }}>Select All</span>
                                 </label>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                                     <span style={{ color: '#ee4d2d', fontSize: '14px' }}>
-                                        {selectedProducts.length}/500 Đã chọn
+                                        {selectedProducts.length}/500 Selected
                                     </span>
                                     <button
                                         onClick={() => setShowProductModal(false)}
@@ -1656,7 +1636,7 @@ export default function LiveManagePage() {
                                             fontSize: '14px'
                                         }}
                                     >
-                                        Hủy
+                                        Cancel
                                     </button>
                                     <button
                                         onClick={handleConfirmProducts}
@@ -1671,7 +1651,7 @@ export default function LiveManagePage() {
                                             fontSize: '14px'
                                         }}
                                     >
-                                        {addingProducts ? 'Đang thêm...' : `Thêm ${selectedProducts.length} sản phẩm`}
+                                        {addingProducts ? 'Adding...' : `Add ${selectedProducts.length} Products`}
                                     </button>
                                 </div>
                             </div>

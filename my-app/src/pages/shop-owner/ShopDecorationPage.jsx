@@ -5,11 +5,9 @@ import { getMyShopDecoration, saveShopDecoration } from '../../api/user';
 import WidgetSelector from '../../components/shop-owner/decoration/WidgetSelector';
 import TemplateSelector from '../../components/shop-owner/decoration/TemplateSelector';
 import PreviewArea from '../../components/shop-owner/decoration/PreviewArea';
-import { useTranslation } from 'react-i18next';
 import Swal from 'sweetalert2';
 
 const ShopDecorationPage = () => {
-    const { t } = useTranslation();
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [decorationConfig, setDecorationConfig] = useState([]);
@@ -25,7 +23,6 @@ const ShopDecorationPage = () => {
             const data = await getMyShopDecoration();
             if (data && data.content) {
                 let parsed = JSON.parse(data.content);
-                // Handle new object structure { widgets: [], globalStyles: {} }
                 if (!Array.isArray(parsed) && parsed.widgets) {
                     parsed = parsed.widgets;
                 }
@@ -35,7 +32,6 @@ const ShopDecorationPage = () => {
             }
         } catch (error) {
             console.error('Error fetching decoration config:', error);
-            // toast.error(t('failedToLoadDecoration'));
         } finally {
             setLoading(false);
         }
@@ -45,10 +41,10 @@ const ShopDecorationPage = () => {
         setSaving(true);
         try {
             await saveShopDecoration(decorationConfig);
-            toast.success(t('shopOwner.decoration.savedSuccess'));
+            toast.success('Decoration saved successfully!');
         } catch (error) {
             console.error('Error saving decoration:', error);
-            toast.error(t('shopOwner.decoration.saveFailed'));
+            toast.error('Failed to save decoration');
         } finally {
             setSaving(false);
         }
@@ -61,26 +57,25 @@ const ShopDecorationPage = () => {
             data: getDefaultDataForType(type)
         };
         setDecorationConfig([...decorationConfig, newWidget]);
-        toast.success(t('shopOwner.decoration.widgetAdded'));
+        toast.success('Widget added successfully!');
     };
 
     const applyTemplate = (template) => {
         Swal.fire({
-            title: t('shopOwner.decoration.confirmApplyTemplate'),
-            text: t('shopOwner.decoration.confirmApplyTemplateText'),
+            title: 'Apply Template?',
+            text: 'This will replace your current configuration. Continue?',
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonText: t('yes'),
-            cancelButtonText: t('no')
+            confirmButtonText: 'Yes',
+            cancelButtonText: 'No'
         }).then((result) => {
             if (result.isConfirmed) {
-                // Generate new IDs for all widgets to avoid conflicts
                 const newConfig = template.config.map(widget => ({
                     ...widget,
-                    id: Date.now() + Math.random() // Simple unique ID generation
+                    id: Date.now() + Math.random()
                 }));
                 setDecorationConfig(newConfig);
-                toast.success(t('shopOwner.decoration.templateApplied'));
+                toast.success('Template applied successfully!');
             }
         });
     };
@@ -95,13 +90,11 @@ const ShopDecorationPage = () => {
         ));
     };
 
-
-
     const getDefaultDataForType = (type) => {
         switch (type) {
             case 'banner': return { images: [] };
             case 'video': return { url: '' };
-            case 'products': return { productIds: [], title: t('shopOwner.decoration.defaultCollectionTitle') };
+            case 'products': return { productIds: [], title: 'Featured Products' };
             default: return {};
         }
     };
@@ -111,9 +104,9 @@ const ShopDecorationPage = () => {
     return (
         <Container fluid className="p-4">
             <div className="d-flex justify-content-between align-items-center mb-4">
-                <h3>{t('shopDecoration')}</h3>
+                <h3>Shop Decoration</h3>
                 <Button variant="primary" onClick={handleSave} disabled={saving}>
-                    {saving ? <Spinner as="span" animation="border" size="sm" /> : t('shopOwner.decoration.saveChanges')}
+                    {saving ? <Spinner as="span" animation="border" size="sm" /> : 'Save Changes'}
                 </Button>
             </div>
             <Row>
@@ -126,9 +119,9 @@ const ShopDecorationPage = () => {
                                 className="mb-0 card-header-tabs"
                                 justify
                             >
-                                <Tab eventKey="widgets" title={t('shopOwner.decoration.widgetsTab')}>
+                                <Tab eventKey="widgets" title="Widgets">
                                 </Tab>
-                                <Tab eventKey="templates" title={t('shopOwner.decoration.templates')}>
+                                <Tab eventKey="templates" title="Templates">
                                 </Tab>
                             </Tabs>
                         </Card.Header>
@@ -143,7 +136,7 @@ const ShopDecorationPage = () => {
                 </Col>
                 <Col md={9}>
                     <Card className="h-100">
-                        <Card.Header>{t('shopOwner.decoration.previewAndEdit')}</Card.Header>
+                        <Card.Header>Preview & Edit</Card.Header>
                         <Card.Body className="bg-light" style={{ minHeight: '500px', overflowY: 'auto' }}>
                             <PreviewArea
                                 widgets={decorationConfig}

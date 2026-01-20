@@ -214,7 +214,7 @@ const VoucherManagementPage = () => {
                 code: formData.code.toUpperCase(),
                 title: formData.name,  // Frontend: name → Backend: title
                 description: formData.description,
-                discountType: formData.discountType === 'PERCENTAGE' ? 'PERCENT' : 'FIXED_AMOUNT',
+                discountType: formData.discountType === 'PERCENTAGE' ? 'PERCENT' : 'FIXED',
                 discountValue: parseFloat(formData.discountValue),
                 maxDiscountAmount: formData.maxDiscount ? parseFloat(formData.maxDiscount) : null,
                 minOrderValue: parseFloat(formData.minOrder),
@@ -668,6 +668,7 @@ const VoucherManagementPage = () => {
                                         <label>Voucher Name *</label>
                                         <input
                                             type="text"
+                                            value={formData.name}
                                             onChange={(e) => handleInputChange('name', e.target.value)}
                                             placeholder="Flash Sale 20%"
                                             className={`form-input ${errors.name ? 'error' : ''}`}
@@ -703,6 +704,7 @@ const VoucherManagementPage = () => {
                                         <label>{formData.discountType === 'PERCENTAGE' ? 'Discount (%) *' : 'Discount (VND) *'}</label>
                                         <input
                                             type="number"
+                                            value={formData.discountValue}
                                             onChange={(e) => handleInputChange('discountValue', e.target.value)}
                                             placeholder={formData.discountType === 'PERCENTAGE' ? '20' : '50000'}
                                             min="0"
@@ -731,6 +733,7 @@ const VoucherManagementPage = () => {
                                         <label>Min Order (VND) *</label>
                                         <input
                                             type="number"
+                                            value={formData.minOrder}
                                             onChange={(e) => handleInputChange('minOrder', e.target.value)}
                                             placeholder="500000"
                                             min="0"
@@ -744,6 +747,7 @@ const VoucherManagementPage = () => {
                                         <label>Quantity *</label>
                                         <input
                                             type="number"
+                                            value={formData.totalQuantity}
                                             onChange={(e) => handleInputChange('totalQuantity', e.target.value)}
                                             placeholder="100"
                                             min="1"

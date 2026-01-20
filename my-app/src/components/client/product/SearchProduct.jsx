@@ -283,7 +283,7 @@ const SearchProduct = () => {
                 {/* Search Result Title */}
                 <div style={{ marginBottom: '12px', fontSize: '16px', color: '#262626', fontWeight: 500 }}>
                     {t('search.searchResults', { keyword: debouncedQuery || query || '' })}
-                    {!loading && total > 0 && <span style={{ color: '#757575', fontWeight: 400 }}> ({total} {t('search.products')})</span>}
+                    {!loading && total > 0 && <span style={{ color: '#757575', fontWeight: 400 }}> ({total} products)</span>}
                     {loading && <span style={{ color: '#757575', fontWeight: 400, fontSize: '14px' }}> <i className="fa fa-spinner fa-spin"></i></span>}
                 </div>
 

@@ -1,9 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { useTranslation } from "react-i18next";
 
 export default function Footer() {
-  const { t } = useTranslation();
   const year = new Date().getFullYear();
 
   return (
@@ -18,7 +16,7 @@ export default function Footer() {
           {/* Customer Service Column */}
           <div className="col-6 col-md-4 col-lg-2">
             <h6 className="fw-semibold mb-3" style={{ color: '#222', fontSize: '14px', fontWeight: 600 }}>
-              {t('footer.customerService')}
+              Customer Service
             </h6>
             <ul className="list-unstyled">
               <li className="mb-2">
@@ -33,16 +31,16 @@ export default function Footer() {
                   onMouseEnter={(e) => e.currentTarget.style.color = '#ee4d2d'}
                   onMouseLeave={(e) => e.currentTarget.style.color = '#666'}
                 >
-                  {t('footer.shopeeHelpCenter')}
+                  Help Center
                 </Link>
               </li>
             </ul>
           </div>
 
-          {/* Shopee Vietnam Column */}
+          {/* Vibe Vietnam Column */}
           <div className="col-6 col-md-4 col-lg-2">
             <h6 className="fw-semibold mb-3" style={{ color: '#222', fontSize: '14px', fontWeight: 600 }}>
-              {t('footer.shopeeVietnam')}
+              Vibe Vietnam
             </h6>
             <ul className="list-unstyled">
               <li className="mb-2">
@@ -57,7 +55,7 @@ export default function Footer() {
                   onMouseEnter={(e) => e.currentTarget.style.color = '#ee4d2d'}
                   onMouseLeave={(e) => e.currentTarget.style.color = '#666'}
                 >
-                  {t('footer.aboutShopee')}
+                  About Us
                 </Link>
               </li>
             </ul>
@@ -66,7 +64,7 @@ export default function Footer() {
           {/* Payment Column */}
           <div className="col-6 col-md-4 col-lg-2">
             <h6 className="fw-semibold mb-3" style={{ color: '#222', fontSize: '14px', fontWeight: 600 }}>
-              {t('footer.payment')}
+              Payment
             </h6>
             <div className="d-flex gap-2 flex-wrap">
               <div style={{
@@ -114,10 +112,10 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Follow Shopee Column */}
+          {/* Follow Us Column */}
           <div className="col-6 col-md-4 col-lg-2">
             <h6 className="fw-semibold mb-3" style={{ color: '#222', fontSize: '14px', fontWeight: 600 }}>
-              {t('footer.followShopee')}
+              Follow Us
             </h6>
             <div className="d-flex gap-2">
               <a
@@ -141,7 +139,7 @@ export default function Footer() {
           {/* Download App Column */}
           <div className="col-6 col-md-4 col-lg-2">
             <h6 className="fw-semibold mb-3" style={{ color: '#222', fontSize: '14px', fontWeight: 600 }}>
-              {t('footer.downloadApp')}
+              Download App
             </h6>
             <div className="d-flex gap-2 flex-column">
               <div style={{
@@ -155,7 +153,7 @@ export default function Footer() {
                 fontSize: '12px',
                 color: '#666'
               }}>
-                {t('footer.appStore')}
+                App Store
               </div>
               <div style={{
                 width: '120px',
@@ -168,7 +166,7 @@ export default function Footer() {
                 fontSize: '12px',
                 color: '#666'
               }}>
-                {t('footer.googlePlay')}
+                Google Play
               </div>
             </div>
           </div>
@@ -185,7 +183,7 @@ export default function Footer() {
           <div className="row align-items-center">
             <div className="col-12 text-center">
               <p className="mb-0" style={{ color: '#666', fontSize: '12px' }}>
-                {t('footer.copyright', { year })}
+                © {year} Vibe. All Rights Reserved.
               </p>
             </div>
           </div>

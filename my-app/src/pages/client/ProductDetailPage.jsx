@@ -225,6 +225,14 @@ export default function ProductDetailPage() {
     const onAddToCart = async () => {
         if (!product) return;
 
+        // Check authentication first - redirect to login if not logged in
+        const accessToken = document.cookie.split('; ').find(row => row.startsWith('accessToken='));
+        if (!accessToken) {
+            toast.error(t("auth.loginRequired", "Please login to add items to cart"));
+            navigate("/login", { state: { from: `/product/${id}` } });
+            return;
+        }
+
         if (product.sizes && product.sizes.length > 0 && !selectedSizeId) {
             setError("Please select a size before adding to cart.");
             return;
@@ -259,8 +267,8 @@ export default function ProductDetailPage() {
         } catch (e) {
             if (e?.response?.status === 403 || e?.response?.status === 401) {
                 // Redirect to login if not authenticated
-                toast.error(t("auth.loginRequired"));
-                navigate("/login");
+                toast.error(t("auth.loginRequired", "Please login to add items to cart"));
+                navigate("/login", { state: { from: `/product/${id}` } });
             } else {
                 let msg = e?.response?.data?.message || e.message || "Failed to add to cart";
                 if (msg.includes("INSUFFICIENT_STOCK")) {

@@ -7,6 +7,7 @@ import { getShopOwnerByUserId, getFollowerCount, checkIsFollowing, followShop, u
 import { getShopProducts, getShopStats, fetchProductImageById } from '../../api/product';
 import imgFallback from "../../assets/images/shop/6.png";
 import DecorationRenderer from '../../components/shop-owner/decoration/DecorationRenderer';
+import { API_BASE_URL } from '../../config/config';
 
 export default function ShopDetailPage() {
     const { userId } = useParams();
@@ -17,9 +18,12 @@ export default function ShopDetailPage() {
     const [isFollowing, setIsFollowing] = useState(false);
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState('products'); // Default to updated later
+    const [activeTab, setActiveTab] = useState('products');
     const [imageUrls, setImageUrls] = useState({});
     const [decorationConfig, setDecorationConfig] = useState(null);
+    const [headerImageUrl, setHeaderImageUrl] = useState(null);
+    const [avatarImageUrl, setAvatarImageUrl] = useState(null);
+    const [avatarLoadError, setAvatarLoadError] = useState(false);
     const { t } = useTranslation();
 
     useEffect(() => {
@@ -62,6 +66,26 @@ export default function ShopDetailPage() {
 
                 // 5. Get Shop Products
                 loadProducts();
+
+                // 6. Load Shop Images (header & avatar)
+                if (shopData.headerImageUrl) {
+                    try {
+                        const res = await fetchProductImageById(shopData.headerImageUrl);
+                        const blob = new Blob([res.data], { type: res.headers?.["content-type"] || "image/png" });
+                        setHeaderImageUrl(URL.createObjectURL(blob));
+                    } catch (e) {
+                        console.error("Header image load error", e);
+                    }
+                }
+                if (shopData.imageUrl) {
+                    try {
+                        const res = await fetchProductImageById(shopData.imageUrl);
+                        const blob = new Blob([res.data], { type: res.headers?.["content-type"] || "image/png" });
+                        setAvatarImageUrl(URL.createObjectURL(blob));
+                    } catch (e) {
+                        console.error("Avatar image load error", e);
+                    }
+                }
 
             } catch (error) {
                 console.error('Error loading shop:', error);
@@ -189,8 +213,8 @@ export default function ShopDetailPage() {
                         <div
                             className="card-body"
                             style={{
-                                background: shopInfo.headerImageUrl
-                                    ? `linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url(/v1/file-storage/get/${shopInfo.headerImageUrl}) center/cover no-repeat`
+                                background: headerImageUrl
+                                    ? `linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url(${headerImageUrl}) center/cover no-repeat`
                                     : shopInfo.headerStyle
                                         ? shopInfo.headerStyle
                                         : 'linear-gradient(45deg, #222, #444)',
@@ -203,9 +227,9 @@ export default function ShopDetailPage() {
                                 <div className="col-md-4">
                                     <div className="d-flex align-items-center gap-3">
                                         <div className="position-relative">
-                                            {shopInfo.imageUrl ? (
+                                            {avatarImageUrl && !avatarLoadError ? (
                                                 <img
-                                                    src={`/v1/file-storage/get/${shopInfo.imageUrl}`}
+                                                    src={avatarImageUrl}
                                                     alt={shopInfo.shopName}
                                                     style={{
                                                         width: 80,
@@ -214,7 +238,7 @@ export default function ShopDetailPage() {
                                                         borderRadius: '50%',
                                                         border: '3px solid rgba(255,255,255,0.2)'
                                                     }}
-                                                    onError={(e) => { e.currentTarget.src = '/vite.svg'; }}
+                                                    onError={() => setAvatarLoadError(true)}
                                                 />
                                             ) : (
                                                 <div

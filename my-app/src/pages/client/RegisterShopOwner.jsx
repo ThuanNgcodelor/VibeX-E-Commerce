@@ -6,7 +6,7 @@ import createShopOwner from '../../api/role_request.js';
 import Cookies from 'js-cookie';
 import '../../assets/admin/css/RegisterShopOwner.css';
 import { useNavigate } from 'react-router-dom';
-import vibeLogo from '../../assets/images/logo.png';
+const vibeLogo = '/game/assets/logo.png';
 
 const RegisterShopOwner = () => {
     const { t } = useTranslation();
@@ -657,14 +657,7 @@ const RegisterShopOwner = () => {
             <header className="vibe-header">
                 <div className="header-container">
                     <div className="header-left">
-                        <img src={vibeLogo} alt="Vibe" />
                         <span className="header-title">{t('roleRequest.headerTitle')}</span>
-                    </div>
-                    <div className="header-right">
-                        <div className="uni-dropdown">
-                            <img src={vibeLogo} alt="uni icon" style={{ height: '24px', marginRight: '8px' }} />
-                            <span>{t('roleRequest.uni')}</span>
-                        </div>
                     </div>
                 </div>
             </header>
@@ -680,9 +673,6 @@ const RegisterShopOwner = () => {
                 <div className="vibe-card">
                     {currentStep === 0 && (
                         <div className="welcome-screen animate-fade-in">
-                            <div className="welcome-img-container">
-                                <img src={vibeLogo} alt="welcome" />
-                            </div>
                             <h2>{t('roleRequest.welcome.title')}</h2>
                             <p>{t('roleRequest.welcome.description')}</p>
                             <button onClick={() => setCurrentStep(1)} className="btn-primary btn-large">{t('roleRequest.welcome.registerButton')}</button>
