@@ -8,6 +8,7 @@ public class ShopOwnerRegisterRequest {
     private String shopName;
     private String ownerName;
     private String phone;
+    private String email;
 
     // Thông tin địa chỉ GHN (AddressCreateRequest mà bạn đang tìm)
     private Integer provinceId;

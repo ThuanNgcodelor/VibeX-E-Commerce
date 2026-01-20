@@ -624,13 +624,46 @@ const SubscriptionPlanManagementPage = () => {
 
                                         <div className="form-group">
                                             <label>Icon (FontAwesome)</label>
-                                            <input
-                                                type="text"
-                                                className="form-input"
-                                                value={formData.icon}
-                                                onChange={(e) => handleInputChange('icon', e.target.value)}
-                                                placeholder="e.g. truck, ticket-alt"
-                                            />
+                                            <div className="icon-select-wrapper" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                                <div className="selected-icon-preview" style={{
+                                                    width: '38px',
+                                                    height: '38px',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    backgroundColor: formData.colorHex ? formData.colorHex + '20' : '#f0f0f0',
+                                                    borderRadius: '8px',
+                                                    color: formData.colorHex || '#666'
+                                                }}>
+                                                    <i className={`fas fa-${formData.icon}`}></i>
+                                                </div>
+                                                <select
+                                                    className="form-input"
+                                                    value={formData.icon}
+                                                    onChange={(e) => handleInputChange('icon', e.target.value)}
+                                                    style={{ flex: 1 }}
+                                                >
+                                                    <option value="truck">Truck (Shipping)</option>
+                                                    <option value="shipping-fast">Fast Shipping</option>
+                                                    <option value="ticket-alt">Ticket (Voucher)</option>
+                                                    <option value="tag">Tag (Discount)</option>
+                                                    <option value="tags">Tags</option>
+                                                    <option value="percent">Percentage</option>
+                                                    <option value="box-open">Box Open</option>
+                                                    <option value="store">Store</option>
+                                                    <option value="store-alt">Store Alt</option>
+                                                    <option value="crown">Crown (Premium)</option>
+                                                    <option value="star">Star</option>
+                                                    <option value="gem">Gem (Diamond)</option>
+                                                    <option value="rocket">Rocket</option>
+                                                    <option value="gift">Gift</option>
+                                                    <option value="check-circle">Check Circle</option>
+                                                    <option value="medal">Medal</option>
+                                                    <option value="award">Award</option>
+                                                    <option value="fire">Fire (Hot)</option>
+                                                    <option value="bolt">Bolt (Flash)</option>
+                                                </select>
+                                            </div>
                                         </div>
 
                                         {/* Commission Rates Section */}

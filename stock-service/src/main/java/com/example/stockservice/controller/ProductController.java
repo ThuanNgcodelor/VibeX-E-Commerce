@@ -291,6 +291,12 @@ public class ProductController {
         return ResponseEntity.ok(productIds);
     }
 
+    @GetMapping("/ids/by-category")
+    public ResponseEntity<List<String>> getProductIdsByCategoryName(@RequestParam String name) {
+        List<String> ids = productService.getProductIdsByCategoryName(name);
+        return ResponseEntity.ok(ids);
+    }
+
     @GetMapping("/internal/count/shop/{shopId}")
     public ResponseEntity<Long> getShopProductCount(@PathVariable String shopId) {
         return ResponseEntity.ok(productService.countProductsByUserId(shopId));

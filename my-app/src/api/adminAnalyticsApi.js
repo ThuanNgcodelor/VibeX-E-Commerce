@@ -39,9 +39,13 @@ export const getRevenueChartData = async (startDate, endDate) => {
     }
 };
 
-export const getRecentOrders = async () => {
+export const getRecentOrders = async (category) => {
     try {
-        const response = await api.get("/recent-orders");
+        const params = {};
+        if (category && category !== 'All') {
+            params.category = category;
+        }
+        const response = await api.get("/recent-orders", { params });
         return response.data;
     } catch (error) {
         console.error("Error fetching recent orders:", error);

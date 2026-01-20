@@ -21,4 +21,6 @@ public interface AdminDashboardService {
     DashboardStatsDto getDashboardStats(java.time.LocalDateTime startDate, java.time.LocalDateTime endDate);
 
     List<OrderDto> getRecentOrders();
+
+    List<OrderDto> getRecentOrders(String category);
 }

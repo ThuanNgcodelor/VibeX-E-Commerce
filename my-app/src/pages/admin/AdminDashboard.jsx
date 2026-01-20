@@ -31,6 +31,12 @@ const AdminDashboard = () => {
     const [topCategoriesList, setTopCategoriesList] = useState([]);
     const [loading, setLoading] = useState(true);
 
+
+    // UI Toggles & Filters
+    const [showAllCategories, setShowAllCategories] = useState(false);
+    const [showAllOrders, setShowAllOrders] = useState(false);
+    const [selectedCategory, setSelectedCategory] = useState("All");
+
     // Default: Last 30 days
     const [startDate, setStartDate] = useState(() => {
         const d = new Date();
@@ -39,31 +45,50 @@ const AdminDashboard = () => {
     });
     const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
 
-    const fetchData = async () => {
+    const loadData = async () => {
         try {
-            setLoading(true); // constant refresh feedback might be annoying, but good for explicit filter
+            setLoading(true);
             const [stats, revenue, orders, categories] = await Promise.all([
                 getDashboardStats(startDate, endDate),
                 getRevenueChartData(startDate, endDate),
-                getRecentOrders(),
+                getRecentOrders(selectedCategory),
                 getTopCategories(startDate, endDate)
             ]);
             setDashboardStats(stats);
             setRevenueData(revenue);
-            setRecentOrdersList(orders);
             setTopCategoriesList(categories);
+            setRecentOrdersList(orders);
         } catch (error) {
-            console.error("Failed to fetch dashboard data", error);
+            console.error("Error loading dashboard data:", error);
+            setError("Failed to load dashboard data");
         } finally {
             setLoading(false);
         }
     };
 
+    const fetchRecentOrders = async (category) => {
+        try {
+            const orders = await getRecentOrders(category);
+            setRecentOrdersList(orders);
+        } catch (error) {
+            console.error("Error loading recent orders:", error);
+            setError("Failed to load recent orders");
+        }
+    }
+
+    // Effect for initial load and date changes
     useEffect(() => {
-        fetchData();
-        const intervalId = setInterval(fetchData, 10000);
+        loadData();
+        const intervalId = setInterval(loadData, 10000);
         return () => clearInterval(intervalId);
-    }, [startDate, endDate]); // Re-run setup when dates change
+    }, [startDate, endDate]);
+
+    // Effect for category filter change
+    useEffect(() => {
+        if (!loading) { // Avoid double fetch on initial load if possible, or just let it be
+            fetchRecentOrders(selectedCategory);
+        }
+    }, [selectedCategory]);
 
     // Static data for fallback or unimplemented sections
     const activeUsers = [
@@ -112,7 +137,7 @@ const AdminDashboard = () => {
 
     return (
         <div className="admin-dashboard">
-            <div className="d-flex justify-content-between align-items-center mb-4">
+            <div className="dashboard-header d-flex justify-content-between align-items-center mb-4">
                 <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1a1a2e' }}>Dashboard Overview</h2>
                 <div className="d-flex gap-2 bg-white p-2 rounded shadow-sm">
                     <button
@@ -187,7 +212,12 @@ const AdminDashboard = () => {
                 <div className="card categories-card-compact">
                     <div className="card-header">
                         <h3 className="card-title">Top Categories</h3>
-                        <button className="btn-link">See All</button>
+                        <button
+                            className="btn-link text-decoration-none"
+                            onClick={() => setShowAllCategories(!showAllCategories)}
+                        >
+                            {showAllCategories ? "See Less" : "See All"}
+                        </button>
                     </div>
                     <div className="card-body">
                         <div className="category-donut-compact" style={{
@@ -207,7 +237,7 @@ const AdminDashboard = () => {
                         </div>
                         <div className="categories-list-compact">
                             {topCategoriesList.length > 0 ? (
-                                topCategoriesList.map((category, index) => (
+                                (showAllCategories ? topCategoriesList : topCategoriesList.slice(0, 3)).map((category, index) => (
                                     <div key={index} className="category-item-compact">
                                         <div className="category-info">
                                             <div className="category-color" style={{ backgroundColor: category.color }}></div>
@@ -413,9 +443,27 @@ const AdminDashboard = () => {
             {/* Fourth Row: Recent Orders + Recent Activity */}
             <div className="row-4">
                 <div className="card orders-card-compact">
-                    <div className="card-header">
-                        <h3 className="card-title">Recent Orders</h3>
-                        <button className="btn-action-sm">All Categories</button>
+                    <div className="card-header d-flex justify-content-between align-items-center">
+                        <h3 className="card-title mb-0">Recent Orders</h3>
+                        <div className="d-flex align-items-center gap-2">
+                            <select
+                                className="form-select form-select-sm"
+                                style={{ width: '150px' }}
+                                value={selectedCategory}
+                                onChange={(e) => setSelectedCategory(e.target.value)}
+                            >
+                                <option value="All">All Categories</option>
+                                {topCategoriesList.map((cat, idx) => (
+                                    <option key={idx} value={cat.name}>{cat.name}</option>
+                                ))}
+                            </select>
+                            <button
+                                className="btn-action-sm"
+                                onClick={() => setShowAllOrders(!showAllOrders)}
+                            >
+                                {showAllOrders ? "See Less" : "See All"}
+                            </button>
+                        </div>
                     </div>
                     <div className="card-body">
                         <div className="table-responsive">
@@ -430,7 +478,7 @@ const AdminDashboard = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {recentOrdersList.map((order, index) => (
+                                    {(showAllOrders ? recentOrdersList : recentOrdersList.slice(0, 3)).map((order, index) => (
                                         <tr key={index}>
                                             <td>{index + 1}</td>
                                             <td>

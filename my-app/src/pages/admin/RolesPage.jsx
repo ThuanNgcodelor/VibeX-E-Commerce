@@ -41,6 +41,11 @@ export default function RolesPage() {
   const [rowDetails, setRowDetails] = useState({}); // Cache for loaded details: { [id]: detailObject }
   const [loadingDetails, setLoadingDetails] = useState(false);
 
+  // Modal State
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const [selectedRequestId, setSelectedRequestId] = useState(null);
+
   // Load data function
   const load = async () => {
     setLoading(true);
@@ -104,13 +109,23 @@ export default function RolesPage() {
     }
   };
 
-  // Reject role
-  const handleReject = async (id) => {
-    setUpdating(id);
+  // Reject role - Open Modal
+  const handleReject = (id) => {
+    setSelectedRequestId(id);
+    setRejectReason("");
+    setShowRejectModal(true);
+  };
+
+  // Confirm Reject
+  const confirmReject = async () => {
+    if (!selectedRequestId) return;
+
+    setUpdating(selectedRequestId);
     try {
-      await rejectRequest(id, 'Rejected by admin');
+      await rejectRequest(selectedRequestId, rejectReason);
       await load();
       setExpandedRow(null);
+      setShowRejectModal(false);
     } catch (e) {
       console.error("Error rejecting request:", e);
       setError("Failed to reject request");
@@ -138,11 +153,16 @@ export default function RolesPage() {
 
   const renderDetailRow = (detail) => {
     if (!detail) return null;
-    const { shopDetails, identification, taxInfo } = detail;
+    const { shopDetails, identification, taxInfo, reason, adminNote } = detail;
 
     return (
       <div className="p-3 bg-light border rounded">
         <div className="row">
+          <div className="col-12 mb-3">
+            <h6 className="text-primary border-bottom pb-2">Request Information</h6>
+            <p><strong>Reason for Request:</strong> {reason || <span className="text-muted fst-italic">No reason provided</span>}</p>
+            {adminNote && <p><strong>Admin Note:</strong> {adminNote}</p>}
+          </div>
           <div className="col-md-6">
             <h6 className="text-primary border-bottom pb-2">Shop Information</h6>
             <p><strong>Shop Name:</strong> {shopDetails?.shopName}</p>
@@ -401,6 +421,47 @@ export default function RolesPage() {
           )}
         </div>
       </div>
+
+      {/* Rejection Modal */}
+      {showRejectModal && (
+        <>
+          <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} tabIndex="-1">
+            <div className="modal-dialog">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title">Reject Request</h5>
+                  <button type="button" className="btn-close" onClick={() => setShowRejectModal(false)}></button>
+                </div>
+                <div className="modal-body">
+                  <div className="mb-3">
+                    <label htmlFor="rejectionReason" className="form-label">Reason for Rejection <span className="text-danger">*</span></label>
+                    <textarea
+                      className="form-control"
+                      id="rejectionReason"
+                      rows="3"
+                      value={rejectReason}
+                      onChange={(e) => setRejectReason(e.target.value)}
+                      placeholder="Enter reason for rejection..."
+                    ></textarea>
+                  </div>
+                </div>
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-secondary" onClick={() => setShowRejectModal(false)}>Cancel</button>
+                  <button
+                    type="button"
+                    className="btn btn-danger"
+                    onClick={confirmReject}
+                    disabled={!rejectReason.trim() || updating === selectedRequestId}
+                  >
+                    {updating === selectedRequestId ? <span className="spinner-border spinner-border-sm me-2" /> : null}
+                    Confirm Reject
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

@@ -145,8 +145,34 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
 
     @Override
     public List<OrderDto> getRecentOrders() {
+        return getRecentOrders(null);
+    }
+
+    @Override
+    public List<OrderDto> getRecentOrders(String category) {
         Pageable pageable = PageRequest.of(0, 10, Sort.by("createdAt").descending());
-        Page<Order> orderPage = orderRepository.findAll(pageable);
+        Page<Order> orderPage;
+
+        if (category != null && !category.isEmpty() && !category.equalsIgnoreCase("All")) {
+            try {
+                ResponseEntity<List<String>> response = stockServiceClient.getProductIdsByCategoryName(category);
+                List<String> productIds = response.getBody();
+
+                if (productIds == null || productIds.isEmpty()) {
+                    return new ArrayList<>();
+                }
+
+                // Using findByOrderItemsProductIdIn from repository
+                orderPage = orderRepository.findByOrderItemsProductIdIn(productIds, pageable);
+
+            } catch (Exception e) {
+                log.error("Failed to fetch product IDs for category: " + category, e);
+                // Fallback to empty list or all orders? Empty list seems safer for a filter.
+                return new ArrayList<>();
+            }
+        } else {
+            orderPage = orderRepository.findAll(pageable);
+        }
 
         return orderPage.getContent().stream()
                 .map(order -> modelMapper.map(order, OrderDto.class))

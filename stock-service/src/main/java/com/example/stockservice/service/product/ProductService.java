@@ -59,4 +59,6 @@ public interface ProductService {
     java.util.Map<String, com.example.stockservice.dto.ProductDto> batchGetProducts(List<String> productIds);
 
     java.util.Map<String, Boolean> batchDecreaseStock(List<BatchDecreaseStockRequest.DecreaseStockItem> items);
+
+    List<String> getProductIdsByCategoryName(String name);
 }
