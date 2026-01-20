@@ -50,8 +50,9 @@ public class AdminAnalyticsController {
     }
 
     @GetMapping("/recent-orders")
-    public ResponseEntity<List<com.example.orderservice.dto.OrderDto>> getRecentOrders() {
-        return ResponseEntity.ok(adminDashboardService.getRecentOrders());
+    public ResponseEntity<List<com.example.orderservice.dto.OrderDto>> getRecentOrders(
+            @org.springframework.web.bind.annotation.RequestParam(required = false) String category) {
+        return ResponseEntity.ok(adminDashboardService.getRecentOrders(category));
     }
 
     @GetMapping("/top-categories")

@@ -14,6 +14,8 @@ const pageSize = 8;
 const normalizeReq = (r) => {
   const requestedRole = r?.requestedRole ?? "";
   const statusRaw = r?.status ?? null;
+  // Use 'type' returned by backend, default to 'REGISTRATION' if missing
+  const requestType = r?.type || "REGISTRATION";
 
   return {
     id: r?.id ?? `unknown-${requestedRole}`,
@@ -25,8 +27,11 @@ const normalizeReq = (r) => {
       : "Pending",
     reason: r?.reason ?? "",
     createdAt: r?.creationTimestamp ?? null,
+    requestType: requestType,
   };
 };
+
+
 
 export default function RolesPage() {
   const [roles, setRoles] = useState([]);
@@ -40,6 +45,11 @@ export default function RolesPage() {
   const [expandedRow, setExpandedRow] = useState(null); // ID of expanded row
   const [rowDetails, setRowDetails] = useState({}); // Cache for loaded details: { [id]: detailObject }
   const [loadingDetails, setLoadingDetails] = useState(false);
+
+  // Modal State
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const [selectedRequestId, setSelectedRequestId] = useState(null);
 
   // Load data function
   const load = async () => {
@@ -104,13 +114,23 @@ export default function RolesPage() {
     }
   };
 
-  // Reject role
-  const handleReject = async (id) => {
-    setUpdating(id);
+  // Reject role - Open Modal
+  const handleReject = (id) => {
+    setSelectedRequestId(id);
+    setRejectReason("");
+    setShowRejectModal(true);
+  };
+
+  // Confirm Reject
+  const confirmReject = async () => {
+    if (!selectedRequestId) return;
+
+    setUpdating(selectedRequestId);
     try {
-      await rejectRequest(id, 'Rejected by admin');
+      await rejectRequest(selectedRequestId, rejectReason);
       await load();
       setExpandedRow(null);
+      setShowRejectModal(false);
     } catch (e) {
       console.error("Error rejecting request:", e);
       setError("Failed to reject request");
@@ -138,11 +158,16 @@ export default function RolesPage() {
 
   const renderDetailRow = (detail) => {
     if (!detail) return null;
-    const { shopDetails, identification, taxInfo } = detail;
+    const { shopDetails, identification, taxInfo, reason, adminNote } = detail;
 
     return (
       <div className="p-3 bg-light border rounded">
         <div className="row">
+          <div className="col-12 mb-3">
+            <h6 className="text-primary border-bottom pb-2">Request Information</h6>
+            <p><strong>Reason for Request:</strong> {reason || <span className="text-muted fst-italic">No reason provided</span>}</p>
+            {adminNote && <p><strong>Admin Note:</strong> {adminNote}</p>}
+          </div>
           <div className="col-md-6">
             <h6 className="text-primary border-bottom pb-2">Shop Information</h6>
             <p><strong>Shop Name:</strong> {shopDetails?.shopName}</p>
@@ -271,9 +296,10 @@ export default function RolesPage() {
                       <tr key={r.id} className={expandedRow === r.id ? "table-active" : ""}>
                         <td className="text-center">
                           <button
-                            className={`btn btn-sm btn-link text-decoration-none ${expandedRow === r.id ? 'text-danger' : 'text-primary'}`}
+                            className="btn border-0 bg-transparent p-0 shadow-none"
                             onClick={() => toggleRow(r.id)}
                             title="View Details"
+                            style={{ color: expandedRow === r.id ? '#dc3545' : '#0d6efd' }}
                           >
                             <i className={`fas fa-${expandedRow === r.id ? 'chevron-up' : 'eye'}`}></i>
                           </button>
@@ -283,8 +309,8 @@ export default function RolesPage() {
                           <small className="text-muted">{r.reason ? `Reason: ${r.reason.substring(0, 30)}${r.reason.length > 30 ? '...' : ''}` : ''}</small>
                         </td>
                         <td>
-                          <span className="badge bg-primary-subtle text-primary border border-primary-subtle">
-                            {r.role_request}
+                          <span className={`badge ${r.requestType === 'UNLOCK' ? 'bg-warning text-dark' : 'bg-primary-subtle text-primary border border-primary-subtle'}`}>
+                            {r.requestType === 'UNLOCK' ? 'UNLOCK SHOP' : r.role_request}
                           </span>
                         </td>
                         <td>
@@ -401,6 +427,47 @@ export default function RolesPage() {
           )}
         </div>
       </div>
+
+      {/* Rejection Modal */}
+      {showRejectModal && (
+        <>
+          <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} tabIndex="-1">
+            <div className="modal-dialog">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title">Reject Request</h5>
+                  <button type="button" className="btn-close" onClick={() => setShowRejectModal(false)}></button>
+                </div>
+                <div className="modal-body">
+                  <div className="mb-3">
+                    <label htmlFor="rejectionReason" className="form-label">Reason for Rejection <span className="text-danger">*</span></label>
+                    <textarea
+                      className="form-control"
+                      id="rejectionReason"
+                      rows="3"
+                      value={rejectReason}
+                      onChange={(e) => setRejectReason(e.target.value)}
+                      placeholder="Enter reason for rejection..."
+                    ></textarea>
+                  </div>
+                </div>
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-secondary" onClick={() => setShowRejectModal(false)}>Cancel</button>
+                  <button
+                    type="button"
+                    className="btn btn-danger"
+                    onClick={confirmReject}
+                    disabled={!rejectReason.trim() || updating === selectedRequestId}
+                  >
+                    {updating === selectedRequestId ? <span className="spinner-border spinner-border-sm me-2" /> : null}
+                    Confirm Reject
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

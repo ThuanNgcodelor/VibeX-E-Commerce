@@ -100,6 +100,7 @@ public class RoleRequestController {
                                                 .creationTimestamp(rr.getCreationTimestamp())
                                                 .adminNote(rr.getAdminNote())
                                                 .username(rr.getUser() != null ? rr.getUser().getUsername() : null)
+                                                .type(rr.getType() != null ? rr.getType().name() : "REGISTRATION")
                                                 .build())
                                 .toList();
                 return ResponseEntity.ok(responses);
@@ -118,6 +119,7 @@ public class RoleRequestController {
                                                 .creationTimestamp(rr.getCreationTimestamp())
                                                 .adminNote(rr.getAdminNote())
                                                 .username(rr.getUser() != null ? rr.getUser().getUsername() : null)
+                                                .type(rr.getType() != null ? rr.getType().name() : "REGISTRATION")
                                                 .build())
                                 .toList();
                 return ResponseEntity.ok(responses);

@@ -16,4 +16,5 @@ public class RoleRequestResponse {
     private java.time.LocalDateTime creationTimestamp;
     private String adminNote;
     private String username; // Thêm username
+    private String type; // RequestType: UNLOCK, REGISTRATION
 }

@@ -381,7 +381,7 @@ public class ProductServiceImpl implements ProductService {
 
         if (request.getSizes() != null) {
             List<Size> managedSizes = toUpdate.getSizes();
-            
+
             // Build a map of oldSizeName -> cartItems for migration
             java.util.Map<String, List<com.example.stockservice.model.CartItem>> cartItemsBySizeName = new java.util.HashMap<>();
             if (managedSizes != null && !managedSizes.isEmpty()) {
@@ -408,22 +408,24 @@ public class ProductServiceImpl implements ProductService {
                                 .product(toUpdate)
                                 .build())
                         .collect(Collectors.toList());
-                
+
                 // Save new sizes first to get their IDs
                 List<Size> savedNewSizes = sizeRepository.saveAll(newSizes);
-                
+
                 // Migrate cart items to new sizes with matching names
                 for (Size newSize : savedNewSizes) {
-                    List<com.example.stockservice.model.CartItem> matchingCartItems = cartItemsBySizeName.get(newSize.getName());
+                    List<com.example.stockservice.model.CartItem> matchingCartItems = cartItemsBySizeName
+                            .get(newSize.getName());
                     if (matchingCartItems != null && !matchingCartItems.isEmpty()) {
                         for (com.example.stockservice.model.CartItem cartItem : matchingCartItems) {
                             cartItem.setSize(newSize);
                             cartItemRepository.save(cartItem);
-                            System.out.println("[PRODUCT_UPDATE] Migrated cart item " + cartItem.getId() + " to new size: " + newSize.getName());
+                            System.out.println("[PRODUCT_UPDATE] Migrated cart item " + cartItem.getId()
+                                    + " to new size: " + newSize.getName());
                         }
                     }
                 }
-                
+
                 if (managedSizes == null) {
                     toUpdate.setSizes(savedNewSizes);
                 } else {
@@ -676,5 +678,10 @@ public class ProductServiceImpl implements ProductService {
             // explicitly locked
             System.err.println("Failed to verify shop status: " + e.getMessage());
         }
+    }
+
+    @Override
+    public List<String> getProductIdsByCategoryName(String name) {
+        return productRepository.findIdsByCategoryName(name);
     }
 }

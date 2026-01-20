@@ -253,6 +253,8 @@ public class RoleRequestService {
                 .ownerName(request.getOwnerName()) // SỬA LỖI 1: Lấy từ request
                 .phone(request.getPhone()) // Đừng quên số điện thoại
                 .address(fullAddress) // SỬA LỖI 3: Lưu địa chỉ full
+                .email(request.getEmail() != null && !request.getEmail().isEmpty() ? request.getEmail()
+                        : user.getEmail()) // Populate email
 
                 // Logic mặc định
                 .verified(false) // SỬA LỖI 2: Mới tạo phải là false chờ duyệt

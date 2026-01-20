@@ -36,15 +36,15 @@ public class RoleRequest extends BaseEntity {
     private RequestType type = RequestType.REGISTRATION;
 
     @Column(columnDefinition = "TEXT")
-    private String reason; // Lý do xin role
+    private String reason;
 
     @Column(columnDefinition = "TEXT")
-    private String adminNote; // Ghi chú của admin
+    private String adminNote;
 
-    private String reviewedBy; // Admin ID đã duyệt
+    private String reviewedBy;
 
     private LocalDateTime reviewedAt;
 
     @Column(columnDefinition = "TEXT")
-    private String rejectionReason; // Lý do từ chối
+    private String rejectionReason;
 }

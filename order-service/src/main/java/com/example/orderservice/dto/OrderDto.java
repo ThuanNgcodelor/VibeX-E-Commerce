@@ -16,6 +16,7 @@ public class OrderDto {
     private String shippingAddress;
     private String recipientName;
     private String recipientPhone;
+    private String customerName; // Name of the user who placed the order
     private String fullAddress;
     private String paymentMethod;
     private LocalDateTime createdAt;
@@ -24,7 +25,7 @@ public class OrderDto {
 
     private String cancelReason;
     private String returnReason;
-    
+
     // Voucher fields
     private String voucherId;
     private Double voucherDiscount;
