@@ -359,7 +359,7 @@ export default function CartPage() {
     const itemsWithShopOwner = selectedItems.map((item) => {
       const pid = item.productId ?? item.id;
       const isFlashSale = item.isFlashSale;
-      console.log(`[CartPage] Item ${pid}: isFlashSale from API = ${item.isFlashSale}, sending = ${isFlashSale}`);
+
       return {
         ...item,
         shopOwnerName: shopOwners[pid] || 'Unknown Shop',
@@ -368,7 +368,7 @@ export default function CartPage() {
         isFlashSale: isFlashSale, // Ensure it's a boolean
       };
     });
-    console.log("CartPage Navigate Payload:", itemsWithShopOwner);
+
     navigate("/checkout", {
       state: {
         selectedItems: itemsWithShopOwner,

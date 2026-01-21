@@ -443,7 +443,7 @@ export function Cart({
                                 </div>
                                 {(() => {
                                   const isFlashSale = item.isFlashSale === true;
-                                  console.log(`[Cart Badge] Product ${item.productId}: isFlashSale=${item.isFlashSale}, showing badge=${isFlashSale}`);
+                                  // console.log(`[Cart Badge] Product ${item.productId}: isFlashSale=${item.isFlashSale}, showing badge=${isFlashSale}`);
                                   return isFlashSale ? (
                                     <div style={{
                                       display: 'inline-block',

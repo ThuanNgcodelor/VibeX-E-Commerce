@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Swal from 'sweetalert2';
 import flashSaleAPI from '../../../api/flashSale/flashSaleAPI';
 import productAdminApi from '../../../api/productAdminApi';
 import '../ShopOwnerLayout.css';
@@ -24,13 +25,19 @@ const ShopFlashSale = () => {
     useEffect(() => {
         const token = Cookies.get('accessToken');
         if (!token) {
-            alert("You need to login first!");
+            Swal.fire({
+                icon: 'warning',
+                title: 'Login Required',
+                text: 'You need to login first!'
+            });
             return;
         }
         fetchSessions();
         fetchMyRegistrations();
         fetchMyProducts();
     }, []);
+
+    // ... (fetch functions remain same)
 
     useEffect(() => {
         if (selectedProductId) {
@@ -96,13 +103,21 @@ const ShopFlashSale = () => {
             }));
 
         if (sizesPayload.length === 0) {
-            alert('Please select at least one size with quantity');
+            Swal.fire({
+                icon: 'warning',
+                title: 'Incomplete Information',
+                text: 'Please select at least one size with quantity'
+            });
             return;
         }
 
         for (const item of sizesPayload) {
             if (!item.salePrice || item.salePrice <= 0) {
-                alert("Please enter a valid flash sale price for all selected sizes.");
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Invalid Price',
+                    text: 'Please enter a valid flash sale price for all selected sizes.'
+                });
                 return;
             }
         }
@@ -117,7 +132,15 @@ const ShopFlashSale = () => {
                 salePrice: minPrice,
                 sizes: sizesPayload
             });
-            alert('Product registered successfully!');
+
+            Swal.fire({
+                icon: 'success',
+                title: 'Success',
+                text: 'Product registered successfully!',
+                showConfirmButton: false,
+                timer: 1500
+            });
+
             fetchMyRegistrations();
             setSalePrice('');
             setSizeConfig({});
@@ -125,7 +148,11 @@ const ShopFlashSale = () => {
             setIsRegistering(false);
         } catch (error) {
             console.error(error);
-            alert('Registration failed: ' + (error.response?.data?.message || 'Error'));
+            Swal.fire({
+                icon: 'error',
+                title: 'Registration Failed',
+                text: 'Error: ' + (error.response?.data?.message || 'Unknown error occurred')
+            });
         } finally {
             setLoading(false);
         }

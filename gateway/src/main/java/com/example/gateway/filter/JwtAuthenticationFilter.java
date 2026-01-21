@@ -65,7 +65,12 @@ public class JwtAuthenticationFilter implements GatewayFilter {
                 "/v1/stock/flash-sale/public/",
                 "/v1/user/banner/getAllBanner",
                 "/v1/user/banner/active",
-                "/v1/stock/category/getAll"
+                "/v1/stock/category/getAll",
+                // Analytics & Tracking
+                "/v1/stock/analytics/recently-viewed",
+                "/v1/stock/analytics/trending/",
+                "/v1/stock/search/trending",
+                "/v1/stock/search/history"
         );
 
         Predicate<ServerHttpRequest> isApiSecured = r -> apiEndpoints.stream()

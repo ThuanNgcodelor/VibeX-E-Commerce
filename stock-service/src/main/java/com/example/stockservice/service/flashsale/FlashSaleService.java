@@ -207,11 +207,20 @@ public class FlashSaleService {
         fsp.setStatus(FlashSaleStatus.APPROVED);
         FlashSaleProduct saved = flashSaleProductRepository.save(fsp);
 
-        try {
-            kafkaTemplate.send(productUpdatesTopic, new ProductUpdateKafkaEvent(saved.getProductId()));
-        } catch (Exception e) {
-            log.error("Failed to send Kafka event for flash sale approval: {}", e.getMessage());
-        }
+        // Use TransactionSynchronization to send event AFTER commit to avoid race conditions
+        org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+            new org.springframework.transaction.support.TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    try {
+                        kafkaTemplate.send(productUpdatesTopic, new ProductUpdateKafkaEvent(saved.getProductId()));
+                        log.info("Sent Kafka event for flash sale approval: {}", saved.getProductId());
+                    } catch (Exception e) {
+                        log.error("Failed to send Kafka event for flash sale approval: {}", e.getMessage());
+                    }
+                }
+            }
+        );
 
         // EVENT-DRIVEN WARM-UP: Immediately warm up this single product
         warmUpSingleProduct(saved);
@@ -228,11 +237,20 @@ public class FlashSaleService {
         fsp.setRejectionReason(reason);
         FlashSaleProduct saved = flashSaleProductRepository.save(fsp);
 
-        try {
-            kafkaTemplate.send(productUpdatesTopic, new ProductUpdateKafkaEvent(saved.getProductId()));
-        } catch (Exception e) {
-            log.error("Failed to send Kafka event for flash sale rejection: {}", e.getMessage());
-        }
+        // Use TransactionSynchronization to send event AFTER commit
+        org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+            new org.springframework.transaction.support.TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    try {
+                        kafkaTemplate.send(productUpdatesTopic, new ProductUpdateKafkaEvent(saved.getProductId()));
+                        log.info("Sent Kafka event for flash sale rejection: {}", saved.getProductId());
+                    } catch (Exception e) {
+                        log.error("Failed to send Kafka event for flash sale rejection: {}", e.getMessage());
+                    }
+                }
+            }
+        );
 
         return saved;
     }

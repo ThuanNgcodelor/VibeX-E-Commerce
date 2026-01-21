@@ -276,8 +276,8 @@ export const calculateShippingFee = async (addressId, selectedItems, shopOwnerId
 
         const response = await api.post("/calculate-shipping-fee", requestData);
         return response.data;
-    } catch {
-        return null;
+    } catch (error) {
+        throw error;
     }
 };
 

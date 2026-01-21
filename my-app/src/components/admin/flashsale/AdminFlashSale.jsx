@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Swal from 'sweetalert2';
 import flashSaleAPI from '../../../api/flashSale/flashSaleAPI';
 import './AdminFlashSale.css';
 
@@ -80,21 +81,54 @@ const AdminFlashSale = () => {
 
             setNewSession({ name: '', startTime: format(tomorrow), endTime: format(end), description: '' });
             fetchSessions();
-            alert('Create session successfully!');
+
+            Swal.fire({
+                icon: 'success',
+                title: 'Success',
+                text: 'Create session successfully!',
+                showConfirmButton: false,
+                timer: 1500
+            });
         } catch (error) {
-            alert('Error creating session: ' + (error.response?.data?.message || 'Undefined'));
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Error creating session: ' + (error.response?.data?.message || 'Undefined')
+            });
         }
     };
 
     const handleOpenSession = async (sessionId, e) => {
         e.stopPropagation();
-        if (!window.confirm("You want to open registration and send notification to shops?")) return;
+
+        const result = await Swal.fire({
+            title: 'Confirm Open Session',
+            text: "You want to open registration and send notification to shops?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, open it!'
+        });
+
+        if (!result.isConfirmed) return;
+
         try {
             await flashSaleAPI.openSession(sessionId);
-            alert('Open registration successfully!');
+            Swal.fire({
+                icon: 'success',
+                title: 'Success',
+                text: 'Open registration successfully!',
+                showConfirmButton: false,
+                timer: 1500
+            });
             fetchSessions();
         } catch (error) {
-            alert('Error opening session: ' + (error.response?.data?.message || 'Undefined'));
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Error opening session: ' + (error.response?.data?.message || 'Undefined')
+            });
         }
     };
 
@@ -102,46 +136,129 @@ const AdminFlashSale = () => {
         try {
             await flashSaleAPI.approveProduct(regId);
             fetchProducts(selectedSession.id);
+            Swal.fire({
+                icon: 'success',
+                title: 'Approved',
+                text: 'Product has been approved.',
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000
+            });
         } catch (error) {
-            alert('Error approving product: ' + (error.response?.data?.message || 'Undefined'));
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Error approving product: ' + (error.response?.data?.message || 'Undefined')
+            });
         }
     };
 
     const handleReject = async (regId) => {
-        const reason = prompt("Reason for rejection:");
+        const { value: reason } = await Swal.fire({
+            title: 'Reject Product',
+            input: 'text',
+            inputLabel: 'Reason for rejection',
+            inputPlaceholder: 'Enter reason...',
+            showCancelButton: true,
+            inputValidator: (value) => {
+                if (!value) {
+                    return 'You need to write a reason!'
+                }
+            }
+        });
+
         if (reason) {
             try {
                 await flashSaleAPI.rejectProduct(regId, reason);
                 fetchProducts(selectedSession.id);
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Rejected',
+                    text: 'Product has been rejected.',
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000
+                });
             } catch (error) {
-                alert('Error rejecting product: ' + (error.response?.data?.message || 'Undefined'));
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Error rejecting product: ' + (error.response?.data?.message || 'Undefined')
+                });
             }
         }
     };
 
     const handleDeleteSession = async (sessionId, e) => {
         e.stopPropagation();
-        if (!window.confirm("Are you sure you want to delete this session?")) return;
+
+        const result = await Swal.fire({
+            title: 'Delete Session?',
+            text: "Are you sure you want to delete this session? This action cannot be undone.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete it!'
+        });
+
+        if (!result.isConfirmed) return;
+
         try {
             await flashSaleAPI.deleteSession(sessionId);
-            alert("Delete session successfully!");
+            Swal.fire({
+                icon: 'success',
+                title: 'Deleted',
+                text: 'Delete session successfully!',
+                showConfirmButton: false,
+                timer: 1500
+            });
             fetchSessions();
             if (selectedSession && selectedSession.id === sessionId) setSelectedSession(null);
         } catch (error) {
-            alert("Error deleting session: " + (error.response?.data?.message || "Undefined"));
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: "Error deleting session: " + (error.response?.data?.message || "Undefined")
+            });
         }
     };
 
     const handleToggleStatus = async (sessionId, currentStatus, e) => {
         e.stopPropagation();
         const action = currentStatus === 'ACTIVE' ? 'Deactivate' : 'Activate';
-        if (!window.confirm(`Do you want to ${action} this session?`)) return;
+        const confirmText = currentStatus === 'ACTIVE' ? 'Stop Session' : 'Start Session';
+
+        const result = await Swal.fire({
+            title: `${action} Session?`,
+            text: `Do you want to ${action.toLowerCase()} this session?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: currentStatus === 'ACTIVE' ? '#d33' : '#3085d6',
+            cancelButtonColor: '#aaa',
+            confirmButtonText: `Yes, ${confirmText}`
+        });
+
+        if (!result.isConfirmed) return;
 
         try {
             await flashSaleAPI.toggleSessionStatus(sessionId);
             fetchSessions();
+            Swal.fire({
+                icon: 'success',
+                title: 'Success',
+                text: `Session has been ${action.toLowerCase()}d successfully.`,
+                showConfirmButton: false,
+                timer: 1500
+            });
         } catch (error) {
-            alert("Error toggling session status: " + (error.response?.data?.message || "Undefined"));
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: "Error toggling session status: " + (error.response?.data?.message || "Undefined")
+            });
         }
     };
 

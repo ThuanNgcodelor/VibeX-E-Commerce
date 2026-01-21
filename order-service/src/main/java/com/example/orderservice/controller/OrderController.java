@@ -505,6 +505,15 @@ public class OrderController {
                     "currency", "VND"));
 
         } catch (Exception e) {
+            log.error("Calculate shipping fee error: {}", e.getMessage());
+            
+            // Check if it's a GHN API error (which wraps 400 Bad Request)
+            if (e.getMessage() != null && e.getMessage().contains("GHN")) {
+               return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                    "error", "GHN_API_ERROR",
+                    "message", e.getMessage()));
+            }
+            
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
                     "error", "CALCULATION_FAILED",
                     "message", e.getMessage()));

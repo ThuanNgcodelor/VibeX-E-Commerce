@@ -2,14 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import Swal from 'sweetalert2';
 import { shopNotifyFollowers } from '../../api/notification';
-import { getFollowerCount } from '../../api/user';
+import { getFollowerCount, getUser } from '../../api/user';
 import './ShopNotifyFollowersPage.css';
 
 const NOTIFICATION_TYPES = [
-    { value: 'SHOP_ANNOUNCEMENT', label: '📢 Thông báo chung', icon: '📢' },
-    { value: 'SHOP_FLASH_SALE', label: '🔥 Flash Sale', icon: '🔥' },
-    { value: 'SHOP_NEW_PRODUCT', label: '🆕 Sản phẩm mới', icon: '🆕' },
-    { value: 'SHOP_PROMOTION', label: '🎁 Khuyến mãi', icon: '🎁' },
+    { value: 'SHOP_ANNOUNCEMENT', label: '📢 General Announcement', icon: 'fas fa-bullhorn' },
+    { value: 'SHOP_FLASH_SALE', label: '🔥 Flash Sale', icon: 'fas fa-bolt' },
+    { value: 'SHOP_NEW_PRODUCT', label: '🆕 New Product', icon: 'fas fa-box-open' },
+    { value: 'SHOP_PROMOTION', label: '🎁 Promotion', icon: 'fas fa-ticket-alt' },
 ];
 
 const ShopNotifyFollowersPage = () => {
@@ -29,8 +29,11 @@ const ShopNotifyFollowersPage = () => {
 
     const fetchFollowerCount = async () => {
         try {
-            const count = await getFollowerCount();
-            setFollowerCount(count || 0);
+            const user = await getUser();
+            if (user && user.id) {
+                const count = await getFollowerCount(user.id);
+                setFollowerCount(count || 0);
+            }
         } catch (error) {
             console.error('Failed to fetch follower count:', error);
         }
@@ -44,18 +47,18 @@ const ShopNotifyFollowersPage = () => {
     const handleQuickTemplate = (type) => {
         const templates = {
             'SHOP_FLASH_SALE': {
-                title: '🔥 Flash Sale đang diễn ra!',
-                message: 'Giảm giá sốc lên đến 50% cho tất cả sản phẩm. Nhanh tay mua ngay!',
+                title: '🔥 Flash Sale is happening!',
+                message: 'Shocking discounts up to 50% on all products. Buy now!',
                 type: 'SHOP_FLASH_SALE'
             },
             'SHOP_NEW_PRODUCT': {
-                title: '🆕 Sản phẩm mới ra mắt!',
-                message: 'Shop vừa cập nhật sản phẩm mới. Ghé thăm ngay để xem nhé!',
+                title: '🆕 New Product Arrival!',
+                message: 'We just updated new products. Visit our shop to check them out!',
                 type: 'SHOP_NEW_PRODUCT'
             },
             'SHOP_PROMOTION': {
-                title: '🎁 Ưu đãi đặc biệt cho bạn!',
-                message: 'Mã giảm giá độc quyền dành cho followers. Sử dụng ngay hôm nay!',
+                title: '🎁 Special Offer for You!',
+                message: 'Exclusive voucher for followers. Use it today!',
                 type: 'SHOP_PROMOTION'
             }
         };
@@ -68,22 +71,22 @@ const ShopNotifyFollowersPage = () => {
         e.preventDefault();
 
         if (!formData.title.trim() || !formData.message.trim()) {
-            Swal.fire('Lỗi', 'Vui lòng nhập tiêu đề và nội dung', 'warning');
+            Swal.fire('Error', 'Please enter title and message', 'warning');
             return;
         }
 
         if (followerCount === 0) {
-            Swal.fire('Thông báo', 'Shop chưa có follower nào', 'info');
+            Swal.fire('Notice', 'Shop has no followers yet', 'info');
             return;
         }
 
         const result = await Swal.fire({
-            title: 'Xác nhận gửi thông báo',
-            text: `Thông báo sẽ được gửi đến ${followerCount} followers của bạn`,
+            title: 'Confirm Send',
+            text: `Notification will be sent to ${followerCount} followers`,
             icon: 'question',
             showCancelButton: true,
-            confirmButtonText: 'Gửi ngay',
-            cancelButtonText: 'Hủy',
+            confirmButtonText: 'Send Now',
+            cancelButtonText: 'Cancel',
             confirmButtonColor: '#10b981',
         });
 
@@ -94,8 +97,8 @@ const ShopNotifyFollowersPage = () => {
             const response = await shopNotifyFollowers(formData);
 
             Swal.fire({
-                title: 'Thành công!',
-                text: `Đã gửi thông báo đến ${response.sentCount} followers`,
+                title: 'Success!',
+                text: `Sent notification to ${response.sentCount} followers`,
                 icon: 'success',
             });
 
@@ -107,7 +110,7 @@ const ShopNotifyFollowersPage = () => {
                 actionUrl: ''
             });
         } catch (error) {
-            Swal.fire('Lỗi', 'Không thể gửi thông báo. Vui lòng thử lại.', 'error');
+            Swal.fire('Error', 'Failed to send notification. Please try again.', 'error');
         } finally {
             setLoading(false);
         }
@@ -117,8 +120,8 @@ const ShopNotifyFollowersPage = () => {
         <div className="shop-notify-page">
             <div className="page-header">
                 <div className="header-left">
-                    <h1>📣 Thông báo cho Followers</h1>
-                    <p className="subtitle">Gửi thông báo đến những người theo dõi shop của bạn</p>
+                    <h1>📣 Notify Followers</h1>
+                    <p className="subtitle">Send notifications to your shop followers</p>
                 </div>
                 <div className="follower-badge">
                     <span className="follower-icon">👥</span>
@@ -128,7 +131,7 @@ const ShopNotifyFollowersPage = () => {
             </div>
 
             <div className="quick-templates">
-                <span className="templates-label">Mẫu nhanh:</span>
+                <span className="templates-label">Quick Templates:</span>
                 {NOTIFICATION_TYPES.slice(1).map(type => (
                     <button
                         key={type.value}
@@ -136,51 +139,54 @@ const ShopNotifyFollowersPage = () => {
                         className="template-btn"
                         onClick={() => handleQuickTemplate(type.value)}
                     >
-                        {type.icon} {type.label.split(' ')[1]}
+                        <i className={`${type.icon} me-1`}></i> {type.label.split(' ').slice(1).join(' ')}
                     </button>
                 ))}
             </div>
 
             <form onSubmit={handleSubmit} className="notification-form">
                 <div className="form-group">
-                    <label htmlFor="type">Loại thông báo</label>
-                    <select
-                        id="type"
-                        name="type"
-                        value={formData.type}
-                        onChange={handleInputChange}
-                        className="form-select"
-                    >
-                        {NOTIFICATION_TYPES.map(type => (
-                            <option key={type.value} value={type.value}>
-                                {type.label}
-                            </option>
-                        ))}
-                    </select>
+                    <label htmlFor="type">Notification Type</label>
+                    <div className="select-wrapper">
+                        {/* Custom select styling might be needed, but simplified for now */}
+                        <select
+                            id="type"
+                            name="type"
+                            value={formData.type}
+                            onChange={handleInputChange}
+                            className="form-select"
+                        >
+                            {NOTIFICATION_TYPES.map(type => (
+                                <option key={type.value} value={type.value}>
+                                    {type.label.replace(/^[^\s]+\s/, '')} ({type.label.split(' ')[0]})
+                                </option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
 
                 <div className="form-group">
-                    <label htmlFor="title">Tiêu đề *</label>
+                    <label htmlFor="title">Title *</label>
                     <input
                         type="text"
                         id="title"
                         name="title"
                         value={formData.title}
                         onChange={handleInputChange}
-                        placeholder="Nhập tiêu đề thông báo..."
+                        placeholder="Enter notification title..."
                         className="form-input"
                         maxLength={100}
                     />
                 </div>
 
                 <div className="form-group">
-                    <label htmlFor="message">Nội dung *</label>
+                    <label htmlFor="message">Message *</label>
                     <textarea
                         id="message"
                         name="message"
                         value={formData.message}
                         onChange={handleInputChange}
-                        placeholder="Nhập nội dung thông báo..."
+                        placeholder="Enter notification message..."
                         className="form-textarea"
                         rows={4}
                         maxLength={300}
@@ -189,28 +195,28 @@ const ShopNotifyFollowersPage = () => {
                 </div>
 
                 <div className="form-group">
-                    <label htmlFor="actionUrl">Link (tùy chọn)</label>
+                    <label htmlFor="actionUrl">Link (Optional)</label>
                     <input
                         type="text"
                         id="actionUrl"
                         name="actionUrl"
                         value={formData.actionUrl}
                         onChange={handleInputChange}
-                        placeholder="/shop/your-shop hoặc /flash-sale/123..."
+                        placeholder="/shop/your-shop or /flash-sale/123..."
                         className="form-input"
                     />
                 </div>
 
                 <div className="form-footer">
                     <p className="send-info">
-                        ⚡ Sẽ gửi đến <strong>{followerCount.toLocaleString()}</strong> followers
+                        ⚡ Will send to <strong>{followerCount.toLocaleString()}</strong> followers
                     </p>
                     <button
                         type="submit"
                         className="btn-submit"
                         disabled={loading || followerCount === 0}
                     >
-                        {loading ? '⏳ Đang gửi...' : '🚀 Gửi thông báo'}
+                        {loading ? '⏳ Sending...' : '🚀 Send Notification'}
                     </button>
                 </div>
             </form>

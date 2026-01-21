@@ -39,18 +39,37 @@ const formatTimeAgo = (timestamp, t, i18n) => {
 
 // Format data from backend to UI format
 const formatNotification = (notification, t, i18n) => {
-  const type = 'order';
-  const icon = 'fa-shopping-cart';
+  let type = 'system';
+  let icon = 'fa-bell';
+  let title = notification.title || t('notifications.systemNotification');
 
-  // Create title from message or orderId
-  let title = t('notifications.orderNotification');
+  // Determine Icon & Type based on notification type
   if (notification.orderId) {
+    type = 'order';
+    icon = 'fa-shopping-cart';
     title = t('notifications.orderTitle', { id: notification.orderId.substring(0, 8) });
+  } else if (notification.type === 'SHOP_ANNOUNCEMENT') {
+    type = 'shop';
+    icon = 'fa-bullhorn';
+  } else if (notification.type === 'SHOP_FLASH_SALE') {
+    type = 'shop';
+    icon = 'fa-bolt';
+  } else if (notification.type === 'SHOP_NEW_PRODUCT') {
+    type = 'shop';
+    icon = 'fa-box-open';
+  } else if (notification.type === 'SHOP_PROMOTION') {
+    type = 'shop';
+    icon = 'fa-ticket-alt';
+  }
+
+  // Use provided title if available, otherwise fallback
+  if (notification.title) {
+    title = notification.title;
   }
 
   return {
     id: notification.id,
-    type,
+    type, // 'order' | 'shop' | 'system'
     title,
     message: notification.message || t('notifications.orderUpdated'),
     time: formatTimeAgo(notification.creationTimestamp, t, i18n),
@@ -58,7 +77,9 @@ const formatNotification = (notification, t, i18n) => {
     icon,
     color: 'primary',
     orderId: notification.orderId,
-    originalTimestamp: notification.creationTimestamp
+    actionUrl: notification.actionUrl,
+    originalTimestamp: notification.creationTimestamp,
+    rawType: notification.type
   };
 };
 
@@ -97,10 +118,10 @@ export default function NotificationPage() {
         setUserId(user.id);
         const data = await getNotificationsByUserId(user.id);
         // Only get notifications with orderId (orders)
-        const orderNotifications = Array.isArray(data)
-          ? data.filter(n => n.orderId).map(n => formatNotification(n, t, i18n))
-          : [];
-        setNotifications(orderNotifications);
+        // Get all notifications, don't filter just by orderId
+        const notificationsData = Array.isArray(data) ? data : [];
+        const formattedNotifications = notificationsData.map(n => formatNotification(n, t, i18n));
+        setNotifications(formattedNotifications);
       } catch (err) {
         console.error('Error fetching notifications:', err);
         setError(err.message || 'Unable to load notifications');
@@ -190,10 +211,10 @@ export default function NotificationPage() {
       const user = await getUser();
       if (user && user.id) {
         const data = await getNotificationsByUserId(user.id);
-        const orderNotifications = Array.isArray(data)
-          ? data.filter(n => n.orderId).map(n => formatNotification(n, t, i18n))
-          : [];
-        setNotifications(orderNotifications);
+        // Get all notifications, don't filter just by orderId
+        const notificationsData = Array.isArray(data) ? data : [];
+        const formattedNotifications = notificationsData.map(n => formatNotification(n, t, i18n));
+        setNotifications(formattedNotifications);
         // Dispatch event to notify Header to refresh
         window.dispatchEvent(new CustomEvent('notificationsUpdated'));
       }
@@ -485,7 +506,12 @@ export default function NotificationPage() {
                 background: notification.isRead ? 'white' : '#f8f9ff',
                 borderLeft: notification.isRead ? 'none' : '4px solid #ee4d2d'
               }}
-              onClick={() => handleMarkAsRead(notification.id)}
+              onClick={() => {
+                handleMarkAsRead(notification.id);
+                if (notification.actionUrl) {
+                  navigate(notification.actionUrl);
+                }
+              }}
             >
               <div
                 style={{
@@ -535,6 +561,23 @@ export default function NotificationPage() {
                         }}
                       >
                         <i className="fas fa-eye me-1"></i> {t('notifications.viewOrder')}
+                      </button>
+                    )}
+                    {notification.type === 'shop' && notification.actionUrl && (
+                      <button
+                        className="btn btn-sm"
+                        style={{
+                          fontSize: '12px',
+                          backgroundColor: notification.isRead ? '#6c757d' : '#ee4d2d',
+                          color: 'white',
+                          border: 'none'
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(notification.actionUrl);
+                        }}
+                      >
+                        <i className="fas fa-external-link-alt me-1"></i> {t('common.view')}
                       </button>
                     )}
                     <button

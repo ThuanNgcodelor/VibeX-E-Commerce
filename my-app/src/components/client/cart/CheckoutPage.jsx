@@ -189,18 +189,29 @@ export function CheckoutPage({
             }
           } catch (error) {
             console.error(`[Shipping] Failed to calculate for shop ${shopOwnerId}:`, error);
-            shopFees[shopOwnerId] = 0;
+
+            const errorData = error.response?.data;
+            if (errorData) {
+              if (errorData.error === 'SHOP_OWNER_ADDRESS_NOT_CONFIGURED') {
+                toast("warning", t('checkout.shopAddressMissing', 'Shop chưa cấu hình địa chỉ lấy hàng'));
+              } else if (errorData.error === 'ADDRESS_MISSING_GHN_FIELDS') {
+                toast("warning", t('checkout.addressMissingInfo', 'Địa chỉ của bạn thiếu thông tin quận/huyện'));
+              } else if (errorData.error === 'GHN_API_ERROR') {
+                toast("warning", t('checkout.ghnError', 'Lỗi từ đơn vị vận chuyển (GHN). Vui lòng kiểm tra lại địa chỉ giao hàng.'));
+              }
+            }
+            shopFees[shopOwnerId] = 30000; // Fallback to 30000
           }
         }
 
         setShopShippingFees(shopFees);
         setShippingFee(totalFee);
 
-        console.log('[Shipping] Calculated per-shop fees:', shopFees, 'Total:', totalFee);
       } catch (error) {
         console.error("Failed to calculate shipping fee:", error);
         setShippingFee(0);
-        setShopShippingFees({});
+        // Do NOT reset shopShippingFees to empty here, as it might wipe partial results
+        // setShopShippingFees({}); 
       } finally {
         setCalculatingShippingFee(false);
       }
@@ -294,7 +305,7 @@ export function CheckoutPage({
     setCalculatingShipping(prev => ({ ...prev, [shopOwnerId]: true }));
     try {
       // Call API with correct parameters: addressId and selectedItems for this shop
-      const response = await calculateShippingFee(selectedAddressId, shopItems);
+      const response = await calculateShippingFee(selectedAddressId, shopItems, shopOwnerId);
       // API returns {shippingFee: number, currency: 'VND'}, extract the number
       const fee = response?.shippingFee ?? response;
       if (fee !== null && fee !== undefined && typeof fee === 'number') {
@@ -305,6 +316,22 @@ export function CheckoutPage({
       }
     } catch (error) {
       console.error(`[SHIPPING] Failed for shop ${shopOwnerId}:`, error);
+
+      const errorData = error.response?.data;
+      if (errorData) {
+        console.error('[SHIPPING] Backend Error:', errorData);
+        if (errorData.error === 'SHOP_OWNER_ADDRESS_NOT_CONFIGURED') {
+          toast("warning", t('checkout.shopAddressMissing', 'Shop chưa cấu hình địa chỉ lấy hàng'));
+        } else if (errorData.error === 'ADDRESS_MISSING_GHN_FIELDS') {
+          toast("warning", t('checkout.addressMissingInfo', 'Địa chỉ của bạn thiếu thông tin quận/huyện'));
+        } else if (errorData.error === 'GHN_API_ERROR') {
+          toast("warning", t('checkout.ghnError', 'Lỗi từ đơn vị vận chuyển (GHN). Vui lòng kiểm tra lại địa chỉ giao hàng.'));
+        } else if (errorData.message) {
+          // Optional: Show other specific errors
+          // toast("warning", errorData.message);
+        }
+      }
+
       setShopShippingFees(prev => ({ ...prev, [shopOwnerId]: 30000 })); // Default fallback
     } finally {
       setCalculatingShipping(prev => ({ ...prev, [shopOwnerId]: false }));
@@ -374,8 +401,8 @@ export function CheckoutPage({
       const totalShippingFee = Object.values(shopShippingFees).reduce((sum, fee) => sum + Number(fee || 0), 0);
       const totalVoucherDiscount = Object.values(shopAppliedVouchers).reduce((sum, v) => sum + Number(v?.discount || 0), 0);
 
-      console.log('[Checkout] Total shipping fee:', totalShippingFee, 'from', shopShippingFees);
-      console.log('[Checkout] Total voucher discount:', totalVoucherDiscount);
+
+
 
       // Build orderData - Backend will handle stock reservation
       const orderData = {

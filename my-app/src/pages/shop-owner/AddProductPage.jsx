@@ -14,7 +14,6 @@ export default function AddProductPage() {
     const { t, i18n } = useTranslation();
     const navigate = useNavigate();
 
-    console.log("AddProductPage: Rendering..."); // Debug log
 
     const { id: productId } = useParams();
     const isEditMode = Boolean(productId);
