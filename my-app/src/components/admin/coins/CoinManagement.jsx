@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import shopCoinAPI from '../../../api/shopCoin/shopCoinAPI';
+import Swal from 'sweetalert2';
 
 export default function CoinManagement() {
     const [users, setUsers] = useState([]);
@@ -75,18 +76,34 @@ export default function CoinManagement() {
         try {
             if (isEditing) {
                 await shopCoinAPI.updateMission(editId, newMission);
-                alert("Mission updated successfully!");
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success',
+                    text: 'Mission updated successfully!',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
                 setIsEditing(false);
                 setEditId(null);
             } else {
                 await shopCoinAPI.createMission(newMission);
-                alert("Mission created successfully!");
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success',
+                    text: 'Mission created successfully!',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
             }
             setNewMission({ title: '', description: '', rewardAmount: 10, actionCode: '', targetCount: 1 });
             fetchMissions();
         } catch (err) {
             console.error("Failed to save mission", err);
-            alert("Failed to save mission");
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Failed to save mission'
+            });
         }
     };
 
@@ -103,14 +120,34 @@ export default function CoinManagement() {
     };
 
     const handleDelete = async (id) => {
-        if (window.confirm("Are you sure you want to delete this mission?")) {
+        const result = await Swal.fire({
+            title: 'Are you sure?',
+            text: "You won't be able to revert this!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete it!'
+        });
+
+        if (result.isConfirmed) {
             try {
                 await shopCoinAPI.deleteMission(id);
-                alert("Mission deleted successfully");
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Deleted!',
+                    text: 'Mission has been deleted.',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
                 fetchMissions();
             } catch (err) {
                 console.error("Failed to delete mission", err);
-                alert("Failed to delete mission");
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to delete mission'
+                });
             }
         }
     };

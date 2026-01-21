@@ -22,6 +22,16 @@
     align-items: center;
 }
 
+/* Override primary text color icon if needed, or keep it if it fits. 
+   Assuming .text-primary is blue, let's force it to orange for this page context if locally scoped, 
+   but since it's a global class, we might leave it or override it specifically here. 
+   Let's target the icon inside specifically or leave strictly layout. 
+   The user wants "orange and white". */
+.header-left h1 i {
+    color: #ee4d2d !important;
+    /* Force orange icon */
+}
+
 .header-left .subtitle {
     color: #6b7280;
     font-size: 14px;
@@ -31,11 +41,13 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    background: linear-gradient(135deg, #ee4d2d 0%, #d94025 100%);
+    /* Orange gradient */
     color: white;
     padding: 12px 20px;
     border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    box-shadow: 0 4px 12px rgba(238, 77, 45, 0.3);
+    /* Orange shadow */
 }
 
 .follower-icon {
@@ -81,9 +93,10 @@
 }
 
 .template-btn:hover {
-    border-color: #10b981;
-    background: #ecfdf5;
-    color: #059669;
+    border-color: #ee4d2d;
+    background: #fff5f1;
+    /* Light orange tint */
+    color: #ee4d2d;
     transform: translateY(-1px);
 }
 
@@ -128,9 +141,11 @@
 }
 
 .type-tab.active {
-    border-color: #3b82f6; /* Default specific colors override this inline */
-    background: #f8fafc;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border-color: #ee4d2d !important;
+    /* Enforce orange border on active */
+    background: #fff5f1;
+    /* Light orange bg */
+    box-shadow: 0 4px 12px rgba(238, 77, 45, 0.1);
 }
 
 .type-tab:hover:not(.active) {
@@ -148,6 +163,11 @@
     font-size: 18px;
     transition: all 0.2s ease;
 }
+
+/* Override specific colors if needed, but let's keep semantic colors for icons 
+   BUT wrapped in our orange theme if they are selected. 
+   Actually, let's let the inline styles handle the icon color itself, 
+   but ensure the wrapper matches our expectations. */
 
 .tab-label {
     font-weight: 600;
@@ -174,9 +194,11 @@
 .form-select:focus,
 .form-textarea:focus {
     outline: none;
-    border-color: #10b981;
+    border-color: #ee4d2d;
+    /* Orange focus */
     background: white;
-    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+    box-shadow: 0 0 0 4px rgba(238, 77, 45, 0.1);
+    /* Orange glow */
 }
 
 .form-textarea {
@@ -211,12 +233,13 @@
 }
 
 .send-info strong {
-    color: #10b981;
+    color: #ee4d2d;
     margin: 0 4px;
 }
 
 .btn-submit {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    background: linear-gradient(135deg, #ee4d2d 0%, #d94025 100%);
+    /* Orange gradient */
     color: white;
     border: none;
     padding: 14px 32px;
@@ -228,12 +251,13 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2);
+    box-shadow: 0 4px 6px rgba(238, 77, 45, 0.2);
 }
 
 .btn-submit:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+    box-shadow: 0 8px 20px rgba(238, 77, 45, 0.3);
+    background: linear-gradient(135deg, #ff5f3d 0%, #e04a2e 100%);
 }
 
 .btn-submit:disabled {

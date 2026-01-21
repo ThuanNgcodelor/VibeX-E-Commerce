@@ -1,13 +1,15 @@
 package com.example.userservice.service.shopowner;
 
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
 import com.example.userservice.client.FileStorageClient;
 import com.example.userservice.exception.NotFoundException;
 import com.example.userservice.model.ShopOwner;
 import com.example.userservice.repository.ShopOwnerRepository;
 import com.example.userservice.request.UpdateShopOwnerRequest;
+
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
 @RequiredArgsConstructor
 @Service("shopOwnerService")
@@ -17,6 +19,7 @@ public class ShopOwnerServiceImpl implements ShopOwnerService {
     private final com.example.userservice.repository.ShopFollowRepository shopFollowRepository;
     private final com.example.userservice.client.StockServiceClient stockServiceClient;
     private final com.example.userservice.client.OrderServiceClient orderServiceClient;
+    private final com.example.userservice.client.NotificationServiceClient notificationServiceClient;
 
     @Override
     public ShopOwner updateShopOwner(UpdateShopOwnerRequest request, MultipartFile file, MultipartFile headerImage) {
@@ -232,8 +235,35 @@ public class ShopOwnerServiceImpl implements ShopOwnerService {
 
         if (shopOwner.getActive() == com.example.userservice.enums.Active.ACTIVE) {
             shopOwner.setActive(com.example.userservice.enums.Active.INACTIVE);
+            
+            // Send notification when shop is locked
+            try {
+                com.example.userservice.request.SendNotificationRequest notificationRequest = new com.example.userservice.request.SendNotificationRequest();
+                notificationRequest.setUserId(userId);
+                notificationRequest.setShopId(userId);
+                notificationRequest.setMessage("Your shop has been locked by admin due to violation of policies."); // "message phải là tiếng anh"
+                notificationRequest.setIsShopOwnerNotification(true);
+                
+                notificationServiceClient.sendNotification(notificationRequest);
+            } catch (Exception e) {
+                System.err.println("Failed to send lock notification: " + e.getMessage());
+            }
+
         } else {
             shopOwner.setActive(com.example.userservice.enums.Active.ACTIVE);
+            
+             // Send notification when shop is unlocked (Optional)
+             try {
+                com.example.userservice.request.SendNotificationRequest notificationRequest = new com.example.userservice.request.SendNotificationRequest();
+                notificationRequest.setUserId(userId);
+                notificationRequest.setShopId(userId);
+                notificationRequest.setMessage("Your shop has been unlocked. You can now resume your business.");
+                notificationRequest.setIsShopOwnerNotification(true);
+                
+                notificationServiceClient.sendNotification(notificationRequest);
+            } catch (Exception e) {
+                System.err.println("Failed to send unlock notification: " + e.getMessage());
+            }
         }
 
         return shopOwnerRepository.save(shopOwner);

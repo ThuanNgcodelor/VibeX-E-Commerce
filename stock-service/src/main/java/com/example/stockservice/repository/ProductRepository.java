@@ -34,7 +34,9 @@ public interface ProductRepository extends JpaRepository<Product, String> {
     @Query("SELECT COUNT(p) FROM products p WHERE p.userId = :userId AND p.status = :status")
     long countByUserIdAndStatus(@Param("userId") String userId, @Param("status") ProductStatus status);
 
-    List<Product> findByCategoryId(String categoryId);
+    Page<Product> findByCategoryId(String categoryId, Pageable pageable);
+
+    Page<Product> findByCategoryIdAndIdNotIn(String categoryId, List<String> excludedIds, Pageable pageable);
 
     @Query("SELECT p.category.name, COUNT(p) FROM products p WHERE p.userId = :userId GROUP BY p.category.name")
     List<Object[]> countProductsByCategory(@Param("userId") String userId);

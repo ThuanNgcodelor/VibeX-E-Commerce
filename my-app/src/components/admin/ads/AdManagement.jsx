@@ -3,6 +3,7 @@ import adAPI from '../../../api/ads/adAPI';
 import { uploadImage } from '../../../api/image'; // Import uploadImage
 import { API_BASE_URL } from '../../../config/config'; // Import API_BASE_URL
 import { getShopOwnerByUserId } from '../../../api/user'; // Import User API
+import Swal from 'sweetalert2';
 
 export default function AdManagement() {
     const [ads, setAds] = useState([]);
@@ -86,30 +87,69 @@ export default function AdManagement() {
         try {
             if (actionType === 'APPROVE') {
                 await adAPI.approveAd(selectedAd.id, placement);
-                alert("Ad approved!");
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success',
+                    text: 'Ad approved successfully!',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
             } else if (actionType === 'REJECT') {
                 if (!rejectReason.trim()) {
-                    alert("Please enter rejection reason");
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Missing Information',
+                        text: 'Please enter rejection reason'
+                    });
                     return;
                 }
                 await adAPI.rejectAd(selectedAd.id, rejectReason);
-                alert("Ad rejected!");
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Rejected',
+                    text: 'Ad rejected successfully',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
             }
             setSelectedAd(null);
             fetchAds();
         } catch (error) {
             console.error("Action failed", error);
-            alert("An error occurred");
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'An error occurred while processing the request'
+            });
         }
     };
 
     const handleDelete = async (id) => {
-        if (window.confirm("Are you sure you want to delete this ad?")) {
+        const result = await Swal.fire({
+            title: 'Are you sure?',
+            text: "You won't be able to revert this!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, delete it!'
+        });
+
+        if (result.isConfirmed) {
             try {
                 await adAPI.deleteAd(id);
                 fetchAds();
+                Swal.fire(
+                    'Deleted!',
+                    'The ad has been deleted.',
+                    'success'
+                )
             } catch (error) {
-                alert("Delete failed");
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to delete the ad'
+                });
             }
         }
     };
@@ -128,7 +168,11 @@ export default function AdManagement() {
             setNewAd({ ...newAd, imageUrl: fullUrl });
         } catch (error) {
             console.error('Upload failed', error);
-            alert('Image upload failed: ' + error.message);
+            Swal.fire({
+                icon: 'error',
+                title: 'Upload Failed',
+                text: 'Image upload failed: ' + error.message
+            });
         } finally {
             setUploading(false);
         }
@@ -136,7 +180,11 @@ export default function AdManagement() {
 
     const handleCreateSubmit = async () => {
         if (!newAd.title || !newAd.imageUrl) {
-            alert("Please enter title and upload image");
+            Swal.fire({
+                icon: 'warning',
+                title: 'Missing Information',
+                text: 'Please enter title and upload image'
+            });
             return;
         }
 
@@ -146,7 +194,13 @@ export default function AdManagement() {
 
             // 1. Create & Auto Approve
             await adAPI.createSystemAd(newAd);
-            alert("System ad created and activated!");
+            Swal.fire({
+                icon: 'success',
+                title: 'Success',
+                text: 'System ad created and activated!',
+                timer: 1500,
+                showConfirmButton: false
+            });
 
             setIsCreateModalOpen(false);
             setNewAd({
@@ -161,7 +215,11 @@ export default function AdManagement() {
             fetchAds();
         } catch (error) {
             console.error("Create failed", error);
-            alert("Failed to create ad");
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Failed to create ad'
+            });
         }
     };
 

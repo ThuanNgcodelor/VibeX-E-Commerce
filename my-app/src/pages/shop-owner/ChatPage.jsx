@@ -71,18 +71,18 @@ export default function ChatPage() {
     if (currentUserId) {
       connectWebSocket(
         (message) => {
-          // Handle incoming messages
-          if (message.conversationId === selectedChat?.id) {
-            setMessages(prev => [...prev, message]);
-            scrollToBottom();
-          }
-          // Refresh conversations list
+          // ✅ FIX: Handle conversation updates from /topic/user/{userId}/conversations
+          // Backend pushes notification when there's a new message in ANY conversation
+          console.log('Received conversation update:', message);
+
+          // Reload conversations list to update lastMessage and unreadCount
+          // This ensures shop owner sees new messages in real-time
           loadConversations();
         },
         (error) => {
           console.error('WebSocket error:', error);
         },
-        currentUserId
+        currentUserId  // ✅ IMPORTANT: Pass userId to subscribe to /topic/user/{userId}/conversations
       ).catch(err => console.error('Failed to connect WebSocket:', err));
     }
 
@@ -205,7 +205,15 @@ export default function ChatPage() {
     try {
       setLoading(true);
       const data = await getConversations();
-      const convs = Array.isArray(data) ? data : [];
+      let convs = Array.isArray(data) ? data : [];
+
+      // ✅ FIX: Sort conversations by lastMessageAt DESC (newest first)
+      convs = convs.sort((a, b) => {
+        const dateA = a.lastMessageAt ? new Date(a.lastMessageAt) : new Date(0);
+        const dateB = b.lastMessageAt ? new Date(b.lastMessageAt) : new Date(0);
+        return dateB - dateA; // DESC order - newest first
+      });
+
       setConversations(convs);
 
       // Load usernames for clients (shop-owner side)
@@ -229,6 +237,9 @@ export default function ChatPage() {
         }
       }));
       setUserNames(newUserNames);
+
+      // ✅ Dispatch custom event to notify components (e.g., Sidebar badge)
+      window.dispatchEvent(new CustomEvent('conversation-list-updated'));
     } catch (error) {
       console.error('Error loading conversations:', error);
       setConversations([]);
@@ -591,8 +602,8 @@ export default function ChatPage() {
 
       <style>{`
         .chat-page-container {
-          padding: 20px;
-          height: calc(100vh - 80px);
+          padding: 16px; /* ✅ Reduced from 20px */
+          height: calc(100vh - 60px); /* ✅ Reduced from 80px to give more height */
           display: flex;
           flex-direction: column;
           background: #f5f5f5;
@@ -600,9 +611,9 @@ export default function ChatPage() {
 
         .chat-page-header {
           background: #fff;
-          padding: 20px;
+          padding: 15px 20px; /* ✅ More compact vertical padding */
           border-radius: 8px;
-          margin-bottom: 20px;
+          margin-bottom: 15px; /* ✅ Reduced margin */
           box-shadow: 0 2px 4px rgba(0,0,0,0.1);
           display: flex;
           justify-content: space-between;
@@ -635,7 +646,8 @@ export default function ChatPage() {
 
         /* Sidebar */
         .chat-sidebar {
-          width: 350px;
+          width: 320px; /* ✅ Reduced from 350px to give more space to chat */
+          min-width: 280px; /* ✅ Add min-width for responsive */
           background: #fff;
           border-radius: 8px;
           box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -894,8 +906,9 @@ export default function ChatPage() {
         .chat-messages {
           flex: 1;
           overflow-y: auto;
-          padding: 20px;
+          padding: 16px; /* ✅ Reduced padding from 20px */
           background: #fafafa;
+          min-height: 400px; /* ✅ Ensure minimum height for comfortable chatting */
         }
 
         .chat-date-divider {

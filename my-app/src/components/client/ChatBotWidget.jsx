@@ -12,6 +12,11 @@ const formatDate = (dateString, t) => {
   if (!dateString) return '';
   try {
     const date = new Date(dateString);
+    // ✅ FIX: Validate date to prevent "Invalid Date"
+    if (isNaN(date.getTime())) {
+      return '';
+    }
+
     const now = new Date();
     const diff = now - date;
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
@@ -178,21 +183,24 @@ export default function ChatBotWidget() {
     if (selectedChat?.id) {
       loadMessages(selectedChat.id);
 
-      // Chỉ mark as read nếu conversation đã có messages (tránh lỗi khi conversation mới tạo)
-      // Đợi một chút để đảm bảo conversation đã được lưu vào DB
+      // ✅ FIX: Mark as read immediately when opening conversation
+      // Reduced delay for faster badge update
       setTimeout(() => {
         markAsRead(selectedChat.id)
           .then(() => {
+            console.log('Marked conversation as read:', selectedChat.id);
             // Refresh conversations to update unread count in badge
             loadConversations();
+            // Dispatch event to update FAB badge
+            window.dispatchEvent(new CustomEvent('conversation-list-updated'));
           })
           .catch(err => {
-            // Không hiển thị lỗi nếu conversation chưa tồn tại (có thể là conversation mới)
+            // Không hiển thị lỗi nếu conversation chưa tồn tại
             if (!err?.response?.data?.message?.includes('not found')) {
               console.error('Error marking as read:', err);
             }
           });
-      }, 500);
+      }, 200); // Reduced from 500ms to 200ms
 
       // Subscribe to WebSocket for this conversation
       if (isConnected()) {
@@ -211,8 +219,17 @@ export default function ChatBotWidget() {
             return [...prev, message];
           });
           scrollToBottom();
-          // Refresh conversations to update unread count
-          loadConversations();
+
+          // ✅ FIX: Auto mark as read when receiving new messages while conversation is open
+          // This ensures unread count decreases immediately
+          setTimeout(() => {
+            markAsRead(selectedChat.id)
+              .then(() => {
+                loadConversations();
+                window.dispatchEvent(new CustomEvent('conversation-list-updated'));
+              })
+              .catch(err => console.error('Error auto-marking as read:', err));
+          }, 300);
         });
         setWsSubscription(sub);
       } else {
@@ -245,7 +262,16 @@ export default function ChatBotWidget() {
                 return [...prev, message];
               });
               scrollToBottom();
-              loadConversations();
+
+              // ✅ Auto mark as read for new messages
+              setTimeout(() => {
+                markAsRead(selectedChat.id)
+                  .then(() => {
+                    loadConversations();
+                    window.dispatchEvent(new CustomEvent('conversation-list-updated'));
+                  })
+                  .catch(err => console.error('Error auto-marking as read:', err));
+              }, 300);
             });
             setWsSubscription(sub);
           }
@@ -261,9 +287,14 @@ export default function ChatBotWidget() {
     };
   }, [selectedChat?.id]);
 
-  // Scroll to bottom when messages change
+  // ✅ FIX: Scroll to bottom when messages change and ensure it happens after DOM update
   React.useEffect(() => {
-    scrollToBottom();
+    if (messages.length > 0) {
+      // Use setTimeout to ensure DOM has updated
+      setTimeout(() => {
+        scrollToBottom(true); // instant scroll for better UX
+      }, 50);
+    }
   }, [messages]);
 
   const scrollToBottom = (instant = false) => {
@@ -276,7 +307,15 @@ export default function ChatBotWidget() {
     try {
       setLoading(true);
       const data = await getConversations();
-      const convs = Array.isArray(data) ? data : [];
+      let convs = Array.isArray(data) ? data : [];
+
+      // ✅ FIX: Sort conversations by lastMessageAt DESC (newest first)
+      convs = convs.sort((a, b) => {
+        const dateA = a.lastMessageAt ? new Date(a.lastMessageAt) : new Date(0);
+        const dateB = b.lastMessageAt ? new Date(b.lastMessageAt) : new Date(0);
+        return dateB - dateA; // DESC order - newest first
+      });
+
       setConversations(convs);
 
       // Load shop names for shop owners
@@ -295,6 +334,9 @@ export default function ChatBotWidget() {
         }
       }));
       setShopNames(newShopNames);
+
+      // ✅ Dispatch custom event to notify other components
+      window.dispatchEvent(new CustomEvent('conversation-list-updated'));
     } catch (error) {
       console.error('Error loading conversations:', error);
       setConversations([]);

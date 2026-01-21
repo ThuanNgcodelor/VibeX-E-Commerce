@@ -160,6 +160,11 @@ public class ChatService {
         MessageDto messageDto = mapToDto(message);
         webSocketChatService.sendMessageToConversation(request.getConversationId(), messageDto);
         
+        // ✅ FIX: Notify both client and shop owner about conversation update
+        // This triggers WebSocket callback in ChatPage and ChatBotWidget to reload conversations list
+        webSocketChatService.notifyNewConversation(conversation.getClientId(), conversation.getId());
+        webSocketChatService.notifyNewConversation(conversation.getShopOwnerId(), conversation.getId());
+        
         return messageDto;
     }
     
@@ -181,6 +186,10 @@ public class ChatService {
         }
         
         conversationRepo.save(conversation);
+        
+        // ✅ FIX: Notify user about conversation update (unread count changed)
+        // This triggers sidebar badge to update
+        webSocketChatService.notifyNewConversation(userId, conversationId);
     }
     
     // Helper methods

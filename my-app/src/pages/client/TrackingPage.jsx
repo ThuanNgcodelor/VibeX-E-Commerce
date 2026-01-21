@@ -14,7 +14,7 @@ const formatDateTime = (iso) => {
     if (!iso) return "-";
     try {
         const date = new Date(iso);
-        return date.toLocaleString("vi-VN", {
+        return date.toLocaleString("en-US", {
             hour: '2-digit',
             minute: '2-digit',
             day: '2-digit',
@@ -33,17 +33,17 @@ const formatDateTime = (iso) => {
 // Step 4: DELIVERED = Delivered to customer
 // Step 5: COMPLETED = Order completed
 const getOrderSteps = (paymentMethod, t) => [
-    { key: 'PENDING', label: t('tracking.steps.orderPlaced'), icon: '📋' },
+    { key: 'PENDING', label: t('tracking.steps.orderPlaced', 'Order Placed'), icon: '📋' },
     {
         key: 'CONFIRMED',
         label: paymentMethod === 'VNPAY'
-            ? t('tracking.steps.paymentConfirmedVNPAY')
-            : t('tracking.steps.paymentConfirmedCOD'),
+            ? t('tracking.steps.paymentConfirmedVNPAY', 'Payment Confirmed (VNPAY)')
+            : t('tracking.steps.paymentConfirmedCOD', 'Payment Confirmed (COD)'),
         icon: '💳'
     },
-    { key: 'SHIPPED', label: t('tracking.steps.handedToShipper'), icon: '🚚' },
-    { key: 'DELIVERED', label: t('tracking.steps.delivered'), icon: '📦' },
-    { key: 'COMPLETED', label: t('tracking.steps.completed'), icon: '⭐' }
+    { key: 'SHIPPED', label: t('tracking.steps.handedToShipper', 'Handed to Shipper'), icon: '🚚' },
+    { key: 'DELIVERED', label: t('tracking.steps.delivered', 'Delivered'), icon: '📦' },
+    { key: 'COMPLETED', label: t('tracking.steps.completed', 'Completed'), icon: '⭐' }
 ];
 
 const STATUS_STEP_MAP = {
@@ -88,7 +88,7 @@ const generateTimeline = (order, shipping, t) => {
                     timeline.push({
                         time: entry.ts ? formatDateTime(new Date(entry.ts)) : '-',
                         status: entry.status || 'update',
-                        title: entry.title || t('tracking.timeline.statusUpdate', 'Cập nhật trạng thái'),
+                        title: entry.title || t('tracking.timeline.statusUpdate', 'Status Update'),
                         description: entry.description || '',
                         highlight: index === 0 // Highlight newest entry
                     });
@@ -104,8 +104,8 @@ const generateTimeline = (order, shipping, t) => {
     timeline.push({
         time: formatDateTime(baseDate),
         status: 'pending',
-        title: t('tracking.timeline.orderPlaced', 'Đặt hàng thành công'),
-        description: t('tracking.timeline.orderPlacedDesc', 'Đơn hàng đã được đặt thành công'),
+        title: t('tracking.timeline.orderPlaced', 'Order Placed Successfully'),
+        description: t('tracking.timeline.orderPlacedDesc', 'The order has been placed successfully'),
         highlight: timeline.length === 0 // Highlight if it's the only event
     });
 
@@ -118,8 +118,8 @@ const generateTimeline = (order, shipping, t) => {
             timeline.unshift({
                 time: formatDateTime(new Date(baseDate.getTime() + 1 * 60 * 60 * 1000)),
                 status: 'confirmed',
-                title: t('tracking.timeline.confirmed', 'Đã xác nhận đơn hàng'),
-                description: t('tracking.timeline.confirmedDesc', 'Đơn hàng đã được shop xác nhận'),
+                title: t('tracking.timeline.confirmed', 'Order Confirmed'),
+                description: t('tracking.timeline.confirmedDesc', 'Order has been confirmed by shop'),
                 highlight: stepIndex === 1
             });
         }
@@ -128,8 +128,8 @@ const generateTimeline = (order, shipping, t) => {
             timeline.unshift({
                 time: formatDateTime(new Date(baseDate.getTime() + 2 * 60 * 60 * 1000)),
                 status: 'processing',
-                title: t('tracking.timeline.handedToCarrier', 'Đã giao cho đơn vị vận chuyển'),
-                description: t('tracking.timeline.handedToCarrierDesc', 'Đơn hàng đã được bàn giao cho GHN'),
+                title: t('tracking.timeline.handedToCarrier', 'Handed to Carrier'),
+                description: t('tracking.timeline.handedToCarrierDesc', 'Order has been handed to shipping carrier'),
                 highlight: stepIndex === 2
             });
         }
@@ -138,8 +138,8 @@ const generateTimeline = (order, shipping, t) => {
             timeline.unshift({
                 time: formatDateTime(new Date(baseDate.getTime() + 3 * 60 * 60 * 1000)),
                 status: 'shipped',
-                title: t('tracking.timeline.delivered', 'Đã giao hàng'),
-                description: t('tracking.timeline.deliveredDesc', 'Giao hàng thành công'),
+                title: t('tracking.timeline.delivered', 'Delivered'),
+                description: t('tracking.timeline.deliveredDesc', 'Delivery successful'),
                 highlight: stepIndex === 3
             });
         }
@@ -148,8 +148,8 @@ const generateTimeline = (order, shipping, t) => {
             timeline.unshift({
                 time: formatDateTime(new Date(baseDate.getTime() + 4 * 60 * 60 * 1000)),
                 status: 'completed',
-                title: t('tracking.timeline.completed', 'Hoàn thành'),
-                description: t('tracking.timeline.completedDesc', 'Đơn hàng đã hoàn thành'),
+                title: t('tracking.timeline.completed', 'Completed'),
+                description: t('tracking.timeline.completedDesc', 'Order completed'),
                 highlight: stepIndex === 4
             });
         }
@@ -616,7 +616,7 @@ export default function TrackingPage() {
                                                 padding: 0
                                             }}
                                         >
-                                            {showAllTimeline ? 'Thu gọn' : 'Xem thêm'}
+                                            {showAllTimeline ? 'Show Less' : 'Show More'}
                                         </button>
                                     )}
                                 </div>

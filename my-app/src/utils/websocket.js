@@ -67,6 +67,27 @@ const getWebSocketUrl = () => {
 export const connectWebSocket = (onMessage, onError, userId = null) => {
   return new Promise((resolve, reject) => {
     try {
+      // ✅ FIX: If already connected, reuse existing connection
+      if (stompClient && stompClient.connected) {
+        console.log('WebSocket already connected, reusing existing connection');
+
+        // Subscribe to conversations topic if userId provided
+        if (userId) {
+          stompClient.subscribe(`/topic/user/${userId}/conversations`, (message) => {
+            if (onMessage) {
+              try {
+                onMessage(JSON.parse(message.body));
+              } catch (error) {
+                console.error('Error parsing conversation update:', error);
+              }
+            }
+          });
+        }
+
+        resolve(stompClient);
+        return;
+      }
+
       // Lấy JWT token để authenticate
       const token = getToken();
       if (!token) {
@@ -95,6 +116,7 @@ export const connectWebSocket = (onMessage, onError, userId = null) => {
          * Đây là nơi subscribe vào các topics
          */
         onConnect: (frame) => {
+          console.log('WebSocket connected successfully');
           reconnectAttempts = 0;  // Reset reconnect counter
           stompClient = client;    // Lưu client vào global variable
 
@@ -138,7 +160,7 @@ export const connectWebSocket = (onMessage, onError, userId = null) => {
         onWebSocketError: (error) => {
           console.error('WebSocket error:', error);
           if (onError) onError(error);
-          handleReconnect(onMessage, onError);
+          handleReconnect(onMessage, onError, userId);
         },
 
         /**
@@ -263,13 +285,13 @@ export const disconnectWebSocket = () => {
  * @param {Function} onMessage - Callback cho messages
  * @param {Function} onError - Callback cho errors
  */
-const handleReconnect = (onMessage, onError) => {
+const handleReconnect = (onMessage, onError, userId = null) => {
   if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
     reconnectAttempts++;
 
     // Exponential backoff: đợi 5s, 10s, 15s, 20s, 25s
     setTimeout(() => {
-      connectWebSocket(onMessage, onError).catch((error) => {
+      connectWebSocket(onMessage, onError, userId).catch((error) => {
         console.error('Reconnection failed:', error);
       });
     }, 5000 * reconnectAttempts);

@@ -115,3 +115,12 @@ export const getShopProducts = async (shopId, pageNo = 1, pageSize = 12) => {
     });
     return res.data;
 };
+
+// Recommendations
+export const fetchPersonalizedRecommendations = (page = 1, limit = 12) => {
+    return api.get(`/stock/analytics/recommendations/personalized?page=${page}&limit=${limit}`);
+};
+
+export const fetchTrendingProducts = (page = 1, limit = 12) => {
+    return api.get(`/stock/analytics/recommendations/trending?page=${page}&limit=${limit}`);
+};

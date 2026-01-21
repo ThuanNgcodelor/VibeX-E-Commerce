@@ -46,9 +46,10 @@ public class RecommendationController {
     @GetMapping("/trending")
     @Operation(summary = "Get trending products", description = "Get most viewed products with details")
     public ResponseEntity<List<RecommendationResponse>> getTrendingProducts(
+            @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "12") int limit) {
-        log.info("Getting trending products, limit={}", limit);
-        List<RecommendationResponse> products = recommendationService.getTrendingProductsWithDetails(limit);
+        log.info("Getting trending products, page={}, limit={}", page, limit);
+        List<RecommendationResponse> products = recommendationService.getTrendingProductsWithDetails(page, limit);
         return ResponseEntity.ok(products);
     }
     
@@ -59,9 +60,10 @@ public class RecommendationController {
     @GetMapping("/personalized")
     @Operation(summary = "Get personalized recommendations", description = "Get product recommendations based on user behavior")
     public ResponseEntity<List<RecommendationResponse>> getPersonalizedRecommendations(
+            @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "12") int limit) {
-        log.info("Getting personalized recommendations, limit={}", limit);
-        List<RecommendationResponse> products = recommendationService.getPersonalizedRecommendations(limit);
+        log.info("Getting personalized recommendations, page={}, limit={}", page, limit);
+        List<RecommendationResponse> products = recommendationService.getPersonalizedRecommendations(page, limit);
         return ResponseEntity.ok(products);
     }
     

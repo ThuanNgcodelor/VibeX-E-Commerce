@@ -1239,9 +1239,9 @@ public class OrderServiceImpl implements OrderService {
             throw new RuntimeException("Selected items cannot be empty");
 
         // Validate Shop Status
-        // validateShopsActive(orderRequest.getSelectedItems().stream()
-        //         .map(SelectedItemDto::getProductId)
-        //         .collect(Collectors.toList()));
+        validateShopsActive(orderRequest.getSelectedItems().stream()
+                .map(SelectedItemDto::getProductId)
+                .collect(Collectors.toList()));
         if (orderRequest.getAddressId() == null || orderRequest.getAddressId().isBlank())
             throw new RuntimeException("Address ID is required");
 
@@ -1443,10 +1443,10 @@ public class OrderServiceImpl implements OrderService {
         }
 
         // Validate Shop Status
-        // List<String> productIds = selectedItemsRaw.stream()
-        //         .map(item -> (String) item.get("productId"))
-        //         .collect(Collectors.toList());
-        // validateShopsActive(productIds);
+        List<String> productIds = selectedItemsRaw.stream()
+                .map(item -> (String) item.get("productId"))
+                .collect(Collectors.toList());
+        validateShopsActive(productIds);
 
         // 2. Parse shippingFee (handle multiple types)
         BigDecimal shippingFee = null;
@@ -1502,9 +1502,9 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public Order createOrderFromWallet(FrontendOrderRequest request, String userId) {
         // Validate Shop Status
-        // validateShopsActive(request.getSelectedItems().stream()
-        //         .map(SelectedItemDto::getProductId)
-        //         .collect(Collectors.toList()));
+        validateShopsActive(request.getSelectedItems().stream()
+                .map(SelectedItemDto::getProductId)
+                .collect(Collectors.toList()));
 
         // ========== PHASE 1: PREPARE SELECTED ITEMS ==========
         // Extract per-shop shipping fees map from request

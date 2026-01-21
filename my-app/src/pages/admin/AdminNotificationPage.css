@@ -17,6 +17,11 @@
     align-items: center;
 }
 
+.page-header h1 i {
+    color: #ee4d2d !important;
+    /* Force orange icon */
+}
+
 .page-header .subtitle {
     color: #6b7280;
     font-size: 14px;
@@ -63,9 +68,9 @@
 }
 
 .type-tab.active {
-    border-color: #3b82f6;
-    background: #f8fafc;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border-color: #ee4d2d !important;
+    background: #fff5f1;
+    box-shadow: 0 4px 12px rgba(238, 77, 45, 0.1);
 }
 
 .type-tab:hover:not(.active) {
@@ -109,9 +114,9 @@
 .form-select:focus,
 .form-textarea:focus {
     outline: none;
-    border-color: #3b82f6;
+    border-color: #ee4d2d;
     background: white;
-    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+    box-shadow: 0 0 0 4px rgba(238, 77, 45, 0.1);
 }
 
 .form-textarea {
@@ -134,7 +139,7 @@
 }
 
 .btn-submit {
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    background: linear-gradient(135deg, #ee4d2d 0%, #d94025 100%);
     color: white;
     border: none;
     padding: 14px 32px;
@@ -146,12 +151,13 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    box-shadow: 0 4px 6px rgba(59, 130, 246, 0.2);
+    box-shadow: 0 4px 6px rgba(238, 77, 45, 0.2);
 }
 
 .btn-submit:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 8px 20px rgba(238, 77, 45, 0.3);
+    background: linear-gradient(135deg, #ff5f3d 0%, #e04a2e 100%);
 }
 
 .btn-submit:disabled {

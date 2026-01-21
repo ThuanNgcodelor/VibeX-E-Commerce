@@ -43,7 +43,7 @@ const AdminNotificationPage = () => {
             showCancelButton: true,
             confirmButtonText: 'Send',
             cancelButtonText: 'Cancel',
-            confirmButtonColor: '#3085d6',
+            confirmButtonColor: '#ee4d2d',
         });
 
         if (!result.isConfirmed) return;
@@ -80,7 +80,7 @@ const AdminNotificationPage = () => {
     return (
         <div className="admin-notification-page">
             <div className="page-header">
-                <h1><i className="fas fa-bullhorn text-primary me-2"></i>System Broadcast</h1>
+                <h1><i className="fas fa-bullhorn text-primary me-2" style={{ color: '#ee4d2d !important' }}></i>System Broadcast</h1>
                 <p className="subtitle">Send notifications to all users in the system</p>
             </div>
 
@@ -94,19 +94,19 @@ const AdminNotificationPage = () => {
                                 className={`type-tab ${formData.type === type.value ? 'active' : ''}`}
                                 onClick={() => handleTypeSelect(type.value)}
                                 style={{
-                                    borderColor: formData.type === type.value ? type.color : ''
+                                    borderColor: formData.type === type.value ? '#ee4d2d' : ''
                                 }}
                             >
                                 <div
                                     className="tab-icon-wrapper"
                                     style={{
-                                        background: formData.type === type.value ? type.color : '#f3f4f6',
+                                        background: formData.type === type.value ? '#ee4d2d' : '#f3f4f6',
                                         color: formData.type === type.value ? 'white' : '#6b7280'
                                     }}
                                 >
-                                    <i className={type.icon}></i>
+                                    <i className={type.icon} style={{ color: formData.type === type.value ? 'white' : type.color }}></i>
                                 </div>
-                                <span className="tab-label" style={{ color: formData.type === type.value ? type.color : '' }}>
+                                <span className="tab-label" style={{ color: formData.type === type.value ? '#ee4d2d' : '' }}>
                                     {type.label}
                                 </span>
                             </div>

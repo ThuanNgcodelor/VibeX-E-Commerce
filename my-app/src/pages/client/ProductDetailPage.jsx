@@ -331,7 +331,7 @@ export default function ProductDetailPage() {
         <div className="wrapper">
             <Header />
             <main className="main-content">
-                <div className="container py-4">
+                <div className="container py-4" style={{ maxWidth: '1200px' }}>
                     {loading && <p>Loading product...</p>}
                     {error && <div className="alert alert-danger">{error}</div>}
                     {product && (

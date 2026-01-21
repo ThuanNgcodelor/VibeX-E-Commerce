@@ -12,6 +12,14 @@ import Loading from "../Loading.jsx";
 
 const PAGE_SIZE = 6;
 
+const ORDER_DATE = (order) => {
+    const d = order.createTimestamp || order.createdAt || order.orderDate;
+    if (!d) return 'NO DATE DATA';
+    try {
+        return new Date(d).toLocaleString('vi-VN');
+    } catch { return 'DATE ERROR'; }
+};
+
 const getStatusConfig = (t) => ({
     ALL: { label: t('orders.all'), color: "#555", bg: "#f8f8f8" },
     PENDING: { label: t('orders.pending'), color: "#ee4d2d", bg: "#fff5f0" },
@@ -655,6 +663,7 @@ export default function OrderList() {
                                             background: '#fafafa'
                                         }}
                                     >
+
                                         <div className="d-flex align-items-center gap-2 flex-wrap">
                                             <span style={{ fontSize: '14px', fontWeight: 500, color: '#222' }}>
                                                 {shopInfoByOrder[order.id]?.shopName || t('orders.loadingShop') || 'Loading...'}
@@ -820,9 +829,10 @@ export default function OrderList() {
                                         }}
                                     >
                                         <div style={{ fontSize: '13px', color: '#666' }}>
-                                            <i className="fa fa-calendar me-1"></i> {fmtDateTime(order.updateTimestamp)}
+                                            <i className="fa fa-calendar me-1"></i> {ORDER_DATE(order)}
                                         </div>
                                         <div className="d-flex align-items-center gap-3">
+
                                             <div className="text-end" style={{ fontSize: '12px' }}>
                                                 {order.voucherDiscount > 0 && (
                                                     <div style={{ fontSize: '11px', color: '#999', marginBottom: '4px' }}>
@@ -835,6 +845,11 @@ export default function OrderList() {
                                                         </span>
                                                     </div>
                                                 )}
+
+
+                                                <div>
+                                                    Total Price:
+                                                </div>
                                                 <div style={{ fontSize: '18px', color: '#ee4d2d', fontWeight: 500 }}>
                                                     {formatVND(order.totalPrice || 0)}
                                                 </div>

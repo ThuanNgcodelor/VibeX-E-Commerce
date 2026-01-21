@@ -1,8 +1,6 @@
 import React, { useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import Sidebar from "./layout/Sidebar";
-import TopBar from "./layout/TopBar";
-import { logout } from "../../api/auth.js";
 import $ from "jquery";
 
 // Expose jQuery to window for legacy scripts
@@ -19,28 +17,6 @@ export default function AdminLayout() {
     };
 
     useEffect(() => {
-        // ... existing loading logic ...
-        // (I will keep the existing logic, just showing the state part here)
-        // Actually I need to verify where to inject this given the large file.
-        // It should be at start of component function.
-        // And update the return statement.
-
-        // ...
-        // }, []);
-
-        // (Code below is simplified for replacement targeting)
-        // I will replace the component start and return block.
-
-        // ... (skipping useEffect content in thought, will include in Tool call if replacing whole function, or use targeted replacement)
-        // Better to use targeted replacement relative to `export default function` and `return`.
-
-        // let's do it in chunks.
-        // Chunk 1: Add state.
-        // Chunk 2: Update return.
-        // But replace_file_content works on blocks. I can do it in one go if I include enough context or use `multi_replace`.
-        // `AdminLayout` has a big `useEffect`. I don't want to touch it.
-
-        // Use `multi_replace_file_content` to inject state at top and update JSX at bottom.
 
         // Load admin CSS và JS
         const loadAdminAssets = async () => {
@@ -159,7 +135,6 @@ export default function AdminLayout() {
                 <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
                 <div id="content-wrapper" className="d-flex flex-column" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
                     <div id="content" style={{ flex: 1, padding: '0' }}>
-                        <TopBar toggleSidebar={toggleSidebar} />
                         <Outlet />
                     </div>
                 </div>

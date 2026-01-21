@@ -24,13 +24,19 @@ public class WebSocketChatService {
     }
     
     /**
-     * Gửi notification về conversation mới đến user
+     * Gửi notification về conversation update đến user
      * Destination: /topic/user/{userId}/conversations
      */
     public void notifyNewConversation(String userId, String conversationId) {
         String destination = "/topic/user/" + userId + "/conversations";
-        log.info("Notifying user {} about new conversation: {}", userId, conversationId);
-        messagingTemplate.convertAndSend(destination, conversationId);
+        log.info("Notifying user {} about conversation update: {}", userId, conversationId);
+        
+        // ✅ FIX: Send JSON object instead of plain string to avoid parse errors
+        var update = new java.util.HashMap<String, String>();
+        update.put("conversationId", conversationId);
+        update.put("type", "NEW_MESSAGE");
+        
+        messagingTemplate.convertAndSend(destination, update);
     }
 }
 

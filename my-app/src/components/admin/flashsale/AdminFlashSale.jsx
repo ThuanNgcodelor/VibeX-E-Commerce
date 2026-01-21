@@ -441,12 +441,13 @@ const AdminFlashSale = () => {
                                         </td>
                                         <td>
                                             <div className="flex flex-col">
-                                                <span className="line-through text-gray-400 text-xs">{p.originalPrice?.toLocaleString()}</span>
-                                                <span className="font-bold text-red-600">{p.salePrice?.toLocaleString()}</span>
+                                                <span className="font-bold text-red-600">{p.salePrice?.toLocaleString()} vnđ</span>
+                                                <span className="font-bold text-red-600"></span>
+
                                             </div>
                                         </td>
                                         <td>
-                                            <div className="text-center">
+                                            <div className="flex flex-col">
                                                 <span className="font-medium">{p.flashSaleStock}</span>
                                             </div>
                                         </td>

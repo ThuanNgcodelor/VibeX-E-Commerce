@@ -264,6 +264,28 @@ public class AnalyticsRedisService {
     }
 
     /**
+     * Lấy sản phẩm xu hướng với phân trang
+     * @param offset Vị trí bắt đầu
+     * @param limit Số lượng sản phẩm
+     * @return List các productId trending
+     */
+    public List<String> getTrendingProducts(int offset, int limit) {
+        try {
+            Set<Object> result = redisTemplate.opsForZSet()
+                    .reverseRange(TRENDING_PRODUCTS_KEY, offset, offset + limit - 1);
+            if (result == null) {
+                return Collections.emptyList();
+            }
+            return result.stream()
+                    .map(Object::toString)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.warn("Lỗi lấy trending products (page): {}", e.getMessage());
+            return Collections.emptyList();
+        }
+    }
+
+    /**
      * Reset dữ liệu trending (có thể gọi hàng ngày bởi scheduler)
      * Xóa cả trending_search và trending_products
      */

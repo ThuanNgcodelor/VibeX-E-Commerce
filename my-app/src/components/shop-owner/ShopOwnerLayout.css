@@ -414,7 +414,15 @@
 }
 
 /* Sidebar Styles */
-.sidebar {
+.shop-owner-layout .shop-layout-wrapper {
+    display: flex;
+    width: 100%;
+    position: relative;
+}
+
+.shop-owner-layout .sidebar {
+    width: 280px;
+    flex-shrink: 0;
     background-color: #ffffff;
     min-height: calc(100vh - 70px);
     padding: 20px 0;
@@ -508,7 +516,10 @@
 }
 
 /* Main Content */
-.main-content {
+.shop-owner-layout .main-content {
+    flex: 1;
+    width: auto;
+    /* Let flex handle width */
     padding: 30px;
     background-color: #f8f9fa;
     min-height: calc(100vh - 70px);

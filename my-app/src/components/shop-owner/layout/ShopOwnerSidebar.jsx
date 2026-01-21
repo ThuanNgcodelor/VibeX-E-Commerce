@@ -1,10 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { getConversations } from "../../../api/chat";
+import { connectWebSocket } from "../../../utils/websocket";
+import Cookies from "js-cookie";
+import { getUser } from "../../../api/user";
 
 const ShopOwnerSidebar = ({ isOpen, onClose }) => {
     const { t } = useTranslation();
     const location = useLocation();
+    const [unreadCount, setUnreadCount] = useState(0);
+    const [currentUserId, setCurrentUserId] = useState(null);
     const [expandedSections, setExpandedSections] = useState({
         orders: false,
         products: false,
@@ -49,6 +55,64 @@ const ShopOwnerSidebar = ({ isOpen, onClose }) => {
         }
     }, [location.pathname]);
 
+    // Get current user ID
+    useEffect(() => {
+        const token = Cookies.get("accessToken");
+        if (!token) {
+            setCurrentUserId(null);
+            return;
+        }
+
+        getUser().then(user => {
+            setCurrentUserId(user?.id || user?.userId || null);
+        }).catch(() => {
+            setCurrentUserId(null);
+        });
+    }, []);
+
+    // Load conversations to get unread count and connect WebSocket
+    useEffect(() => {
+        if (!currentUserId) return;
+
+        const loadUnreadCount = async () => {
+            try {
+                const convs = await getConversations();
+                const total = convs.reduce((sum, conv) => sum + (conv.unreadCount || 0), 0);
+                setUnreadCount(total);
+            } catch (error) {
+                console.error('Error loading conversations for badge:', error);
+            }
+        };
+
+        loadUnreadCount();
+
+        // ✅ FIX: Connect WebSocket globally (websocket.js now handles reuse properly)
+        // This ensures sidebar gets updates REGARDLESS of which page user is on
+        connectWebSocket(
+            (message) => {
+                console.log('Sidebar received conversation update:', message);
+                // Reload unread count when conversation updates
+                loadUnreadCount();
+            },
+            (error) => {
+                console.error('WebSocket error in sidebar:', error);
+            },
+            currentUserId
+        ).catch(err => console.error('Failed to connect WebSocket in sidebar:', err));
+
+        // Also listen to window events as backup
+        const handleConversationUpdate = () => {
+            loadUnreadCount();
+        };
+
+        window.addEventListener('conversation-list-updated', handleConversationUpdate);
+
+        return () => {
+            window.removeEventListener('conversation-list-updated', handleConversationUpdate);
+            // Note: We don't disconnect WebSocket here anymore since it's shared
+        };
+    }, [currentUserId]);
+
     const toggleSection = (section) => {
         setExpandedSections(prev => ({
             ...prev,
@@ -92,7 +156,7 @@ const ShopOwnerSidebar = ({ isOpen, onClose }) => {
     };
 
     return (
-        <nav className={`col-md-3 sidebar ${isOpen ? 'active' : ''}`}>
+        <nav className={`sidebar ${isOpen ? 'active' : ''}`}>
             {isOpen && (
                 <button className="sidebar-close-btn" onClick={onClose}>
                     <i className="fas fa-times"></i>
@@ -228,9 +292,32 @@ const ShopOwnerSidebar = ({ isOpen, onClose }) => {
                         className={`sidebar-item ${isActive('/shop-owner/chat') ? 'active' : ''}`}
                         to="/shop-owner/chat"
                         onClick={handleLinkClick}
+                        style={{ position: 'relative' }}
                     >
                         <i className="fas fa-comments"></i>
                         <span>{t('shopOwner.sidebar.customerMessages')}</span>
+                        {/* ✅ ADD: Unread badge */}
+                        {unreadCount > 0 && (
+                            <span style={{
+                                position: 'absolute',
+                                top: '8px',
+                                right: '8px',
+                                background: '#ff0000',
+                                color: 'white',
+                                fontSize: '10px',
+                                fontWeight: '600',
+                                minWidth: '18px',
+                                height: '18px',
+                                borderRadius: '9px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                padding: '0 4px',
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                            }}>
+                                {unreadCount > 99 ? '99+' : unreadCount}
+                            </span>
+                        )}
                     </Link>
                 </div>
 

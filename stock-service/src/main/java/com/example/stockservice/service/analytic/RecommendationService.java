@@ -85,11 +85,13 @@ public class RecommendationService {
     /**
      * Lấy sản phẩm XU HƯỚNG (được xem nhiều nhất) với đầy đủ thông tin
      * Dành cho: Tất cả users (Guest + Logged-in)
+     * @param page Trang
      * @param limit Số lượng sản phẩm tối đa
      * @return Danh sách sản phẩm trending
      */
-    public List<RecommendationResponse> getTrendingProductsWithDetails(int limit) {
-        Set<String> productIds = redisService.getTrendingProducts(limit);
+    public List<RecommendationResponse> getTrendingProductsWithDetails(int page, int limit) {
+        int offset = (page - 1) * limit;
+        List<String> productIds = redisService.getTrendingProducts(offset, limit);
         if (productIds.isEmpty()) {
             return List.of();
         }
@@ -101,67 +103,57 @@ public class RecommendationService {
     }
     
     /**
-     * Lấy gợi ý CÁ NHÂN HÓA dựa trên hành vi user
+     * Lấy gợi ý CÁ NHÂN HÓA dựa trên hành vi user (Phân trang)
      * Logic gợi ý:
-     * 1. Lấy 5 sản phẩm đã xem gần đây
-     * 2. Lấy category của sản phẩm đầu tiên
-     * 3. Tìm sản phẩm cùng category (loại bỏ sản phẩm đã xem)
-     * 4. Nếu không đủ → thêm sản phẩm cùng shop
-     * 5. Fallback: Nếu không có history → trả về trending
-     * @param limit Số lượng sản phẩm tối đa
+     * 1. Lấy sản phẩm đã xem gần đây (để xác định category)
+     * 2. Nếu không có history → trả về trending (phân trang)
+     * 3. Tìm sản phẩm cùng category (loại bỏ sản phẩm đã xem) (phân trang)
+     * 
+     * @param page Trang
+     * @param limit Số lượng sản phẩm
      * @return Danh sách sản phẩm gợi ý cá nhân hóa
      */
-    public List<RecommendationResponse> getPersonalizedRecommendations(int limit) {
+    public List<RecommendationResponse> getPersonalizedRecommendations(int page, int limit) {
         String userId = getCurrentUserId();
         if (userId == null) {
-            return List.of(); // Guest user
+            // Guest user -> Trending
+            return getTrendingProductsWithDetails(page, limit);
         }
         
-        // Lấy 5 sản phẩm đã xem gần đây để phân tích category
-        List<String> recentlyViewed = redisService.getRecentlyViewed(userId, 5);
+        // Lấy 10 sản phẩm đã xem gần đây để loại trừ
+        List<String> recentlyViewed = redisService.getRecentlyViewed(userId, 10);
         if (recentlyViewed.isEmpty()) {
             // Không có history → trả về trending products
-            return getTrendingProductsWithDetails(limit);
+            return getTrendingProductsWithDetails(page, limit);
         }
         
         // Lấy sản phẩm đầu tiên để xác định category
         Optional<Product> firstProduct = productRepository.findById(recentlyViewed.get(0));
         if (firstProduct.isEmpty()) {
-            return getTrendingProductsWithDetails(limit);
+            return getTrendingProductsWithDetails(page, limit);
         }
         
         Product baseProduct = firstProduct.get();
         String categoryId = getCategoryIdFromProduct(baseProduct);
         String reason = "Vì bạn đã xem " + baseProduct.getName();
         
-        // Tìm sản phẩm cùng category, loại bỏ sản phẩm đã xem
-        Set<String> viewedSet = new HashSet<>(recentlyViewed);
-        final List<Product> recommendations = new ArrayList<>();
-        
         if (categoryId != null) {
-            List<Product> categoryProducts = productRepository.findByCategoryId(categoryId).stream()
-                    .filter(p -> !viewedSet.contains(p.getId()))   // Loại bỏ đã xem
-                    .filter(this::isProductActive)                   // Chỉ lấy sản phẩm đang bán
-                    .limit(limit)
-                    .toList();
-            recommendations.addAll(categoryProducts);
+            org.springframework.data.domain.Pageable pageable = 
+                    org.springframework.data.domain.PageRequest.of(page - 1, limit);
+            
+            org.springframework.data.domain.Page<Product> productPage = 
+                    productRepository.findByCategoryIdAndIdNotIn(categoryId, recentlyViewed, pageable);
+             
+            // Nếu trang hiện tại rỗng (đã hết sản phẩm Category), có thể fallback sang Trending?
+            // Tạm thời trả về rỗng để Client biết là hết load more cho phần này.
+            // (Nếu muốn phức tạp hơn: tính toán offset bù trừ để load tiếp Trending ở dưới, nhưng khá rắc rối)
+            
+            return productPage.getContent().stream()
+                    .map(p -> buildRecommendationFromProduct(p, "personalized", reason))
+                    .collect(Collectors.toList());
         }
         
-        // Nếu không đủ số lượng → thêm sản phẩm cùng shop
-        if (recommendations.size() < limit) {
-            String shopId = baseProduct.getUserId();
-            List<Product> shopProducts = productRepository.findByUserId(shopId).stream()
-                    .filter(p -> !viewedSet.contains(p.getId()))
-                    .filter(p -> !recommendations.contains(p))
-                    .filter(this::isProductActive)
-                    .limit(limit - recommendations.size())
-                    .toList();
-            recommendations.addAll(shopProducts);
-        }
-        
-        return recommendations.stream()
-                .map(p -> buildRecommendationFromProduct(p, "personalized", reason))
-                .collect(Collectors.toList());
+        return getTrendingProductsWithDetails(page, limit);
     }
     
     /**

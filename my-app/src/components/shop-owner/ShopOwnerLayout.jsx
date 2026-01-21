@@ -96,13 +96,11 @@ export default function ShopOwnerLayout() {
         <div className="shop-owner-layout">
             <ShopOwnerHeader onMenuClick={toggleSidebar} />
             {isLocked && <ShopLockedBlocker mode="banner" />}
-            <div className="container-fluid">
-                <div className="row">
-                    <ShopOwnerSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-                    <main className="col-md-9 main-content">
-                        <Outlet />
-                    </main>
-                </div>
+            <div className="shop-layout-wrapper">
+                <ShopOwnerSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+                <main className="main-content">
+                    <Outlet />
+                </main>
             </div>
             {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)}></div>}
         </div>

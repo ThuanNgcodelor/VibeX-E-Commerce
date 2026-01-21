@@ -91,7 +91,7 @@ const ShopNotifyFollowersPage = () => {
             showCancelButton: true,
             confirmButtonText: 'Send Now',
             cancelButtonText: 'Cancel',
-            confirmButtonColor: '#10b981',
+            confirmButtonColor: '#ee4d2d',
         });
 
         if (!result.isConfirmed) return;
@@ -124,7 +124,7 @@ const ShopNotifyFollowersPage = () => {
         <div className="shop-notify-page">
             <div className="page-header">
                 <div className="header-left">
-                    <h1><i className="fas fa-bullhorn text-primary me-2"></i>Notify Followers</h1>
+                    <h1><i className="fas fa-bullhorn text-primary me-2" style={{ color: '#ee4d2d !important' }}></i>Notify Followers</h1>
                     <p className="subtitle">Send notifications to your shop followers</p>
                 </div>
                 <div className="follower-badge">
@@ -143,7 +143,7 @@ const ShopNotifyFollowersPage = () => {
                         className="template-btn"
                         onClick={() => handleQuickTemplate(type.value)}
                     >
-                        <i className={`${type.icon} me-1`} style={{ color: type.color }}></i> {type.label}
+                        <i className={`${type.icon} me-1`} style={{ color: formData.type === type.value ? 'white' : type.color }}></i> {type.label}
                     </button>
                 ))}
             </div>
@@ -158,19 +158,19 @@ const ShopNotifyFollowersPage = () => {
                                 className={`type-tab ${formData.type === type.value ? 'active' : ''}`}
                                 onClick={() => handleTypeSelect(type.value)}
                                 style={{
-                                    borderColor: formData.type === type.value ? type.color : ''
+                                    borderColor: formData.type === type.value ? '#ee4d2d' : ''
                                 }}
                             >
                                 <div
                                     className="tab-icon-wrapper"
                                     style={{
-                                        background: formData.type === type.value ? type.color : '#f3f4f6',
+                                        background: formData.type === type.value ? '#ee4d2d' : '#f3f4f6',
                                         color: formData.type === type.value ? 'white' : '#6b7280'
                                     }}
                                 >
-                                    <i className={type.icon}></i>
+                                    <i className={type.icon} style={{ color: formData.type === type.value ? 'white' : type.color }}></i>
                                 </div>
-                                <span className="tab-label" style={{ color: formData.type === type.value ? type.color : '' }}>
+                                <span className="tab-label" style={{ color: formData.type === type.value ? '#ee4d2d' : '' }}>
                                     {type.label}
                                 </span>
                             </div>
