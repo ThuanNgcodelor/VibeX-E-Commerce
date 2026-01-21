@@ -1,8 +1,8 @@
 export const decorationTemplates = [
     {
         id: 'simple-store',
-        nameKey: 'shopOwner.decoration.templatesList.simpleStore.name',
-        descKey: 'shopOwner.decoration.templatesList.simpleStore.desc',
+        name: 'Simple Store',
+        description: 'Banner carousel followed by featured products',
         config: [
             {
                 type: 'banner',
@@ -16,8 +16,8 @@ export const decorationTemplates = [
     },
     {
         id: 'video-highlight',
-        nameKey: 'shopOwner.decoration.templatesList.videoHighlight.name',
-        descKey: 'shopOwner.decoration.templatesList.videoHighlight.desc',
+        name: 'Video Highlight',
+        description: 'Video introduction with banner images',
         config: [
             {
                 type: 'video',
@@ -31,8 +31,8 @@ export const decorationTemplates = [
     },
     {
         id: 'rich-content',
-        nameKey: 'shopOwner.decoration.templatesList.richContent.name',
-        descKey: 'shopOwner.decoration.templatesList.richContent.desc',
+        name: 'Rich Content',
+        description: 'Complete layout with all widget types',
         config: [
             {
                 type: 'banner',

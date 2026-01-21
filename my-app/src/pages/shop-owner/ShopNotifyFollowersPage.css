@@ -18,6 +18,8 @@
     font-weight: 700;
     color: #1a1a2e;
     margin-bottom: 6px;
+    display: flex;
+    align-items: center;
 }
 
 .header-left .subtitle {
@@ -66,18 +68,23 @@
 
 .template-btn {
     background: white;
-    border: 2px solid #e5e7eb;
+    border: 1px solid #e5e7eb;
     padding: 8px 16px;
     border-radius: 20px;
     font-size: 13px;
     cursor: pointer;
     transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    color: #4b5563;
+    font-weight: 500;
 }
 
 .template-btn:hover {
     border-color: #10b981;
     background: #ecfdf5;
     color: #059669;
+    transform: translateY(-1px);
 }
 
 .notification-form {
@@ -88,17 +95,68 @@
 }
 
 .form-group {
-    margin-bottom: 20px;
+    margin-bottom: 24px;
 }
 
 .form-group label {
     display: block;
     font-weight: 600;
     color: #374151;
-    margin-bottom: 8px;
+    margin-bottom: 12px;
     font-size: 14px;
 }
 
+/* Tabs Styling */
+.type-tabs {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+}
+
+.type-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    border: 2px solid #edeff1;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: #ffffff;
+    gap: 10px;
+}
+
+.type-tab.active {
+    border-color: #3b82f6; /* Default specific colors override this inline */
+    background: #f8fafc;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.type-tab:hover:not(.active) {
+    border-color: #cbd5e1;
+    background: #fdfdfd;
+}
+
+.tab-icon-wrapper {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    transition: all 0.2s ease;
+}
+
+.tab-label {
+    font-weight: 600;
+    font-size: 13px;
+    color: #4b5563;
+    text-align: center;
+}
+
+/* Inputs */
 .form-input,
 .form-select,
 .form-textarea {
@@ -109,6 +167,7 @@
     font-size: 15px;
     transition: all 0.2s ease;
     background: #fafafa;
+    color: #1f2937;
 }
 
 .form-input:focus,
@@ -122,7 +181,7 @@
 
 .form-textarea {
     resize: vertical;
-    min-height: 100px;
+    min-height: 120px;
 }
 
 .char-count {
@@ -137,30 +196,39 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-top: 28px;
+    margin-top: 32px;
     flex-wrap: wrap;
     gap: 16px;
+    padding-top: 20px;
+    border-top: 1px solid #f3f4f6;
 }
 
 .send-info {
     color: #6b7280;
     font-size: 14px;
+    display: flex;
+    align-items: center;
 }
 
 .send-info strong {
     color: #10b981;
+    margin: 0 4px;
 }
 
 .btn-submit {
     background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     color: white;
     border: none;
-    padding: 14px 28px;
+    padding: 14px 32px;
     border-radius: 10px;
     font-size: 15px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2);
 }
 
 .btn-submit:hover:not(:disabled) {
@@ -171,4 +239,6 @@
 .btn-submit:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
 }

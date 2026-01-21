@@ -117,13 +117,6 @@ const ShopOwnerSidebar = ({ isOpen, onClose }) => {
                     </div>
                     {expandedSections.orders && (
                         <div className="sidebar-menu-items">
-                            {/* <Link
-              className={`sidebar-item ${isActive('/shop-owner/orders') ? 'active' : ''}`}
-              to="/shop-owner/orders"
-            >
-              <i className="fas fa-list"></i>
-              <span>Order List</span>
-            </Link> */}
                             <Link
                                 className={`sidebar-item ${isActive('/shop-owner/orders/bulk-shipping') ? 'active' : ''}`}
                                 to="/shop-owner/orders/bulk-shipping"
@@ -249,7 +242,7 @@ const ShopOwnerSidebar = ({ isOpen, onClose }) => {
                         onClick={handleLinkClick}
                     >
                         <i className="fas fa-bell"></i>
-                        <span>{t('shopOwner.sidebar.notifications')}</span>
+                        <span>Notifications</span>
                     </Link>
                 </div>
 
@@ -295,7 +288,7 @@ const ShopOwnerSidebar = ({ isOpen, onClose }) => {
                                 onClick={handleLinkClick}
                             >
                                 <i className="fas fa-bullhorn"></i>
-                                <span>{t('shopOwner.sidebar.notifyFollowers') || "Notify Followers"}</span>
+                                <span>Notify Followers</span>
                             </Link>
                         </div>
                     )}
@@ -340,7 +333,7 @@ const ShopOwnerSidebar = ({ isOpen, onClose }) => {
                         onClick={handleLinkClick}
                     >
                         <i className="fas fa-paint-brush"></i>
-                        <span>{t('shopDecoration') || 'Decoration'}</span>
+                        <span>Shop Decoration</span>
                     </Link>
                 </div>
 

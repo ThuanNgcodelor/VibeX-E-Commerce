@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button, Stack } from 'react-bootstrap';
 
+
 const WidgetSelector = ({ onAdd }) => {
     const widgets = [
         { type: 'banner', label: 'Banner', icon: 'bi-images' },

@@ -3,6 +3,8 @@ import { Form, Button, Row, Col, Image, Spinner, Card } from 'react-bootstrap';
 import { toast } from 'react-hot-toast';
 import { uploadImage, getImageUrl } from '../../../../api/image';
 
+
+
 const BannerWidget = ({ data, onChange }) => {
     const [uploadingIndex, setUploadingIndex] = useState(null);
     const images = data.images || [];

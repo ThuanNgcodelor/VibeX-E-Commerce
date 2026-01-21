@@ -6,10 +6,10 @@ import { getFollowerCount, getUser } from '../../api/user';
 import './ShopNotifyFollowersPage.css';
 
 const NOTIFICATION_TYPES = [
-    { value: 'SHOP_ANNOUNCEMENT', label: '📢 General Announcement', icon: 'fas fa-bullhorn' },
-    { value: 'SHOP_FLASH_SALE', label: '🔥 Flash Sale', icon: 'fas fa-bolt' },
-    { value: 'SHOP_NEW_PRODUCT', label: '🆕 New Product', icon: 'fas fa-box-open' },
-    { value: 'SHOP_PROMOTION', label: '🎁 Promotion', icon: 'fas fa-ticket-alt' },
+    { value: 'SHOP_ANNOUNCEMENT', label: 'General Announcement', icon: 'fas fa-bullhorn', color: '#3b82f6' },
+    { value: 'SHOP_FLASH_SALE', label: 'Flash Sale', icon: 'fas fa-bolt', color: '#ef4444' },
+    { value: 'SHOP_NEW_PRODUCT', label: 'New Product', icon: 'fas fa-box-open', color: '#10b981' },
+    { value: 'SHOP_PROMOTION', label: 'Promotion', icon: 'fas fa-ticket-alt', color: '#f59e0b' },
 ];
 
 const ShopNotifyFollowersPage = () => {
@@ -42,6 +42,10 @@ const ShopNotifyFollowersPage = () => {
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleTypeSelect = (typeValue) => {
+        setFormData(prev => ({ ...prev, type: typeValue }));
     };
 
     const handleQuickTemplate = (type) => {
@@ -120,11 +124,11 @@ const ShopNotifyFollowersPage = () => {
         <div className="shop-notify-page">
             <div className="page-header">
                 <div className="header-left">
-                    <h1>📣 Notify Followers</h1>
+                    <h1><i className="fas fa-bullhorn text-primary me-2"></i>Notify Followers</h1>
                     <p className="subtitle">Send notifications to your shop followers</p>
                 </div>
                 <div className="follower-badge">
-                    <span className="follower-icon">👥</span>
+                    <i className="fas fa-users follower-icon"></i>
                     <span className="follower-count">{followerCount.toLocaleString()}</span>
                     <span className="follower-label">followers</span>
                 </div>
@@ -139,29 +143,38 @@ const ShopNotifyFollowersPage = () => {
                         className="template-btn"
                         onClick={() => handleQuickTemplate(type.value)}
                     >
-                        <i className={`${type.icon} me-1`}></i> {type.label.split(' ').slice(1).join(' ')}
+                        <i className={`${type.icon} me-1`} style={{ color: type.color }}></i> {type.label}
                     </button>
                 ))}
             </div>
 
             <form onSubmit={handleSubmit} className="notification-form">
                 <div className="form-group">
-                    <label htmlFor="type">Notification Type</label>
-                    <div className="select-wrapper">
-                        {/* Custom select styling might be needed, but simplified for now */}
-                        <select
-                            id="type"
-                            name="type"
-                            value={formData.type}
-                            onChange={handleInputChange}
-                            className="form-select"
-                        >
-                            {NOTIFICATION_TYPES.map(type => (
-                                <option key={type.value} value={type.value}>
-                                    {type.label.replace(/^[^\s]+\s/, '')} ({type.label.split(' ')[0]})
-                                </option>
-                            ))}
-                        </select>
+                    <label>Notification Type</label>
+                    <div className="type-tabs">
+                        {NOTIFICATION_TYPES.map(type => (
+                            <div
+                                key={type.value}
+                                className={`type-tab ${formData.type === type.value ? 'active' : ''}`}
+                                onClick={() => handleTypeSelect(type.value)}
+                                style={{
+                                    borderColor: formData.type === type.value ? type.color : ''
+                                }}
+                            >
+                                <div
+                                    className="tab-icon-wrapper"
+                                    style={{
+                                        background: formData.type === type.value ? type.color : '#f3f4f6',
+                                        color: formData.type === type.value ? 'white' : '#6b7280'
+                                    }}
+                                >
+                                    <i className={type.icon}></i>
+                                </div>
+                                <span className="tab-label" style={{ color: formData.type === type.value ? type.color : '' }}>
+                                    {type.label}
+                                </span>
+                            </div>
+                        ))}
                     </div>
                 </div>
 
@@ -209,14 +222,19 @@ const ShopNotifyFollowersPage = () => {
 
                 <div className="form-footer">
                     <p className="send-info">
-                        ⚡ Will send to <strong>{followerCount.toLocaleString()}</strong> followers
+                        <i className="fas fa-bolt me-1 text-warning"></i>
+                        Will send to <strong>{followerCount.toLocaleString()}</strong> followers
                     </p>
                     <button
                         type="submit"
                         className="btn-submit"
                         disabled={loading || followerCount === 0}
                     >
-                        {loading ? '⏳ Sending...' : '🚀 Send Notification'}
+                        {loading ? (
+                            <span><i className="fas fa-spinner fa-spin me-2"></i>Sending...</span>
+                        ) : (
+                            <span><i className="fas fa-paper-plane me-2"></i>Send Notification</span>
+                        )}
                     </button>
                 </div>
             </form>

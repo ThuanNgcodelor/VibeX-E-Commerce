@@ -434,7 +434,7 @@ export default function TrackingPage() {
                         gap: '12px'
                     }}>
                         <span style={{ color: '#666', fontSize: '13px' }}>
-                            {t('tracking.thankYouMessage', 'Cảm ơn bạn đã mua sắm!')}
+                            {t('tracking.thankYouMessage', 'Thank you for shopping!')}
                         </span>
                         <div style={{ display: 'flex', gap: '12px' }}>
                             <button
@@ -515,13 +515,13 @@ export default function TrackingPage() {
 
                                 <div style={{ fontSize: '14px' }}>
                                     <div style={{ fontWeight: 600, color: '#222', marginBottom: '4px' }}>
-                                        {address?.recipientName || address?.fullName || 'Khách hàng'}
+                                        {address?.recipientName || address?.fullName || 'Customer'}
                                     </div>
                                     <div style={{ color: '#666', marginBottom: '4px' }}>
                                         {address?.recipientPhone || order?.recipientPhone || '(+84) xxx xxx xxx'}
                                     </div>
                                     <div style={{ color: '#666', lineHeight: 1.5 }}>
-                                        {order?.fullAddress || address?.streetAddress || address?.fullAddress || t('tracking.address.updating')}
+                                        {order?.fullAddress || address?.streetAddress || address?.fullAddress || t('tracking.address.updating', 'Updating...')}
                                         {!order?.fullAddress && address?.wardName && `, ${address.wardName}`}
                                         {!order?.fullAddress && address?.districtName && `, ${address.districtName}`}
                                         {!order?.fullAddress && address?.provinceName && `, ${address.provinceName}`}
@@ -646,7 +646,7 @@ export default function TrackingPage() {
                                 padding: '2px 6px',
                                 borderRadius: '2px'
                             }}>
-                                Yêu thích+
+                                Preferred+
                             </span>
                             <span style={{ fontWeight: 600, fontSize: '14px', color: '#333' }}>
                                 MERIER STORE
@@ -674,7 +674,7 @@ export default function TrackingPage() {
                                 fontSize: '12px',
                                 cursor: 'pointer'
                             }}>
-                                Xem Shop
+                                Visit Shop
                             </button>
                         </div>
 
@@ -743,7 +743,7 @@ export default function TrackingPage() {
                                             color: '#999',
                                             marginBottom: '4px'
                                         }}>
-                                            Phân loại hàng: {item.sizeName}
+                                            Variation: {item.sizeName}
                                         </div>
                                     )}
                                     <div style={{ fontSize: '13px', color: '#666' }}>

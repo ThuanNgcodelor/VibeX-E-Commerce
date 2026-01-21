@@ -4,6 +4,8 @@ import ProductSelectorModal from '../ProductSelectorModal';
 import { fetchProducts } from '../../../../api/product';
 import { getImageUrl } from '../../../../api/image';
 
+
+
 const ProductsWidget = ({ data, onChange }) => {
     const [showModal, setShowModal] = useState(false);
     const [previewProducts, setPreviewProducts] = useState([]);
@@ -98,7 +100,9 @@ const ProductsWidget = ({ data, onChange }) => {
                         ))}
                         {loadingPreview && (
                             <div className="w-100 text-center py-2 text-muted">
-                                Loading preview...
+                                <div className="w-100 text-center py-2 text-muted">
+                                    Loading preview...
+                                </div>
                             </div>
                         )}
                     </Row>

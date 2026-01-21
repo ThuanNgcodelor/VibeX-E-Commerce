@@ -3,6 +3,8 @@ import { Form, Spinner, Row, Col } from 'react-bootstrap';
 import { toast } from 'react-hot-toast';
 import { uploadVideo, getVideoUrl } from '../../../../api/image';
 
+
+
 const VideoWidget = ({ data, onChange }) => {
     const [uploading, setUploading] = useState(false);
 
@@ -68,7 +70,9 @@ const VideoWidget = ({ data, onChange }) => {
                         </label>
                     </div>
                     <div className="text-muted small">
-                        Max 50MB. MP4/WebM.
+                        <div className="text-muted small">
+                            Max 50MB. MP4/WebM.
+                        </div>
                     </div>
                 </div>
             </Form.Group>

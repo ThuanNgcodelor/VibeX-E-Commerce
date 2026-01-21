@@ -7,26 +7,26 @@ const TemplateSelector = ({ onApply }) => {
     const getTemplateName = (template) => {
         switch (template.id) {
             case 'template-banner-products':
-                return 'Banner + Products';
+                return "Banner + Products";
             case 'template-video-banner':
-                return 'Video + Banner';
+                return "Video + Banner";
             case 'template-full':
-                return 'Full Layout';
+                return "Full Layout";
             default:
-                return template.nameKey || 'Template';
+                return template.name || "Template";
         }
     };
 
     const getTemplateDesc = (template) => {
         switch (template.id) {
             case 'template-banner-products':
-                return 'A banner carousel followed by featured products';
+                return "A banner carousel followed by featured products";
             case 'template-video-banner':
-                return 'Video introduction with banner images';
+                return "Video introduction with banner images";
             case 'template-full':
-                return 'Complete layout with all widget types';
+                return "Complete layout with all widget types";
             default:
-                return template.descKey || 'Template description';
+                return template.description || "Template description";
         }
     };
 

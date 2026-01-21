@@ -5,8 +5,8 @@ import { adminBroadcast } from '../../api/notification';
 import './AdminNotificationPage.css';
 
 const NOTIFICATION_TYPES = [
-    { value: 'ADMIN_BROADCAST', label: 'General Announcement' },
-    { value: 'SYSTEM_MAINTENANCE', label: 'System Maintenance' },
+    { value: 'ADMIN_BROADCAST', label: 'General Announcement', icon: 'fas fa-bullhorn', color: '#3b82f6' },
+    { value: 'SYSTEM_MAINTENANCE', label: 'System Maintenance', icon: 'fas fa-tools', color: '#ef4444' },
 ];
 
 const AdminNotificationPage = () => {
@@ -22,6 +22,10 @@ const AdminNotificationPage = () => {
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleTypeSelect = (typeValue) => {
+        setFormData(prev => ({ ...prev, type: typeValue }));
     };
 
     const handleSubmit = async (e) => {
@@ -76,26 +80,38 @@ const AdminNotificationPage = () => {
     return (
         <div className="admin-notification-page">
             <div className="page-header">
-                <h1>📢 System Broadcast</h1>
+                <h1><i className="fas fa-bullhorn text-primary me-2"></i>System Broadcast</h1>
                 <p className="subtitle">Send notifications to all users in the system</p>
             </div>
 
             <form onSubmit={handleSubmit} className="notification-form">
                 <div className="form-group">
-                    <label htmlFor="type">Notification Type</label>
-                    <select
-                        id="type"
-                        name="type"
-                        value={formData.type}
-                        onChange={handleInputChange}
-                        className="form-select"
-                    >
+                    <label>Notification Type</label>
+                    <div className="type-tabs">
                         {NOTIFICATION_TYPES.map(type => (
-                            <option key={type.value} value={type.value}>
-                                {type.label}
-                            </option>
+                            <div
+                                key={type.value}
+                                className={`type-tab ${formData.type === type.value ? 'active' : ''}`}
+                                onClick={() => handleTypeSelect(type.value)}
+                                style={{
+                                    borderColor: formData.type === type.value ? type.color : ''
+                                }}
+                            >
+                                <div
+                                    className="tab-icon-wrapper"
+                                    style={{
+                                        background: formData.type === type.value ? type.color : '#f3f4f6',
+                                        color: formData.type === type.value ? 'white' : '#6b7280'
+                                    }}
+                                >
+                                    <i className={type.icon}></i>
+                                </div>
+                                <span className="tab-label" style={{ color: formData.type === type.value ? type.color : '' }}>
+                                    {type.label}
+                                </span>
+                            </div>
                         ))}
-                    </select>
+                    </div>
                 </div>
 
                 <div className="form-group">
@@ -147,9 +163,9 @@ const AdminNotificationPage = () => {
                         disabled={loading}
                     >
                         {loading ? (
-                            <>⏳ Sending...</>
+                            <span><i className="fas fa-spinner fa-spin me-2"></i>Sending...</span>
                         ) : (
-                            <>📨 Send Notification</>
+                            <span><i className="fas fa-paper-plane me-2"></i>Send Notification</span>
                         )}
                     </button>
                 </div>
