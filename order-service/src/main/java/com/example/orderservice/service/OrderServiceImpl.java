@@ -1121,6 +1121,7 @@ public class OrderServiceImpl implements OrderService {
                     .toWardCode(customerAddress.getWardCode())
                     .toDistrictId(customerAddress.getDistrictId())
                     .codAmount((long) order.getTotalPrice()) // Thu hộ COD
+                    .insuranceValue((int) order.getTotalPrice()) // Required by GHN
                     .weight(totalWeight)
                     .length(20) // cm - Hardcode, có thể lấy từ product sau
                     .width(15)

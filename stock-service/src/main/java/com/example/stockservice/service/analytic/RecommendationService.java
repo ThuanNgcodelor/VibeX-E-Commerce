@@ -1,19 +1,24 @@
 package com.example.stockservice.service.analytic;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+
 import com.example.stockservice.dto.analytics.RecommendationResponse;
 import com.example.stockservice.enums.ProductStatus;
 import com.example.stockservice.jwt.JwtUtil;
 import com.example.stockservice.model.Product;
 import com.example.stockservice.repository.ProductRepository;
+
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
-
-import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * ===== PHASE 2: RECOMMENDATION SERVICE =====
@@ -179,24 +184,32 @@ public class RecommendationService {
         
         List<Product> similar = new ArrayList<>();
         
-        // Bước 1: Tìm sản phẩm cùng category
+        // Bước 1: Tìm sản phẩm cùng category (Database filtering)
         if (categoryId != null) {
-            List<Product> categoryProducts = productRepository.findByCategoryId(categoryId).stream()
-                    .filter(p -> !p.getId().equals(productId))  // Loại bỏ sản phẩm gốc
-                    .filter(this::isProductActive)
-                    .limit(limit)
-                    .toList();
+            org.springframework.data.domain.Pageable pageable = 
+                    org.springframework.data.domain.PageRequest.of(0, limit);
+            
+            // Find products in same category, exclude current, only IN_STOCK
+            List<Product> categoryProducts = productRepository.findByCategoryIdAndIdNotAndStatus(
+                    categoryId, productId, ProductStatus.IN_STOCK, pageable).getContent();
+            
             similar.addAll(categoryProducts);
         }
         
         // Bước 2: Nếu không đủ → thêm sản phẩm cùng shop
         if (similar.size() < limit && shopId != null) {
-            List<Product> shopProducts = productRepository.findByUserId(shopId).stream()
-                    .filter(p -> !p.getId().equals(productId))
-                    .filter(p -> !similar.contains(p))
-                    .filter(this::isProductActive)
-                    .limit(limit - similar.size())
-                    .toList();
+            int remaining = limit - similar.size();
+            org.springframework.data.domain.Pageable pageable = 
+                    org.springframework.data.domain.PageRequest.of(0, remaining);
+            
+            // Prepare list of IDs to exclude (current product + already found products)
+            List<String> excludedIds = new ArrayList<>();
+            excludedIds.add(productId);
+            similar.forEach(p -> excludedIds.add(p.getId()));
+
+            List<Product> shopProducts = productRepository.findByUserIdAndIdNotInAndStatus(
+                    shopId, excludedIds, ProductStatus.IN_STOCK, pageable).getContent();
+            
             similar.addAll(shopProducts);
         }
         

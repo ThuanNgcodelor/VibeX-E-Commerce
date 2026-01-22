@@ -89,7 +89,7 @@ export default function ShopOwnerDashboard() {
               <div className="col-3 border-end position-relative">
                 <TodoCard
                   count={stats.confirmed + stats.readyToShip}
-                  label={t('shopOwner.dashboard.preparing', 'Đang chuẩn bị')}
+                  label={t('shopOwner.dashboard.preparing', 'Ready to ship')}
                   link="/shop-owner/orders/bulk-shipping?status=CONFIRMED"
                 />
               </div>

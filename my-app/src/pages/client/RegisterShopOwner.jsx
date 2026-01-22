@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import React, { useEffect, useState } from 'react';
+import Swal from 'sweetalert2';
 import { getProvinces, getDistricts, getWards } from '../../api/ghn.js';
 import { reverseGeocodeOSM } from '../../api/osm.js';
 import createShopOwner from '../../api/role_request.js';
@@ -8,9 +9,9 @@ import '../../assets/admin/css/RegisterShopOwner.css';
 import { useNavigate } from 'react-router-dom';
 const vibeLogo = '/game/assets/logo.png';
 
+
 const RegisterShopOwner = () => {
-    const { t } = useTranslation();
-    // 0: Chào mừng, 1: Thông tin Shop, 2: Thuế, 3: Định danh, 4: Hoàn tất
+    // 0: Welcome, 1: Shop Info, 2: Tax, 3: Identity, 4: Complete
     const [currentStep, setCurrentStep] = useState(0);
     const [showAddressModal, setShowAddressModal] = useState(false);
 
@@ -103,10 +104,10 @@ const RegisterShopOwner = () => {
     const [sliderTarget, setSliderTarget] = useState(0);
 
     const steps = [
-        t('roleRequest.steps.shopInfo'),
-        t('roleRequest.steps.taxInfo'),
-        t('roleRequest.steps.identity'),
-        t('roleRequest.steps.complete')
+        "Shop Info",
+        "Tax Info",
+        "Identity",
+        "Complete"
     ];
 
     // ====== helper match địa danh ======
@@ -399,7 +400,11 @@ const RegisterShopOwner = () => {
     useEffect(() => {
         const token = Cookies.get('accessToken');
         if (!token) {
-            alert(t('roleRequest.alerts.loginRequired'));
+            Swal.fire({
+                icon: 'warning',
+                title: 'Login Required',
+                text: 'Please login to continue.'
+            });
             navigate('/login');
         }
     }, [navigate]);
@@ -435,7 +440,11 @@ const RegisterShopOwner = () => {
         if (!file) return;
 
         if (file.size > 5 * 1024 * 1024) {
-            alert(t('roleRequest.alerts.fileSizeLimit'));
+            Swal.fire({
+                icon: 'error',
+                title: 'File too large',
+                text: 'Maximum file size is 5MB.'
+            });
             return;
         }
 
@@ -517,7 +526,11 @@ const RegisterShopOwner = () => {
         if (locating) return;
 
         if (!navigator.geolocation) {
-            alert(t('roleRequest.alerts.gpsNotSupported'));
+            Swal.fire({
+                icon: 'error',
+                title: 'GPS Not Supported',
+                text: 'Your browser does not support geolocation.'
+            });
             return;
         }
 
@@ -608,7 +621,11 @@ const RegisterShopOwner = () => {
 
                 } catch (err) {
                     console.error(err);
-                    alert(t('roleRequest.alerts.gpsNoAddress'));
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Address Not Found',
+                        text: 'Could not determine address from your location.'
+                    });
                 } finally {
                     setLocating(false);
                     setLoadingDistricts(false);
@@ -618,8 +635,19 @@ const RegisterShopOwner = () => {
             (err) => {
                 console.error(err);
                 setLocating(false);
-                if (err.code === 1) alert(t('roleRequest.alerts.gpsDenied'));
-                else alert(t('roleRequest.alerts.gpsFailed'));
+                if (err.code === 1) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Permission Denied',
+                        text: 'Please enable location access.'
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Location Error',
+                        text: 'Failed to retrieve location.'
+                    });
+                }
             },
             { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
         );
@@ -627,11 +655,19 @@ const RegisterShopOwner = () => {
 
     const handleSaveAddress = () => {
         if (!provinceId || !districtId || !wardCode) {
-            alert(t('roleRequest.alerts.selectAddress'));
+            Swal.fire({
+                icon: 'warning',
+                title: 'Missing Address',
+                text: 'Please select a valid address.'
+            });
             return;
         }
         if (!detailAddress.trim()) {
-            alert(t('roleRequest.alerts.enterDetailAddress'));
+            Swal.fire({
+                icon: 'warning',
+                title: 'Missing Details',
+                text: 'Please enter detailed address.'
+            });
             return;
         }
 
@@ -657,7 +693,7 @@ const RegisterShopOwner = () => {
             <header className="vibe-header">
                 <div className="header-container">
                     <div className="header-left">
-                        <span className="header-title">{t('roleRequest.headerTitle')}</span>
+                        <span className="header-title">Register to become a Vibe Seller</span>
                     </div>
                 </div>
             </header>
@@ -665,7 +701,7 @@ const RegisterShopOwner = () => {
             <div className="back-home-container">
                 <button className="btn-back-home" onClick={() => navigate('/')}>
                     <span className="back-icon">←</span>
-                    <span className="back-text">{t('roleRequest.backHome')}</span>
+                    <span className="back-text">Back to Home</span>
                 </button>
             </div>
 
@@ -673,9 +709,9 @@ const RegisterShopOwner = () => {
                 <div className="vibe-card">
                     {currentStep === 0 && (
                         <div className="welcome-screen animate-fade-in">
-                            <h2>{t('roleRequest.welcome.title')}</h2>
-                            <p>{t('roleRequest.welcome.description')}</p>
-                            <button onClick={() => setCurrentStep(1)} className="btn-primary btn-large">{t('roleRequest.welcome.registerButton')}</button>
+                            <h2>Welcome to Vibe</h2>
+                            <p>Register to become a seller and grow your business with us.</p>
+                            <button onClick={() => setCurrentStep(1)} className="btn-primary btn-large">Register Now</button>
                         </div>
                     )}
 
@@ -684,7 +720,7 @@ const RegisterShopOwner = () => {
                     {/* STEP 1 */}
                     {currentStep === 1 && (
                         <div className="form-container animate-fade-in">
-                            <FormGroup label={t('roleRequest.step1.shopName')} required count={`${shopInfo.shopName.length}/30`} error={fieldErrors.shopName}>
+                            <FormGroup label="Shop Name" required count={`${shopInfo.shopName.length}/30`} error={fieldErrors.shopName}>
                                 <input
                                     type="text"
                                     name="shopName"
@@ -696,7 +732,7 @@ const RegisterShopOwner = () => {
                                     maxLength={30}
                                 />
                             </FormGroup>
-                            <FormGroup label={t('roleRequest.step1.ownerName')} required count={`${shopInfo.ownerName.length}/30`} error={fieldErrors.ownerName}>
+                            <FormGroup label="Shop Owner Name" required count={`${shopInfo.ownerName.length}/30`} error={fieldErrors.ownerName}>
                                 <input
                                     type="text"
                                     name="ownerName"
@@ -709,13 +745,13 @@ const RegisterShopOwner = () => {
                                 />
                             </FormGroup>
 
-                            <FormGroup label={t('roleRequest.step1.pickupAddress')} required error={fieldErrors.address}>
+                            <FormGroup label="Pickup Address" required error={fieldErrors.address}>
                                 {address ? (
                                     <div className={`address-display ${fieldErrors.address ? 'input-error' : ''}`} onClick={() => setShowAddressModal(true)}>
-                                        {address} <span className="edit-link">{t('roleRequest.step1.edit')}</span>
+                                        {address} <span className="edit-link">Edit</span>
                                     </div>
                                 ) : (
-                                    <button onClick={() => setShowAddressModal(true)} className={`btn-outline ${fieldErrors.address ? 'input-error' : ''}`}>{t('roleRequest.step1.add')}</button>
+                                    <button onClick={() => setShowAddressModal(true)} className={`btn-outline ${fieldErrors.address ? 'input-error' : ''}`}>+ Add</button>
                                 )}
                             </FormGroup>
 
@@ -731,7 +767,7 @@ const RegisterShopOwner = () => {
                                 />
                             </FormGroup>
 
-                            <FormGroup label={t('roleRequest.step1.phone')} required error={fieldErrors.phone}>
+                            <FormGroup label="Phone Number" required error={fieldErrors.phone}>
                                 <div className="input-group">
                                     <input
                                         type="text"
@@ -745,7 +781,7 @@ const RegisterShopOwner = () => {
                                 </div>
                             </FormGroup>
 
-                            <FormGroup label={t('roleRequest.step1.reason')} required error={fieldErrors.reason}>
+                            <FormGroup label="Reason for Role Request" required error={fieldErrors.reason}>
                                 <input
                                     type="text"
                                     name="reason"
@@ -763,24 +799,24 @@ const RegisterShopOwner = () => {
                     {currentStep === 2 && (
                         <div className="form-container animate-fade-in">
                             <div className="info-alert-blue mb-6">
-                                <i className="info-icon">ⓘ</i> {t('roleRequest.step2.taxNotice')}
+                                <i className="info-icon">ⓘ</i> Please provide accurate tax information.
                             </div>
 
-                            <FormGroup label={t('roleRequest.step2.businessType')}>
+                            <FormGroup label="Business Type">
                                 <div className="radio-group">
-                                    <label><input type="radio" name="businessType" value="CA_NHAN" checked={taxInfo.businessType === 'CA_NHAN'} onChange={handleTaxChange} /> {t('roleRequest.step2.personal')}</label>
-                                    <label><input type="radio" name="businessType" value="HO_KINH_DOANH" checked={taxInfo.businessType === 'HO_KINH_DOANH'} onChange={handleTaxChange} /> {t('roleRequest.step2.household')}</label>
-                                    <label><input type="radio" name="businessType" value="CONG_TY" checked={taxInfo.businessType === 'CONG_TY'} onChange={handleTaxChange} /> {t('roleRequest.step2.company')}</label>
+                                    <label><input type="radio" name="businessType" value="CA_NHAN" checked={taxInfo.businessType === 'CA_NHAN'} onChange={handleTaxChange} /> Individual</label>
+                                    <label><input type="radio" name="businessType" value="HO_KINH_DOANH" checked={taxInfo.businessType === 'HO_KINH_DOANH'} onChange={handleTaxChange} /> Business Household</label>
+                                    <label><input type="radio" name="businessType" value="CONG_TY" checked={taxInfo.businessType === 'CONG_TY'} onChange={handleTaxChange} /> Company</label>
                                 </div>
                             </FormGroup>
 
-                            <FormGroup label={t('roleRequest.step2.businessAddress')} required error={fieldErrors.address}>
+                            <FormGroup label="Business Address" required error={fieldErrors.address}>
                                 {address ? (
                                     <div className={`address-display ${fieldErrors.address ? 'input-error' : ''}`} onClick={() => setShowAddressModal(true)}>
-                                        {address} <span className="edit-link">{t('roleRequest.step1.edit')}</span>
+                                        {address} <span className="edit-link">Edit</span>
                                     </div>
                                 ) : (
-                                    <button onClick={() => setShowAddressModal(true)} className={`btn-outline ${fieldErrors.address ? 'input-error' : ''}`}>{t('roleRequest.step1.add')}</button>
+                                    <button onClick={() => setShowAddressModal(true)} className={`btn-outline ${fieldErrors.address ? 'input-error' : ''}`}>+ Add</button>
                                 )}
                             </FormGroup>
 
@@ -794,13 +830,13 @@ const RegisterShopOwner = () => {
                                 />
                             </FormGroup>
 
-                            <FormGroup label={t('roleRequest.step2.taxCode')} count={`${taxInfo.taxCode.length}/14`} error={fieldErrors.taxCode}>
+                            <FormGroup label="Tax Code" count={`${taxInfo.taxCode.length}/14`} error={fieldErrors.taxCode}>
                                 <input
                                     type="text"
                                     name="taxCode"
                                     value={taxInfo.taxCode}
                                     onChange={handleTaxChange}
-                                    placeholder={t('roleRequest.modal.enterValue')}
+                                    placeholder="Enter value"
                                     className={`vibe-input ${fieldErrors.taxCode ? 'input-error' : ''}`}
                                 />
                             </FormGroup>
@@ -811,43 +847,43 @@ const RegisterShopOwner = () => {
                     {currentStep === 3 && (
                         <div className="form-container animate-fade-in">
                             <div className="info-alert-blue mb-6">
-                                <i className="info-icon">ⓘ</i> {t('roleRequest.step3.identityNotice')}
+                                <i className="info-icon">ⓘ</i> Please provide Identity Information of the Shop Owner or Legal Representative.
                             </div>
 
-                            <FormGroup label={t('roleRequest.step3.idType')}>
+                            <FormGroup label="Identity Type">
                                 <div className="radio-group">
-                                    <label><input type="radio" name="idType" value="CCCD" checked={idInfo.idType === 'CCCD'} onChange={handleIdChange} /> {t('roleRequest.step3.cccd')}</label>
-                                    <label><input type="radio" name="idType" value="CMND" checked={idInfo.idType === 'CMND'} onChange={handleIdChange} /> {t('roleRequest.step3.cmnd')}</label>
-                                    <label><input type="radio" name="idType" value="HO_CHIEU" checked={idInfo.idType === 'HO_CHIEU'} onChange={handleIdChange} /> {t('roleRequest.step3.passport')}</label>
+                                    <label><input type="radio" name="idType" value="CCCD" checked={idInfo.idType === 'CCCD'} onChange={handleIdChange} /> Citizen Identity Card (CCCD)</label>
+                                    <label><input type="radio" name="idType" value="CMND" checked={idInfo.idType === 'CMND'} onChange={handleIdChange} /> ID Card (CMND)</label>
+                                    <label><input type="radio" name="idType" value="HO_CHIEU" checked={idInfo.idType === 'HO_CHIEU'} onChange={handleIdChange} /> Passport</label>
                                 </div>
                             </FormGroup>
 
-                            <FormGroup label={t('roleRequest.step3.idNumber')} required count={`${idInfo.idNumber.length}/12`} error={fieldErrors.idNumber}>
+                            <FormGroup label="Citizen Identity Card Number (CCCD)" required count={`${idInfo.idNumber.length}/12`} error={fieldErrors.idNumber}>
                                 <input
                                     type="text"
                                     name="idNumber"
                                     value={idInfo.idNumber}
                                     onChange={handleIdChange}
-                                    placeholder={t('roleRequest.modal.enterValue')}
+                                    placeholder="Enter value"
                                     className={`vibe-input ${fieldErrors.idNumber ? 'input-error' : ''}`}
                                     required
                                 />
                             </FormGroup>
 
-                            <FormGroup label={t('roleRequest.step3.fullName')} required count={`${idInfo.fullName.length}/100`} error={fieldErrors.fullName}>
+                            <FormGroup label="Full Name" required count={`${idInfo.fullName.length}/100`} error={fieldErrors.fullName}>
                                 <input
                                     type="text"
                                     name="fullName"
                                     value={idInfo.fullName}
                                     onChange={handleIdChange}
-                                    placeholder={t('roleRequest.modal.enterValue')}
+                                    placeholder="Enter value"
                                     className={`vibe-input ${fieldErrors.fullName ? 'input-error' : ''}`}
                                     required
                                 />
-                                <div className="sub-label">{t('roleRequest.step3.fullNameHint')}</div>
+                                <div className="sub-label">Per ID/CCCD/Passport</div>
                             </FormGroup>
 
-                            <FormGroup label={t('roleRequest.step3.frontImage')} required error={fieldErrors.frontImage}>
+                            <FormGroup label="Front Image" required error={fieldErrors.frontImage}>
                                 <div className="id-image-upload">
                                     <input
                                         type="file"
@@ -862,14 +898,14 @@ const RegisterShopOwner = () => {
                                         ) : (
                                             <div className="upload-placeholder">
                                                 <span className="plus">+</span>
-                                                <span>{t('roleRequest.step3.uploadFront')}</span>
+                                                <span>Upload Front Image</span>
                                             </div>
                                         )}
                                     </label>
                                 </div>
                             </FormGroup>
 
-                            <FormGroup label={t('roleRequest.step3.backImage')} required error={fieldErrors.backImage}>
+                            <FormGroup label="Back Image" required error={fieldErrors.backImage}>
                                 <div className="id-image-upload">
                                     <input
                                         type="file"
@@ -884,7 +920,7 @@ const RegisterShopOwner = () => {
                                         ) : (
                                             <div className="upload-placeholder">
                                                 <span className="plus">+</span>
-                                                <span>{t('roleRequest.step3.uploadBack')}</span>
+                                                <span>Upload Back Image</span>
                                             </div>
                                         )}
                                     </label>
@@ -893,7 +929,7 @@ const RegisterShopOwner = () => {
 
                             <div className="info-note" style={{ padding: '12px', background: '#f5f5f5', borderRadius: '4px', marginBottom: '16px' }}>
                                 <p style={{ margin: 0, fontSize: '13px', color: '#666' }}>
-                                    📝 <b>{t('roleRequest.step3.imageNote')}</b>
+                                    📝 <b>Note: Image must be clear, no glare, no missing corners.</b>
                                 </p>
                             </div>
 
@@ -905,7 +941,7 @@ const RegisterShopOwner = () => {
                                     checked={isAgreed}
                                     readOnly
                                 />
-                                <label htmlFor="agree" style={{ cursor: 'pointer', color: fieldErrors.agreement ? '#ee4d2d' : 'inherit' }}>{t('roleRequest.step3.agreement')}</label>
+                                <label htmlFor="agree" style={{ cursor: 'pointer', color: fieldErrors.agreement ? '#ee4d2d' : 'inherit' }}>I agree to Vibe's Terms & Conditions</label>
                             </div>
                             {fieldErrors.agreement && <div className="validation-error-text" style={{ marginLeft: '24px' }}>{fieldErrors.agreement}</div>}
                         </div>
@@ -915,11 +951,11 @@ const RegisterShopOwner = () => {
                     {currentStep === 4 && (
                         <div className="welcome-screen animate-fade-in">
                             <div className="success-icon">✓</div>
-                            <h2>{t('roleRequest.step4.successTitle')}</h2>
-                            <p>{t('roleRequest.step4.successMessage')}</p>
+                            <h2>Success!</h2>
+                            <p>Your shop owner registration has been submitted successfully! Admins will review and respond shortly.</p>
                             <button className="btn-back-home" onClick={() => navigate('/')}>
                                 <span className="back-icon">←</span>
-                                <span className="back-text">{t('roleRequest.backHome')}</span>
+                                <span className="back-text">Back to Home</span>
                             </button>
                         </div>
                     )}
@@ -927,9 +963,9 @@ const RegisterShopOwner = () => {
                     {/* FOOTER */}
                     {currentStep > 0 && currentStep < 4 && (
                         <div className="form-footer">
-                            <button onClick={() => setCurrentStep(currentStep - 1)} className="btn-ghost">{t('roleRequest.buttons.back')}</button>
+                            <button onClick={() => setCurrentStep(currentStep - 1)} className="btn-ghost">Back</button>
                             <div className="footer-right">
-                                <button className="btn-ghost px-10">{t('roleRequest.buttons.save')}</button>
+                                <button className="btn-ghost px-10">Save</button>
                                 <button
                                     onClick={async () => {
                                         // Validation trước khi chuyển bước
@@ -943,7 +979,11 @@ const RegisterShopOwner = () => {
                                             // ✅ Check authentication trước khi submit
                                             const token = Cookies.get('accessToken');
                                             if (!token) {
-                                                alert('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!');
+                                                Swal.fire({
+                                                    icon: 'warning',
+                                                    title: 'Session Expired',
+                                                    text: 'Please login again!'
+                                                });
                                                 navigate('/login');
                                                 return;
                                             }
@@ -955,7 +995,7 @@ const RegisterShopOwner = () => {
                                                 const fullPayload = {
                                                     roleRequest: {
                                                         role: "SHOP_OWNER",
-                                                        reason: shopInfo.reason.trim() || "Đăng ký bán hàng trên Vibe"
+                                                        reason: shopInfo.reason.trim() || "Register to sell on Vibe"
                                                     },
                                                     shopDetails: {
                                                         shopName: shopInfo.shopName.trim(),
@@ -995,11 +1035,15 @@ const RegisterShopOwner = () => {
                                                 setCurrentStep(4);
                                             } catch (error) {
                                                 console.error("❌ Submit failed:", error);
-                                                let errorMsg = "Đã xảy ra lỗi khi gửi yêu cầu. Vui lòng thử lại sau.";
+                                                let errorMsg = "An error occurred while submitting. Please try again later.";
                                                 if (error.response?.data?.message) {
                                                     errorMsg = error.response.data.message;
                                                 }
-                                                alert(`❌ Đăng ký thất bại:\n\n${errorMsg}`);
+                                                Swal.fire({
+                                                    icon: 'error',
+                                                    title: 'Registration Failed',
+                                                    text: errorMsg
+                                                });
                                             }
                                         } else {
                                             // Chuyển sang bước tiếp theo
@@ -1009,7 +1053,7 @@ const RegisterShopOwner = () => {
                                     }}
                                     className="btn-primary px-10"
                                 >
-                                    {currentStep === 3 ? t('roleRequest.buttons.complete') : t('roleRequest.buttons.next')}
+                                    {currentStep === 3 ? "Complete" : "Next"}
                                 </button>
                             </div>
                         </div>
@@ -1022,7 +1066,7 @@ const RegisterShopOwner = () => {
                 <div className="vibe-modal-overlay">
                     <div className="vibe-modal-container animate-scale-up">
                         <div className="vibe-modal-header">
-                            <span className="modal-title">{t('roleRequest.modal.addAddress')}</span>
+                            <span className="modal-title">Add New Address</span>
                             <span className="modal-close-icon" onClick={() => setShowAddressModal(false)}>&times;</span>
                         </div>
 

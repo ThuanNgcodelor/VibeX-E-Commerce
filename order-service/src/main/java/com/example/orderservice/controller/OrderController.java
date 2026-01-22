@@ -446,6 +446,8 @@ public class OrderController {
 
             // 6. Get available services from GHN API
             Integer serviceTypeId = 2; // Default: Hàng nhẹ
+            Integer serviceId = null; // NEW: Capture serviceId
+
             try {
                 GhnAvailableServicesResponse servicesResponse = ghnApiClient.getAvailableServices(
                         shopOwner.getDistrictId(),
@@ -468,14 +470,30 @@ public class OrderController {
 
                     if (preferredService != null) {
                         serviceTypeId = preferredService.getServiceTypeId();
+                        serviceId = preferredService.getServiceId();
                     } else if (fallbackService != null) {
                         serviceTypeId = fallbackService.getServiceTypeId();
+                        serviceId = fallbackService.getServiceId();
                     }
                 }
             } catch (Exception e) {
                 log.warn("[GHN] Failed to get available services for fee calculation: {}", e.getMessage());
             }
 
+            // Calculate total value for insurance (Required by GHN)
+            int insuranceValue = 0;
+            if (request.getSelectedItems() != null) {
+                for (com.example.orderservice.dto.SelectedItemDto item : request.getSelectedItems()) {
+                    if (item.getUnitPrice() != null) {
+                        insuranceValue += item.getUnitPrice() * item.getQuantity();
+                    }
+                }
+            }
+            
+            // GHN require insurance_value <= 5000000 for some services, but let's pass real value first
+            // If > 5000000, maybe capped or handled by specific service types, but 0 or null is invalid.
+            // Note: max insurance value depends on contract, but typically < 5000000 is safe for basic accounts.
+            
             // 7. Build GHN fee calculation request
             com.example.orderservice.dto.GhnCalculateFeeRequest ghnRequest = com.example.orderservice.dto.GhnCalculateFeeRequest
                     .builder()
@@ -487,7 +505,9 @@ public class OrderController {
                     .length(20) // cm
                     .width(15)
                     .height(10)
+                    .serviceId(serviceId) // NEW: Required field
                     .serviceTypeId(serviceTypeId) // Use available service type
+                    .insuranceValue(insuranceValue) // NEW: Required field
                     .build();
 
             // 7. Call GHN API

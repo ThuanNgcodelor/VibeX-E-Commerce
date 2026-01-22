@@ -1,7 +1,7 @@
 package com.example.stockservice.repository;
 
-import com.example.stockservice.enums.ProductStatus;
-import com.example.stockservice.model.Product;
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -9,7 +9,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
+import com.example.stockservice.enums.ProductStatus;
+import com.example.stockservice.model.Product;
 
 @Repository
 public interface ProductRepository extends JpaRepository<Product, String> {
@@ -44,4 +45,10 @@ public interface ProductRepository extends JpaRepository<Product, String> {
     // Batch API: Fetch multiple products in one query
     @Query("SELECT p FROM products p LEFT JOIN FETCH p.sizes WHERE p.id IN :ids")
     List<Product> findAllByIdIn(@Param("ids") List<String> ids);
+
+    Page<Product> findByCategoryIdAndIdNotAndStatus(String categoryId, String excludedId, ProductStatus status, Pageable pageable);
+
+    Page<Product> findByUserIdAndIdNotAndStatus(String userId, String excludedId, ProductStatus status, Pageable pageable);
+
+    Page<Product> findByUserIdAndIdNotInAndStatus(String userId, List<String> excludedIds, ProductStatus status, Pageable pageable);
 }

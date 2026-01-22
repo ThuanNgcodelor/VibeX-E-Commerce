@@ -41,5 +41,11 @@ public class GhnCalculateFeeRequest {
     
     @JsonProperty("service_type_id")
     private Integer serviceTypeId; // 2 = Standard, 5 = Express (optional)
+
+    @JsonProperty("insurance_value")
+    private Integer insuranceValue; // Required (max 5.000.000 for standard)
+
+    @JsonProperty("coupon")
+    private String coupon; // Optional
 }
 
