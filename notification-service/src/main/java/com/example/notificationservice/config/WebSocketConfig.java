@@ -27,18 +27,35 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         // Register STOMP endpoint for WebSocket connection
-        // CORS: Allow all origins to support Docker and various deployments
-        String[] allowedOrigins = {
-            "http://localhost",
-            "http://localhost:5173",
-            "http://localhost:80",
-            "https://localhost",
-            "http://shopee-fake.id.vn",
-            "https://shopee-fake.id.vn",
-            "http://www.shopee-fake.id.vn",
-            "https://www.shopee-fake.id.vn",
-            "*" // Allow all for development/Docker
-        };
+        // CORS: Dynamic origins to support localhost, ngrok, and custom domains
+        
+        // Read from environment variable for easy configuration
+        String customOrigins = System.getenv("ALLOWED_ORIGINS");
+        
+        String[] allowedOrigins;
+        if (customOrigins != null && !customOrigins.isEmpty()) {
+            // Use environment variable if set (comma-separated)
+            allowedOrigins = customOrigins.split(",");
+        } else {
+            // Default origins for development and ngrok
+            allowedOrigins = new String[]{
+                "http://localhost",
+                "http://localhost:5173",
+                "http://localhost:80",
+                "https://localhost",
+                "https://unbrawny-suk-nonillatively.ngrok-free.dev", // Explicit Domain
+                "http://shopee-fake.id.vn",
+                "https://shopee-fake.id.vn",
+                "http://www.shopee-fake.id.vn",
+                "https://www.shopee-fake.id.vn",
+                // Ngrok patterns (free tier uses random subdomains)
+                "https://*.ngrok-free.app",
+                "https://*.ngrok-free.dev",
+                "https://*.ngrok.app",
+                "https://*.ngrok.io",
+                "*" // Fallback: Allow all for development/Docker
+            };
+        }
         
         registry.addEndpoint("/ws/notifications")
                 .setAllowedOriginPatterns(allowedOrigins)

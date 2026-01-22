@@ -26,8 +26,7 @@ spring:
           '[/v1/**]':
             allowedOrigins:
               - http://localhost:5173                    # Development
-              - http://shopee-fake.id.vn                  # Production Domain
-              - http://www.shopee-fake.id.vn              # Production Domain
+              - https://unbrawny-suk-nonillatively.ngrok-free.dev  # Ngrok tunnel
             allowedMethods:
               - GET
               - POST

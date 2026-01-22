@@ -17,10 +17,10 @@ x-spring-boot-common: &spring-boot-common
   deploy:
     resources:
       limits:
-        cpus: '2.0'   # Cho phép dùng tối đa 2 nhân CPU khi cần thiết (Load cao)
-        memory: 1G    # Nới lỏng giới hạn Docker để tránh OOM Kill (Heap 512 + Non-Heap)
+        cpus: '2.0' # Cho phép dùng tối đa 2 nhân CPU khi cần thiết (Load cao)
+        memory: 1G # Nới lỏng giới hạn Docker để tránh OOM Kill (Heap 512 + Non-Heap)
       reservations:
-        memory: 512M  # Đảm bảo RAM cứng cho service
+        memory: 512M # Đảm bảo RAM cứng cho service
 
 services:
   # ============================================
@@ -48,7 +48,7 @@ services:
           memory: 1.5G # Cấp nhiều RAM hơn cho MySQL xử lý query phức tạp
     healthcheck:
       test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
-      interval: 5s     # Check nhanh hơn để service khác start sớm hơn
+      interval: 5s # Check nhanh hơn để service khác start sớm hơn
       timeout: 3s
       retries: 5
 
@@ -187,13 +187,17 @@ services:
         condition: service_started
 
   auth-service:
-    <<: *spring-boot-common
     build: ./auth-service
     container_name: auth-service
+    restart: unless-stopped
+    networks: [ vibe-network ]
     environment:
-      - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
-      - EUREKA_URI=http://eureka-server:8761/eureka
-      - SPRING_DATA_REDIS_HOST=redis
+      JAVA_TOOL_OPTIONS: "-Xms512m -Xmx512m -XX:+UseG1GC"
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+      EUREKA_URI: http://eureka-server:8761/eureka
+      SPRING_DATA_REDIS_HOST: redis
+      GOOGLE_REDIRECT_URI: https://unbrawny-suk-nonillatively.ngrok-free.dev/oauth2/callback
+      FACEBOOK_REDIRECT_URI: https://unbrawny-suk-nonillatively.ngrok-free.dev/oauth2/callback
     depends_on:
       gateway:
         condition: service_started
@@ -290,9 +294,9 @@ services:
       - SPRING_DATASOURCE_USERNAME=sa
       - SPRING_DATASOURCE_PASSWORD=Thuan@417
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
-      - VNPAY_RETURN_URL=http://localhost/payment/vnpay/return
-      - MOMO_RETURN_URL=http://localhost/payment/momo/return
-      - MOMO_IPN_URL=http://localhost/v1/payment/momo/ipn
+      - VNPAY_RETURN_URL=https://unbrawny-suk-nonillatively.ngrok-free.dev/payment/vnpay/return
+      - MOMO_RETURN_URL=https://unbrawny-suk-nonillatively.ngrok-free.dev/payment/momo/return
+      - MOMO_IPN_URL=https://unbrawny-suk-nonillatively.ngrok-free.dev/v1/payment/momo/ipn
     depends_on:
       gateway:
         condition: service_started
@@ -355,9 +359,11 @@ volumes:
   redis_data:
   file_storage_data:
 
+
 networks:
   vibe-network:
     driver: bridge
+
 # version: '3.8'
 
 # services:

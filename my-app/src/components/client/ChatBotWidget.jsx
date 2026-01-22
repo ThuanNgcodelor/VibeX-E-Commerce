@@ -313,7 +313,10 @@ export default function ChatBotWidget() {
       convs = convs.sort((a, b) => {
         const dateA = a.lastMessageAt ? new Date(a.lastMessageAt) : new Date(0);
         const dateB = b.lastMessageAt ? new Date(b.lastMessageAt) : new Date(0);
-        return dateB - dateA; // DESC order - newest first
+        // Handle invalid dates safely
+        const valA = isNaN(dateA.getTime()) ? 0 : dateA.getTime();
+        const valB = isNaN(dateB.getTime()) ? 0 : dateB.getTime();
+        return valB - valA; // DESC order - newest first
       });
 
       setConversations(convs);
@@ -698,8 +701,21 @@ export default function ChatBotWidget() {
                         // Determine if message is from current user
                         const isOwn = currentUserId && msg.senderId === currentUserId;
                         const prevMsg = idx > 0 ? messages[idx - 1] : null;
-                        const showDate = !prevMsg ||
-                          new Date(msg.createdAt).toDateString() !== new Date(prevMsg.createdAt).toDateString();
+
+                        // ✅ FIX: Validate dates to prevent "Invalid Date" display
+                        const getValidDate = (dateStr) => {
+                          if (!dateStr) return null;
+                          const d = new Date(dateStr);
+                          return isNaN(d.getTime()) ? null : d;
+                        };
+
+                        const msgDate = getValidDate(msg.createdAt);
+                        const prevDate = prevMsg ? getValidDate(prevMsg.createdAt) : null;
+
+                        // Show date separator if date changed or first message
+                        // Only show if msgDate is valid
+                        const showDate = msgDate && (!prevDate ||
+                          msgDate.toDateString() !== prevDate.toDateString());
 
                         return (
                           <React.Fragment key={msg.id}>
@@ -710,7 +726,7 @@ export default function ChatBotWidget() {
                                 fontSize: '12px',
                                 color: '#999'
                               }}>
-                                {new Date(msg.createdAt).toLocaleDateString('vi-VN', {
+                                {msgDate.toLocaleDateString('vi-VN', {
                                   weekday: 'long',
                                   year: 'numeric',
                                   month: 'long',
@@ -752,10 +768,10 @@ export default function ChatBotWidget() {
                                   opacity: 0.7,
                                   textAlign: 'right'
                                 }}>
-                                  {new Date(msg.createdAt).toLocaleTimeString('vi-VN', {
+                                  {msgDate ? msgDate.toLocaleTimeString('vi-VN', {
                                     hour: '2-digit',
                                     minute: '2-digit'
-                                  })}
+                                  }) : ''}
                                   {isOwn && msg.deliveryStatus === 'READ' && (
                                     <span style={{ marginLeft: '4px' }}>✓✓</span>
                                   )}
