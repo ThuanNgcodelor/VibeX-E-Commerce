@@ -20,7 +20,7 @@ export default function HomePage() {
 
   return (
     <div className="wrapper" style={{ background: '#F5F5F5', minHeight: '100vh' }}>
-      <AdDisplay placement="POPUP" />
+      {/* <AdDisplay placement="POPUP" /> */}
       <Header />
       <main style={{ width: '100%', overflowX: 'hidden' }}>
         {/* Banner Section - Shopee Style */}

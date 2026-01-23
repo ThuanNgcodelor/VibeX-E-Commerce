@@ -223,8 +223,8 @@ services:
     build: ./stock-service
     container_name: stock-service
     environment:
-      - OLLAMA_BASE_URL=http://26.20.214.252:11434
-      - OLLAMA_MODEL=qwen2.5:7b
+      - OLLAMA_BASE_URL=https://jerold-transpulmonary-pseudobiographically.ngrok-free.dev
+      - OLLAMA_MODEL=gpt-oss:120b-cloud
       - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
       - EUREKA_URI=http://eureka-server:8761/eureka
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/shopee
@@ -232,7 +232,7 @@ services:
       - SPRING_DATASOURCE_PASSWORD=Thuan@417
       - SPRING_DATA_REDIS_HOST=redis
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
-      # Service này có AI connect, cho thêm chút RAM
+      # Service này có AI connect, cho thêm chút RAMs
       - JAVA_TOOL_OPTIONS=-Xms512m -Xmx768m
     depends_on:
       gateway:
