@@ -295,7 +295,13 @@ public class OrderController {
     }
 
     @GetMapping("/internal/stats/shop/{shopId}")
-    public ResponseEntity<Map<String, Object>> getShopOrderStats(@PathVariable String shopId) {
+    public ResponseEntity<Map<String, Object>> getShopOrderStats(
+            @PathVariable String shopId,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate startDate,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate endDate) {
+        if (startDate != null || endDate != null) {
+            return ResponseEntity.ok(orderService.getShopStats(shopId, startDate, endDate));
+        }
         return ResponseEntity.ok(orderService.getShopStats(shopId));
     }
 
@@ -489,11 +495,14 @@ public class OrderController {
                     }
                 }
             }
-            
-            // GHN require insurance_value <= 5000000 for some services, but let's pass real value first
-            // If > 5000000, maybe capped or handled by specific service types, but 0 or null is invalid.
-            // Note: max insurance value depends on contract, but typically < 5000000 is safe for basic accounts.
-            
+
+            // GHN require insurance_value <= 5000000 for some services, but let's pass real
+            // value first
+            // If > 5000000, maybe capped or handled by specific service types, but 0 or
+            // null is invalid.
+            // Note: max insurance value depends on contract, but typically < 5000000 is
+            // safe for basic accounts.
+
             // 7. Build GHN fee calculation request
             com.example.orderservice.dto.GhnCalculateFeeRequest ghnRequest = com.example.orderservice.dto.GhnCalculateFeeRequest
                     .builder()
@@ -526,14 +535,14 @@ public class OrderController {
 
         } catch (Exception e) {
             log.error("Calculate shipping fee error: {}", e.getMessage());
-            
+
             // Check if it's a GHN API error (which wraps 400 Bad Request)
             if (e.getMessage() != null && e.getMessage().contains("GHN")) {
-               return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
-                    "error", "GHN_API_ERROR",
-                    "message", e.getMessage()));
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                        "error", "GHN_API_ERROR",
+                        "message", e.getMessage()));
             }
-            
+
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
                     "error", "CALCULATION_FAILED",
                     "message", e.getMessage()));

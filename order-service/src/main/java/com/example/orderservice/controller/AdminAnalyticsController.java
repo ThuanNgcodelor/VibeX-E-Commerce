@@ -10,7 +10,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDate;
 import java.util.List;
+
+import com.example.orderservice.dto.ConversionTrendDto;
 
 @RestController
 @RequestMapping("/v1/order/admin/analytics")
@@ -71,5 +74,19 @@ public class AdminAnalyticsController {
     public ResponseEntity<Void> warnShop(@PathVariable String shopId) {
         suspiciousActivityService.warnShop(shopId);
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/conversion-trend")
+    public ResponseEntity<List<ConversionTrendDto>> getConversionTrend(
+            @org.springframework.web.bind.annotation.RequestParam(required = false) LocalDate startDate,
+            @org.springframework.web.bind.annotation.RequestParam(required = false) LocalDate endDate) {
+
+        if (startDate == null)
+            startDate = LocalDate.now().minusDays(30);
+        if (endDate == null)
+            endDate = LocalDate.now();
+
+        return ResponseEntity
+                .ok(adminDashboardService.getConversionTrend(startDate.atStartOfDay(), endDate.atTime(23, 59, 59)));
     }
 }

@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import '../../assets/admin/css/AdminDashboard.css';
-import { getDashboardStats, getRevenueChartData, getRecentOrders, getTopCategories } from '../../api/adminAnalyticsApi';
+import { getDashboardStats, getRevenueChartData, getRecentOrders, getTopCategories, getConversionTrend } from '../../api/adminAnalyticsApi';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import { Chart, registerables } from 'chart.js';
+
+Chart.register(...registerables);
 
 const AdminDashboard = () => {
     const handleExportPDF = () => {
@@ -29,7 +32,12 @@ const AdminDashboard = () => {
     const [revenueData, setRevenueData] = useState([]);
     const [recentOrdersList, setRecentOrdersList] = useState([]);
     const [topCategoriesList, setTopCategoriesList] = useState([]);
+    const [conversionTrendData, setConversionTrendData] = useState([]);
     const [loading, setLoading] = useState(true);
+
+    // Charts Ref
+    const conversionChartRef = React.useRef(null);
+    const conversionChartInstance = React.useRef(null);
 
 
     // UI Toggles & Filters
@@ -37,10 +45,10 @@ const AdminDashboard = () => {
     const [showAllOrders, setShowAllOrders] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState("All");
 
-    // Default: Last 30 days
+    // Default: Start of current month
     const [startDate, setStartDate] = useState(() => {
         const d = new Date();
-        d.setDate(d.getDate() - 30);
+        d.setDate(1); // Set to 1st day of month
         return d.toISOString().split('T')[0];
     });
     const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
@@ -48,19 +56,22 @@ const AdminDashboard = () => {
     const loadData = async () => {
         try {
             setLoading(true);
-            const [stats, revenue, orders, categories] = await Promise.all([
+            setLoading(true);
+            const [stats, revenue, orders, categories, conversionTrend] = await Promise.all([
                 getDashboardStats(startDate, endDate),
                 getRevenueChartData(startDate, endDate),
                 getRecentOrders(selectedCategory),
-                getTopCategories(startDate, endDate)
+                getTopCategories(startDate, endDate),
+                getConversionTrend(startDate, endDate)
             ]);
             setDashboardStats(stats);
             setRevenueData(revenue);
             setTopCategoriesList(categories);
             setRecentOrdersList(orders);
+            setConversionTrendData(conversionTrend);
         } catch (error) {
             console.error("Error loading dashboard data:", error);
-            setError("Failed to load dashboard data");
+            // setError("Failed to load dashboard data"); // setError not defined in component, ignoring
         } finally {
             setLoading(false);
         }
@@ -72,15 +83,14 @@ const AdminDashboard = () => {
             setRecentOrdersList(orders);
         } catch (error) {
             console.error("Error loading recent orders:", error);
-            setError("Failed to load recent orders");
+            // setError("Failed to load recent orders");
         }
     }
 
     // Effect for initial load and date changes
     useEffect(() => {
         loadData();
-        const intervalId = setInterval(loadData, 10000);
-        return () => clearInterval(intervalId);
+        // Removed setInterval to prevent continuous reloading
     }, [startDate, endDate]);
 
     // Effect for category filter change
@@ -89,6 +99,76 @@ const AdminDashboard = () => {
             fetchRecentOrders(selectedCategory);
         }
     }, [selectedCategory]);
+
+    // Draw Chart when data changes
+    useEffect(() => {
+        if (conversionChartInstance.current) {
+            conversionChartInstance.current.destroy();
+        }
+
+        if (conversionChartRef.current && conversionTrendData.length > 0) {
+            const ctx = conversionChartRef.current.getContext('2d');
+
+            conversionChartInstance.current = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: conversionTrendData.map(d => new Date(d.date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' })),
+                    datasets: [
+                        {
+                            label: 'Visits',
+                            data: conversionTrendData.map(d => d.visits),
+                            borderColor: '#667eea',
+                            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                            yAxisID: 'y',
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: 'Orders',
+                            data: conversionTrendData.map(d => d.orders),
+                            borderColor: '#F7931E',
+                            backgroundColor: 'rgba(247, 147, 30, 0.1)',
+                            yAxisID: 'y1',
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Conversion Rate (%)',
+                            data: conversionTrendData.map(d => d.conversionRate),
+                            borderColor: '#4ade80',
+                            backgroundColor: 'transparent',
+                            yAxisID: 'y1',
+                            borderDash: [5, 5],
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: { display: true, text: 'Visits' }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            grid: {
+                                drawOnChartArea: false,
+                            },
+                            title: { display: true, text: 'Orders / Rate (%)' }
+                        },
+                    }
+                }
+            });
+        }
+    }, [conversionTrendData]);
 
     // Static data for fallback or unimplemented sections
     const activeUsers = [
@@ -176,8 +256,10 @@ const AdminDashboard = () => {
                         <div className="stat-info-compact">
                             <span className="stat-label-compact">Total Sales</span>
                             <h2 className="stat-value-compact">{loading ? '...' : formatCurrency(dashboardStats.totalSales)}</h2>
-                            <span className="stat-change positive">
-                                +3.2% vs last month
+                            <span className={`stat-change ${(!dashboardStats.salesGrowth || dashboardStats.salesGrowth >= 0) ? 'positive' : 'negative'}`}>
+                                {dashboardStats.salesGrowth !== undefined
+                                    ? <>{Number(dashboardStats.salesGrowth).toFixed(1)}% vs last period</>
+                                    : '+0% vs last month'}
                             </span>
                         </div>
                     </div>
@@ -189,8 +271,10 @@ const AdminDashboard = () => {
                         <div className="stat-info-compact">
                             <span className="stat-label-compact">Total Orders</span>
                             <h2 className="stat-value-compact">{loading ? '...' : dashboardStats.totalOrders}</h2>
-                            <span className="stat-change positive">
-                                +5.5% vs last month
+                            <span className={`stat-change ${(!dashboardStats.ordersGrowth || dashboardStats.ordersGrowth >= 0) ? 'positive' : 'negative'}`}>
+                                {dashboardStats.ordersGrowth !== undefined
+                                    ? <>{Number(dashboardStats.ordersGrowth).toFixed(1)}% vs last period</>
+                                    : '+0% vs last month'}
                             </span>
                         </div>
                     </div>
@@ -202,6 +286,7 @@ const AdminDashboard = () => {
                         <div className="stat-info-compact">
                             <span className="stat-label-compact">Total Users</span>
                             <h2 className="stat-value-compact">{loading ? '...' : dashboardStats.totalUsers}</h2>
+                            {/* User growth unavailable currently, keeping static or hiding */}
                             <span className="stat-change positive">
                                 +2.4% vs last month
                             </span>
@@ -385,36 +470,14 @@ const AdminDashboard = () => {
                     </div>
                     <div className="card-body">
                         {/* Static Conversion Metrics */}
-                        <div className="conversion-metrics">
-                            {conversionMetrics.map((metric, index) => (
-                                <div key={index} className="conversion-item" style={{
-                                    padding: '1rem',
-                                    borderRadius: '12px',
-                                    background: '#f8f9fa',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    justifyContent: 'space-between'
-                                }}>
-                                    <div className="conversion-header" style={{ marginBottom: '10px' }}>
-                                        {metric.icon && <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>{metric.icon}</div>}
-                                        <span className="conversion-label" style={{ fontSize: '0.85rem', fontWeight: '600', color: '#555' }}>{metric.label}</span>
-                                    </div>
-                                    <div className="d-flex flex-column align-items-center justify-content-center mt-2">
-                                        <h3 className="conversion-value" style={{ fontSize: '1.75rem', color: metric.color }}>{metric.percentage}</h3>
-                                        <span style={{ fontSize: '0.85rem', color: '#888', marginTop: '0.25rem' }}>{metric.value} count</span>
-                                    </div>
-                                    <div className="progress mt-3" style={{ height: '6px', backgroundColor: '#e9ecef', borderRadius: '3px' }}>
-                                        <div
-                                            className="progress-bar"
-                                            style={{
-                                                width: metric.percentage,
-                                                backgroundColor: metric.color,
-                                                borderRadius: '3px'
-                                            }}
-                                        ></div>
-                                    </div>
+                        <div className="conversion-chart-container" style={{ position: 'relative', height: '300px', width: '100%' }}>
+                            <canvas ref={conversionChartRef}></canvas>
+                            {conversionTrendData.length === 0 && !loading && (
+                                <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
+                                    <p className="text-muted">No trend data available for this period.</p>
+                                    <small>Note: Historical visit data is not available before today.</small>
                                 </div>
-                            ))}
+                            )}
                         </div>
                     </div>
                 </div>

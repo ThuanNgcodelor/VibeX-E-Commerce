@@ -340,6 +340,68 @@ public class OrderServiceImpl implements OrderService {
         return stats;
     }
 
+    @Override
+    public Map<String, Object> getShopStats(String shopOwnerId, LocalDate startDate, LocalDate endDate) {
+        // 1. Get product IDs
+        List<String> productIds = stockServiceClient.getProductIdsByShopOwner(shopOwnerId).getBody();
+        Map<String, Object> stats = new HashMap<>();
+
+        if (productIds == null || productIds.isEmpty()) {
+            stats.put("pending", 0);
+            stats.put("confirmed", 0);
+            stats.put("readyToShip", 0);
+            stats.put("shipped", 0);
+            stats.put("delivered", 0);
+            stats.put("completed", 0);
+            stats.put("cancelled", 0);
+            stats.put("returned", 0);
+            stats.put("salesToday", 0); // Named 'salesToday' but implies 'salesInPeriod' in this context
+            return stats;
+        }
+
+        LocalDateTime startDateTime = (startDate != null) ? startDate.atStartOfDay() : LocalDateTime.MIN;
+        LocalDateTime endDateTime = (endDate != null) ? endDate.atTime(LocalTime.MAX) : LocalDateTime.now();
+
+        // 2. Count by status within range
+        long pending = orderRepository.countByProductIdsAndDateRangeAndStatus(productIds, startDateTime, endDateTime,
+                OrderStatus.PENDING);
+        long confirmed = orderRepository.countByProductIdsAndDateRangeAndStatus(productIds, startDateTime, endDateTime,
+                OrderStatus.CONFIRMED);
+        long readyToShip = orderRepository.countByProductIdsAndDateRangeAndStatus(productIds, startDateTime,
+                endDateTime, OrderStatus.READY_TO_SHIP);
+        long shipped = orderRepository.countByProductIdsAndDateRangeAndStatus(productIds, startDateTime, endDateTime,
+                OrderStatus.SHIPPED);
+        long delivered = orderRepository.countByProductIdsAndDateRangeAndStatus(productIds, startDateTime, endDateTime,
+                OrderStatus.DELIVERED);
+        long completed = orderRepository.countByProductIdsAndDateRangeAndStatus(productIds, startDateTime, endDateTime,
+                OrderStatus.COMPLETED);
+        long cancelled = orderRepository.countByProductIdsAndDateRangeAndStatus(productIds, startDateTime, endDateTime,
+                OrderStatus.CANCELLED);
+        long returned = orderRepository.countByProductIdsAndDateRangeAndStatus(productIds, startDateTime, endDateTime,
+                OrderStatus.RETURNED);
+
+        // 3. Sales in range
+        Double salesInRange = orderRepository.sumSalesByProductIdsAndDateRangeAndStatus(productIds, startDateTime,
+                endDateTime,
+                OrderStatus.COMPLETED);
+
+        stats.put("pending", pending);
+        stats.put("confirmed", confirmed);
+        stats.put("readyToShip", readyToShip);
+        stats.put("shipped", shipped);
+        stats.put("delivered", delivered);
+        stats.put("completed", completed);
+        stats.put("cancelled", cancelled);
+        stats.put("returned", returned);
+
+        stats.put("waitingForPickup", confirmed + readyToShip);
+        stats.put("processed", shipped + delivered + completed);
+
+        stats.put("salesToday", salesInRange != null ? salesInRange : 0.0);
+
+        return stats;
+    }
+
     // Get data for shop owner orders
     @Override
     public Page<Order> getOrdersByShopOwner(String shopOwnerId, List<String> statuses, Integer pageNo,

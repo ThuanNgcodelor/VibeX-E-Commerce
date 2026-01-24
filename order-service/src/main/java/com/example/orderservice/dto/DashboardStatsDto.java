@@ -23,4 +23,9 @@ public class DashboardStatsDto {
     private Double productViewRate; // (Product Views / Site Visits) * 100
     private Double addToCartRate; // (Add To Cart / Site Visits) * 100
     private Double orderCompletionRate; // (Orders / Site Visits) * 100
+
+    // Growth Metrics (Comparison with previous period)
+    private Double salesGrowth;
+    private Double ordersGrowth;
+    private Double usersGrowth;
 }

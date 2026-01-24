@@ -2,12 +2,31 @@ import React, { useState } from 'react';
 import '../../../assets/admin/css/ShopOwnerList.css';
 import Swal from 'sweetalert2';
 
-export default function ShopOwnerList({ shops, selectedShopId, onSelectShop, onToggleStatus }) {
-    const [searchTerm, setSearchTerm] = useState('');
-    // ... (rest of state)
+export default function ShopOwnerList({
+    shops,
+    selectedShopId,
+    onSelectShop,
+    onToggleStatus,
+    sortBy,
+    setSortBy,
+    searchTerm,
+    setSearchTerm,
+    filterVerified,
+    setFilterVerified,
+    totalPages,
+    currentPage,
+    onPageChange,
+    onSearch, // Callback to trigger search in parent
+    startDate,
+    setStartDate,
+    endDate,
+    setEndDate,
+    sortDir,
+    setSortDir
+}) {
 
     const handleLockClick = (e, shop) => {
-        e.stopPropagation(); // Stop card selection
+        e.stopPropagation(); // Stop row selection
 
         const isLocked = shop.status === 'LOCKED';
         const action = isLocked ? 'Unlock' : 'Lock';
@@ -23,7 +42,6 @@ export default function ShopOwnerList({ shops, selectedShopId, onSelectShop, onT
         }).then((result) => {
             if (result.isConfirmed) {
                 onToggleStatus(shop.id);
-                // Optional: Let parent handle success message to avoid duplicate or handled via optimistic update
                 Swal.fire({
                     title: `${action}ed!`,
                     text: `The shop has been ${action.toLowerCase()}ed.`,
@@ -35,47 +53,12 @@ export default function ShopOwnerList({ shops, selectedShopId, onSelectShop, onT
         });
     };
 
-    const [filterVerified, setFilterVerified] = useState('all');
-    const [sortBy, setSortBy] = useState('name');
-
-    // Filter shops
-    const filteredShops = shops.filter(shop => {
-        const matchesSearch =
-            shop.shopName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            shop.ownerName.toLowerCase().includes(searchTerm.toLowerCase());
-
-        const matchesFilter =
-            filterVerified === 'all' ||
-            (filterVerified === 'verified' && shop.verified) ||
-            (filterVerified === 'unverified' && !shop.verified);
-
-        return matchesSearch && matchesFilter;
-    });
-
-    // Sort shops
-    const sortedShops = [...filteredShops].sort((a, b) => {
-        switch (sortBy) {
-            case 'name':
-                return a.shopName.localeCompare(b.shopName);
-            case 'products':
-                return b.totalProducts - a.totalProducts;
-            case 'orders':
-                return b.totalOrders - a.totalOrders;
-            case 'revenue':
-                return b.totalRevenue - a.totalRevenue;
-            default:
-                return 0;
-        }
-    });
-
-    const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('vi-VN', {
-            style: 'currency',
-            currency: 'VND'
-        }).format(amount);
+    const handleSearchSubmit = (e) => {
+        e.preventDefault();
+        onSearch(searchTerm); // Trigger fetch in parent
     };
 
-    const formatDate = (dateString) => {
+    const formatDate = (dateString, showTime = false) => {
         if (!dateString || dateString === 'N/A') return 'N/A';
         const date = new Date(dateString);
         return isNaN(date.getTime()) ? 'N/A' : date.toLocaleDateString();
@@ -83,133 +66,202 @@ export default function ShopOwnerList({ shops, selectedShopId, onSelectShop, onT
 
     return (
         <div className="shop-owner-list-container">
-            <div className="list-header">
-                <h3 className="list-title">
+            <div className="list-header mb-3">
+                <h3 className="list-title mb-0">
                     <i className="fas fa-list me-2"></i>
-                    Shop List ({sortedShops.length})
+                    Shop List ({shops.length} displayed)
                 </h3>
             </div>
 
             {/* Search and Filters */}
-            <div className="list-controls">
-                <div className="search-box">
+            <div className="list-controls mb-3">
+                {/* Date Range Picker */}
+                <div className="d-flex gap-2 mb-2">
+                    <input
+                        type="date"
+                        className="form-control form-control-sm"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        title="Start Date"
+                    />
+                    <span className="align-self-center">-</span>
+                    <input
+                        type="date"
+                        className="form-control form-control-sm"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        title="End Date"
+                    />
+                </div>
+
+                <form onSubmit={handleSearchSubmit} className="search-box mb-2 w-100">
                     <i className="fas fa-search"></i>
                     <input
                         type="text"
+                        className="form-control"
                         placeholder="Search shop or owner..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
-                </div>
+                </form>
 
-                <div className="filter-row">
+                <div className="filter-row d-flex gap-2">
                     <select
-                        className="form-select"
+                        className="form-select form-select-sm"
                         value={filterVerified}
-                        onChange={(e) => setFilterVerified(e.target.value)}
+                        onChange={(e) => setFilterVerified(e.target.value)} // Note: You might want to handle this in parent too if server-side filter needed
+                        disabled // Disabled for now as backend simplified plan focused on Search
                     >
                         <option value="all">All Statuses</option>
-                        <option value="verified">✓ Verified</option>
-                        <option value="unverified">⏳ Unverified</option>
+                        {/* <option value="verified">✓ Verified</option>
+                        <option value="unverified">⏳ Unverified</option> */}
                     </select>
 
                     <select
-                        className="form-select"
+                        className="form-select form-select-sm"
                         value={sortBy}
                         onChange={(e) => setSortBy(e.target.value)}
                     >
                         <option value="name">Sort: Name</option>
-                        <option value="products">Sort: Products</option>
-                        <option value="orders">Sort: Orders</option>
                         <option value="revenue">Sort: Revenue</option>
+                        <option value="trending">Sort: 🔥 Trending</option>
                     </select>
+
+                    <button
+                        className="btn btn-sm btn-outline-secondary"
+                        onClick={() => setSortDir(sortDir === 'asc' ? 'desc' : 'asc')}
+                        title={sortDir === 'asc' ? 'Ascending (A-Z)' : 'Descending (Z-A)'}
+                        type="button"
+                    >
+                        <i className={`fas fa-sort-${sortDir === 'asc' ? 'amount-down-alt' : 'amount-down'}`}></i>
+                    </button>
                 </div>
             </div>
 
-            {/* Shop List */}
-            <div className="shop-list">
-                {sortedShops.length === 0 ? (
-                    <div className="empty-state">
-                        <i className="fas fa-store-slash"></i>
-                        <p>No shops found</p>
-                    </div>
-                ) : (
-                    sortedShops.map(shop => (
-                        <div
-                            key={shop.id}
-                            className={`shop-card ${selectedShopId === shop.id ? 'selected' : ''}`}
-                            onClick={() => onSelectShop(shop.id)}
-                        >
-                            <div className="shop-header">
-                                <div className="shop-avatar">
-                                    {shop.imageUrl ? (
-                                        <img src={shop.imageUrl} alt={shop.shopName} />
-                                    ) : (
-                                        <div className="avatar-placeholder">
-                                            {shop.shopName.charAt(0)}
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="shop-info">
-                                    <h4 className="shop-name">
-                                        {shop.shopName}
-                                        {shop.status === 'LOCKED' && (
-                                            <span className="badge bg-danger ms-1" title="Locked" style={{ fontSize: '0.6em' }}>
-                                                <i className="fas fa-lock"></i>
-                                            </span>
-                                        )}
-                                        {shop.verified && shop.status !== 'LOCKED' && (
-                                            <span className="verified-badge" title="Verified">
-                                                <i className="fas fa-check-circle"></i>
-                                            </span>
-                                        )}
-                                    </h4>
-                                    <p className="owner-name">
-                                        <i className="fas fa-user"></i> {shop.ownerName}
-                                    </p>
-                                </div>
-                            </div>
+            {/* Shop Table */}
+            <div className="table-responsive">
+                <table className="table table-hover align-middle mb-0 bg-white">
+                    <thead className="table-light sticky-top">
+                        <tr>
+                            <th scope="col" style={{ width: '40%' }}>Shop</th>
+                            <th scope="col" style={{ width: '25%' }}>Owner</th>
+                            <th scope="col" style={{ width: '20%' }}>Status</th>
+                            <th scope="col" style={{ width: '15%', textAlign: 'center' }}>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {shops.length === 0 ? (
+                            <tr>
+                                <td colSpan="4" className="text-center p-4 text-muted">
+                                    <i className="fas fa-store-slash me-2"></i>
+                                    No shops found
+                                </td>
+                            </tr>
+                        ) : (
+                            shops.map(shop => {
+                                // Trending Logic: Revenue > 10M OR Orders > 10 (Adjust as needed)
+                                const isTrending = (shop.totalRevenue > 10000000) || (shop.totalOrders >= 10);
 
-                            <div className="shop-stats">
-                                <div className="stat-item">
-                                    <i className="fas fa-box text-primary"></i>
-                                    <span className="stat-value">{shop.totalProducts}</span>
-                                    <span className="stat-label">Products</span>
-                                </div>
-                                <div className="stat-item">
-                                    <i className="fas fa-shopping-cart text-success"></i>
-                                    <span className="stat-value">{shop.totalOrders}</span>
-                                    <span className="stat-label">Orders</span>
-                                </div>
-                                <div className="stat-item">
-                                    <i className="fas fa-money-bill-wave text-warning"></i>
-                                    <span className="stat-value">{formatCurrency(shop.totalRevenue)}</span>
-                                    <span className="stat-label">Revenue</span>
-                                </div>
-                            </div>
-
-                            <div className="shop-footer d-flex justify-content-between align-items-center">
-                                <span className="join-date">
-                                    <i className="fas fa-calendar-alt"></i>
-                                    Joined: {formatDate(shop.createdAt)}
-                                </span>
-                                {onToggleStatus && (
-                                    <button
-                                        type="button"
-                                        className={`btn btn-sm ${shop.status === 'LOCKED' ? 'btn-danger' : 'btn-outline-secondary'}`}
-                                        // onClick={(e) => handleLockClick(e, shop)}
-                                        title={shop.status === 'LOCKED' ? 'Unlock Shop' : 'Lock Shop'}
-                                        style={{ zIndex: 10, position: 'relative' }}
+                                return (
+                                    <tr
+                                        key={shop.id}
+                                        className={`${selectedShopId === shop.id ? 'table-active' : ''} ${isTrending ? 'table-warning' : ''}`}
+                                        style={{ cursor: 'pointer', backgroundColor: isTrending && selectedShopId !== shop.id ? '#fff3cd' : undefined }}
+                                        onClick={() => onSelectShop(shop.id)}
                                     >
-                                        <i className={`fas ${shop.status === 'LOCKED' ? 'fa-lock' : 'fa-lock-open'}`}></i>
-                                        {shop.status === 'LOCKED' ? ' Locked' : ' Lock'}
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-                    ))
-                )}
+                                        <td>
+                                            <div className="d-flex align-items-center">
+                                                {/* Trending Badge */}
+                                                {isTrending && (
+                                                    <div className="me-2 text-warning" title="Trending Shop!">
+                                                        <i className="fas fa-fire"></i>
+                                                    </div>
+                                                )}
+
+                                                {shop.imageUrl ? (
+                                                    <img
+                                                        src={shop.imageUrl}
+                                                        alt=""
+                                                        style={{ width: '32px', height: '32px' }}
+                                                        className="rounded-circle me-2"
+                                                    />
+                                                ) : (
+                                                    <div
+                                                        className="rounded-circle me-2 bg-secondary text-white d-flex align-items-center justify-content-center"
+                                                        style={{ width: '32px', height: '32px', fontSize: '12px' }}
+                                                    >
+                                                        {shop.shopName.charAt(0)}
+                                                    </div>
+                                                )}
+                                                <div>
+                                                    <div className="fw-bold text-truncate" style={{ maxWidth: '120px' }}>{shop.shopName}</div>
+                                                    <small className="text-muted" style={{ fontSize: '0.75rem' }}>
+                                                        Joined: {formatDate(shop.createdAt)}
+                                                    </small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div className='d-flex align-items-center text-truncate' style={{ maxWidth: '100px' }}>
+                                                <i className="fas fa-user-circle me-1 text-secondary"></i>
+                                                {shop.ownerName}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div className="d-flex justify-content-between align-items-center">
+                                                {shop.status === 'LOCKED' ? (
+                                                    <span className="badge bg-danger rounded-pill">Locked</span>
+                                                ) : (
+                                                    <span className={`badge ${shop.verified ? 'bg-success' : 'bg-warning text-dark'} rounded-pill`}>
+                                                        {shop.verified ? 'Active' : 'Pending'}
+                                                    </span>
+                                                )}
+
+                                            </div>
+                                        </td>
+                                        <td className="text-center" onClick={(e) => e.stopPropagation()}>
+                                            <a
+                                                href={`/shop/${shop.id}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="btn btn-sm btn-outline-primary"
+                                                title="View Shop Public Page"
+                                            >
+                                                <i className="fas fa-external-link-alt"></i> View
+                                            </a>
+                                        </td>
+                                    </tr>
+                                );
+                            })
+                        )}
+                    </tbody>
+                </table>
             </div>
-        </div>
+
+            {/* Pagination Controls */}
+            {
+                totalPages > 0 && (
+                    <div className="pagination-controls d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
+                        <button
+                            className="btn btn-sm btn-outline-secondary"
+                            disabled={currentPage === 0}
+                            onClick={() => onPageChange(currentPage - 1)}
+                        >
+                            <i className="fas fa-chevron-left"></i>
+                        </button>
+                        <span className="small text-muted">
+                            Page {currentPage + 1} of {totalPages}
+                        </span>
+                        <button
+                            className="btn btn-sm btn-outline-secondary"
+                            disabled={currentPage === totalPages - 1}
+                            onClick={() => onPageChange(currentPage + 1)}
+                        >
+                            <i className="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                )
+            }
+        </div >
     );
 }

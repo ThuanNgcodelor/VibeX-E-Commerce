@@ -15,10 +15,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+
+import com.example.stockservice.dto.analytics.SystemAnalyticsTrendDto;
 
 /**
  * ===== PHASE 1: TRACKING SERVICE =====
@@ -266,6 +269,10 @@ public class TrackingService {
 
     public Long getSystemCartAdds() {
         return redisService.getSystemCartAdds();
+    }
+
+    public List<SystemAnalyticsTrendDto> getSystemAnalyticsTrend(LocalDate startDate, LocalDate endDate) {
+        return redisService.getSystemAnalyticsTrend(startDate, endDate);
     }
 
     // ==================== HELPER METHODS (Phương thức hỗ trợ) ====================

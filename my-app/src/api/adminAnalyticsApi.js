@@ -65,6 +65,18 @@ export const getTopCategories = async (startDate, endDate) => {
     }
 };
 
+export const getConversionTrend = async (startDate, endDate) => {
+    try {
+        const response = await api.get("/conversion-trend", {
+            params: { startDate, endDate }
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching conversion trend:", error);
+        throw error;
+    }
+};
+
 export const warnShop = async (shopId) => {
     try {
         await api.post(`/warn-shop/${shopId}`);

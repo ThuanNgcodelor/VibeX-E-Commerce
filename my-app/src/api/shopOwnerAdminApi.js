@@ -6,9 +6,9 @@ const api = createApiInstance('/v1/user'); // user-service
 
 const shopOwnerAdminApi = {
     // Get all shop owners with stats
-    getAllShopOwnersWithStats: async () => {
+    getAllShopOwnersWithStats: async (params) => {
         try {
-            const response = await api.get('/shop-owners/admin/list');
+            const response = await api.get('/shop-owners/admin/list', { params });
             return response.data;
         } catch (error) {
             console.error("Error fetching shop owner stats:", error);

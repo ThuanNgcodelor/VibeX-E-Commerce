@@ -9,16 +9,15 @@ import java.util.List;
 
 @Repository
 public interface ShopLedgerEntryRepository extends JpaRepository<ShopLedgerEntry, String> {
-    List<ShopLedgerEntry> findByShopOwnerIdOrderByCreatedAtDesc(String shopOwnerId);
+        List<ShopLedgerEntry> findByShopOwnerIdOrderByCreatedAtDesc(String shopOwnerId);
 
-    List<ShopLedgerEntry> findByShopOwnerIdAndEntryTypeOrderByCreatedAtDesc(String shopOwnerId,
-                                                                            LedgerEntryType entryType);
+        List<ShopLedgerEntry> findByShopOwnerIdAndEntryTypeOrderByCreatedAtDesc(String shopOwnerId,
+                        LedgerEntryType entryType);
 
-    List<ShopLedgerEntry> findByOrderId(String orderId);
+        List<ShopLedgerEntry> findByOrderId(String orderId);
 
-    boolean existsByRefTxn(String refTxn);
+        boolean existsByRefTxn(String refTxn);
 
-    org.springframework.data.domain.Page<ShopLedgerEntry> findByShopOwnerIdOrderByCreatedAtDesc(String shopOwnerId,
-                                                                                                org.springframework.data.domain.Pageable pageable);
+        org.springframework.data.domain.Page<ShopLedgerEntry> findByShopOwnerIdOrderByCreatedAtDesc(String shopOwnerId,
+                        org.springframework.data.domain.Pageable pageable);
 }
-
