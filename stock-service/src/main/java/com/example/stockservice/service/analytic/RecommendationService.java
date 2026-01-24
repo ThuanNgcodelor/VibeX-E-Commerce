@@ -1,9 +1,6 @@
 package com.example.stockservice.service.analytic;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -112,7 +109,9 @@ public class RecommendationService {
      * Logic gợi ý:
      * 1. Lấy sản phẩm đã xem gần đây (để xác định category)
      * 2. Nếu không có history → trả về trending (phân trang)
-     * 3. Tìm sản phẩm cùng category (loại bỏ sản phẩm đã xem) (phân trang)
+     * 3. ✨ MỚI: Lấy TOP 3 CATEGORY từ recently viewed
+     * 4. Tìm sản phẩm trong các category đó (loại bỏ sản phẩm đã xem)
+     * 5. Nếu kết quả < 50% limit → bổ sung bằng trending products
      * 
      * @param page Trang
      * @param limit Số lượng sản phẩm
@@ -132,33 +131,88 @@ public class RecommendationService {
             return getTrendingProductsWithDetails(page, limit);
         }
         
-        // Lấy sản phẩm đầu tiên để xác định category
-        Optional<Product> firstProduct = productRepository.findById(recentlyViewed.get(0));
-        if (firstProduct.isEmpty()) {
+        //  MỚI: Lấy TOP 3 CATEGORY từ recently viewed
+        List<String> topCategoryIds = new ArrayList<>();
+        Set<String> seenCategories = new HashSet<>();
+        
+        for (String productId : recentlyViewed) {
+            if (topCategoryIds.size() >= 3) break;
+            
+            try {
+                Optional<Product> productOpt = productRepository.findById(productId);
+                if (productOpt.isPresent()) {
+                    String categoryId = getCategoryIdFromProduct(productOpt.get());
+                    if (categoryId != null && !seenCategories.contains(categoryId)) {
+                        topCategoryIds.add(categoryId);
+                        seenCategories.add(categoryId);
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Failed to get category for product {}: {}", productId, e.getMessage());
+            }
+        }
+        
+        // Nếu không tìm được category nào → fallback trending
+        if (topCategoryIds.isEmpty()) {
+            log.warn("No categories found from recently viewed, fallback to trending");
             return getTrendingProductsWithDetails(page, limit);
         }
         
-        Product baseProduct = firstProduct.get();
-        String categoryId = getCategoryIdFromProduct(baseProduct);
-        String reason = "Vì bạn đã xem " + baseProduct.getName();
+        log.debug("Found {} categories from recently viewed: {}", topCategoryIds.size(), topCategoryIds);
         
-        if (categoryId != null) {
-            org.springframework.data.domain.Pageable pageable = 
-                    org.springframework.data.domain.PageRequest.of(page - 1, limit);
+        List<RecommendationResponse> results = new ArrayList<>();
+        
+        // Query sản phẩm từ các category (OR query)
+        org.springframework.data.domain.Pageable pageable = 
+                org.springframework.data.domain.PageRequest.of(page - 1, limit);
+        
+        org.springframework.data.domain.Page<Product> productPage = 
+                productRepository.findByCategoryIdInAndIdNotIn(topCategoryIds, recentlyViewed, pageable);
+        
+        // Thêm sản phẩm vào kết quả
+        results = productPage.getContent().stream()
+                .map(p -> buildRecommendationFromProduct(
+                    p, 
+                    "personalized", 
+                    "Dựa trên sở thích của bạn"
+                ))
+                .collect(Collectors.toList());
+        
+        log.debug("Found {} personalized products for user {} from {} categories", 
+                results.size(), userId, topCategoryIds.size());
+        
+        //  FALLBACK: Nếu kết quả < 50% limit → bổ sung bằng trending
+        int minRequired = limit / 2;
+        if (results.size() < minRequired) {
+            log.info("Personalized recommendations ({}) < required ({}), adding trending products", 
+                    results.size(), minRequired);
             
-            org.springframework.data.domain.Page<Product> productPage = 
-                    productRepository.findByCategoryIdAndIdNotIn(categoryId, recentlyViewed, pageable);
-             
-            // Nếu trang hiện tại rỗng (đã hết sản phẩm Category), có thể fallback sang Trending?
-            // Tạm thời trả về rỗng để Client biết là hết load more cho phần này.
-            // (Nếu muốn phức tạp hơn: tính toán offset bù trừ để load tiếp Trending ở dưới, nhưng khá rắc rối)
+            // Tính số lượng trending cần bổ sung
+            int trendingNeeded = limit - results.size();
             
-            return productPage.getContent().stream()
-                    .map(p -> buildRecommendationFromProduct(p, "personalized", reason))
+            // Lấy trending products
+            List<RecommendationResponse> trending = getTrendingProductsWithDetails(page, trendingNeeded);
+            
+            // Lọc bỏ những sản phẩm đã có trong results (tránh duplicate)
+            Set<String> existingIds = results.stream()
+                    .map(RecommendationResponse::getProductId)
+                    .collect(Collectors.toSet());
+            
+            // Lọc bỏ cả sản phẩm đã xem gần đây
+            existingIds.addAll(recentlyViewed);
+            
+            List<RecommendationResponse> filteredTrending = trending.stream()
+                    .filter(r -> !existingIds.contains(r.getProductId()))
+                    .limit(trendingNeeded)
                     .collect(Collectors.toList());
+            
+            // Thêm trending vào kết quả
+            results.addAll(filteredTrending);
+            
+            log.debug("Added {} trending products, total: {}", filteredTrending.size(), results.size());
         }
         
-        return getTrendingProductsWithDetails(page, limit);
+        return results;
     }
     
     /**

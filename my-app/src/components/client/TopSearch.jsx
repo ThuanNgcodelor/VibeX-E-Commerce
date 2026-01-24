@@ -13,7 +13,7 @@ export default function TopSearch() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const keywords = await getTrendingKeywords(10);
+        const keywords = await getTrendingKeywords(6);
         if (Array.isArray(keywords) && keywords.length > 0) {
           const dataWithImages = await Promise.all(keywords.map(async (keyword) => {
             try {
@@ -72,7 +72,7 @@ export default function TopSearch() {
             {t('home.topSearch')}
           </h4>
           <Link to="/shop" style={{ color: '#ee4d2d', textDecoration: 'none', fontSize: '14px' }}>
-            {t('home.viewAll')} →
+            {t('home.viewAll')}
           </Link>
         </div>
 
@@ -82,7 +82,9 @@ export default function TopSearch() {
               key={index}
               to={`/shop?q=${encodeURIComponent(item.keyword)}`}
               style={{
-                minWidth: '180px',
+                width: '180px',          // Fixed width
+                minWidth: '180px',       // Prevent shrinking
+                maxWidth: '180px',       // Prevent growing
                 background: 'white',
                 border: '1px solid #f0f0f0',
                 borderRadius: '2px',
@@ -126,23 +128,30 @@ export default function TopSearch() {
                 #{index + 1}
               </div>
 
-              {/* Image Area */}
+              {/* Image Area - Fixed 1:1 Aspect Ratio */}
               <div style={{
                 position: 'relative',
-                width: '100%',
-                paddingBottom: '100%', // 1:1 Aspect Ratio
+                width: '180px',           // Fixed width
+                height: '180px',          // Fixed height (square)
                 background: '#f5f5f5',
                 overflow: 'hidden'
               }}>
                 {item.imageUrl ? (
                   <img src={item.imageUrl} alt={item.keyword} style={{
-                    position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover'
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',   // Crop to fit, no distortion
+                    objectPosition: 'center'
                   }} />
                 ) : (
                   <div style={{
-                    position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: '#ccc', fontSize: '40px'
+                    width: '100%',
+                    height: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#ccc',
+                    fontSize: '40px'
                   }}>
                     {item.keyword.charAt(0).toUpperCase()}
                   </div>
@@ -167,21 +176,36 @@ export default function TopSearch() {
                 </div>
               </div>
 
-              {/* Keyword Name */}
-              <div style={{ padding: '10px' }}>
+              {/* Keyword Name - Fixed height with ellipsis */}
+              <div style={{
+                padding: '10px',
+                height: '64px',          // Fixed height for consistent card size
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between'
+              }}>
                 <div style={{
                   fontSize: '14px',
                   color: '#333',
                   fontWeight: 500,
                   textTransform: 'capitalize',
-                  whiteSpace: 'nowrap',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,      // Max 2 lines
+                  WebkitBoxOrient: 'vertical',
+                  lineHeight: '1.4',
+                  maxHeight: '39px',       // 2 lines * 1.4 line-height * 14px
                   textAlign: 'left'
                 }}>
                   {item.keyword}
                 </div>
-                <div style={{ fontSize: '12px', color: '#999', marginTop: '2px', textAlign: 'left' }}>
+                <div style={{
+                  fontSize: '12px',
+                  color: '#999',
+                  textAlign: 'left',
+                  whiteSpace: 'nowrap'
+                }}>
                   {t('home.topSearch')}
                 </div>
               </div>

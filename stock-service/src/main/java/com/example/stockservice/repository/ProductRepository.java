@@ -14,7 +14,8 @@ import com.example.stockservice.model.Product;
 
 @Repository
 public interface ProductRepository extends JpaRepository<Product, String> {
-    @Query("SELECT p FROM products p WHERE p.name LIKE CONCAT('%', :keyword, '%')")
+    // Case-insensitive search - supports Vietnamese characters
+    @Query("SELECT p FROM products p WHERE LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     List<Product> searchProductByName(@Param("keyword") String keyword);
 
     @Query("SELECT p.id FROM products p WHERE p.category.name = :categoryName")
@@ -51,4 +52,7 @@ public interface ProductRepository extends JpaRepository<Product, String> {
     Page<Product> findByUserIdAndIdNotAndStatus(String userId, String excludedId, ProductStatus status, Pageable pageable);
 
     Page<Product> findByUserIdAndIdNotInAndStatus(String userId, List<String> excludedIds, ProductStatus status, Pageable pageable);
+    
+    // Multi-category recommendation
+    Page<Product> findByCategoryIdInAndIdNotIn(List<String> categoryIds, List<String> excludedIds, Pageable pageable);
 }

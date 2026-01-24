@@ -22,7 +22,7 @@ export default function TrendingProducts() {
         const loadTrendingProducts = async () => {
             try {
                 // Get trending products with full details from recommendation API
-                const recommendedProducts = await getTrendingProductsWithDetails(12);
+                const recommendedProducts = await getTrendingProductsWithDetails(6);
                 setProducts(recommendedProducts || []);
             } catch (error) {
                 console.error("Failed to load trending products:", error);

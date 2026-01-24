@@ -6,7 +6,7 @@ import ShopeeCategoryGrid from "../../components/client/ShopeeCategoryGrid.jsx";
 import FlashSale from "../../components/client/FlashSale.jsx";
 import TopSearch from "../../components/client/TopSearch.jsx";
 import TodaysSuggestions from "../../components/client/TodaysSuggestions.jsx";
-import AdDisplay from "../../components/client/ads/AdDisplay.jsx";
+// import AdDisplay from "../../components/client/ads/AdDisplay.jsx";
 
 import PersonalizedRecommendations from "../../components/client/PersonalizedRecommendations.jsx";
 import TrendingProducts from "../../components/client/TrendingProducts.jsx";

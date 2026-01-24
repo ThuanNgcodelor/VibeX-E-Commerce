@@ -5,7 +5,7 @@ import imgFallback from "../../assets/images/shop/6.png";
 import Loading from "./Loading.jsx";
 import {
   fetchProductImageById,
-  fetchPersonalizedRecommendations,
+  fetchTrendingProducts,
 } from "../../api/product.js";
 
 const USE_OBJECT_URL = true;
@@ -31,7 +31,7 @@ export default function TodaysSuggestions() {
   // Track created URLs for cleanup
   const createdUrlsRef = useRef([]);
 
-  const pageSize = 24; // Use a multiple of 6 (2, 3, 4, 6 col)
+  const pageSize = 12; // Use a multiple of 6 (2, 3, 4, 6 col)
 
   const loadProductsData = async (currentPage) => {
     try {
@@ -41,8 +41,9 @@ export default function TodaysSuggestions() {
         setLoadingMore(true);
       }
 
-      // Using fetchPersonalizedRecommendations (Personalized API)
-      const res = await fetchPersonalizedRecommendations(currentPage, pageSize);
+      // ✨ CHANGED: Use fetchTrendingProducts for all users (guest + logged-in)
+      // TodaysSuggestions = Trending products (same for everyone)
+      const res = await fetchTrendingProducts(currentPage, pageSize);
 
       let newProducts = [];
       // Backend for recommendations returns List<RecommendationResponse> directly as res.data
