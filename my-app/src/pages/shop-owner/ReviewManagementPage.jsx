@@ -155,7 +155,7 @@ export default function ReviewManagementPage() {
 
             {/* Statistics Cards */}
             <div className="review-stats-grid">
-                <div className="stat-card">
+                {/* <div className="stat-card">
                     <div className="stat-icon blue">
                         <i className="fas fa-comments"></i>
                     </div>
@@ -163,7 +163,7 @@ export default function ReviewManagementPage() {
                         <h3>{stats.total}</h3>
                         <p>{t('shopOwner.reviews.totalReviews')}</p>
                     </div>
-                </div>
+                </div> */}
                 <div className="stat-card">
                     <div className="stat-icon orange">
                         <i className="fas fa-star"></i>

@@ -46,9 +46,16 @@ public interface ProductRepository extends JpaRepository<Product, String> {
     @Query("SELECT p FROM products p LEFT JOIN FETCH p.sizes WHERE p.id IN :ids")
     List<Product> findAllByIdIn(@Param("ids") List<String> ids);
 
-    Page<Product> findByCategoryIdAndIdNotAndStatus(String categoryId, String excludedId, ProductStatus status, Pageable pageable);
+    Page<Product> findByCategoryIdAndIdNotAndStatus(String categoryId, String excludedId, ProductStatus status,
+            Pageable pageable);
 
-    Page<Product> findByUserIdAndIdNotAndStatus(String userId, String excludedId, ProductStatus status, Pageable pageable);
+    Page<Product> findByUserIdAndIdNotAndStatus(String userId, String excludedId, ProductStatus status,
+            Pageable pageable);
 
-    Page<Product> findByUserIdAndIdNotInAndStatus(String userId, List<String> excludedIds, ProductStatus status, Pageable pageable);
+    Page<Product> findByUserId(String userId, Pageable pageable);
+
+    Page<Product> findByUserIdAndStatus(String userId, ProductStatus status, Pageable pageable);
+
+    Page<Product> findByUserIdAndIdNotInAndStatus(String userId, List<String> excludedIds, ProductStatus status,
+            Pageable pageable);
 }

@@ -504,19 +504,22 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public Page<Product> getProductsByUserIdWithPaging(String userId, Integer pageNo, Integer pageSize) {
+    public Page<Product> getProductsByUserIdWithPaging(String userId, Integer pageNo, Integer pageSize, String status) {
         Pageable pageable = PageRequest.of(pageNo - 1, pageSize);
-        List<Product> userProducts = productRepository.findByUserId(userId);
 
-        return getProductsPage(pageable, userProducts);
-    }
+        if (status != null && !status.isEmpty() && !status.equalsIgnoreCase("ALL")) {
+            try {
+                ProductStatus productStatus = ProductStatus.valueOf(status.toUpperCase());
+                return productRepository.findByUserIdAndStatus(userId, productStatus, pageable);
+            } catch (IllegalArgumentException e) {
+                // Invalid status, return all or empty? Let's return all for robustness or
+                // handle error
+                // For now fall back to all
+                return productRepository.findByUserId(userId, pageable);
+            }
+        }
 
-    private Page<Product> getProductsPage(Pageable pageable, List<Product> userProducts) {
-        int start = Math.min((int) pageable.getOffset(), userProducts.size());
-        int end = Math.min(start + pageable.getPageSize(), userProducts.size());
-        List<Product> pageList = userProducts.subList(start, end);
-
-        return new PageImpl<>(pageList, pageable, userProducts.size());
+        return productRepository.findByUserId(userId, pageable);
     }
 
     @Override

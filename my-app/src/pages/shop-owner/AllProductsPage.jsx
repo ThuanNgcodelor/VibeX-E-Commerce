@@ -31,14 +31,12 @@ export default function AllProductsPage() {
       if (searchQuery.trim()) {
         result = await searchProducts(searchQuery, currentPage, itemsPerPage);
       } else {
-        result = await getProducts(currentPage, itemsPerPage);
+        // Pass statusFilter to API
+        result = await getProducts(currentPage, itemsPerPage, statusFilter);
       }
 
-      // Filter by status
+      // Filter by status - REMOVED, now handled by backend
       let filteredData = result.content || [];
-      if (statusFilter !== 'all') {
-        filteredData = filteredData.filter(p => (p.status || '').toUpperCase() === statusFilter);
-      }
 
       setProducts(filteredData);
       setTotalPages(result.totalPages || 1);
