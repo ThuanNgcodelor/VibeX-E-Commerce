@@ -43,4 +43,7 @@ public interface UserServiceClient {
 
         @PostMapping("/user/wallet/internal/payment")
         ResponseEntity<Map<String, Object>> processWalletPayment(@RequestBody AddRefundRequestDto request);
+
+        @GetMapping("/user/stats/locations")
+        ResponseEntity<List<UserLocationStatDto>> getUserLocationStats();
 }

@@ -14,6 +14,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import com.example.orderservice.dto.ConversionTrendDto;
+import com.example.orderservice.dto.UserLocationStatDto;
 
 @RestController
 @RequestMapping("/v1/order/admin/analytics")
@@ -88,5 +89,10 @@ public class AdminAnalyticsController {
 
         return ResponseEntity
                 .ok(adminDashboardService.getConversionTrend(startDate.atStartOfDay(), endDate.atTime(23, 59, 59)));
+    }
+
+    @GetMapping("/user-locations")
+    public ResponseEntity<List<UserLocationStatDto>> getUserLocationStats() {
+        return ResponseEntity.ok(adminDashboardService.getUserLocationStats());
     }
 }

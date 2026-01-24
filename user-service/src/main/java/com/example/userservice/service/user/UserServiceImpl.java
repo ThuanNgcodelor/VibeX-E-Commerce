@@ -23,6 +23,7 @@ import com.example.userservice.model.RoleRequest;
 import com.example.userservice.model.User;
 import com.example.userservice.model.UserDetails;
 import com.example.userservice.repository.UserRepository;
+import com.example.userservice.repository.AddressRepository;
 import com.example.userservice.request.RegisterRequest;
 import com.example.userservice.request.UserUpdateRequest;
 import com.example.userservice.service.role.RoleRequestService;
@@ -35,6 +36,7 @@ import lombok.RequiredArgsConstructor;
 public class UserServiceImpl implements UserService {
     private final FileStorageClient fileStorageClient;
     private final UserRepository userRepository;
+    private final AddressRepository addressRepository;
     private final PasswordEncoder passwordEncoder;
     private final ModelMapper modelMapper;
     private final StockServiceClient stockServiceClient;
@@ -279,5 +281,10 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<String> getAllActiveUserIds() {
         return userRepository.findAllActiveUserIds();
+    }
+
+    @Override
+    public List<com.example.userservice.dto.UserLocationStatDto> getUserLocationStats() {
+        return addressRepository.getUserLocationStats();
     }
 }

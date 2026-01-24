@@ -5,6 +5,7 @@ import com.example.orderservice.dto.OrderDto;
 import com.example.orderservice.dto.CategorySalesDto;
 import com.example.orderservice.dto.DailyRevenueDto;
 import com.example.orderservice.dto.ConversionTrendDto;
+import com.example.orderservice.dto.UserLocationStatDto;
 
 import java.util.List;
 
@@ -26,4 +27,6 @@ public interface AdminDashboardService {
     List<OrderDto> getRecentOrders(String category);
 
     List<ConversionTrendDto> getConversionTrend(java.time.LocalDateTime startDate, java.time.LocalDateTime endDate);
+
+    List<UserLocationStatDto> getUserLocationStats();
 }

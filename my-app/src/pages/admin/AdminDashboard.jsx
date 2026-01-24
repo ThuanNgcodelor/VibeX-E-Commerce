@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import '../../assets/admin/css/AdminDashboard.css';
-import { getDashboardStats, getRevenueChartData, getRecentOrders, getTopCategories, getConversionTrend } from '../../api/adminAnalyticsApi';
+import { getDashboardStats, getRevenueChartData, getRecentOrders, getTopCategories, getConversionTrend, getUserLocationStats } from '../../api/adminAnalyticsApi';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { Chart, registerables } from 'chart.js';
@@ -33,6 +33,7 @@ const AdminDashboard = () => {
     const [recentOrdersList, setRecentOrdersList] = useState([]);
     const [topCategoriesList, setTopCategoriesList] = useState([]);
     const [conversionTrendData, setConversionTrendData] = useState([]);
+    const [userLocationStats, setUserLocationStats] = useState([]);
     const [loading, setLoading] = useState(true);
 
     // Charts Ref
@@ -57,18 +58,20 @@ const AdminDashboard = () => {
         try {
             setLoading(true);
             setLoading(true);
-            const [stats, revenue, orders, categories, conversionTrend] = await Promise.all([
+            const [stats, revenue, orders, categories, conversionTrend, locationStats] = await Promise.all([
                 getDashboardStats(startDate, endDate),
                 getRevenueChartData(startDate, endDate),
                 getRecentOrders(selectedCategory),
                 getTopCategories(startDate, endDate),
-                getConversionTrend(startDate, endDate)
+                getConversionTrend(startDate, endDate),
+                getUserLocationStats()
             ]);
             setDashboardStats(stats);
             setRevenueData(revenue);
             setTopCategoriesList(categories);
             setRecentOrdersList(orders);
             setConversionTrendData(conversionTrend);
+            setUserLocationStats(locationStats);
         } catch (error) {
             console.error("Error loading dashboard data:", error);
             // setError("Failed to load dashboard data"); // setError not defined in component, ignoring
@@ -144,6 +147,7 @@ const AdminDashboard = () => {
                 },
                 options: {
                     responsive: true,
+                    maintainAspectRatio: false,
                     interaction: {
                         mode: 'index',
                         intersect: false,
@@ -171,11 +175,16 @@ const AdminDashboard = () => {
     }, [conversionTrendData]);
 
     // Static data for fallback or unimplemented sections
-    const activeUsers = [
-        { country: 'United States', users: 2758, percentage: 36, flag: '🇺🇸', color: '#FF6B35' },
-        { country: 'United Kingdom', users: 1839, percentage: 24, flag: '🇬🇧', color: '#667eea' },
-        { country: 'Indonesia', users: 1333, percentage: 17.3, flag: '🇮🇩', color: '#37B7C3' },
-        { country: 'Russia', users: 1454, percentage: 19, flag: '🇷🇺', color: '#FDC830' }
+    // Derived Active Users from API
+    const activeUsers = userLocationStats.length > 0 ? userLocationStats.slice(0, 5).map(stat => ({
+        country: stat.province,
+        users: stat.count,
+        percentage: dashboardStats.totalUsers > 0 ? ((stat.count / dashboardStats.totalUsers) * 100).toFixed(1) : 0,
+        flag: '📍', // Generic pin icon for province
+        color: '#FF6B35' // Could randomize or map colors
+    })) : [
+        // Fallback or empty state if no data
+        { country: 'No Data', users: 0, percentage: 0, flag: '🏳️', color: '#e9ecef' }
     ];
 
     const conversionMetrics = [
@@ -183,14 +192,6 @@ const AdminDashboard = () => {
         { label: 'Product Views', value: (dashboardStats.totalViews || 0).toLocaleString(), percentage: `${(dashboardStats.productViewRate || 0).toFixed(1)}%`, color: '#60a5fa' },
         { label: 'Added to Cart', value: (dashboardStats.totalAddToCart || 0).toLocaleString(), percentage: `${(dashboardStats.addToCartRate || 0).toFixed(1)}%`, color: '#fb923c' },
         { label: 'Orders Completed', value: (dashboardStats.totalOrders || 0).toLocaleString(), percentage: `${(dashboardStats.orderCompletionRate || 0).toFixed(1)}%`, color: '#4ade80' }
-    ];
-
-    const trafficSources = [
-        { source: 'Direct Traffic', percentage: 40, color: '#FF6B35' },
-        { source: 'Organic Search', percentage: 30, color: '#37B7C3' },
-        { source: 'Social Media', percentage: 15, color: '#F7931E' },
-        { source: 'Referral Traffic', percentage: 10, color: '#FDC830' },
-        { source: 'Email Campaigns', percentage: 5, color: '#A78BFA' }
     ];
 
     const recentActivity = [
@@ -287,9 +288,9 @@ const AdminDashboard = () => {
                             <span className="stat-label-compact">Total Users</span>
                             <h2 className="stat-value-compact">{loading ? '...' : dashboardStats.totalUsers}</h2>
                             {/* User growth unavailable currently, keeping static or hiding */}
-                            <span className="stat-change positive">
+                            {/* <span className="stat-change positive">
                                 +2.4% vs last month
-                            </span>
+                            </span> */}
                         </div>
                     </div>
                 </div>
@@ -347,7 +348,6 @@ const AdminDashboard = () => {
                             <h3 className="card-title">Revenue Analytics</h3>
                             <div className="chart-legend">
                                 <span className="legend-item"><span className="legend-dot revenue"></span> Revenue</span>
-                                <span className="legend-item"><span className="legend-dot order"></span> Order</span>
                             </div>
                         </div>
                         <button className="btn-action">Last 30 Days</button>
@@ -454,7 +454,7 @@ const AdminDashboard = () => {
                                         <div className="user-progress-compact">
                                             <div
                                                 className="progress-fill-compact"
-                                                style={{ width: `${user.percentage}% `, backgroundColor: user.color }}
+                                                style={{ width: `${user.percentage}% `, backgroundColor: '#37B7C3' }}
                                             ></div>
                                         </div>
                                     </div>
@@ -478,26 +478,6 @@ const AdminDashboard = () => {
                                     <small>Note: Historical visit data is not available before today.</small>
                                 </div>
                             )}
-                        </div>
-                    </div>
-                </div>
-
-                <div className="card traffic-card-compact">
-                    <div className="card-header">
-                        <h3 className="card-title">Traffic Sources</h3>
-                    </div>
-                    <div className="card-body">
-                        {/* Static Traffic Sources */}
-                        <div className="traffic-list-compact">
-                            {trafficSources.map((source, index) => (
-                                <div key={index} className="traffic-item-compact">
-                                    <div className="traffic-info">
-                                        <div className="traffic-color" style={{ backgroundColor: source.color }}></div>
-                                        <span className="traffic-name">{source.source}</span>
-                                    </div>
-                                    <span className="traffic-percentage">{source.percentage}%</span>
-                                </div>
-                            ))}
                         </div>
                     </div>
                 </div>

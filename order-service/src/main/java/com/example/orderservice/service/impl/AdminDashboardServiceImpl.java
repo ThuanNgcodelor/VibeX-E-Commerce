@@ -6,6 +6,7 @@ import com.example.orderservice.dto.CategorySalesDto;
 import com.example.orderservice.dto.DailyRevenueDto;
 import com.example.orderservice.dto.ConversionTrendDto;
 import com.example.orderservice.dto.SystemAnalyticsTrendDto;
+import com.example.orderservice.dto.UserLocationStatDto;
 import com.example.orderservice.dto.DashboardStatsDto;
 import com.example.orderservice.dto.OrderDto;
 import com.example.orderservice.model.Order;
@@ -390,5 +391,18 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
         result.sort((a, b) -> a.getDate().compareTo(b.getDate()));
 
         return result;
+    }
+
+    @Override
+    public List<UserLocationStatDto> getUserLocationStats() {
+        try {
+            ResponseEntity<List<UserLocationStatDto>> response = userServiceClient.getUserLocationStats();
+            if (response.getBody() != null) {
+                return response.getBody();
+            }
+        } catch (Exception e) {
+            log.error("Failed to fetch user location stats", e);
+        }
+        return new ArrayList<>();
     }
 }

@@ -77,6 +77,16 @@ export const getConversionTrend = async (startDate, endDate) => {
     }
 };
 
+export const getUserLocationStats = async () => {
+    try {
+        const response = await api.get("/user-locations");
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching user location stats:", error);
+        throw error;
+    }
+};
+
 export const warnShop = async (shopId) => {
     try {
         await api.post(`/warn-shop/${shopId}`);
