@@ -207,20 +207,20 @@ public class FlashSaleService {
         fsp.setStatus(FlashSaleStatus.APPROVED);
         FlashSaleProduct saved = flashSaleProductRepository.save(fsp);
 
-        // Use TransactionSynchronization to send event AFTER commit to avoid race conditions
+        // Use TransactionSynchronization to send event AFTER commit to avoid race
+        // conditions
         org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
-            new org.springframework.transaction.support.TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    try {
-                        kafkaTemplate.send(productUpdatesTopic, new ProductUpdateKafkaEvent(saved.getProductId()));
-                        log.info("Sent Kafka event for flash sale approval: {}", saved.getProductId());
-                    } catch (Exception e) {
-                        log.error("Failed to send Kafka event for flash sale approval: {}", e.getMessage());
+                new org.springframework.transaction.support.TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        try {
+                            kafkaTemplate.send(productUpdatesTopic, new ProductUpdateKafkaEvent(saved.getProductId()));
+                            log.info("Sent Kafka event for flash sale approval: {}", saved.getProductId());
+                        } catch (Exception e) {
+                            log.error("Failed to send Kafka event for flash sale approval: {}", e.getMessage());
+                        }
                     }
-                }
-            }
-        );
+                });
 
         // EVENT-DRIVEN WARM-UP: Immediately warm up this single product
         warmUpSingleProduct(saved);
@@ -239,18 +239,17 @@ public class FlashSaleService {
 
         // Use TransactionSynchronization to send event AFTER commit
         org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
-            new org.springframework.transaction.support.TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    try {
-                        kafkaTemplate.send(productUpdatesTopic, new ProductUpdateKafkaEvent(saved.getProductId()));
-                        log.info("Sent Kafka event for flash sale rejection: {}", saved.getProductId());
-                    } catch (Exception e) {
-                        log.error("Failed to send Kafka event for flash sale rejection: {}", e.getMessage());
+                new org.springframework.transaction.support.TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        try {
+                            kafkaTemplate.send(productUpdatesTopic, new ProductUpdateKafkaEvent(saved.getProductId()));
+                            log.info("Sent Kafka event for flash sale rejection: {}", saved.getProductId());
+                        } catch (Exception e) {
+                            log.error("Failed to send Kafka event for flash sale rejection: {}", e.getMessage());
+                        }
                     }
-                }
-            }
-        );
+                });
 
         return saved;
     }
@@ -323,6 +322,10 @@ public class FlashSaleService {
                 .productName(product != null ? product.getName() : "Unknown Product")
                 .productImageId(product != null ? product.getImageId() : null)
                 .shopName(shopName)
+                .totalRevenue(fsp.getProductSizes() != null ? fsp.getProductSizes().stream()
+                        .mapToDouble(
+                                s -> s.getSoldCount() * (s.getFlashSalePrice() != null ? s.getFlashSalePrice() : 0))
+                        .sum() : 0.0)
                 .build();
     }
 
@@ -436,9 +439,9 @@ public class FlashSaleService {
             handleCacheMissWithLock(stockKey, productId, sizeId);
         }
 
-//        3. THỰC THI KỊCH BẢN LUA
-//        Bây giờ bộ nhớ cache được đảm bảo tồn tại (trừ khi sản phẩm không hợp lệ)
-//        FlashSaleProduct fsp = findActiveFlashSaleProduct(productId);
+        // 3. THỰC THI KỊCH BẢN LUA
+        // Bây giờ bộ nhớ cache được đảm bảo tồn tại (trừ khi sản phẩm không hợp lệ)
+        // FlashSaleProduct fsp = findActiveFlashSaleProduct(productId);
         int limit = 0; // Đã loại bỏ tính năng giới hạn số lượng
         long ttl = 900; // Thời gian đặt chỗ
 

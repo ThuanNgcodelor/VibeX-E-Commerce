@@ -23,9 +23,13 @@ export default function AdDisplay({ placement }) {
             const hasShown = sessionStorage.getItem('adPopupShown');
             if (hasShown) {
                 setIsVisible(false);
+            } else {
+                // Track view if showing for first time
+                const ad = ads[0];
+                if (ad) adAPI.incrementView(ad.id).catch(err => console.error(err));
             }
         }
-    }, [placement]);
+    }, [placement, ads]);
 
     if (!ads || ads.length === 0) return null;
 
@@ -44,8 +48,14 @@ export default function AdDisplay({ placement }) {
             <div className="ad-popup-overlay">
                 <div className="ad-popup-content">
                     <button className="ad-close-btn" onClick={handleClose}>&times;</button>
-                    <a href={ad.targetUrl || '#'} target="_blank" rel="noopener noreferrer">
-                        <img src={ad.imageUrl} alt={ad.title} className="ad-popup-img" />
+                    <a href={ad.targetUrl || '#'} target="_blank" rel="noopener noreferrer" onClick={() => adAPI.incrementClick(ad.id)}>
+                        <img
+                            src={ad.imageUrl && ad.imageUrl.includes('/file-storage/get/') ?
+                                (ad.imageUrl.match(/(\/v1\/file-storage\/get\/[\w-]+)/) || ad.imageUrl.match(/(\/file-storage\/get\/[\w-]+)/))?.[0] || ad.imageUrl
+                                : ad.imageUrl}
+                            alt={ad.title}
+                            className="ad-popup-img"
+                        />
                     </a>
                 </div>
             </div>

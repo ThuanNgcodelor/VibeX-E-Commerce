@@ -115,6 +115,24 @@ export default function ShopeeBanner() {
 
     // Use database banners only - no defaults
     const displayBanners = banners || { LEFT_MAIN: [], RIGHT_TOP: [], RIGHT_BOTTOM: [] };
+
+    // Increment Views for Ads once loaded
+    useEffect(() => {
+        if (banners) {
+            const allBanners = [
+                ...(banners.LEFT_MAIN || []),
+                ...(banners.RIGHT_TOP || []),
+                ...(banners.RIGHT_BOTTOM || [])
+            ];
+            allBanners.forEach(banner => {
+                if (banner.isAd) {
+                    const adId = banner.id.replace('ad-', '');
+                    adAPI.incrementView(adId).catch(err => console.error('Failed to inc view', err));
+                }
+            });
+        }
+    }, [banners]);
+
     const mainBanners = displayBanners.LEFT_MAIN || [];
     const rightTopBanners = displayBanners.RIGHT_TOP || [];
     const rightBottomBanners = displayBanners.RIGHT_BOTTOM || [];
@@ -226,7 +244,15 @@ export default function ShopeeBanner() {
 
     const handleBannerClick = (banner) => {
         if (!banner) return;
-        trackBannerClick(banner.id).catch(err => console.error(err));
+
+        if (banner.isAd) {
+            // Extract ID from "ad-{id}"
+            const adId = banner.id.replace('ad-', '');
+            adAPI.incrementClick(adId).catch(err => console.error(err));
+        } else {
+            trackBannerClick(banner.id).catch(err => console.error(err));
+        }
+
         if (banner.linkUrl) {
             if (banner.openInNewTab) window.open(banner.linkUrl, '_blank', 'noopener,noreferrer');
             else window.location.href = banner.linkUrl;

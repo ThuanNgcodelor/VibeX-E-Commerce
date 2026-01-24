@@ -24,10 +24,12 @@ export default function CoinManagement() {
     });
     const [isEditing, setIsEditing] = useState(false);
     const [editId, setEditId] = useState(null);
+    const [topUser, setTopUser] = useState(null);
 
     useEffect(() => {
         fetchCoins();
         fetchMissions();
+        fetchTopUser();
     }, [currentPage]); // Fetch when page changes
 
     const fetchCoins = async () => {
@@ -59,6 +61,23 @@ export default function CoinManagement() {
     const handlePageChange = (newPage) => {
         if (newPage >= 0 && newPage < totalPages) {
             setCurrentPage(newPage);
+        }
+    };
+
+    const fetchTopUser = async () => {
+        try {
+            // Try to fetch 1 user, sorted by points desc
+            const params = {
+                page: 0,
+                size: 1,
+                sort: 'points,desc'
+            };
+            const data = await shopCoinAPI.getAllShopCoins(params);
+            if (data && data.content && data.content.length > 0) {
+                setTopUser(data.content[0]);
+            }
+        } catch (err) {
+            console.warn("Failed to fetch top user", err);
         }
     };
 
@@ -166,6 +185,65 @@ export default function CoinManagement() {
                     <li className="breadcrumb-item"><Link to="/admin">Home</Link></li>
                     <li className="breadcrumb-item active" aria-current="page">Coin Management</li>
                 </ol>
+            </div>
+
+            {/* Stats Dashboard */}
+            <div className="row mb-4">
+                {/* Total Users */}
+                <div className="col-xl-4 col-md-6 mb-4">
+                    <div className="card h-100 shadow-sm border-0" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
+                        <div className="card-body">
+                            <div className="row no-gutters align-items-center">
+                                <div className="col mr-2">
+                                    <div className="text-xs font-weight-bold text-uppercase mb-1" style={{ opacity: 0.8 }}>
+                                        Participants (Users)</div>
+                                    <div className="h5 mb-0 font-weight-bold">{totalElements}</div>
+                                </div>
+                                <div className="col-auto">
+                                    <i className="fas fa-users fa-2x text-white-50"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Active Missions */}
+                <div className="col-xl-4 col-md-6 mb-4">
+                    <div className="card h-100 shadow-sm border-0" style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', color: 'white' }}>
+                        <div className="card-body">
+                            <div className="row no-gutters align-items-center">
+                                <div className="col mr-2">
+                                    <div className="text-xs font-weight-bold text-uppercase mb-1" style={{ opacity: 0.8 }}>
+                                        Active Missions</div>
+                                    <div className="h5 mb-0 font-weight-bold">{missions.length}</div>
+                                </div>
+                                <div className="col-auto">
+                                    <i className="fas fa-tasks fa-2x text-white-50"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Top User */}
+                <div className="col-xl-4 col-md-6 mb-4">
+                    <div className="card h-100 shadow-sm border-0" style={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', color: 'white' }}>
+                        <div className="card-body">
+                            <div className="row no-gutters align-items-center">
+                                <div className="col mr-2">
+                                    <div className="text-xs font-weight-bold text-uppercase mb-1" style={{ opacity: 0.8 }}>
+                                        Top Coin Holder</div>
+                                    <div className="h5 mb-0 font-weight-bold">
+                                        {topUser ? `${topUser.username} (${topUser.points?.toLocaleString()})` : '-'}
+                                    </div>
+                                </div>
+                                <div className="col-auto">
+                                    <i className="fas fa-crown fa-2x text-white-50"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div className="row">

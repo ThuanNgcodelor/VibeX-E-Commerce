@@ -47,4 +47,10 @@ public class Advertisement extends BaseEntity {
     private String placement; // HEADER, SIDEBAR, FOOTER, POPUP
 
     private String rejectionReason;
+
+    @Builder.Default
+    private Long clickCount = 0L;
+
+    @Builder.Default
+    private Long viewCount = 0L;
 }

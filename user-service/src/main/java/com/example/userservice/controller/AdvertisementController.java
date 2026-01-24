@@ -36,6 +36,11 @@ public class AdvertisementController {
         return ResponseEntity.ok(advertisementService.rejectAdvertisement(id, reason));
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<Advertisement> updateAd(@PathVariable String id, @RequestBody AdvertisementRequest request) {
+        return ResponseEntity.ok(advertisementService.updateAdvertisement(id, request));
+    }
+
     @GetMapping("/shop/{shopId}")
     public ResponseEntity<List<Advertisement>> getShopAds(@PathVariable String shopId) {
         return ResponseEntity.ok(advertisementService.getAdsByShop(shopId));
@@ -56,6 +61,18 @@ public class AdvertisementController {
         // In real system, check permission. Here simplified.
         // Also check if approved/active logic.
         advertisementService.deleteAdvertisement(id);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{id}/click")
+    public ResponseEntity<Void> incrementClick(@PathVariable String id) {
+        advertisementService.incrementClick(id);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{id}/view")
+    public ResponseEntity<Void> incrementView(@PathVariable String id) {
+        advertisementService.incrementView(id);
         return ResponseEntity.ok().build();
     }
 }
