@@ -242,6 +242,7 @@ export default function CategoriesPage() {
                     <tr>
                       <th>Preview</th>
                       <th>Name</th>
+                      <th>Product Count</th>
                       <th>Description</th>
                       <th>Actions</th>
                     </tr>
@@ -262,6 +263,9 @@ export default function CategoriesPage() {
                         </td>
                         <td>
                           <div className="category-name-cell">{c.name}</div>
+                        </td>
+                        <td>
+                          <span className="category-count">{c.productCount || 0}</span>
                         </td>
                         <td>
                           <span className="category-desc">{c.description || "—"}</span>

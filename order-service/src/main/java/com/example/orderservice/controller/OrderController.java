@@ -305,6 +305,11 @@ public class OrderController {
         return ResponseEntity.ok(orderService.getShopStats(shopId));
     }
 
+    @GetMapping("/internal/stats/user/{userId}")
+    public ResponseEntity<com.example.orderservice.dto.UserOrderStatsDto> getUserStats(@PathVariable String userId) {
+        return ResponseEntity.ok(orderService.getUserOrderStats(userId));
+    }
+
     @GetMapping("/internal/revenue-trend/shop/{shopId}")
     public ResponseEntity<List<java.util.Map<String, Object>>> getShopRevenueTrend(@PathVariable String shopId) {
         List<Object[]> stats = orderService.getShopRevenueTrend(shopId);

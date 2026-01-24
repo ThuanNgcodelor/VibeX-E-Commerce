@@ -375,3 +375,17 @@ export const getAllOrderIds = async (status = null) => {
         throw new Error(error.response?.data?.error || "Failed to get order IDs");
     }
 };
+
+/**
+ * Get user order statistics (Admin only)
+ * @param {string} userId - ID of the user
+ * @returns {Promise<Object>} - Promise with stats (total, successful, cancelled, delivering)
+ */
+export const getUserOrderStats = async (userId) => {
+    try {
+        const response = await api.get(`/internal/stats/user/${userId}`);
+        return response.data;
+    } catch (error) {
+        throw new Error(error.response?.data?.error || "Failed to get user stats");
+    }
+};

@@ -3123,4 +3123,50 @@ public class OrderServiceImpl implements OrderService {
             }
         }
     }
+
+    @Override
+    public com.example.orderservice.dto.UserOrderStatsDto getUserOrderStats(String userId) {
+        List<Object[]> stats = orderRepository.countByStatusForUser(userId);
+
+        long total = 0;
+        long successful = 0;
+        long cancelled = 0;
+        long delivering = 0;
+
+        for (Object[] row : stats) {
+            OrderStatus status = (OrderStatus) row[0];
+            Long count = (Long) row[1];
+
+            if (status == null || count == null)
+                continue;
+
+            total += count;
+
+            switch (status) {
+                case COMPLETED:
+                case DELIVERED:
+                    successful += count;
+                    break;
+                case CANCELLED:
+                    cancelled += count;
+                    break;
+                case CONFIRMED:
+                case READY_TO_SHIP:
+                case SHIPPED:
+                    delivering += count;
+                    break;
+                default:
+                    // PENDING, RETURNED, etc. are just counted in total
+                    break;
+            }
+        }
+
+        return com.example.orderservice.dto.UserOrderStatsDto.builder()
+                .userId(userId)
+                .totalOrders(total)
+                .successfulOrders(successful)
+                .cancelledOrders(cancelled)
+                .deliveringOrders(delivering)
+                .build();
+    }
 }

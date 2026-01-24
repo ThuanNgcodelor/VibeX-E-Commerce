@@ -149,6 +149,9 @@ public class CategoryServiceImpl implements CategoryService {
             dto.setImageUrl("/v1/file-storage/get/" + category.getImageId());
         }
 
+        // Set product count
+        dto.setProductCount(productRepository.countByCategory_Id(category.getId()));
+
         return dto;
     }
 

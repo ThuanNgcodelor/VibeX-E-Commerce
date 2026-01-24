@@ -97,4 +97,6 @@ public interface OrderService {
         List<Object[]> getShopRevenueTrend(String shopId);
 
         List<Object[]> getShopOrderStatusDistribution(String shopId);
+
+        com.example.orderservice.dto.UserOrderStatsDto getUserOrderStats(String userId);
 }
