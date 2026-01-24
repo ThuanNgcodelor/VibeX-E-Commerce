@@ -44,6 +44,19 @@ const adAPI = {
     deleteAd: async (id) => {
         await api.delete(`/${id}`);
     },
+
+    updateAd: async (id, data) => {
+        const response = await api.put(`/${id}`, data);
+        return response.data;
+    },
+
+    incrementClick: async (id) => {
+        await api.post(`/${id}/click`);
+    },
+
+    incrementView: async (id) => {
+        await api.post(`/${id}/view`);
+    }
 };
 
 export default adAPI;

@@ -25,13 +25,28 @@ export default function AdManagement() {
         imageUrl: '',
         targetUrl: '',
         durationDays: 7,
-        shopId: 'ADMIN', // specific ID for system ads
+        shopId: 'ADMIN',
+        placement: 'POPUP'
     });
     const [uploading, setUploading] = useState(false);
+
+    // Edit Ad State
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editingAd, setEditingAd] = useState(null);
 
     useEffect(() => {
         fetchAds();
     }, []);
+
+    const getDisplayImageUrl = (url) => {
+        if (!url) return '';
+        if (url.includes('/file-storage/get/')) {
+            // Extract path starting from /v1 or /file-storage
+            const match = url.match(/(\/v1\/file-storage\/get\/[\w-]+)/) || url.match(/(\/file-storage\/get\/[\w-]+)/);
+            if (match) return match[0];
+        }
+        return url;
+    };
 
     const fetchAds = async () => {
         setLoading(true);
@@ -223,6 +238,48 @@ export default function AdManagement() {
         }
     };
 
+    const handleEdit = (ad) => {
+        setEditingAd({
+            ...ad,
+            // Ensure fields are present
+            title: ad.title || '',
+            description: ad.description || '',
+            adType: ad.adType || 'BANNER',
+            imageUrl: ad.imageUrl || '',
+            targetUrl: ad.targetUrl || '',
+            durationDays: ad.durationDays || 7,
+            placement: ad.placement || 'HEADER',
+        });
+        setIsEditModalOpen(true);
+    };
+
+    const handleUpdateSubmit = async () => {
+        if (!editingAd.title || !editingAd.imageUrl) {
+            Swal.fire('Warning', 'Title and Image are required', 'warning');
+            return;
+        }
+        try {
+            await adAPI.updateAd(editingAd.id, editingAd);
+            Swal.fire({
+                icon: 'success',
+                title: 'Updated',
+                text: 'Advertisement updated successfully',
+                timer: 1500,
+                showConfirmButton: false
+            });
+            setIsEditModalOpen(false);
+            setEditingAd(null);
+            fetchAds();
+        } catch (error) {
+            console.error("Update failed", error);
+            Swal.fire('Error', 'Failed to update advertisement', 'error');
+        }
+    };
+
+    // Filter helper for System Ads (optional, if we want to restrict edit to system ads only, but requirement implies general edit)
+    // For now, allow editing all ads or maybe just System ads? The user said "create system ad" had the bug.
+    // Usually Admin can edit anything.
+
     return (
         <div className="container-fluid mt-4">
             <div className="d-flex justify-content-between align-items-center">
@@ -232,6 +289,47 @@ export default function AdManagement() {
                 </button>
             </div>
 
+            {/* Dashboard Summary */}
+            <div className="row mt-4 mb-4">
+                <div className="col-md-6 mb-3">
+                    <div className="card shadow-sm border-0 h-100" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
+                        <div className="card-body d-flex align-items-center justify-content-between">
+                            <div>
+                                <h6 className="card-title text-white-50 mb-1">Total Advertisements</h6>
+                                <h2 className="display-4 fw-bold mb-0">{ads.length}</h2>
+                            </div>
+                            <i className="fas fa-ad fa-3x text-white-50"></i>
+                        </div>
+                    </div>
+                </div>
+                <div className="col-md-6 mb-3">
+                    <div className="card shadow-sm border-0 h-100" style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', color: 'white' }}>
+                        <div className="card-body">
+                            <div className="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6 className="card-title text-white-50 mb-1">Top Performing Ad</h6>
+                                    {ads.length > 0 ? (() => {
+                                        const topAd = [...ads].sort((a, b) => (b.clickCount || 0) - (a.clickCount || 0))[0];
+                                        return (
+                                            <div className="d-flex align-items-center mt-2">
+                                                {topAd.imageUrl && (
+                                                    <img src={getDisplayImageUrl(topAd.imageUrl)} alt="Top Ad" style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '4px', marginRight: '12px', border: '1px solid rgba(255,255,255,0.5)' }} />
+                                                )}
+                                                <div>
+                                                    <div className="fw-bold" style={{ maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{topAd.title}</div>
+                                                    <div className="small"><i className="fas fa-mouse-pointer me-1"></i> {topAd.clickCount || 0} Clicks</div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })() : <h4 className="fw-bold mt-2">-</h4>}
+                                </div>
+                                <i className="fas fa-trophy fa-3x text-white-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div className="table-responsive">
                 <table className="table table-bordered table-hover mt-3" style={{ background: 'white' }}>
                     <thead className="table-light">
@@ -239,10 +337,10 @@ export default function AdManagement() {
                             <th>Image</th>
                             <th>Title / Description</th>
                             <th>Shop</th>
-                            <th>Type</th>
                             <th>Duration</th>
                             <th>Status</th>
                             <th>Position</th>
+                            <th>Stats (Click)</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -254,7 +352,7 @@ export default function AdManagement() {
                                 <td style={{ width: '120px', textAlign: 'center' }}>
                                     {ad.imageUrl ? (
                                         <img
-                                            src={ad.imageUrl}
+                                            src={getDisplayImageUrl(ad.imageUrl)}
                                             alt="Ad"
                                             style={{
                                                 width: '100px',
@@ -264,7 +362,7 @@ export default function AdManagement() {
                                                 border: '1px solid #dee2e6',
                                                 cursor: 'pointer'
                                             }}
-                                            onClick={() => window.open(ad.imageUrl, '_blank')}
+                                            onClick={() => window.open(getDisplayImageUrl(ad.imageUrl), '_blank')}
                                             title="Click to view full image"
                                         />
                                     ) : <span className="text-muted small">No Image</span>}
@@ -284,7 +382,6 @@ export default function AdManagement() {
                                         </div>
                                     )}
                                 </td>
-                                <td><span className="badge bg-secondary">{ad.adType}</span></td>
                                 <td>{ad.durationDays} days</td>
                                 <td>
                                     <span className={`badge ${ad.status === 'APPROVED' ? 'bg-success' :
@@ -295,7 +392,15 @@ export default function AdManagement() {
                                 </td>
                                 <td>{ad.placement || '-'}</td>
                                 <td>
+                                    <div className="small">
+                                        <div><i className="fas fa-mouse-pointer text-success"></i> {ad.clickCount || 0}</div>
+                                    </div>
+                                </td>
+                                <td>
                                     <div className="d-flex gap-2">
+                                        <button className="btn btn-sm btn-info text-white" onClick={() => handleEdit(ad)} title="Edit">
+                                            <i className="fas fa-edit"></i>
+                                        </button>
                                         {ad.status === 'PENDING' && (
                                             <>
                                                 <button className="btn btn-sm btn-success" onClick={() => handleAction(ad, 'APPROVE')} title="Approve">
@@ -328,7 +433,7 @@ export default function AdManagement() {
                         <h5 className="mb-3">{actionType === 'APPROVE' ? 'Approve Advertisement' : 'Reject Advertisement'}</h5>
                         <div className="mb-3 p-2 bg-light rounded text-center">
                             {selectedAd.imageUrl && (
-                                <img src={selectedAd.imageUrl} alt="Preview" style={{ maxWidth: '100%', maxHeight: '150px', objectFit: 'contain' }} />
+                                <img src={getDisplayImageUrl(selectedAd.imageUrl)} alt="Preview" style={{ maxWidth: '100%', maxHeight: '150px', objectFit: 'contain' }} />
                             )}
                             <div className="mt-2 fw-bold">{selectedAd.title}</div>
                         </div>
@@ -338,8 +443,6 @@ export default function AdManagement() {
                                 <label className="form-label">Select display position:</label>
                                 <select className="form-select" value={placement} onChange={e => setPlacement(e.target.value)}>
                                     <option value="HEADER">Header (Main Banner)</option>
-                                    <option value="SIDEBAR">Sidebar</option>
-                                    <option value="FOOTER">Footer</option>
                                     <option value="POPUP">Popup</option>
                                 </select>
                             </div>
@@ -379,14 +482,15 @@ export default function AdManagement() {
                         </div>
 
                         <div className="row">
-                            <div className="col-md-6 mb-3">
-                                <label className="form-label">Ad Type</label>
-                                <select className="form-select" value={newAd.adType} onChange={e => setNewAd({ ...newAd, adType: e.target.value })}>
-                                    <option value="POPUP">Popup</option> {/* Prioritized */}
-                                    <option value="BANNER">Banner</option>
+
+                            <div className="col-md-4 mb-3">
+                                <label className="form-label">Position</label>
+                                <select className="form-select" value={newAd.placement || 'POPUP'} onChange={e => setNewAd({ ...newAd, placement: e.target.value })}>
+                                    <option value="POPUP">Popup</option>
+                                    <option value="HEADER">Header</option>
                                 </select>
                             </div>
-                            <div className="col-md-6 mb-3">
+                            <div className="col-md-4 mb-3">
                                 <label className="form-label">Duration (Days)</label>
                                 <input type="number" className="form-control" value={newAd.durationDays} onChange={e => setNewAd({ ...newAd, durationDays: e.target.value })} />
                             </div>
@@ -398,7 +502,7 @@ export default function AdManagement() {
                             {uploading && <small className="text-info">Uploading...</small>}
                             {newAd.imageUrl && (
                                 <div className="mt-2 text-center border p-2">
-                                    <img src={newAd.imageUrl} alt="New Ad" style={{ maxHeight: '150px', maxWidth: '100%' }} />
+                                    <img src={getDisplayImageUrl(newAd.imageUrl)} alt="New Ad" style={{ maxHeight: '150px', maxWidth: '100%' }} />
                                 </div>
                             )}
                         </div>
@@ -421,6 +525,77 @@ export default function AdManagement() {
                             <button className="btn btn-secondary" onClick={() => setIsCreateModalOpen(false)}>Cancel</button>
                             <button className="btn btn-primary" onClick={handleCreateSubmit} disabled={uploading}>
                                 {uploading ? 'Processing...' : 'Create & Approve'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit Ad Modal */}
+            {isEditModalOpen && editingAd && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1060,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                    <div style={{ background: 'white', padding: '24px', borderRadius: '8px', width: '600px', maxWidth: '95%', maxHeight: '90vh', overflowY: 'auto' }}>
+                        <h5 className="mb-4">Edit Advertisement</h5>
+
+                        <div className="mb-3">
+                            <label className="form-label">Title</label>
+                            <input className="form-control" value={editingAd.title} onChange={e => setEditingAd({ ...editingAd, title: e.target.value })} />
+                        </div>
+
+                        <div className="row">
+                            <div className="col-md-4 mb-3">
+                                <label className="form-label">Position</label>
+                                <select className="form-select" value={editingAd.placement} onChange={e => setEditingAd({ ...editingAd, placement: e.target.value })}>
+                                    <option value="POPUP">Popup</option>
+                                    <option value="HEADER">Header</option>
+                                </select>
+                            </div>
+                            <div className="col-md-4 mb-3">
+                                <label className="form-label">Duration (Days)</label>
+                                <input type="number" className="form-control" value={editingAd.durationDays} onChange={e => setEditingAd({ ...editingAd, durationDays: e.target.value })} />
+                            </div>
+                        </div>
+
+                        <div className="mb-3">
+                            <label className="form-label">Image</label>
+                            {/* Reusing upload logic or keeping separate? ideally separate handling for edit upload but reusing logic is fine if we adapt */}
+                            <input type="file" className="form-control" accept="image/*" onChange={async (e) => {
+                                const file = e.target.files[0];
+                                if (file) {
+                                    try {
+                                        const imageId = await uploadImage(file);
+                                        const fullUrl = `${API_BASE_URL}/v1/file-storage/get/${imageId}`;
+                                        setEditingAd({ ...editingAd, imageUrl: fullUrl });
+                                    } catch (err) {
+                                        Swal.fire('Error', 'Upload failed', 'error');
+                                    }
+                                }
+                            }} />
+                            {editingAd.imageUrl && (
+                                <div className="mt-2 text-center border p-2">
+                                    <img src={getDisplayImageUrl(editingAd.imageUrl)} alt="Ad" style={{ maxHeight: '150px', maxWidth: '100%' }} />
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="mb-3">
+                            <label className="form-label">Target Link (URL)</label>
+                            <input className="form-control" value={editingAd.targetUrl} onChange={e => setEditingAd({ ...editingAd, targetUrl: e.target.value })} />
+                        </div>
+
+                        <div className="mb-3">
+                            <label className="form-label">Description</label>
+                            <textarea className="form-control" rows="2" value={editingAd.description} onChange={e => setEditingAd({ ...editingAd, description: e.target.value })}></textarea>
+                        </div>
+
+                        <div className="d-flex justify-content-end gap-2 mt-4">
+                            <button className="btn btn-secondary" onClick={() => setIsEditModalOpen(false)}>Cancel</button>
+                            <button className="btn btn-primary" onClick={handleUpdateSubmit}>
+                                Save Changes
                             </button>
                         </div>
                     </div>

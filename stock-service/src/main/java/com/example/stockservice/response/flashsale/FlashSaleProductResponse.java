@@ -22,6 +22,7 @@ public class FlashSaleProductResponse {
     private String productName;
     private String productImageId; // Main image
     private String shopName;
+    private Double totalRevenue;
 
     private java.util.List<SizeResponse> sizes;
 

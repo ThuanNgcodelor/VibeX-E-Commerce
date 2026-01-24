@@ -397,6 +397,8 @@ const ShopFlashSale = () => {
                                             <th className="py-3">Original Price</th>
                                             <th className="py-3">Sale Price</th>
                                             <th className="py-3">Stock</th>
+                                            <th className="py-3">Sold</th>
+                                            <th className="py-3">Revenue</th>
                                             <th className="py-3 text-center">Status</th>
                                         </tr>
                                     </thead>
@@ -447,6 +449,12 @@ const ShopFlashSale = () => {
                                                         ) : (
                                                             <>{reg.flashSaleStock}</>
                                                         )}
+                                                    </td>
+                                                    <td className="py-3 fw-bold text-success">
+                                                        {reg.soldCount}
+                                                    </td>
+                                                    <td className="py-3 fw-bold text-primary">
+                                                        {reg.totalRevenue?.toLocaleString()}đ
                                                     </td>
                                                     <td className="py-3 text-center">
                                                         <span className={`badge rounded-pill ${reg.status === 'APPROVED' ? 'bg-success' :

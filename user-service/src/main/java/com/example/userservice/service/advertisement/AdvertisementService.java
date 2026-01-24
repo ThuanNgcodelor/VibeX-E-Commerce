@@ -80,6 +80,34 @@ public class AdvertisementService {
         return advertisementRepository.save(ad);
     }
 
+    @Transactional
+    public Advertisement updateAdvertisement(String id, AdvertisementRequest request) {
+        Advertisement ad = advertisementRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Advertisement not found"));
+
+        if (request.getTitle() != null)
+            ad.setTitle(request.getTitle());
+        if (request.getDescription() != null)
+            ad.setDescription(request.getDescription());
+        if (request.getAdType() != null)
+            ad.setAdType(request.getAdType());
+        if (request.getImageUrl() != null)
+            ad.setImageUrl(request.getImageUrl());
+        if (request.getTargetUrl() != null)
+            ad.setTargetUrl(request.getTargetUrl());
+        if (request.getDurationDays() != null) {
+            ad.setDurationDays(request.getDurationDays());
+            // Optionally update end date if currently approved/active
+            if (ad.getStatus() == AdvertisementStatus.APPROVED && ad.getStartDate() != null) {
+                ad.setEndDate(ad.getStartDate().plusDays(request.getDurationDays()));
+            }
+        }
+        if (request.getPlacement() != null)
+            ad.setPlacement(request.getPlacement());
+
+        return advertisementRepository.save(ad);
+    }
+
     public void deleteAdvertisement(String id) {
         Advertisement ad = advertisementRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Advertisement not found"));
@@ -115,5 +143,21 @@ public class AdvertisementService {
         return approvedAds.stream()
                 .filter(ad -> ad.getEndDate() == null || ad.getEndDate().isAfter(now))
                 .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void incrementClick(String id) {
+        Advertisement ad = advertisementRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Advertisement not found"));
+        ad.setClickCount(ad.getClickCount() == null ? 1 : ad.getClickCount() + 1);
+        advertisementRepository.save(ad);
+    }
+
+    @Transactional
+    public void incrementView(String id) {
+        Advertisement ad = advertisementRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Advertisement not found"));
+        ad.setViewCount(ad.getViewCount() == null ? 1 : ad.getViewCount() + 1);
+        advertisementRepository.save(ad);
     }
 }
