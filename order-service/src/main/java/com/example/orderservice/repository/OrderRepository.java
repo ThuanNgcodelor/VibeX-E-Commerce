@@ -155,4 +155,7 @@ public interface OrderRepository extends JpaRepository<Order, String> {
 
         @Query("SELECT o.orderStatus, COUNT(DISTINCT o) FROM Order o JOIN o.orderItems oi WHERE oi.productId IN :productIds GROUP BY o.orderStatus")
         List<Object[]> countByStatusForProductIds(@Param("productIds") List<String> productIds);
+
+        @Query("SELECT o.orderStatus, COUNT(o) FROM Order o WHERE o.userId = :userId GROUP BY o.orderStatus")
+        List<Object[]> countByStatusForUser(@Param("userId") String userId);
 }

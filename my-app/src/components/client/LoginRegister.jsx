@@ -149,8 +149,22 @@ export default function Auth() {
             setError('Passwords do not match');
             return;
         }
+        if (registerData.username.trim().length < 6) {
+            setError('Username must be at least 6 characters');
+            setFieldErrors(prev => ({ ...prev, username: 'Username must be at least 6 characters' }));
+            return;
+        }
+
         if (registerData.password.length < 6) {
             setError('Password must be at least 6 characters');
+            setFieldErrors(prev => ({ ...prev, password: 'Password must be at least 6 characters' }));
+            return;
+        }
+
+        const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,}$/;
+        if (!passwordRegex.test(registerData.password)) {
+            setError('Password must contain both letters and numbers');
+            setFieldErrors(prev => ({ ...prev, password: 'Password must contain both letters and numbers' }));
             return;
         }
 

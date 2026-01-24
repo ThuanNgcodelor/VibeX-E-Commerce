@@ -5,6 +5,7 @@ import com.example.orderservice.dto.*;
 import com.example.orderservice.request.DecreaseStockRequest;
 import com.example.orderservice.request.RemoveCartItemRequest;
 import com.example.orderservice.request.RemoveCartItemByUserIdRequest;
+import com.example.orderservice.dto.SystemAnalyticsTrendDto;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
@@ -130,4 +131,9 @@ public interface StockServiceClient {
                         String sizeId,
                         int quantity) {
         }
+
+        @GetMapping(value = "/analytics/system/trend", headers = "X-Internal-Call=true")
+        ResponseEntity<List<SystemAnalyticsTrendDto>> getSystemAnalyticsTrend(
+                        @RequestParam("startDate") String startDate,
+                        @RequestParam("endDate") String endDate);
 }

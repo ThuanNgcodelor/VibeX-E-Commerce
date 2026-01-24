@@ -1,13 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { getSuspiciousProducts, warnShop } from "../../api/adminAnalyticsApi"; // Adjust path if needed
-import { Table, Button, Container, Card, Alert, Spinner } from "react-bootstrap";
+import { Table, Button, Container, Card, Alert, Spinner, Modal, Row, Col, Badge, ListGroup } from "react-bootstrap";
 import Swal from 'sweetalert2';
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const SuspiciousActivityPage = () => {
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [showModal, setShowModal] = useState(false);
+    const [selectedActivity, setSelectedActivity] = useState(null);
+    const navigate = useNavigate();
 
     useEffect(() => {
         fetchData();
@@ -54,6 +57,21 @@ const SuspiciousActivityPage = () => {
                 );
             }
         }
+    };
+
+    const handleViewDetails = (activity) => {
+        setSelectedActivity(activity);
+        setShowModal(true);
+    };
+
+    const handleVisitShop = (shopName) => {
+        // Navigate to shop management with search query
+        navigate(`/admin/shop-owners?search=${encodeURIComponent(shopName)}`);
+    };
+
+    const handleCloseModal = () => {
+        setShowModal(false);
+        setSelectedActivity(null);
     };
 
     const renderReasonBadge = (reason) => {
@@ -122,13 +140,33 @@ const SuspiciousActivityPage = () => {
                                                 )}
                                             </td>
                                             <td className="text-center">
-                                                <Button
-                                                    variant="warning"
-                                                    size="sm"
-                                                    onClick={() => handleWarnShop(item.shopId)}
-                                                >
-                                                    <i className="bi bi-exclamation-triangle"></i> Warn Shop
-                                                </Button>
+                                                <div className="d-flex justify-content-center gap-2">
+                                                    <Button
+                                                        variant="info"
+                                                        size="sm"
+                                                        title="View Details"
+                                                        onClick={() => handleViewDetails(item)}
+                                                        className="text-white"
+                                                    >
+                                                        <i className="bi bi-eye"></i>
+                                                    </Button>
+                                                    <Button
+                                                        variant="primary"
+                                                        size="sm"
+                                                        title="Visit Shop Admin"
+                                                        onClick={() => handleVisitShop(item.shopName || "")}
+                                                    >
+                                                        <i className="bi bi-shop"></i>
+                                                    </Button>
+                                                    <Button
+                                                        variant="warning"
+                                                        size="sm"
+                                                        title="Warn Shop"
+                                                        onClick={() => handleWarnShop(item.shopId)}
+                                                    >
+                                                        <i className="bi bi-exclamation-triangle"></i>
+                                                    </Button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))
@@ -145,6 +183,109 @@ const SuspiciousActivityPage = () => {
                     )}
                 </Card.Body>
             </Card>
+
+            {/* Details Modal */}
+            <Modal show={showModal} onHide={handleCloseModal} size="lg" centered>
+                <Modal.Header closeButton className="bg-light">
+                    <Modal.Title>
+                        <i className="bi bi-shield-exclamation text-danger me-2"></i>
+                        Suspicious Activity Details
+                    </Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    {selectedActivity && (
+                        <div className="p-2">
+                            <Row className="mb-4">
+                                <Col md={6}>
+                                    <h6 className="text-secondary mb-3">Product Information</h6>
+                                    <ListGroup variant="flush">
+                                        <ListGroup.Item><strong>Product Name:</strong> {selectedActivity.productName}</ListGroup.Item>
+                                        <ListGroup.Item><strong>Product ID:</strong> {selectedActivity.productId}</ListGroup.Item>
+                                        <ListGroup.Item><strong>Category:</strong> {selectedActivity.category || 'N/A'}</ListGroup.Item>
+                                    </ListGroup>
+                                </Col>
+                                <Col md={6}>
+                                    <h6 className="text-secondary mb-3">Shop Information</h6>
+                                    <ListGroup variant="flush">
+                                        <ListGroup.Item><strong>Shop Name:</strong> {selectedActivity.shopName}</ListGroup.Item>
+                                        <ListGroup.Item><strong>Shop ID:</strong> {selectedActivity.shopId}</ListGroup.Item>
+                                        <ListGroup.Item>
+                                            <Button
+                                                variant="outline-primary"
+                                                size="sm"
+                                                className="mt-1"
+                                                onClick={() => {
+                                                    handleCloseModal();
+                                                    handleVisitShop(selectedActivity.shopName);
+                                                }}
+                                            >
+                                                Go to Shop Management
+                                            </Button>
+                                        </ListGroup.Item>
+                                    </ListGroup>
+                                </Col>
+                            </Row>
+
+                            <hr />
+
+                            <Row>
+                                <Col>
+                                    <h6 className="text-secondary mb-3">Detected Issue</h6>
+                                    <Alert variant="warning" className="d-flex align-items-center">
+                                        <i className="bi bi-exclamation-circle fs-4 me-3"></i>
+                                        <div>
+                                            <h6 className="alert-heading mb-1">Reason: {selectedActivity.reason}</h6>
+                                            <p className="mb-0 small">
+                                                This product has been flagged due to unusual activity patterns found in our analysis.
+                                            </p>
+                                        </div>
+                                    </Alert>
+
+                                    <h6 className="text-secondary mt-4 mb-3">Statistics</h6>
+                                    <Row className="text-center g-3">
+                                        <Col xs={4}>
+                                            <div className="border rounded p-3 bg-light">
+                                                <div className="text-muted small">Total Orders</div>
+                                                <div className="fs-4 fw-bold">{selectedActivity.totalOrders}</div>
+                                            </div>
+                                        </Col>
+                                        <Col xs={4}>
+                                            <div className="border rounded p-3 bg-white border-danger">
+                                                <div className="text-danger small">Cancelled</div>
+                                                <div className="fs-4 fw-bold text-danger">{selectedActivity.cancelledOrders}</div>
+                                            </div>
+                                        </Col>
+                                        <Col xs={4}>
+                                            <div className="border rounded p-3 bg-light">
+                                                <div className="text-muted small">Cancellation Rate</div>
+                                                <div className={`fs-4 fw-bold ${selectedActivity.cancellationRate > 50 ? 'text-danger' : 'text-warning'}`}>
+                                                    {selectedActivity.cancellationRate ? selectedActivity.cancellationRate.toFixed(2) : 0}%
+                                                </div>
+                                            </div>
+                                        </Col>
+                                    </Row>
+                                </Col>
+                            </Row>
+                        </div>
+                    )}
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button variant="secondary" onClick={handleCloseModal}>
+                        Close
+                    </Button>
+                    {selectedActivity && (
+                        <Button
+                            variant="warning"
+                            onClick={() => {
+                                handleCloseModal();
+                                handleWarnShop(selectedActivity.shopId);
+                            }}
+                        >
+                            <i className="bi bi-exclamation-triangle me-1"></i> Warn Shop
+                        </Button>
+                    )}
+                </Modal.Footer>
+            </Modal>
         </Container>
     );
 };

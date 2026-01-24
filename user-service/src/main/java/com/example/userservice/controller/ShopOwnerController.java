@@ -55,8 +55,17 @@ public class ShopOwnerController {
     }
 
     @GetMapping("/admin/list")
-    public ResponseEntity<java.util.List<com.example.userservice.dto.ShopOwnerStatsDto>> getAllShopOwnersAdmin() {
-        return ResponseEntity.ok(shopOwnerService.getAllShopOwnersWithStats());
+    public ResponseEntity<org.springframework.data.domain.Page<com.example.userservice.dto.ShopOwnerStatsDto>> getAllShopOwnersAdmin(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "name") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate startDate,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate endDate) {
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
+        return ResponseEntity
+                .ok(shopOwnerService.getAllShopOwnersWithStats(search, pageable, startDate, endDate, sortBy, sortDir));
     }
 
     @PutMapping("/{userId}/status")

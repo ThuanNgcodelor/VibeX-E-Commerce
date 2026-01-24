@@ -124,4 +124,9 @@ public class UserController {
     public ResponseEntity<java.util.List<String>> getAllActiveUserIds() {
         return ResponseEntity.ok(userService.getAllActiveUserIds());
     }
+
+    @GetMapping("/stats/locations")
+    public ResponseEntity<java.util.List<UserLocationStatDto>> getUserLocationStats() {
+        return ResponseEntity.ok(userService.getUserLocationStats());
+    }
 }

@@ -135,6 +135,27 @@
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  max-height: 300px;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.categories-list-compact::-webkit-scrollbar {
+  width: 6px;
+}
+
+.categories-list-compact::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.categories-list-compact::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 4px;
+}
+
+.categories-list-compact::-webkit-scrollbar-thumb:hover {
+  background: #aaa;
 }
 
 .category-item-compact {
@@ -311,7 +332,7 @@
 /* Row 3: Active User + Conversion Rate + Traffic Sources */
 .row-3 {
   display: grid;
-  grid-template-columns: 1fr 1.5fr 1fr;
+  grid-template-columns: 1fr 3fr;
   gap: 1.5rem;
   margin-bottom: 1.5rem;
 }
@@ -360,6 +381,28 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+/* Custom scrollbar for user list */
+.users-list-compact::-webkit-scrollbar {
+  width: 6px;
+}
+
+.users-list-compact::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.users-list-compact::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 4px;
+}
+
+.users-list-compact::-webkit-scrollbar-thumb:hover {
+  background: #aaa;
 }
 
 .user-item-compact {
@@ -859,13 +902,13 @@
 }
 
 @media (max-width: 992px) {
-    .stats-section {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .conversion-metrics {
-        grid-template-columns: repeat(2, 1fr);
-    }
+  .stats-section {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .conversion-metrics {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 @media (max-width: 768px) {
@@ -875,14 +918,15 @@
 
   .dashboard-header {
     flex-direction: column;
-    align-items: flex-start !important; /* Override Bootstrap align-items-center */
+    align-items: flex-start !important;
+    /* Override Bootstrap align-items-center */
     gap: 1rem;
   }
 
-  .dashboard-header > div {
+  .dashboard-header>div {
     width: 100%;
     justify-content: space-between;
-    flex-wrap: wrap; 
+    flex-wrap: wrap;
   }
 
   .dashboard-header input[type="date"] {
@@ -906,53 +950,53 @@
   .orders-table-compact tbody td {
     padding: 0.5rem;
   }
-  
+
   /* Chart adjustments */
   .chart-visual {
-      overflow-x: auto;
-      padding-bottom: 10px;
+    overflow-x: auto;
+    padding-bottom: 10px;
   }
-  
+
   .target-amounts {
-      flex-direction: column;
-      gap: 1rem;
+    flex-direction: column;
+    gap: 1rem;
   }
 }
 
 @media (max-width: 480px) {
-    .conversion-metrics {
-        grid-template-columns: 1fr;
-    }
-    
-    .stat-card-compact {
-        padding: 1rem;
-    }
-    
-    .stat-value-compact {
-        font-size: 1.5rem;
-    }
-    
-    .card-title {
-        font-size: 0.9rem;
-    }
-    
-    .orders-card-compact .card-header {
-        flex-direction: column;
-        align-items: flex-start !important;
-        gap: 0.75rem;
-    }
-    
-    .orders-card-compact .card-header .d-flex {
-        width: 100%;
-        justify-content: space-between;
-    }
+  .conversion-metrics {
+    grid-template-columns: 1fr;
+  }
 
-    .orders-card-compact select {
-        width: 120px !important;
-    }
-    
-    /* Traffic bars - maybe scroll or stack? */
-    .traffic-bars-visual {
-        height: 100px;
-    }
+  .stat-card-compact {
+    padding: 1rem;
+  }
+
+  .stat-value-compact {
+    font-size: 1.5rem;
+  }
+
+  .card-title {
+    font-size: 0.9rem;
+  }
+
+  .orders-card-compact .card-header {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 0.75rem;
+  }
+
+  .orders-card-compact .card-header .d-flex {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .orders-card-compact select {
+    width: 120px !important;
+  }
+
+  /* Traffic bars - maybe scroll or stack? */
+  .traffic-bars-visual {
+    height: 100px;
+  }
 }

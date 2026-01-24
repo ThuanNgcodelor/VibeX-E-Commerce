@@ -22,6 +22,9 @@ public interface OrderService {
 
         java.util.Map<String, Object> getShopStats(String shopOwnerId);
 
+        java.util.Map<String, Object> getShopStats(String shopOwnerId, java.time.LocalDate startDate,
+                        java.time.LocalDate endDate);
+
         Page<Order> getOrdersByShopOwner(String shopOwnerId, List<String> status, Integer pageNo, Integer pageSize);
 
         List<Order> getOrdersByShopOwner(String shopOwnerId, String status);
@@ -94,4 +97,6 @@ public interface OrderService {
         List<Object[]> getShopRevenueTrend(String shopId);
 
         List<Object[]> getShopOrderStatusDistribution(String shopId);
+
+        com.example.orderservice.dto.UserOrderStatsDto getUserOrderStats(String userId);
 }

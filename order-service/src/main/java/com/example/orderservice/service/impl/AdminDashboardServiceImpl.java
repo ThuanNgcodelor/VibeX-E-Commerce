@@ -4,6 +4,9 @@ import com.example.orderservice.client.StockServiceClient;
 import com.example.orderservice.client.UserServiceClient;
 import com.example.orderservice.dto.CategorySalesDto;
 import com.example.orderservice.dto.DailyRevenueDto;
+import com.example.orderservice.dto.ConversionTrendDto;
+import com.example.orderservice.dto.SystemAnalyticsTrendDto;
+import com.example.orderservice.dto.UserLocationStatDto;
 import com.example.orderservice.dto.DashboardStatsDto;
 import com.example.orderservice.dto.OrderDto;
 import com.example.orderservice.model.Order;
@@ -116,6 +119,44 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
             log.error("Failed to fetch analytics stats", e);
         }
 
+        // Calculate Growth Metrics
+        Double salesGrowth = 0.0;
+        Double ordersGrowth = 0.0;
+        Double usersGrowth = 0.0; // Currently no historical user data available
+
+        try {
+            long daysBetween = java.time.Duration.between(startDate, endDate).toDays();
+            if (daysBetween <= 0)
+                daysBetween = 1; // Avoid zero division/issues
+
+            // Previous Period: Same duration before start date
+            LocalDateTime prevStartDate = startDate.minusDays(daysBetween);
+            LocalDateTime prevEndDate = startDate.minusSeconds(1); // Right before current start
+
+            Double prevTotalSales = orderRepository.sumTotalRevenueBetween(prevStartDate, prevEndDate);
+            if (prevTotalSales == null)
+                prevTotalSales = 0.0;
+
+            Long prevTotalOrders = orderRepository.countValidOrdersBetween(prevStartDate, prevEndDate);
+            if (prevTotalOrders == null)
+                prevTotalOrders = 0L;
+
+            if (prevTotalSales > 0) {
+                salesGrowth = ((totalSales - prevTotalSales) / prevTotalSales) * 100;
+            } else if (totalSales > 0) {
+                salesGrowth = 100.0; // 0 -> something
+            }
+
+            if (prevTotalOrders > 0) {
+                ordersGrowth = ((double) (totalOrders - prevTotalOrders) / prevTotalOrders) * 100;
+            } else if (totalOrders > 0) {
+                ordersGrowth = 100.0;
+            }
+
+        } catch (Exception e) {
+            log.error("Error calculating growth metrics", e);
+        }
+
         return DashboardStatsDto.builder()
                 .totalSales(totalSales)
                 .totalOrders(totalOrders.doubleValue())
@@ -128,6 +169,9 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
                 .productViewRate(productViewRate)
                 .addToCartRate(addToCartRate)
                 .orderCompletionRate(orderCompletionRate)
+                .salesGrowth(salesGrowth)
+                .ordersGrowth(ordersGrowth)
+                .usersGrowth(usersGrowth)
                 .build();
     }
 
@@ -212,35 +256,53 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
 
         // Limit to top 50 products to avoid too many external calls
         int limit = 50;
-        int count = 0;
+        List<String> distinctProductIds = new ArrayList<>();
+        List<Object[]> limitedSales = new ArrayList<>();
 
-        for (Object[] row : productSales) {
-            if (count >= limit)
-                break;
+        for (int i = 0; i < Math.min(productSales.size(), limit); i++) {
+            Object[] row = productSales.get(i);
+            String productId = (String) row[0];
+            Double sales = (Double) row[1];
+            if (sales != null) {
+                distinctProductIds.add(productId);
+                limitedSales.add(row);
+                totalSales += sales;
+            }
+        }
 
+        // Batch fetch products to avoid N+1
+        Map<String, com.example.orderservice.dto.ProductDto> productMap = new HashMap<>();
+        if (!distinctProductIds.isEmpty()) {
+            try {
+                com.example.orderservice.dto.BatchGetProductsRequest batchRequest = new com.example.orderservice.dto.BatchGetProductsRequest();
+                batchRequest.setProductIds(distinctProductIds);
+                ResponseEntity<Map<String, com.example.orderservice.dto.ProductDto>> response = stockServiceClient
+                        .batchGetProducts(batchRequest);
+                if (response.getBody() != null) {
+                    productMap = response.getBody();
+                }
+            } catch (Exception e) {
+                log.error("Failed to batch fetch products for top categories", e);
+            }
+        }
+
+        for (Object[] row : limitedSales) {
             String productId = (String) row[0];
             Double sales = (Double) row[1];
 
-            if (sales == null)
-                continue;
+            // Get product info from batch map
+            com.example.orderservice.dto.ProductDto product = productMap.get(productId);
+            String category = "Unknown";
 
-            totalSales += sales;
-
-            try {
-                // Fetch product info to get category
-                ResponseEntity<com.example.orderservice.dto.ProductDto> response = stockServiceClient
-                        .getProductById(productId);
-                if (response.getBody() != null) {
-                    String category = response.getBody().getCategoryName();
-                    if (category == null || category.isEmpty())
-                        category = "Uncategorized";
-                    categorySalesMap.put(category, categorySalesMap.getOrDefault(category, 0.0) + sales);
-                }
-            } catch (Exception e) {
-                log.error("Failed to fetch product info for id: " + productId, e);
-                categorySalesMap.put("Unknown", categorySalesMap.getOrDefault("Unknown", 0.0) + sales);
+            if (product != null && product.getCategoryName() != null && !product.getCategoryName().isEmpty()) {
+                category = product.getCategoryName();
+            } else if (product == null) {
+                // Fallback or retry? For performance, we skip retry for individual logic here
+                // if batch failed partially.
+                // "Unknown" is fine.
             }
-            count++;
+
+            categorySalesMap.put(category, categorySalesMap.getOrDefault(category, 0.0) + sales);
         }
 
         // Convert map to DTO list
@@ -264,5 +326,83 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
 
         // Return top 4
         return result.stream().limit(4).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ConversionTrendDto> getConversionTrend(LocalDateTime startDate, LocalDateTime endDate) {
+        // 1. Get Daily Orders from DB
+        List<DailyRevenueDto> dailyOrders = orderRepository.getDailyRevenueBetween(startDate, endDate);
+
+        // 2. Get Daily Visits from Stock Service
+        List<SystemAnalyticsTrendDto> dailyVisits = new ArrayList<>();
+        try {
+            ResponseEntity<List<SystemAnalyticsTrendDto>> response = stockServiceClient.getSystemAnalyticsTrend(
+                    startDate.toLocalDate().toString(),
+                    endDate.toLocalDate().toString());
+            if (response.getBody() != null) {
+                dailyVisits = response.getBody();
+            }
+        } catch (Exception e) {
+            log.error("Failed to fetch system analytics trend", e);
+        }
+
+        // 3. Merge Data
+        Map<String, ConversionTrendDto> trendMap = new HashMap<>();
+
+        // Initialize with visits data
+        for (SystemAnalyticsTrendDto visitData : dailyVisits) {
+            String dateKey = visitData.getDate().toString();
+            trendMap.put(dateKey, ConversionTrendDto.builder()
+                    .date(visitData.getDate())
+                    .visits(visitData.getVisits())
+                    .orders(0L)
+                    .conversionRate(0.0)
+                    .build());
+        }
+
+        // Merge orders data
+        for (DailyRevenueDto orderData : dailyOrders) {
+            String dateKey = orderData.getDate().toString();
+            ConversionTrendDto dto = trendMap.get(dateKey);
+
+            if (dto == null) {
+                dto = ConversionTrendDto.builder()
+                        .date(orderData.getDate())
+                        .visits(0L) // No visit data found (maybe before tracking started)
+                        .orders(orderData.getOrderCount())
+                        .conversionRate(0.0)
+                        .build();
+                trendMap.put(dateKey, dto);
+            } else {
+                dto.setOrders(orderData.getOrderCount());
+            }
+
+            // Calculate Rate
+            if (dto.getVisits() > 0) {
+                double rate = (double) dto.getOrders() / dto.getVisits() * 100;
+                dto.setConversionRate(Math.round(rate * 100.0) / 100.0); // Round to 2 decimals
+            } else if (dto.getOrders() > 0) {
+                dto.setConversionRate(100.0); // Edge case: orders but no visits recorded
+            }
+        }
+
+        // Sort by Date
+        List<ConversionTrendDto> result = new ArrayList<>(trendMap.values());
+        result.sort((a, b) -> a.getDate().compareTo(b.getDate()));
+
+        return result;
+    }
+
+    @Override
+    public List<UserLocationStatDto> getUserLocationStats() {
+        try {
+            ResponseEntity<List<UserLocationStatDto>> response = userServiceClient.getUserLocationStats();
+            if (response.getBody() != null) {
+                return response.getBody();
+            }
+        } catch (Exception e) {
+            log.error("Failed to fetch user location stats", e);
+        }
+        return new ArrayList<>();
     }
 }

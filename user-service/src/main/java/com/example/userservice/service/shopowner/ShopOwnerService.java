@@ -9,7 +9,13 @@ public interface ShopOwnerService {
 
     ShopOwner getShopOwnerByUserId(String userId);
 
-    java.util.List<com.example.userservice.dto.ShopOwnerStatsDto> getAllShopOwnersWithStats();
+    org.springframework.data.domain.Page<com.example.userservice.dto.ShopOwnerStatsDto> getAllShopOwnersWithStats(
+            String search,
+            org.springframework.data.domain.Pageable pageable,
+            java.time.LocalDate startDate,
+            java.time.LocalDate endDate,
+            String sortBy,
+            String sortDir);
 
     ShopOwner toggleShopStatus(String userId);
 }

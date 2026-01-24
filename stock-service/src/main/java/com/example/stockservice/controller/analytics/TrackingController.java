@@ -1,5 +1,6 @@
 package com.example.stockservice.controller.analytics;
 
+import com.example.stockservice.dto.analytics.SystemAnalyticsTrendDto;
 import com.example.stockservice.dto.analytics.TrackCartRequest;
 import com.example.stockservice.dto.analytics.TrackSearchRequest;
 import com.example.stockservice.dto.analytics.TrackViewRequest;
@@ -11,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -165,5 +167,19 @@ public class TrackingController {
     @GetMapping("/system/cart-adds")
     public ResponseEntity<Long> getSystemAddToCart() {
         return ResponseEntity.ok(trackingService.getSystemCartAdds());
+    }
+
+    @GetMapping("/system/trend")
+    public ResponseEntity<List<SystemAnalyticsTrendDto>> getSystemAnalyticsTrend(
+            @RequestParam(required = false) LocalDate startDate,
+            @RequestParam(required = false) LocalDate endDate) {
+
+        // Default to last 30 days if not provided
+        if (startDate == null)
+            startDate = LocalDate.now().minusDays(30);
+        if (endDate == null)
+            endDate = LocalDate.now();
+
+        return ResponseEntity.ok(trackingService.getSystemAnalyticsTrend(startDate, endDate));
     }
 }

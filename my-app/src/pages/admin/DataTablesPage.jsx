@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { toggleUserActive, getAllUser, updateUser } from "../../api/user";
+import { getUserOrderStats } from "../../api/order";
 
 import "../../assets/admin/css/Validation.css"; // Import shared validation styles
 import Swal from "sweetalert2";
@@ -45,6 +46,33 @@ const DataTablesPage = () => {
   });
   const [file, setFile] = useState(null);
   const [errors, setErrors] = useState({});
+
+  // Stats Expansion State
+  const [expandedUserId, setExpandedUserId] = useState(null);
+  const [userStatsCache, setUserStatsCache] = useState({});
+  const [statsLoading, setStatsLoading] = useState(false);
+
+  const toggleRow = async (userId) => {
+    if (expandedUserId === userId) {
+      setExpandedUserId(null);
+      return;
+    }
+
+    setExpandedUserId(userId);
+
+    // If not in cache, fetch it
+    if (!userStatsCache[userId]) {
+      setStatsLoading(true);
+      try {
+        const stats = await getUserOrderStats(userId);
+        setUserStatsCache((prev) => ({ ...prev, [userId]: stats }));
+      } catch (error) {
+        console.error("Failed to fetch user stats", error);
+      } finally {
+        setStatsLoading(false);
+      }
+    }
+  };
 
   // Handle form input changes and clear error
   const handleInputChange = (field, value) => {
@@ -302,10 +330,11 @@ const DataTablesPage = () => {
             <table className="users-table">
               <thead>
                 <tr>
+                  <th style={{ width: "50px" }}></th>
                   <th>User</th>
                   <th>Email</th>
                   <th>Phone</th>
-                  <th>Role</th>
+
                   <th>Status</th>
                   <th>Actions</th>
                 </tr>
@@ -315,64 +344,119 @@ const DataTablesPage = () => {
                   <tr><td colSpan="6" className="text-center">Loading...</td></tr>
                 ) : users.length > 0 ? (
                   users.map((user) => (
-                    <tr key={user.id}>
-                      <td>
-                        <div className="user-info-cell">
-                          <div className="user-avatar">
-                            {user.imageUrl ? (
-                              <img src={user.imageUrl} alt={user.username} />
-                            ) : (
-                              <span>{(user.firstName?.[0] || user.username?.[0] || 'U').toUpperCase()}</span>
-                            )}
-                          </div>
-                          <div className="user-details">
-                            <span className="user-name">
-                              {user.firstName} {user.lastName}
-                            </span>
-                            <span className="user-username">@{user.username}</span>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <span className="user-email">{user.email}</span>
-                      </td>
-                      <td>{user.phoneNumber || '-'}</td>
-                      <td>
-                        <span className={`role-badge ${getRoleBadgeColor(user.primaryRole)}`}>
-                          {user.primaryRole}
-                        </span>
-                        {user.roles && user.roles.length > 1 && (
-                          <span className="role-badge badge-secondary">+{user.roles.length - 1}</span>
-                        )}
-                      </td>
-                      <td>
-                        <span className={`status-badge ${user.active === "ACTIVE" ? 'status-active' : 'status-inactive'}`}>
-                          {user.active === "ACTIVE" ? 'Active' : 'Inactive'}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="action-buttons">
+                    <React.Fragment key={user.id}>
+                      <tr className={expandedUserId === user.id ? "table-active" : ""}>
+                        <td className="text-center">
                           <button
-                            onClick={() => handleEdit(user)}
-                            className="btn-action btn-edit"
-                            title="Edit User"
+                            className="btn border-0 bg-transparent shadow-none"
+                            onClick={() => toggleRow(user.id)}
+                            style={{ color: '#0d6efd' }}
                           >
-                            <i className="fas fa-edit"></i>
+                            <i className={`fas fa-${expandedUserId === user.id ? 'chevron-up' : 'chevron-down'}`}></i>
                           </button>
-                          <button
-                            onClick={() => confirmToggleActive(user)}
-                            className={`btn-action ${user.active === "ACTIVE" ? "btn-lock" : "btn-unlock"}`}
-                            title={user.active === "ACTIVE" ? "Lock Account" : "Unlock Account"}
-                          >
-                            {user.active === "ACTIVE" ? (
-                              <i className="fas fa-lock"></i>
-                            ) : (
-                              <i className="fas fa-lock-open"></i>
-                            )}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
+                        </td>
+                        <td>
+                          <div className="user-info-cell">
+                            <div className="user-avatar">
+                              {user.imageUrl ? (
+                                <img src={user.imageUrl} alt={user.username} />
+                              ) : (
+                                <span>{(user.firstName?.[0] || user.username?.[0] || 'U').toUpperCase()}</span>
+                              )}
+                            </div>
+                            <div className="user-details">
+                              <span className="user-name">
+                                {user.firstName} {user.lastName}
+                              </span>
+                              <span className="user-username">@{user.username}</span>
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <span className="user-email">{user.email}</span>
+                        </td>
+                        <td>{user.phoneNumber || '-'}</td>
+
+                        <td>
+                          <span className={`status-badge ${user.active === "ACTIVE" ? 'status-active' : 'status-inactive'}`}>
+                            {user.active === "ACTIVE" ? 'Active' : 'Inactive'}
+                          </span>
+                        </td>
+                        <td>
+                          <div className="action-buttons">
+                            <button
+                              onClick={() => handleEdit(user)}
+                              className="btn-action btn-edit"
+                              title="Edit User"
+                            >
+                              <i className="fas fa-edit"></i>
+                            </button>
+                            <button
+                              onClick={() => confirmToggleActive(user)}
+                              className={`btn-action ${user.active === "ACTIVE" ? "btn-lock" : "btn-unlock"}`}
+                              title={user.active === "ACTIVE" ? "Lock Account" : "Unlock Account"}
+                            >
+                              {user.active === "ACTIVE" ? (
+                                <i className="fas fa-lock"></i>
+                              ) : (
+                                <i className="fas fa-lock-open"></i>
+                              )}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                      {expandedUserId === user.id && (
+                        <tr>
+                          <td colSpan="6" className="p-0 border-0">
+                            <div className="p-3 bg-light border-bottom">
+                              {statsLoading && !userStatsCache[user.id] ? (
+                                <div className="text-center py-3">
+                                  <span className="spinner-border spinner-border-sm text-primary me-2"></span>
+                                  Loading stats...
+                                </div>
+                              ) : userStatsCache[user.id] ? (
+                                <div className="row g-3">
+                                  <div className="col-md-3">
+                                    <div className="card border-0 shadow-sm h-100">
+                                      <div className="card-body text-center">
+                                        <h6 className="text-muted mb-2">Total Orders</h6>
+                                        <h4 className="mb-0 text-primary">{userStatsCache[user.id].totalOrders}</h4>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="col-md-3">
+                                    <div className="card border-0 shadow-sm h-100">
+                                      <div className="card-body text-center">
+                                        <h6 className="text-muted mb-2">Successful</h6>
+                                        <h4 className="mb-0 text-success">{userStatsCache[user.id].successfulOrders}</h4>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="col-md-3">
+                                    <div className="card border-0 shadow-sm h-100">
+                                      <div className="card-body text-center">
+                                        <h6 className="text-muted mb-2">Delivering</h6>
+                                        <h4 className="mb-0 text-info">{userStatsCache[user.id].deliveringOrders}</h4>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="col-md-3">
+                                    <div className="card border-0 shadow-sm h-100">
+                                      <div className="card-body text-center">
+                                        <h6 className="text-muted mb-2">Cancelled</h6>
+                                        <h4 className="mb-0 text-danger">{userStatsCache[user.id].cancelledOrders}</h4>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="text-center text-muted">No data available</div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   ))
                 ) : (
                   <tr>

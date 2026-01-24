@@ -11,4 +11,5 @@ public class CategoryDto {
     private String description;
     private String ImageUrl;
     private Boolean active;
+    private Long productCount;
 }

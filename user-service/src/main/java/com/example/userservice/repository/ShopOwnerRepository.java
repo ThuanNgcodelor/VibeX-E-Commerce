@@ -9,4 +9,7 @@ import java.util.Optional;
 @Repository
 public interface ShopOwnerRepository extends JpaRepository<ShopOwner, String> {
         Optional<ShopOwner> findByUserId(String userId);
+
+        org.springframework.data.domain.Page<ShopOwner> findByShopNameContainingIgnoreCaseOrOwnerNameContainingIgnoreCase(
+                        String shopName, String ownerName, org.springframework.data.domain.Pageable pageable);
 }

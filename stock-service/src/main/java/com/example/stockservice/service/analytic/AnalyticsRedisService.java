@@ -5,11 +5,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+
+import com.example.stockservice.dto.analytics.SystemAnalyticsTrendDto;
 
 /**
  * ===== PHASE 1: REDIS ANALYTICS SERVICE =====
@@ -56,6 +60,7 @@ public class AnalyticsRedisService {
     // TTL constants - thời gian sống của dữ liệu
     private static final long VIEW_COUNT_TTL_DAYS = 7; // View count giữ 7 ngày
     private static final long RECENT_VIEWS_TTL_DAYS = 30; // Recently viewed giữ 30 ngày
+    private static final long DAILY_STATS_TTL_DAYS = 365; // Daily stats giữ 1 năm
     private static final int MAX_RECENT_VIEWS = 20; // Tối đa 20 sản phẩm đã xem
 
     // ==================== VIEW COUNTERS (Đếm lượt xem) ====================
@@ -265,8 +270,9 @@ public class AnalyticsRedisService {
 
     /**
      * Lấy sản phẩm xu hướng với phân trang
+     * 
      * @param offset Vị trí bắt đầu
-     * @param limit Số lượng sản phẩm
+     * @param limit  Số lượng sản phẩm
      * @return List các productId trending
      */
     public List<String> getTrendingProducts(int offset, int limit) {
@@ -318,6 +324,12 @@ public class AnalyticsRedisService {
 
             if (Boolean.TRUE.equals(isNewVisit)) {
                 redisTemplate.opsForValue().increment(SYSTEM_VISITS_KEY);
+
+                // Increment daily visit count
+                String dailyKey = SYSTEM_VISITS_KEY + ":" + LocalDate.now().toString();
+                redisTemplate.opsForValue().increment(dailyKey);
+                redisTemplate.expire(dailyKey, DAILY_STATS_TTL_DAYS, TimeUnit.DAYS);
+
                 log.debug("New visit recorded for session: {}", sessionId);
             }
         } catch (Exception e) {
@@ -328,6 +340,11 @@ public class AnalyticsRedisService {
     public void incrementSystemViews() {
         try {
             redisTemplate.opsForValue().increment(SYSTEM_VIEWS_KEY);
+
+            // Increment daily view count
+            String dailyKey = SYSTEM_VIEWS_KEY + ":" + LocalDate.now().toString();
+            redisTemplate.opsForValue().increment(dailyKey);
+            redisTemplate.expire(dailyKey, DAILY_STATS_TTL_DAYS, TimeUnit.DAYS);
         } catch (Exception e) {
             log.warn("Error incrementing system views: {}", e.getMessage());
         }
@@ -336,6 +353,11 @@ public class AnalyticsRedisService {
     public void incrementSystemCartAdds() {
         try {
             redisTemplate.opsForValue().increment(SYSTEM_CART_ADDS_KEY);
+
+            // Increment daily cart add count
+            String dailyKey = SYSTEM_CART_ADDS_KEY + ":" + LocalDate.now().toString();
+            redisTemplate.opsForValue().increment(dailyKey);
+            redisTemplate.expire(dailyKey, DAILY_STATS_TTL_DAYS, TimeUnit.DAYS);
         } catch (Exception e) {
             log.warn("Error incrementing system cart adds: {}", e.getMessage());
         }
@@ -366,5 +388,42 @@ public class AnalyticsRedisService {
         } catch (Exception e) {
             return 0L;
         }
+    }
+
+    /**
+     * Get system analytics trend for a date range
+     */
+    public List<SystemAnalyticsTrendDto> getSystemAnalyticsTrend(LocalDate startDate, LocalDate endDate) {
+        List<SystemAnalyticsTrendDto> result = new ArrayList<>();
+
+        try {
+            LocalDate current = startDate;
+            while (!current.isAfter(endDate)) {
+                String dateStr = current.toString();
+
+                // Construct keys
+                String visitKey = SYSTEM_VISITS_KEY + ":" + dateStr;
+                String viewKey = SYSTEM_VIEWS_KEY + ":" + dateStr;
+                String cartKey = SYSTEM_CART_ADDS_KEY + ":" + dateStr;
+
+                // Get values
+                Object visitVal = redisTemplate.opsForValue().get(visitKey);
+                Object viewVal = redisTemplate.opsForValue().get(viewKey);
+                Object cartVal = redisTemplate.opsForValue().get(cartKey);
+
+                result.add(SystemAnalyticsTrendDto.builder()
+                        .date(current)
+                        .visits(visitVal != null ? Long.parseLong(visitVal.toString()) : 0L)
+                        .views(viewVal != null ? Long.parseLong(viewVal.toString()) : 0L)
+                        .cartAdds(cartVal != null ? Long.parseLong(cartVal.toString()) : 0L)
+                        .build());
+
+                current = current.plusDays(1);
+            }
+        } catch (Exception e) {
+            log.error("Error fetching system analytics trend", e);
+        }
+
+        return result;
     }
 }

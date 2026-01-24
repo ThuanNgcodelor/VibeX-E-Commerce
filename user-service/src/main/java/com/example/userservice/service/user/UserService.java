@@ -61,4 +61,6 @@ public interface UserService {
      * Used by notification-service for admin broadcast notifications
      */
     List<String> getAllActiveUserIds();
+
+    List<com.example.userservice.dto.UserLocationStatDto> getUserLocationStats();
 }

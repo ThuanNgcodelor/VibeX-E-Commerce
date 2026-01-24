@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import '../../assets/admin/css/ShopOwnerManagementPage.css';
 import ShopOwnerList from '../../components/admin/shopOwner/ShopOwnerList';
 import ShopStatsDashboard from '../../components/admin/shopOwner/ShopStatsDashboard';
@@ -11,21 +12,69 @@ export default function ShopOwnerManagementPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    useEffect(() => {
-        fetchShops();
-    }, []);
+    // Pagination & Search State
+    const [currentPage, setCurrentPage] = useState(0);
+    const [totalPages, setTotalPages] = useState(0);
+    const [pageSize] = useState(10);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [sortBy, setSortBy] = useState('name');
+    const [sortDir, setSortDir] = useState('asc'); // 'asc' or 'desc'
+    const [filterVerified, setFilterVerified] = useState('all');
+    const [searchParams] = useSearchParams();
 
-    const fetchShops = async () => {
+    // Date Range State (Default: Last 30 days)
+    const [startDate, setStartDate] = useState(() => {
+        const d = new Date();
+        d.setDate(d.getDate() - 30);
+        return d.toISOString().split('T')[0];
+    });
+    const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
+
+    useEffect(() => {
+        const querySearch = searchParams.get('search');
+        if (querySearch) {
+            setSearchTerm(querySearch);
+            // Trigger fetch immediately with the new term
+            fetchShops(0, querySearch, startDate, endDate);
+        } else {
+            fetchShops(currentPage, searchTerm, startDate, endDate);
+        }
+    }, [currentPage, startDate, endDate, sortBy, sortDir, searchParams]); // Fetch when params change
+
+    // Triggered by search submit in child
+    const handleSearch = (term) => {
+        setSearchTerm(term);
+        setCurrentPage(0); // Reset to page 0
+        fetchShops(0, term, startDate, endDate);
+    };
+
+    const fetchShops = async (page, search, start, end) => {
         try {
             setLoading(true);
-            const data = await shopOwnerAdminApi.getAllShopOwnersWithStats();
-            // Map userId to id for frontend compatibility if needed, or just use userId
-            const mappedData = data.map(item => ({
+            const params = {
+                page: page,
+                size: pageSize,
+                search: search,
+                startDate: start,
+                endDate: end,
+                sortBy: sortBy,
+                sortDir: sortDir
+            };
+
+            const data = await shopOwnerAdminApi.getAllShopOwnersWithStats(params);
+
+            // Backend returns Page object: { content: [], totalPages: ... }
+            const shopList = data.content || [];
+            const mappedData = shopList.map(item => ({
                 ...item,
-                id: item.userId, // Use userId as id
-                createdAt: 'N/A' // backend doesn't return createdAt in stats DTO yet, or fix DTO
+                id: item.userId,
+                createdAt: item.createdAt || 'N/A'
             }));
+
+            // No client-side sort needed anymore as backend handles it
+
             setShops(mappedData);
+            setTotalPages(data.totalPages);
             setLoading(false);
         } catch (err) {
             console.error("Failed to fetch shops:", err);
@@ -53,11 +102,11 @@ export default function ShopOwnerManagementPage() {
 
             await shopOwnerAdminApi.toggleShopStatus(shopId);
             // Re-fetch to confirm or just rely on optimistic
-            fetchShops();
+            fetchShops(currentPage, searchTerm);
         } catch (err) {
             console.error("Failed to toggle shop status:", err);
             // Revert on error
-            fetchShops();
+            fetchShops(currentPage, searchTerm);
         }
     };
 
@@ -85,6 +134,28 @@ export default function ShopOwnerManagementPage() {
                             selectedShopId={selectedShopId}
                             onSelectShop={handleSelectShop}
                             onToggleStatus={handleToggleStatus}
+                            sortBy={sortBy}
+                            setSortBy={(val) => {
+                                setSortBy(val);
+                                // Default directions for better UX
+                                if (val === 'name') setSortDir('asc');
+                                else if (val === 'revenue') setSortDir('desc');
+                                else if (val === 'trending') setSortDir('desc');
+                            }}
+                            sortDir={sortDir}
+                            setSortDir={setSortDir}
+                            searchTerm={searchTerm}
+                            setSearchTerm={setSearchTerm}
+                            filterVerified={filterVerified}
+                            setFilterVerified={setFilterVerified}
+                            totalPages={totalPages}
+                            currentPage={currentPage}
+                            onPageChange={(page) => setCurrentPage(page)}
+                            onSearch={handleSearch}
+                            startDate={startDate}
+                            setStartDate={setStartDate}
+                            endDate={endDate}
+                            setEndDate={setEndDate}
                         />
                     </div>
 
