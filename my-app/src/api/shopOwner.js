@@ -71,10 +71,10 @@ export const updateProduct = async (productData, images) => {
  * @param {number} pageSize - Số lượng sản phẩm mỗi trang (mặc định: 6)
  * @returns {Promise} - Promise trả về danh sách sản phẩm
  */
-export const getProducts = async (pageNo = 1, pageSize = 6) => {
+export const getProducts = async (pageNo = 1, pageSize = 6, status = '') => {
     try {
         const res = await api.get("/stock/product/listPageShopOwner", {
-            params: { pageNo, pageSize }
+            params: { pageNo, pageSize, status }
         });
         return res.data;
     } catch (error) {
@@ -151,6 +151,19 @@ export const getDashboardStats = async () => {
         return res.data;
     } catch (error) {
         throw new Error(error.response?.data?.message || "Failed to fetch dashboard stats");
+    }
+};
+
+/**
+ * Lấy tất cả sản phẩm của shop (không phân trang) để dùng cho decoration/selectors
+ * @returns {Promise} - Promise trả về danh sách sản phẩm
+ */
+export const getAllShopProducts = async () => {
+    try {
+        const res = await api.get("/stock/product/listShopOwner");
+        return res.data;
+    } catch (error) {
+        throw new Error(error.response?.data?.message || "Failed to fetch all shop products");
     }
 };
 

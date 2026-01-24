@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Button, Form, ListGroup, Image, Spinner, InputGroup } from 'react-bootstrap';
-import { fetchProducts } from '../../../api/product';
+import { getAllShopProducts } from '../../../api/shopOwner';
 import { getImageUrl } from '../../../api/image';
 
 const ProductSelectorModal = ({ show, onHide, onSelect, initialSelectedIds = [] }) => {
@@ -19,7 +19,7 @@ const ProductSelectorModal = ({ show, onHide, onSelect, initialSelectedIds = [] 
     const loadProducts = async () => {
         setLoading(true);
         try {
-            const res = await fetchProducts();
+            const res = await getAllShopProducts();
             const productList = Array.isArray(res) ? res : (res.data || []);
             setProducts(productList);
         } catch (error) {

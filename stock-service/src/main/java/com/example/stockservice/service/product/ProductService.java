@@ -45,7 +45,7 @@ public interface ProductService {
 
     List<Product> getAllProductsByUserId(String userId);
 
-    Page<Product> getProductsByUserIdWithPaging(String userId, Integer pageNo, Integer pageSize);
+    Page<Product> getProductsByUserIdWithPaging(String userId, Integer pageNo, Integer pageSize, String status);
 
     Page<Product> searchProductsByUserId(String userId, String keyword, Integer pageNo, Integer pageSize);
 

@@ -114,7 +114,7 @@ public class ProductController {
             @RequestParam(defaultValue = "1") Integer pageNo,
             @RequestParam(defaultValue = "20") Integer pageSize) {
 
-        Page<ProductDto> products = productService.getProductsByUserIdWithPaging(shopId, pageNo, pageSize)
+        Page<ProductDto> products = productService.getProductsByUserIdWithPaging(shopId, pageNo, pageSize, "IN_STOCK")
                 .map(this::toDto);
 
         return ResponseEntity.ok(products);
@@ -259,10 +259,11 @@ public class ProductController {
     ResponseEntity<Page<ProductDto>> getAllProductsByShopOwner(
             HttpServletRequest httpServletRequest,
             @RequestParam(defaultValue = "1") Integer pageNo,
-            @RequestParam(defaultValue = "6") Integer pageSize) {
+            @RequestParam(defaultValue = "6") Integer pageSize,
+            @RequestParam(required = false) String status) {
 
         String userId = jwtUtil.ExtractUserId(httpServletRequest);
-        Page<ProductDto> products = productService.getProductsByUserIdWithPaging(userId, pageNo, pageSize)
+        Page<ProductDto> products = productService.getProductsByUserIdWithPaging(userId, pageNo, pageSize, status)
                 .map(this::toDto);
 
         return ResponseEntity.status(HttpStatus.OK).body(products);
@@ -280,6 +281,13 @@ public class ProductController {
         Page<ProductDto> dtoPage = products.map(this::toDto);
 
         return ResponseEntity.ok(dtoPage);
+    }
+
+    @GetMapping("/listShopOwner")
+    public ResponseEntity<List<ProductDto>> getAllShopProducts(HttpServletRequest request) {
+        String userId = jwtUtil.ExtractUserId(request);
+        List<Product> products = productService.getAllProductsByUserId(userId);
+        return ResponseEntity.ok(products.stream().map(this::toDto).collect(Collectors.toList()));
     }
 
     @GetMapping("/shop-owner/{userId}/ids")
