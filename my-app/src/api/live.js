@@ -227,11 +227,23 @@ export const getWebSocketUrl = () => {
  * @returns {string} - HLS URL (use nginx-rtmp service)
  */
 export const getStreamUrl = (streamKey) => {
-    // In production (Docker), nginx-rtmp is accessible via port 8088
-    // In development, you may need to run nginx-rtmp separately or adjust this
+    // In production (Docker), use relative URL so it goes through Nginx proxy (my-app:80 -> nginx-rtmp:8080)
+    // This works for localhost, LAN, and Ngrok (standard ports 80/443)
+    const lanIp = import.meta.env.VITE_LAN_IP;
+    const isHttps = window.location.protocol === 'https:';
+
+    // Only use LAN IP if we are NOT on HTTPS, or if we want to risk Mixed Content (not recommended)
+    // If on HTTPS (Ngrok), we MUST use the proxy to avoid Mixed Content block
+    if (lanIp && !isHttps) {
+        // Direct LAN access for HLS (bypassing Nginx proxy for performance is better on LAN)
+        return `http://${lanIp}:8088/hls/${streamKey}.m3u8`;
+    }
+
     const protocol = window.location.protocol;
     const hostname = window.location.hostname;
-    return `${protocol}//${hostname}:8088/hls/${streamKey}.m3u8`;
+    // Don't append port 8088, let Nginx proxy handle /hls route
+    const port = window.location.port ? `:${window.location.port}` : '';
+    return `${protocol}//${hostname}${port}/hls/${streamKey}.m3u8`;
 };
 
 // ==================== LIVE CART (stock-service) ====================

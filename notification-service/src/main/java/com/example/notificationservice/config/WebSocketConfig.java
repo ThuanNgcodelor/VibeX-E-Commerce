@@ -42,12 +42,11 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                 "http://localhost",
                 "http://localhost:5173",
                 "http://localhost:80",
+                "http://192.168.1.2",
+                "http://192.168.1.2:80",
+                "http://192.168.1.2:5173",
                 "https://localhost",
-                "https://unbrawny-suk-nonillatively.ngrok-free.dev", // Explicit Domain
-                "http://shopee-fake.id.vn",
-                "https://shopee-fake.id.vn",
-                "http://www.shopee-fake.id.vn",
-                "https://www.shopee-fake.id.vn",
+                "https://impactive-pteridological-sherron.ngrok-free.dev", // Explicit Domain
                 // Ngrok patterns (free tier uses random subdomains)
                 "https://*.ngrok-free.app",
                 "https://*.ngrok-free.dev",

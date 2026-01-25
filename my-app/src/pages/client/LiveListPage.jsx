@@ -44,7 +44,7 @@ export default function LiveListPage() {
                         textAlign: 'center'
                     }}>
                         <h1 style={{ margin: 0, fontSize: '28px', fontWeight: 'bold' }}>
-                            🔴 Shopee Live
+                            🔴 Vibe Live
                         </h1>
                         <p style={{ margin: '10px 0 0', opacity: 0.9 }}>
                             {t('liveStream.list.subtitle')}

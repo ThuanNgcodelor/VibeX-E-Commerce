@@ -38,8 +38,10 @@ public class LiveService {
     private final UserServiceClient userServiceClient;
     private final SimpMessagingTemplate messagingTemplate;
 
-    private static final String HLS_BASE_URL = "http://localhost:8088/hls/";
-    private static final String FILE_STORAGE_BASE_URL = "http://localhost:8080/v1/file-storage/get/";
+    private static final String HLS_BASE_URL = "/hls/";
+
+    @org.springframework.beans.factory.annotation.Value("${app.file-storage.base-url}")
+    private String fileStorageBaseUrl;
 
     // ==================== ROOM MANAGEMENT ====================
 
@@ -222,7 +224,7 @@ public class LiveService {
                 if (productInfo.getImageId().startsWith("http")) {
                     imageUrl = productInfo.getImageId();
                 } else {
-                    imageUrl = FILE_STORAGE_BASE_URL + productInfo.getImageId();
+                    imageUrl = fileStorageBaseUrl + productInfo.getImageId();
                 }
             }
             product.setProductImageUrl(imageUrl);
@@ -242,7 +244,7 @@ public class LiveService {
                 if (productInfo.getImageId().startsWith("http")) {
                     imageUrl = productInfo.getImageId();
                 } else {
-                    imageUrl = FILE_STORAGE_BASE_URL + productInfo.getImageId();
+                    imageUrl = fileStorageBaseUrl + productInfo.getImageId();
                 }
             }
             product = LiveProduct.builder()
@@ -436,6 +438,11 @@ public class LiveService {
                 ? room.getProducts().stream().map(this::mapToDto).collect(Collectors.toList())
                 : List.of();
 
+        String thumbnailUrl = room.getThumbnailUrl();
+        if (thumbnailUrl != null && thumbnailUrl.contains(fileStorageBaseUrl)) {
+            thumbnailUrl = thumbnailUrl.replace(fileStorageBaseUrl, "");
+        }
+
         return LiveRoomDto.builder()
                 .id(room.getId())
                 .shopOwnerId(room.getShopOwnerId())
@@ -445,7 +452,7 @@ public class LiveService {
                 .description(room.getDescription())
                 .streamKey(includeStreamKey ? room.getStreamKey() : null)
                 .streamUrl(HLS_BASE_URL + room.getStreamKey() + ".m3u8")
-                .thumbnailUrl(room.getThumbnailUrl())
+                .thumbnailUrl(thumbnailUrl)
                 .status(room.getStatus())
                 .viewerCount(room.getViewerCount())
                 .peakViewers(room.getPeakViewers())
@@ -465,12 +472,17 @@ public class LiveService {
         Integer remainingQuantity = quantityLimit - soldCount;
         Boolean isOutOfStock = remainingQuantity <= 0;
 
+        String imageUrl = product.getProductImageUrl();
+        if (imageUrl != null && imageUrl.contains(fileStorageBaseUrl)) {
+            imageUrl = imageUrl.replace(fileStorageBaseUrl, "");
+        }
+
         return LiveProductDto.builder()
                 .id(product.getId())
                 .liveRoomId(product.getLiveRoom().getId())
                 .productId(product.getProductId())
                 .productName(product.getProductName())
-                .productImageUrl(product.getProductImageUrl())
+                .productImageUrl(imageUrl)
                 .originalPrice(product.getOriginalPrice())
                 .livePrice(product.getLivePrice())
                 .discountPercent(product.getDiscountPercent())

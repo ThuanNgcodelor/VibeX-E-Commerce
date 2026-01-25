@@ -687,4 +687,24 @@ public class ProductServiceImpl implements ProductService {
     public List<String> getProductIdsByCategoryName(String name) {
         return productRepository.findIdsByCategoryName(name);
     }
+
+    /**
+     * Helper method to convert a List<Product> to Page<Product> with pagination
+     * 
+     * @param pageable Pagination information
+     * @param fullList Complete list of products to paginate
+     * @return Page of products based on pageable parameters
+     */
+    private Page<Product> getProductsPage(Pageable pageable, List<Product> fullList) {
+        int start = (int) pageable.getOffset();
+        int end = Math.min((start + pageable.getPageSize()), fullList.size());
+        
+        // Handle edge case where start is beyond list size
+        if (start >= fullList.size()) {
+            return new PageImpl<>(new ArrayList<>(), pageable, fullList.size());
+        }
+        
+        List<Product> pageContent = fullList.subList(start, end);
+        return new PageImpl<>(pageContent, pageable, fullList.size());
+    }
 }

@@ -11,16 +11,18 @@ x-spring-boot-common: &spring-boot-common
   networks: [ vibe-network ]
   restart: unless-stopped
   environment:
+    # OPTIMIZED for 16GB RAM
+    # Heap upgraded to 768MB (from 512MB)
     # Tăng Heap lên 512MB để giảm thiểu GC (Garbage Collection) gây lag
     # Xms=Xmx để tránh việc JVM phải resize heap lúc runtime
-    JAVA_TOOL_OPTIONS: "-Xms512m -Xmx512m -XX:+UseG1GC"
+    JAVA_TOOL_OPTIONS: "-Xms768m -Xmx768m -XX:+UseG1GC"
   deploy:
     resources:
       limits:
         cpus: '2.0' # Cho phép dùng tối đa 2 nhân CPU khi cần thiết (Load cao)
-        memory: 1G # Nới lỏng giới hạn Docker để tránh OOM Kill (Heap 512 + Non-Heap)
+        memory: 1.5G # Increased from 1G # Nới lỏng giới hạn Docker để tránh OOM Kill (Heap 512 + Non-Heap)
       reservations:
-        memory: 512M # Đảm bảo RAM cứng cho service
+        memory: 768M # Đảm bảo RAM cứng cho service
 
 services:
   # ============================================
@@ -35,8 +37,9 @@ services:
       MYSQL_DATABASE: shopee
       MYSQL_USER: sa
       MYSQL_PASSWORD: Thuan@417
+    # Buffer pool 1G
     # Tăng max_connections và bộ nhớ đệm
-    command: --default-authentication-plugin=mysql_native_password --max_connections=300 --innodb-buffer-pool-size=512M
+    command: --default-authentication-plugin=mysql_native_password --max_connections=500 --innodb-buffer-pool-size=1G
     ports:
       - "3306:3306"
     volumes:
@@ -45,12 +48,26 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1.5G # Cấp nhiều RAM hơn cho MySQL xử lý query phức tạp
+          memory: 3G # Increased from 1.5G # Cấp nhiều RAM hơn cho MySQL xử lý query phức tạp
     healthcheck:
       test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
       interval: 5s # Check nhanh hơn để service khác start sớm hơn
       timeout: 3s
       retries: 5
+
+  adminer:
+    image: adminer
+    container_name: adminer
+    restart: unless-stopped
+    ports:
+      - "8085:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: mysql
+    networks: [ vibe-network ]
+    deploy:
+      resources:
+        limits:
+          memory: 128M
 
   redis:
     image: redis:7-alpine
@@ -64,7 +81,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256M # Tăng gấp đôi cache size
+          memory: 512M # Doubled # Tăng gấp đôi cache size
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.6.1
@@ -73,14 +90,14 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: "2181"
       ZOOKEEPER_TICK_TIME: "2000"
-      KAFKA_OPTS: "-Xmx512m -Xms512m" # Tăng RAM cho ZK
+      KAFKA_OPTS: "-Xmx768m -Xms768m" # Tăng RAM cho ZK
     ports:
       - "2181:2181"
     networks: [ vibe-network ]
     deploy:
       resources:
         limits:
-          memory: 768M
+          memory: 1G # Increased
 
   kafka:
     image: confluentinc/cp-kafka:7.6.1
@@ -96,7 +113,7 @@ services:
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
       # Kafka cần nhiều RAM để lưu page cache -> Tăng lên 1GB
-      KAFKA_HEAP_OPTS: "-Xmx1G -Xms1G"
+      KAFKA_HEAP_OPTS: "-Xmx1536m -Xms1536m" # 1.5GB Heap
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
     ports:
       - "9092:9092"
@@ -105,7 +122,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 2G # Kafka cần dư dả RAM
+          memory: 3G # Increased from 2G # Kafka cần dư dả RAM
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
@@ -116,14 +133,14 @@ services:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
       KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
-      JAVA_OPTS: "-Xmx512m"
+      JAVA_OPTS: "-Xmx768m"
     ports:
       - "9090:8080"
     networks: [ vibe-network ]
     deploy:
       resources:
         limits:
-          memory: 768M
+          memory: 256M
 
   # ============================================
   # BACKEND SERVICES (High Performance Mode)
@@ -140,7 +157,7 @@ services:
       - SPRING_PROFILES_ACTIVE=native
       - SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS=file:///config
       # Config Server nhẹ, nhưng vẫn tăng để load file nhanh hơn
-      - JAVA_TOOL_OPTIONS=-Xms256m -Xmx512m
+      - JAVA_TOOL_OPTIONS=-Xms512m -Xmx512m
     healthcheck:
       test: [ "CMD", "wget", "-qO-", "http://localhost:8888/actuator/health" ]
       interval: 10s # Giảm thời gian chờ
@@ -155,7 +172,7 @@ services:
       - "8761:8761"
     environment:
       - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
-      - JAVA_TOOL_OPTIONS=-Xms256m -Xmx512m
+      - JAVA_TOOL_OPTIONS=-Xms512m -Xmx512m
     depends_on:
       config-server:
         condition: service_healthy
@@ -174,12 +191,13 @@ services:
     environment:
       - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
       - EUREKA_URI=http://eureka-server:8761/eureka
+      # Gateway High Performance
       # Gateway xử lý rất nhiều request, cần nhiều RAM nhất
-      - JAVA_TOOL_OPTIONS=-Xms512m -Xmx768m
+      - JAVA_TOOL_OPTIONS=-Xms1G -Xmx1G
     deploy:
       resources:
         limits:
-          memory: 1.2G # Riêng Gateway cho thêm giới hạn
+          memory: 2G # 2GB Limit # Riêng Gateway cho thêm giới hạn
     depends_on:
       eureka-server:
         condition: service_healthy
@@ -192,12 +210,16 @@ services:
     restart: unless-stopped
     networks: [ vibe-network ]
     environment:
-      JAVA_TOOL_OPTIONS: "-Xms512m -Xmx512m -XX:+UseG1GC"
+      JAVA_TOOL_OPTIONS: "-Xms768m -Xmx768m -XX:+UseG1GC"
       SPRING_CLOUD_CONFIG_URI: http://config-server:8888
       EUREKA_URI: http://eureka-server:8761/eureka
       SPRING_DATA_REDIS_HOST: redis
-      GOOGLE_REDIRECT_URI: http://localhost/oauth2/callback
-      FACEBOOK_REDIRECT_URI: http://localhost/oauth2/callback
+      GOOGLE_REDIRECT_URI: https://impactive-pteridological-sherron.ngrok-free.dev/oauth2/callback
+      FACEBOOK_REDIRECT_URI: https://impactive-pteridological-sherron.ngrok-free.dev/oauth2/callback
+    deploy:
+      resources:
+        limits:
+          memory: 1.5G
     depends_on:
       gateway:
         condition: service_started
@@ -232,8 +254,13 @@ services:
       - SPRING_DATASOURCE_PASSWORD=Thuan@417
       - SPRING_DATA_REDIS_HOST=redis
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      # AI Service needs more RAM
       # Service này có AI connect, cho thêm chút RAMs
-      - JAVA_TOOL_OPTIONS=-Xms512m -Xmx768m
+      - JAVA_TOOL_OPTIONS=-Xms1G -Xmx1G
+    deploy:
+      resources:
+        limits:
+          memory: 2G
     depends_on:
       gateway:
         condition: service_started
@@ -294,9 +321,9 @@ services:
       - SPRING_DATASOURCE_USERNAME=sa
       - SPRING_DATASOURCE_PASSWORD=Thuan@417
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
-      - VNPAY_RETURN_URL=http://localhost/payment/vnpay/return
-      - MOMO_RETURN_URL=http://localhost/payment/momo/return
-      - MOMO_IPN_URL=http://localhost/v1/payment/momo/ipn
+      - VNPAY_RETURN_URL=https://impactive-pteridological-sherron.ngrok-free.dev/payment/vnpay/return
+      - MOMO_RETURN_URL=https://impactive-pteridological-sherron.ngrok-free.dev/payment/momo/return
+      - MOMO_IPN_URL=https://impactive-pteridological-sherron.ngrok-free.dev/v1/payment/momo/ipn
     depends_on:
       gateway:
         condition: service_started
@@ -314,6 +341,11 @@ services:
       - SPRING_DATASOURCE_USERNAME=sa
       - SPRING_DATASOURCE_PASSWORD=Thuan@417
       - FILE_UPLOAD_DIR=/app/uploads
+      - JAVA_TOOL_OPTIONS=-Xms1G -Xmx1G
+    deploy:
+      resources:
+        limits:
+          memory: 2G
     volumes:
       - ./file-storage/src/main/resources/attachments:/app/uploads
     depends_on:

@@ -138,4 +138,4 @@ docker exec payment-service env | findstr RETURN
 | End-to-End Testing | ⏳ Pending |
 
 **Next Steps:** Thực hiện End-to-End testing để confirm payment flow hoạt động đúng.
-ngrok http 80 --domain=unbrawny-suk-nonillatively.ngrok-free.dev 
+ngrok http 80 --domain=impactive-pteridological-sherron.ngrok-free.dev

@@ -25,8 +25,9 @@ spring:
           # CORS for REST API routes (exclude WebSocket)
           '[/v1/**]':
             allowedOrigins:
-              - http://localhost:5173                    # Development
-              - https://unbrawny-suk-nonillatively.ngrok-free.dev  # Ngrok tunnel
+              - http://localhost:5173     
+              - http://localhost                    # Development
+              - https://impactive-pteridological-sherron.ngrok-free.dev
             allowedMethods:
               - GET
               - POST

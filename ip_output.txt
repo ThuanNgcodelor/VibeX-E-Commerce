@@ -1,0 +1,66 @@
+
+Windows IP Configuration
+
+
+Ethernet adapter Radmin VPN:
+
+   Connection-specific DNS Suffix  . : 
+   IPv6 Address. . . . . . . . . . . : fdfd::1ac8:e624
+   Link-local IPv6 Address . . . . . : fe80::2a45:b91a:a013:4bd8%5
+   IPv4 Address. . . . . . . . . . . : 26.200.230.36
+   Subnet Mask . . . . . . . . . . . : 255.0.0.0
+   Default Gateway . . . . . . . . . : 26.0.0.1
+
+Ethernet adapter Ethernet:
+
+   Media State . . . . . . . . . . . : Media disconnected
+   Connection-specific DNS Suffix  . : 
+
+Wireless LAN adapter Local Area Connection* 1:
+
+   Media State . . . . . . . . . . . : Media disconnected
+   Connection-specific DNS Suffix  . : 
+
+Wireless LAN adapter Local Area Connection* 10:
+
+   Media State . . . . . . . . . . . : Media disconnected
+   Connection-specific DNS Suffix  . : 
+
+Wireless LAN adapter Wi-Fi:
+
+   Connection-specific DNS Suffix  . : 
+   IPv6 Address. . . . . . . . . . . : 2405:4802:c252:2680:95c2:8951:a328:768b
+   Temporary IPv6 Address. . . . . . : 2405:4802:c252:2680:bc96:72c2:f08d:5b69
+   Link-local IPv6 Address . . . . . : fe80::d15d:f1cf:3fc8:2ea4%18
+   IPv4 Address. . . . . . . . . . . : 192.168.1.2
+   Subnet Mask . . . . . . . . . . . : 255.255.255.0
+   Default Gateway . . . . . . . . . : fe80::1%18
+                                       192.168.1.1
+
+Ethernet adapter Bluetooth Network Connection:
+
+   Media State . . . . . . . . . . . : Media disconnected
+   Connection-specific DNS Suffix  . : 
+
+Tunnel adapter Teredo Tunneling Pseudo-Interface:
+
+   Connection-specific DNS Suffix  . : 
+   IPv6 Address. . . . . . . . . . . : 2001:0:14c9:d700:1c56:6d47:d58f:1c70
+   Link-local IPv6 Address . . . . . : fe80::1c56:6d47:d58f:1c70%15
+   Default Gateway . . . . . . . . . : 
+
+Ethernet adapter vEthernet (Default Switch):
+
+   Connection-specific DNS Suffix  . : 
+   Link-local IPv6 Address . . . . . : fe80::7da:309:5f58:d65f%22
+   IPv4 Address. . . . . . . . . . . : 172.25.96.1
+   Subnet Mask . . . . . . . . . . . : 255.255.240.0
+   Default Gateway . . . . . . . . . : 
+
+Ethernet adapter vEthernet (WSL (Hyper-V firewall)):
+
+   Connection-specific DNS Suffix  . : 
+   Link-local IPv6 Address . . . . . : fe80::2772:b9ba:b0a3:ee99%50
+   IPv4 Address. . . . . . . . . . . : 172.24.64.1
+   Subnet Mask . . . . . . . . . . . : 255.255.240.0
+   Default Gateway . . . . . . . . . : 

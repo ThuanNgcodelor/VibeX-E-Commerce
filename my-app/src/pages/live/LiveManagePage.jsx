@@ -101,6 +101,9 @@ export default function LiveManagePage() {
         if (step === 'streaming' && currentRoom?.id) {
             const token = getToken();
             // Use dynamic URL based on current location
+            // WS URL must use http/https for SockJS
+            // Use relative path so it adapts to host/proxy automatically
+            // e.g. /ws/live -> http(s)://host/ws/live
             const wsUrl = `${window.location.origin}/ws/live`;
 
             const client = new Client({
@@ -175,14 +178,14 @@ export default function LiveManagePage() {
     // Handle Remove Product from Live
     const handleRemoveProduct = async (product) => {
         const result = await Swal.fire({
-            title: 'Xác nhận gỡ sản phẩm?',
-            text: `Bạn có chắc muốn gỡ sản phẩm "${product.productName}" khỏi livestream?`,
+            title: 'Remove Product?',
+            text: `Are you sure you want to remove "${product.productName}" from livestream?`,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#d33',
             cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Gỡ bỏ',
-            cancelButtonText: 'Hủy'
+            confirmButtonText: 'Remove',
+            cancelButtonText: 'Cancel'
         });
 
         if (!result.isConfirmed) return;
@@ -191,10 +194,10 @@ export default function LiveManagePage() {
             // Note: API expects productId (original ID), not liveProductId
             await removeProductFromLive(currentRoom.id, product.productId);
             setLiveProducts(prev => prev.filter(p => p.productId !== product.productId));
-            toast.success("Đã gỡ sản phẩm thành công!");
+            toast.success("Product removed successfully!");
         } catch (error) {
             console.error('Error removing product:', error);
-            toast.error('Không thể gỡ sản phẩm');
+            toast.error('Cannot remove product');
         }
     };
 
@@ -339,10 +342,10 @@ export default function LiveManagePage() {
             setProductQuantities({});
             setShowProductModal(false);
 
-            toast.success(`Đã thêm ${selectedProducts.length} sản phẩm vào live stream!`);
+            toast.success(`added ${selectedProducts.length} products to live stream!`);
         } catch (error) {
             console.error('Error adding products:', error);
-            toast.error('Lỗi khi thêm sản phẩm: ' + (error.message || 'Unknown error'));
+            toast.error('Error adding products: ' + (error.message || 'Unknown error'));
         } finally {
             setAddingProducts(false);
         }
@@ -370,7 +373,7 @@ export default function LiveManagePage() {
                 roomData.thumbnailUrl = `/v1/file-storage/get/${imageId}`;
             } catch (error) {
                 console.error('Upload thumbnail error:', error);
-                toast.error('Lỗi khi tải ảnh bìa: ' + (error.message || 'Unknown error'));
+                toast.error('Error uploading thumbnail: ' + (error.message || 'Unknown error'));
                 return;
             }
         }
@@ -380,7 +383,7 @@ export default function LiveManagePage() {
             setCurrentRoom(room);
             setStep('streaming');
         } catch {
-            toast.error('Không thể tạo phòng live');
+            toast.error('Cannot create live room');
         }
     };
 
@@ -390,7 +393,7 @@ export default function LiveManagePage() {
             setCurrentRoom(details);
             setStep('streaming');
         } catch {
-            toast.error('Không thể lấy thông tin phòng');
+            toast.error('Cannot get room info');
         }
     };
 
@@ -399,20 +402,20 @@ export default function LiveManagePage() {
             const updated = await startLive(currentRoom.id);
             setCurrentRoom(updated);
         } catch {
-            toast.error('Không thể bắt đầu live');
+            toast.error('Cannot start live');
         }
     };
 
     const handleEndLive = async () => {
         const result = await Swal.fire({
-            title: 'Kết thúc Livestream?',
-            text: 'Bạn có chắc chắn muốn kết thúc phiên live này không?',
+            title: 'End Livestream?',
+            text: 'Are you sure you want to end this live session?',
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#d33',
             cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Kết thúc',
-            cancelButtonText: 'Hủy'
+            confirmButtonText: 'End',
+            cancelButtonText: 'Cancel'
         });
 
         if (!result.isConfirmed) return;
@@ -422,15 +425,15 @@ export default function LiveManagePage() {
             setCurrentRoom(null);
             setStep('list');
             fetchRooms();
-            toast.success('Đã kết thúc phiên live');
+            toast.success('Live session ended');
         } catch {
-            toast.error('Không thể kết thúc live');
+            toast.error('Cannot end live');
         }
     };
 
     const copyToClipboard = (text) => {
         navigator.clipboard.writeText(text);
-        toast.success('Đã copy!');
+        toast.success('Copied!');
     };
 
     return (
@@ -942,7 +945,7 @@ export default function LiveManagePage() {
                                             <div style={{ display: 'flex', gap: '10px' }}>
                                                 <input
                                                     type="text"
-                                                    value="rtmp://localhost:1935/live/"
+                                                    value={`rtmp://${import.meta.env.VITE_LAN_IP || window.location.hostname}:1935/live/`}
                                                     readOnly
                                                     style={{
                                                         flex: 1,
@@ -955,7 +958,7 @@ export default function LiveManagePage() {
                                                     }}
                                                 />
                                                 <button
-                                                    onClick={() => copyToClipboard('rtmp://localhost:1935/live/')}
+                                                    onClick={() => copyToClipboard(`rtmp://${import.meta.env.VITE_LAN_IP || window.location.hostname}:1935/live/`)}
                                                     style={{
                                                         padding: '10px 20px',
                                                         border: 'none',
