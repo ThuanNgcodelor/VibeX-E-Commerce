@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import Swal from 'sweetalert2';
 import { getProvinces, getDistricts, getWards } from '../../api/ghn.js';
 import { reverseGeocodeOSM } from '../../api/osm.js';
-import createShopOwner from '../../api/role_request.js';
+import createShopOwner, { getUserRequests } from '../../api/role_request.js';
+
 import Cookies from 'js-cookie';
 import '../../assets/admin/css/RegisterShopOwner.css';
 import { useNavigate } from 'react-router-dom';
@@ -13,6 +14,8 @@ const RegisterShopOwner = () => {
     // 0: Welcome, 1: Shop Info, 2: Tax, 3: Identity, 4: Complete
     const [currentStep, setCurrentStep] = useState(0);
     const [showAddressModal, setShowAddressModal] = useState(false);
+    const [registrationHistory, setRegistrationHistory] = useState([]);
+    const [loadingHistory, setLoadingHistory] = useState(false);
 
     // hiển thị địa chỉ đã lưu ở Step 1
     const [address, setAddress] = useState("");
@@ -72,35 +75,7 @@ const RegisterShopOwner = () => {
 
     // ✅ CAPTCHA & Security
     const [isAgreed, setIsAgreed] = useState(false);
-    const [showCaptchaModal, setShowCaptchaModal] = useState(false);
-
-    // CAPTCHA Types
-    const CAPTCHA_TYPES = {
-        TEXT: 'text',      // Nhập mã chữ cái số
-        MATH: 'math',      // Giải phép tính
-        IMAGE: 'image',    // Click hình ảnh
-        SLIDER: 'slider'   // Kéo slider
-    };
-    const [captchaType, setCaptchaType] = useState(CAPTCHA_TYPES.TEXT);
-
-    // Common CAPTCHA state
-    const [generatedCaptcha, setGeneratedCaptcha] = useState('');
-    const [captchaInput, setCaptchaInput] = useState('');
-    const [isVerified, setIsVerified] = useState(false);
-    const [captchaError, setCaptchaError] = useState('');
     const [fieldErrors, setFieldErrors] = useState({});
-
-    // Math CAPTCHA state
-    const [mathProblem, setMathProblem] = useState({ num1: 0, num2: 0, operator: '+', answer: 0 });
-    const [mathInput, setMathInput] = useState('');
-
-    // Image CAPTCHA state
-    const [imageAnswer, setImageAnswer] = useState(null);
-    const [selectedImage, setSelectedImage] = useState(null);
-
-    // Slider CAPTCHA state
-    const [sliderValue, setSliderValue] = useState(0);
-    const [sliderTarget, setSliderTarget] = useState(0);
 
     const steps = [
         "Shop Info",
@@ -135,101 +110,8 @@ const RegisterShopOwner = () => {
         return list.find(item => stripAdminPrefix(getName(item)) === normTarget);
     };
 
-    // ====== Security & CAPTCHA ======
-    const generateCaptcha = () => {
-        const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-        let result = '';
-        for (let i = 0; i < 6; i++) {
-            result += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        setGeneratedCaptcha(result);
-        setCaptchaInput('');
-        setCaptchaError('');
-    };
-
-    // ====== MATH CAPTCHA ======
-    const generateMathCaptcha = () => {
-        const operators = ['+', '-', '*'];
-        const num1 = Math.floor(Math.random() * 20) + 1;
-        const num2 = Math.floor(Math.random() * 20) + 1;
-        const operator = operators[Math.floor(Math.random() * operators.length)];
-
-        let answer = 0;
-        if (operator === '+') answer = num1 + num2;
-        else if (operator === '-') answer = num1 - num2;
-        else answer = num1 * num2;
-
-        setMathProblem({ num1, num2, operator, answer });
-        setMathInput('');
-        setCaptchaError('');
-    };
-
-    // ====== IMAGE CAPTCHA ======
-    const generateImageCaptcha = () => {
-        // Tạo 4 hình ảnh, 1 đúng
-        const images = [
-            { id: 1, emoji: '🎁', correct: false },
-            { id: 2, emoji: '⭐', correct: true },
-            { id: 3, emoji: '🎈', correct: false },
-            { id: 4, emoji: '🎯', correct: false }
-        ];
-        setImageAnswer(images);
-        setSelectedImage(null);
-        setCaptchaError('');
-    };
-
-    // ====== SLIDER CAPTCHA ======
-    const generateSliderCaptcha = () => {
-        const target = Math.floor(Math.random() * 100);
-        setSliderTarget(target);
-        setSliderValue(0);
-        setCaptchaError('');
-    };
-
     const handleAgreementClick = (e) => {
-        if (isVerified) {
-            setIsAgreed(!isAgreed);
-        } else {
-            e.preventDefault();
-            // Chọn loại CAPTCHA ngẫu nhiên
-            const types = Object.values(CAPTCHA_TYPES);
-            const randomType = types[Math.floor(Math.random() * types.length)];
-            setCaptchaType(randomType);
-
-            if (randomType === CAPTCHA_TYPES.TEXT) generateCaptcha();
-            else if (randomType === CAPTCHA_TYPES.MATH) generateMathCaptcha();
-            else if (randomType === CAPTCHA_TYPES.IMAGE) generateImageCaptcha();
-            else if (randomType === CAPTCHA_TYPES.SLIDER) generateSliderCaptcha();
-
-            setShowCaptchaModal(true);
-        }
-    };
-
-    const verifyCaptcha = () => {
-        let isValid = false;
-
-        if (captchaType === CAPTCHA_TYPES.TEXT) {
-            isValid = captchaInput.toUpperCase() === generatedCaptcha;
-            if (!isValid) setCaptchaError('Mã xác thực không đúng. Vui lòng nhập lại.');
-        }
-        else if (captchaType === CAPTCHA_TYPES.MATH) {
-            isValid = parseInt(mathInput) === mathProblem.answer;
-            if (!isValid) setCaptchaError('Kết quả tính toán không đúng. Vui lòng thử lại.');
-        }
-        else if (captchaType === CAPTCHA_TYPES.IMAGE) {
-            isValid = imageAnswer && selectedImage === 2; // id 2 là đúng
-            if (!isValid) setCaptchaError('Vui lòng chọn hình ảnh đúng.');
-        }
-        else if (captchaType === CAPTCHA_TYPES.SLIDER) {
-            isValid = Math.abs(sliderValue - sliderTarget) <= 3; // Sai lệch <= 3
-            if (!isValid) setCaptchaError(`Kéo slider đến ${sliderTarget}. Hiện tại: ${sliderValue}`);
-        }
-
-        if (isValid) {
-            setIsVerified(true);
-            setIsAgreed(true);
-            setShowCaptchaModal(false);
-        }
+        setIsAgreed(!isAgreed);
     };
 
     // ====== VALIDATION HELPERS ======
@@ -248,6 +130,8 @@ const RegisterShopOwner = () => {
     const isValidIdNumber = (idNumber) => {
         return String(idNumber).trim().length >= 9;
     };
+
+
 
     // ====== Validation ======
     const validateStep = (step) => {
@@ -407,6 +291,27 @@ const RegisterShopOwner = () => {
             navigate('/login');
         }
     }, [navigate]);
+
+    // ✅ Load User Registration History
+    useEffect(() => {
+        const fetchHistory = async () => {
+            const token = Cookies.get('accessToken');
+            if (!token) return;
+
+            try {
+                setLoadingHistory(true);
+                const data = await getUserRequests();
+                // Sort by creation time desc
+                const sorted = (data || []).sort((a, b) => new Date(b.creationTimestamp) - new Date(a.creationTimestamp));
+                setRegistrationHistory(sorted);
+            } catch (error) {
+                console.error("Failed to load history:", error);
+            } finally {
+                setLoadingHistory(false);
+            }
+        };
+        fetchHistory();
+    }, []);
 
     // HANDLERS FOR INPUTS
     const handleShopChange = (e) => {
@@ -710,7 +615,48 @@ const RegisterShopOwner = () => {
                         <div className="welcome-screen animate-fade-in">
                             <h2>Welcome to Vibe</h2>
                             <p>Register to become a seller and grow your business with us.</p>
-                            <button onClick={() => setCurrentStep(1)} className="btn-primary btn-large">Register Now</button>
+
+                            {loadingHistory ? (
+                                <p>Loading history...</p>
+                            ) : (
+                                <>
+                                    {/* LIST HISTORY IF EXISTS */}
+                                    {registrationHistory.length > 0 && (
+                                        <div className="history-section">
+                                            <h3 className="history-title">Previous Applications</h3>
+                                            <div className="history-list">
+                                                {registrationHistory.map((req) => (
+                                                    <div key={req.id} className={`history-item ${req.status.toLowerCase()}`}>
+                                                        <div className="history-header">
+                                                            <span className={`status-badge ${req.status.toLowerCase()}`}>{req.status}</span>
+                                                            <span className="history-date">{new Date(req.creationTimestamp).toLocaleDateString()}</span>
+                                                        </div>
+                                                        <div className="history-body">
+                                                            {req.status === 'PENDING' && <p>Your application is currently under review.</p>}
+                                                            {req.status === 'APPROVED' && <p>Your shop has been approved!</p>}
+                                                            {req.status === 'REJECTED' && (
+                                                                <div className="rejection-box">
+                                                                    <strong>Reason for Rejection:</strong>
+                                                                    <p>{req.adminNote || "No reason provided."}</p>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Disable register button if there is a pending request */}
+                                    {registrationHistory.some(r => r.status === 'PENDING') ? (
+                                        <div className="pending-alert">
+                                            <p>You have a pending registration. Please wait for admin approval.</p>
+                                        </div>
+                                    ) : (
+                                        <button onClick={() => setCurrentStep(1)} className="btn-primary btn-large mt-4">Register Now</button>
+                                    )}
+                                </>
+                            )}
                         </div>
                     )}
 
@@ -948,14 +894,26 @@ const RegisterShopOwner = () => {
 
                     {/* STEP 4 */}
                     {currentStep === 4 && (
-                        <div className="welcome-screen animate-fade-in">
-                            <div className="success-icon">✓</div>
-                            <h2>Success!</h2>
-                            <p>Your shop owner registration has been submitted successfully! Admins will review and respond shortly.</p>
-                            <button className="btn-back-home" onClick={() => navigate('/')}>
-                                <span className="back-icon">←</span>
-                                <span className="back-text">Back to Home</span>
-                            </button>
+                        <div className="welcome-screen animate-fade-in" style={{ padding: '80px 0' }}>
+                            <div className="success-animation-container">
+                                <div className="success-icon-large">
+                                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                </div>
+                                <div className="success-ripple"></div>
+                            </div>
+                            <h2 className="success-title">Submission Successful!</h2>
+                            <p className="success-desc">
+                                Your shop owner registration has been sent to our administration team.
+                                <br />
+                                We will review your request and notify you via email shortly.
+                            </p>
+                            <div className="success-actions">
+                                <button className="btn-home-primary" onClick={() => navigate('/')}>
+                                    Return to Homepage
+                                </button>
+                            </div>
                         </div>
                     )}
 
@@ -972,6 +930,8 @@ const RegisterShopOwner = () => {
                                         if (!isValid) {
                                             return;
                                         }
+
+
 
                                         // ✅ Bước cuối submit data
                                         if (currentStep === 3) {
@@ -1147,249 +1107,7 @@ const RegisterShopOwner = () => {
                     </div>
                 </div>
             )}
-            {/* ===== MODAL CAPTCHA (MULTI-TYPE) ===== */}
-            {showCaptchaModal && (
-                <div className="vibe-modal-overlay">
-                    <div className="vibe-modal-container animate-scale-up" style={{ maxWidth: '480px' }}>
-                        <div className="vibe-modal-header" style={{ paddingBottom: '20px' }}>
-                            <span className="modal-title" style={{ fontSize: '18px', fontWeight: '600', color: '#222' }}>Xác Nhận Là Người Dùng</span>
-                            <span className="modal-close-icon" onClick={() => setShowCaptchaModal(false)}>&times;</span>
-                        </div>
-                        <div className="vibe-modal-body" style={{ padding: '0 30px 30px 30px' }}>
 
-                            {/* ===== TEXT CAPTCHA ===== */}
-                            {captchaType === CAPTCHA_TYPES.TEXT && (
-                                <div style={{ textAlign: 'center' }}>
-                                    <p style={{ marginBottom: '24px', color: '#666', fontSize: '14px' }}>
-                                        🔤 Vui lòng nhập mã xác thực bên dưới
-                                    </p>
-                                    <div className="captcha-code-box" style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'space-between',
-                                        gap: '12px',
-                                        marginBottom: '24px',
-                                        padding: '16px',
-                                        background: '#f5f5f5',
-                                        borderRadius: '4px'
-                                    }}>
-                                        <div style={{
-                                            fontSize: '36px',
-                                            fontWeight: 'bold',
-                                            color: '#ee4d2d',
-                                            letterSpacing: '10px',
-                                            fontFamily: 'monospace'
-                                        }}>
-                                            {generatedCaptcha}
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={generateCaptcha}
-                                            title="Tải lại mã"
-                                            style={{
-                                                padding: '8px 12px',
-                                                background: 'white',
-                                                border: '1px solid #ddd',
-                                                borderRadius: '4px',
-                                                cursor: 'pointer',
-                                                fontSize: '12px'
-                                            }}
-                                        >
-                                            🔄 Làm mới
-                                        </button>
-                                    </div>
-                                    <input
-                                        type="text"
-                                        value={captchaInput}
-                                        onChange={(e) => {
-                                            setCaptchaInput(e.target.value.toUpperCase());
-                                            setCaptchaError('');
-                                        }}
-                                        placeholder="Nhập 6 ký tự"
-                                        maxLength={6}
-                                        style={{
-                                            fontSize: '18px',
-                                            textAlign: 'center',
-                                            letterSpacing: '6px',
-                                            padding: '12px',
-                                            marginBottom: '16px',
-                                            width: '100%',
-                                            border: captchaError ? '2px solid #ee4d2d' : '1px solid #ddd',
-                                            borderRadius: '4px',
-                                            boxSizing: 'border-box'
-                                        }}
-                                    />
-                                </div>
-                            )}
-
-                            {/* ===== MATH CAPTCHA ===== */}
-                            {captchaType === CAPTCHA_TYPES.MATH && (
-                                <div style={{ textAlign: 'center' }}>
-                                    <p style={{ marginBottom: '24px', color: '#666', fontSize: '14px' }}>
-                                        🧮 Giải phép tính dưới đây
-                                    </p>
-                                    <div style={{
-                                        marginBottom: '24px',
-                                        padding: '24px',
-                                        background: '#f5f5f5',
-                                        borderRadius: '8px',
-                                        fontSize: '28px',
-                                        fontWeight: 'bold',
-                                        color: '#333'
-                                    }}>
-                                        {mathProblem.num1} {mathProblem.operator} {mathProblem.num2} = ?
-                                    </div>
-                                    <input
-                                        type="number"
-                                        value={mathInput}
-                                        onChange={(e) => {
-                                            setMathInput(e.target.value);
-                                            setCaptchaError('');
-                                        }}
-                                        placeholder="Nhập đáp án"
-                                        style={{
-                                            fontSize: '18px',
-                                            textAlign: 'center',
-                                            padding: '12px',
-                                            marginBottom: '16px',
-                                            width: '100%',
-                                            border: captchaError ? '2px solid #ee4d2d' : '1px solid #ddd',
-                                            borderRadius: '4px',
-                                            boxSizing: 'border-box'
-                                        }}
-                                    />
-                                </div>
-                            )}
-
-                            {/* ===== IMAGE CAPTCHA ===== */}
-                            {captchaType === CAPTCHA_TYPES.IMAGE && (
-                                <div style={{ textAlign: 'center' }}>
-                                    <p style={{ marginBottom: '24px', color: '#666', fontSize: '14px' }}>
-                                        🖼️ Hãy chọn hình ảnh có ngôi sao ⭐
-                                    </p>
-                                    <div style={{
-                                        display: 'grid',
-                                        gridTemplateColumns: '1fr 1fr',
-                                        gap: '12px',
-                                        marginBottom: '16px'
-                                    }}>
-                                        {imageAnswer && imageAnswer.map(img => (
-                                            <button
-                                                key={img.id}
-                                                onClick={() => {
-                                                    setSelectedImage(img.id);
-                                                    setCaptchaError('');
-                                                }}
-                                                style={{
-                                                    padding: '20px',
-                                                    fontSize: '48px',
-                                                    background: selectedImage === img.id ? '#ee4d2d' : '#f5f5f5',
-                                                    border: selectedImage === img.id ? '3px solid #ee4d2d' : '2px solid #ddd',
-                                                    borderRadius: '8px',
-                                                    cursor: 'pointer',
-                                                    transition: 'all 0.3s ease'
-                                                }}
-                                            >
-                                                {img.emoji}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* ===== SLIDER CAPTCHA ===== */}
-                            {captchaType === CAPTCHA_TYPES.SLIDER && (
-                                <div style={{ textAlign: 'center' }}>
-                                    <p style={{ marginBottom: '24px', color: '#666', fontSize: '14px' }}>
-                                        🎚️ Kéo slider đến vị trí {sliderTarget}
-                                    </p>
-                                    <div style={{
-                                        marginBottom: '24px',
-                                        padding: '20px',
-                                        background: '#f5f5f5',
-                                        borderRadius: '8px'
-                                    }}>
-                                        <input
-                                            type="range"
-                                            min="0"
-                                            max="100"
-                                            value={sliderValue}
-                                            onChange={(e) => {
-                                                setSliderValue(parseInt(e.target.value));
-                                                setCaptchaError('');
-                                            }}
-                                            style={{
-                                                width: '100%',
-                                                height: '8px',
-                                                cursor: 'pointer'
-                                            }}
-                                        />
-                                        <div style={{ marginTop: '16px', fontSize: '24px', fontWeight: 'bold', color: '#ee4d2d' }}>
-                                            {sliderValue}
-                                        </div>
-                                        <div style={{ fontSize: '12px', color: '#999', marginTop: '8px' }}>
-                                            Mục tiêu: {sliderTarget}
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* ERROR MESSAGE */}
-                            {captchaError && (
-                                <div style={{
-                                    marginBottom: '20px',
-                                    padding: '12px',
-                                    background: '#fff1f0',
-                                    color: '#ee4d2d',
-                                    fontSize: '13px',
-                                    fontWeight: '500',
-                                    borderRadius: '4px'
-                                }}>
-                                    ❌ {captchaError}
-                                </div>
-                            )}
-
-                            {/* ACTION BUTTONS */}
-                            <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
-                                <button
-                                    style={{
-                                        flex: 1,
-                                        padding: '12px',
-                                        fontSize: '14px',
-                                        fontWeight: '500',
-                                        border: '1px solid #ddd',
-                                        borderRadius: '4px',
-                                        background: 'white',
-                                        color: '#333',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.3s ease'
-                                    }}
-                                    onClick={() => setShowCaptchaModal(false)}
-                                >
-                                    Hủy
-                                </button>
-                                <button
-                                    style={{
-                                        flex: 1,
-                                        padding: '12px',
-                                        fontSize: '14px',
-                                        fontWeight: '600',
-                                        background: '#ee4d2d',
-                                        color: 'white',
-                                        border: 'none',
-                                        borderRadius: '4px',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.3s ease'
-                                    }}
-                                    onClick={verifyCaptcha}
-                                >
-                                    Xác Nhận
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };

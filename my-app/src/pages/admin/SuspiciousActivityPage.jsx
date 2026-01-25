@@ -12,6 +12,9 @@ const SuspiciousActivityPage = () => {
     const [selectedActivity, setSelectedActivity] = useState(null);
     const navigate = useNavigate();
 
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage] = useState(10); // Standard items per page
+
     useEffect(() => {
         fetchData();
     }, []);
@@ -22,6 +25,7 @@ const SuspiciousActivityPage = () => {
             const data = await getSuspiciousProducts();
             setProducts(data);
             setError(null);
+            setCurrentPage(1); // Reset to first page on new data
         } catch (err) {
             setError("Failed to fetch suspicious activity data.");
         } finally {
@@ -82,6 +86,16 @@ const SuspiciousActivityPage = () => {
         return <span className="badge bg-secondary">{reason}</span>;
     };
 
+    // Calculate Pagination
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentProducts = products.slice(indexOfFirstItem, indexOfLastItem);
+    const totalPages = Math.ceil(products.length / itemsPerPage);
+
+    const handlePageChange = (pageNumber) => {
+        setCurrentPage(pageNumber);
+    };
+
     return (
         <Container fluid className="p-4">
             <h2 className="mb-4">Suspicious Activity Monitoring</h2>
@@ -99,87 +113,116 @@ const SuspiciousActivityPage = () => {
                             <p className="mt-2">Analyzing data...</p>
                         </div>
                     ) : (
-                        <Table striped bordered hover responsive>
-                            <thead className="bg-light">
-                                <tr>
-                                    <th>Product Data</th>
-                                    <th>Reason</th>
-                                    <th>Shop Owner</th>
-                                    <th className="text-center">Total Orders</th>
-                                    <th className="text-center">Cancelled</th>
-                                    <th className="text-center">Rate (%)</th>
-                                    <th className="text-center">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {products.length > 0 ? (
-                                    products.map((item, index) => (
-                                        <tr key={index}>
-                                            <td>
-                                                <strong>{item.productName}</strong>
-                                                <br />
-                                                <small className="text-muted">ID: {item.productId}</small>
-                                            </td>
-                                            <td>
-                                                {renderReasonBadge(item.reason)}
-                                            </td>
-                                            <td>
-                                                {item.shopName || "Unknown"}
-                                                <br />
-                                                <small className="text-muted">ID: {item.shopId}</small>
-                                            </td>
-                                            <td className="text-center">{item.totalOrders}</td>
-                                            <td className="text-center text-danger">{item.cancelledOrders}</td>
-                                            <td className="text-center fw-bold">
-                                                {item.cancellationRate > 0 ? (
-                                                    <span className={item.cancellationRate > 90 ? "text-danger" : "text-warning"}>
-                                                        {item.cancellationRate.toFixed(2)}%
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-muted">-</span>
-                                                )}
-                                            </td>
-                                            <td className="text-center">
-                                                <div className="d-flex justify-content-center gap-2">
-                                                    <Button
-                                                        variant="info"
-                                                        size="sm"
-                                                        title="View Details"
-                                                        onClick={() => handleViewDetails(item)}
-                                                        className="text-white"
-                                                    >
-                                                        <i className="bi bi-eye"></i>
-                                                    </Button>
-                                                    <Button
-                                                        variant="primary"
-                                                        size="sm"
-                                                        title="Visit Shop Admin"
-                                                        onClick={() => handleVisitShop(item.shopName || "")}
-                                                    >
-                                                        <i className="bi bi-shop"></i>
-                                                    </Button>
-                                                    <Button
-                                                        variant="warning"
-                                                        size="sm"
-                                                        title="Warn Shop"
-                                                        onClick={() => handleWarnShop(item.shopId)}
-                                                    >
-                                                        <i className="bi bi-exclamation-triangle"></i>
-                                                    </Button>
-                                                </div>
+                        <>
+                            <Table striped bordered hover responsive>
+                                <thead className="bg-light">
+                                    <tr>
+                                        <th>Product Data</th>
+                                        <th>Reason</th>
+                                        <th>Shop Owner</th>
+                                        <th className="text-center">Total Orders</th>
+                                        <th className="text-center">Cancelled</th>
+                                        <th className="text-center">Rate (%)</th>
+                                        <th className="text-center">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {currentProducts.length > 0 ? (
+                                        currentProducts.map((item, index) => (
+                                            <tr key={index}>
+                                                <td>
+                                                    <strong>{item.productName}</strong>
+                                                    <br />
+                                                    <small className="text-muted">ID: {item.productId}</small>
+                                                </td>
+                                                <td>
+                                                    {renderReasonBadge(item.reason)}
+                                                </td>
+                                                <td>
+                                                    {item.shopName || "Unknown"}
+                                                    <br />
+                                                    <small className="text-muted">ID: {item.shopId}</small>
+                                                </td>
+                                                <td className="text-center">{item.totalOrders}</td>
+                                                <td className="text-center text-danger">{item.cancelledOrders}</td>
+                                                <td className="text-center fw-bold">
+                                                    {item.cancellationRate > 0 ? (
+                                                        <span className={item.cancellationRate > 90 ? "text-danger" : "text-warning"}>
+                                                            {item.cancellationRate.toFixed(2)}%
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-muted">-</span>
+                                                    )}
+                                                </td>
+                                                <td className="text-center">
+                                                    <div className="d-flex justify-content-center gap-2">
+                                                        <Button
+                                                            variant="info"
+                                                            size="sm"
+                                                            title="View Details"
+                                                            onClick={() => handleViewDetails(item)}
+                                                            className="text-white"
+                                                        >
+                                                            <i className="bi bi-eye"></i>
+                                                        </Button>
+                                                        <Button
+                                                            variant="primary"
+                                                            size="sm"
+                                                            title="Visit Shop Admin"
+                                                            onClick={() => handleVisitShop(item.shopName || "")}
+                                                        >
+                                                            <i className="bi bi-shop"></i>
+                                                        </Button>
+                                                        <Button
+                                                            variant="warning"
+                                                            size="sm"
+                                                            title="Warn Shop"
+                                                            onClick={() => handleWarnShop(item.shopId)}
+                                                        >
+                                                            <i className="bi bi-exclamation-triangle"></i>
+                                                        </Button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan="7" className="text-center p-4">
+                                                <i className="bi bi-check-circle text-success fs-2"></i>
+                                                <p className="mt-2 mb-0">No suspicious activity detected in the last 3 days.</p>
                                             </td>
                                         </tr>
-                                    ))
-                                ) : (
-                                    <tr>
-                                        <td colSpan="7" className="text-center p-4">
-                                            <i className="bi bi-check-circle text-success fs-2"></i>
-                                            <p className="mt-2 mb-0">No suspicious activity detected in the last 3 days.</p>
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </Table>
+                                    )}
+                                </tbody>
+                            </Table>
+
+                            {/* Pagination Controls */}
+                            {products.length > itemsPerPage && (
+                                <div className="d-flex justify-content-end mt-3">
+                                    <nav>
+                                        <ul className="pagination">
+                                            <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                                                <button className="page-link" onClick={() => handlePageChange(currentPage - 1)}>
+                                                    Previous
+                                                </button>
+                                            </li>
+                                            {[...Array(totalPages)].map((_, i) => (
+                                                <li key={i + 1} className={`page-item ${currentPage === i + 1 ? 'active' : ''}`}>
+                                                    <button className="page-link" onClick={() => handlePageChange(i + 1)}>
+                                                        {i + 1}
+                                                    </button>
+                                                </li>
+                                            ))}
+                                            <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
+                                                <button className="page-link" onClick={() => handlePageChange(currentPage + 1)}>
+                                                    Next
+                                                </button>
+                                            </li>
+                                        </ul>
+                                    </nav>
+                                </div>
+                            )}
+                        </>
                     )}
                 </Card.Body>
             </Card>

@@ -212,8 +212,9 @@ export default function ShopOwnerList({
                                                 {shop.status === 'LOCKED' ? (
                                                     <span className="badge bg-danger rounded-pill">Locked</span>
                                                 ) : (
-                                                    <span className={`badge ${shop.verified ? 'bg-success' : 'bg-warning text-dark'} rounded-pill`}>
-                                                        {shop.verified ? 'Active' : 'Pending'}
+                                                    <span className={`badge ${shop.verified ? 'bg-primary' : 'bg-warning text-dark'} rounded-pill d-flex align-items-center gap-1`}>
+                                                        {shop.verified && <i className="fas fa-check-circle text-white" style={{ fontSize: '10px' }}></i>}
+                                                        {shop.verified ? 'Verified' : 'Unverified'}
                                                     </span>
                                                 )}
 

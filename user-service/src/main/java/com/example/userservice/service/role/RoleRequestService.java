@@ -197,9 +197,14 @@ public class RoleRequestService {
         }
 
         // Create ShopOwner profile if role is SHOP_OWNER
-        // if (requestedRole == Role.SHOP_OWNER) {
-        // createShopOwnerProfile(userId);
-        // }
+        if (requestedRole == Role.SHOP_OWNER) {
+            // createShopOwnerProfile(userId); // Already created in registration
+            ShopOwner shopOwner = shopOwnerRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("Shop owner not found"));
+            // shopOwner.setVerified(true); // Don't verify yet, wait for manual
+            // verification
+            shopOwnerRepository.save(shopOwner);
+        }
 
         request.setStatus(RequestStatus.APPROVED);
         request.setReviewedBy(adminId);

@@ -150,10 +150,9 @@ public class ShopOwnerServiceImpl implements ShopOwnerService {
             org.springframework.data.domain.Page<ShopOwner> allShopsPage;
 
             if (search != null && !search.trim().isEmpty()) {
-                allShopsPage = shopOwnerRepository
-                        .findByShopNameContainingIgnoreCaseOrOwnerNameContainingIgnoreCase(search, search, allPageable);
+                allShopsPage = shopOwnerRepository.findBySearchAndRoleShopOwner(search, allPageable);
             } else {
-                allShopsPage = shopOwnerRepository.findAll(allPageable);
+                allShopsPage = shopOwnerRepository.findAllShopOwnersWithRole(allPageable);
             }
 
             java.util.List<ShopOwner> allShops = allShopsPage.getContent();
@@ -213,11 +212,9 @@ public class ShopOwnerServiceImpl implements ShopOwnerService {
 
             org.springframework.data.domain.Page<ShopOwner> shopOwnersPage;
             if (search != null && !search.trim().isEmpty()) {
-                shopOwnersPage = shopOwnerRepository
-                        .findByShopNameContainingIgnoreCaseOrOwnerNameContainingIgnoreCase(search, search,
-                                sortedPageable);
+                shopOwnersPage = shopOwnerRepository.findBySearchAndRoleShopOwner(search, sortedPageable);
             } else {
-                shopOwnersPage = shopOwnerRepository.findAll(sortedPageable);
+                shopOwnersPage = shopOwnerRepository.findAllShopOwnersWithRole(sortedPageable);
             }
 
             return shopOwnersPage.map(shop -> populateStats(shop, startDate, endDate));
@@ -305,12 +302,14 @@ public class ShopOwnerServiceImpl implements ShopOwnerService {
                 .ownerName(shopOwner.getOwnerName())
                 .email(shopOwner.getEmail())
                 .phone(shopOwner.getPhone())
+                .createdAt(shopOwner.getCreatedAt())
                 .totalProducts(productCount)
                 .totalOrders(orderCount) // Completed orders
                 .totalRevenue(revenue)
                 .totalRatings(totalRatings)
                 .status(shopOwner.getActive() == com.example.userservice.enums.Active.INACTIVE ? "LOCKED"
                         : (shopOwner.getVerified() ? "ACTIVE" : "PENDING"))
+                .verified(shopOwner.getVerified())
                 .revenueTrend(revenueTrend)
                 .productCategoryStats(productCategoryStats)
                 .orderStatusDistribution(orderStatusDistribution)
@@ -359,6 +358,15 @@ public class ShopOwnerServiceImpl implements ShopOwnerService {
             }
         }
 
+        return shopOwnerRepository.save(shopOwner);
+    }
+
+    @Override
+    public ShopOwner verifyShop(String userId) {
+        ShopOwner shopOwner = shopOwnerRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("Shop owner not found with userId: " + userId));
+
+        shopOwner.setVerified(true);
         return shopOwnerRepository.save(shopOwner);
     }
 }

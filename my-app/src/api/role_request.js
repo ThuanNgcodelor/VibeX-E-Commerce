@@ -115,4 +115,19 @@ export const createUnlockRequest = async (reason) => {
     }
 };
 
+// ... (existing code)
+
+/**
+ * Lấy danh sách yêu cầu role của user hiện tại
+ * @returns {Promise<Array>}
+ */
+export const getUserRequests = async () => {
+    try {
+        const response = await api.get("/user");
+        return response.data;
+    } catch {
+        throw new Error("Failed to fetch user requests");
+    }
+};
+
 export default createShopOwner

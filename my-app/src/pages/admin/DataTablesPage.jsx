@@ -44,7 +44,7 @@ const DataTablesPage = () => {
     gender: "",
     birthDate: "",
   });
-  const [file, setFile] = useState(null);
+
   const [errors, setErrors] = useState({});
 
   // Stats Expansion State
@@ -203,18 +203,19 @@ const DataTablesPage = () => {
     let tempErrors = {};
     let isValid = true;
 
-    if (!form.firstName) {
-      tempErrors.firstName = "First name is required.";
-      isValid = false;
-    }
-    if (!form.lastName) {
-      tempErrors.lastName = "Last name is required.";
-      isValid = false;
-    }
-    if (!form.username) {
-      tempErrors.username = "Username is required.";
-      isValid = false;
-    }
+    // Relaxed validation: Removed checks for firstName, lastName, username
+    // if (!form.firstName) {
+    //   tempErrors.firstName = "First name is required.";
+    //   isValid = false;
+    // }
+    // if (!form.lastName) {
+    //   tempErrors.lastName = "Last name is required.";
+    //   isValid = false;
+    // }
+    // if (!form.username) {
+    //   tempErrors.username = "Username is required.";
+    //   isValid = false;
+    // }
     if (!form.email) {
       tempErrors.email = "Email is required.";
       isValid = false;
@@ -247,10 +248,9 @@ const DataTablesPage = () => {
         birthDate: form.birthDate,
       };
 
-      const updated = await updateUser(payload, file);
+      const updated = await updateUser(payload);
       setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
       setEditing(null);
-      setFile(null);
 
       Swal.fire({
         title: "Success!",
@@ -613,15 +613,7 @@ const DataTablesPage = () => {
                   />
                 </div>
 
-                <div className="form-group">
-                  <label>Avatar</label>
-                  <input
-                    type="file"
-                    className="form-input"
-                    accept="image/*"
-                    onChange={(e) => setFile(e.target.files[0])}
-                  />
-                </div>
+
               </div>
             </div>
 

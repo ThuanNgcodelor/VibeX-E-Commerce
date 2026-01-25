@@ -115,11 +115,11 @@ export const updateUser = async (data, file) => {
         email: data.email,
         username: data.username,
         userDetails: {
-            firstName: data.firstName || "",
-            lastName: data.lastName || "",
-            phoneNumber: data.phoneNumber || "",
-            gender: data.gender || null,
-            birthDate: data.birthDate || null
+            firstName: data.userDetails?.firstName ?? data.firstName ?? "",
+            lastName: data.userDetails?.lastName ?? data.lastName ?? "",
+            phoneNumber: data.userDetails?.phoneNumber ?? data.phoneNumber ?? "",
+            gender: data.userDetails?.gender ?? data.gender ?? null,
+            birthDate: data.userDetails?.birthDate ?? data.birthDate ?? null
         }
     };
     if (data.password && String(data.password).trim()) {

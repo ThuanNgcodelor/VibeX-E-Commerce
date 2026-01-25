@@ -21,6 +21,8 @@ public class ShopOwnerStatsDto {
     private Integer totalRatings;
     private Double averageRating;
     private String status; // ACTIVE, BANNED, etc.
+    private Boolean verified;
+    private java.time.LocalDateTime createdAt;
     private java.util.List<java.util.Map<String, Object>> revenueTrend;
     private java.util.List<java.util.Map<String, Object>> productCategoryStats;
     private java.util.List<java.util.Map<String, Object>> orderStatusDistribution;

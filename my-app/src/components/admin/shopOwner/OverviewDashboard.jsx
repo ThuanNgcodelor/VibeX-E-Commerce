@@ -109,7 +109,7 @@ export default function OverviewDashboard({ shops }) {
                             <div className="shop-details">
                                 <div className="shop-name-row">
                                     <span className="shop-name">{shop.shopName}</span>
-                                    {shop.verified && <i className="fas fa-check-circle verified-icon"></i>}
+                                    {shop.verified && <i className="fas fa-check-circle verified-icon" style={{ color: '#1DA1F2' }}></i>}
                                 </div>
                                 <div className="revenue-bar-container">
                                     <div
@@ -142,7 +142,7 @@ export default function OverviewDashboard({ shops }) {
                             <div className="shop-details">
                                 <div className="shop-name-row">
                                     <span className="shop-name">{shop.shopName}</span>
-                                    {shop.verified && <i className="fas fa-check-circle verified-icon"></i>}
+                                    {shop.verified && <i className="fas fa-check-circle verified-icon" style={{ color: '#1DA1F2' }}></i>}
                                 </div>
                                 <div className="product-bar-container">
                                     <div
