@@ -46,4 +46,7 @@ public interface UserServiceClient {
 
         @GetMapping("/user/stats/locations")
         ResponseEntity<List<UserLocationStatDto>> getUserLocationStats();
+
+        @GetMapping("/user/shop-coin/internal/balance/{userId}")
+        ResponseEntity<Long> getUserCoinBalance(@PathVariable String userId);
 }

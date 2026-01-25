@@ -39,6 +39,12 @@ public class ShopCoinController {
         return ResponseEntity.ok(shopCoin);
     }
 
+    @GetMapping("/internal/balance/{userId}")
+    public ResponseEntity<Long> getUserCoinBalance(@PathVariable String userId) {
+        ShopCoinDto shopCoin = shopCoinService.getOrCreateShopCoin(userId);
+        return ResponseEntity.ok(shopCoin.getPoints() != null ? shopCoin.getPoints() : 0L);
+    }
+
     @GetMapping("/user/{userId}")
     public ResponseEntity<ShopCoinDto> getUserShopCoins(@PathVariable String userId) {
         log.info("Getting ShopCoin for user: {}", userId);

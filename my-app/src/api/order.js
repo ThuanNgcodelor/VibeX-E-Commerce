@@ -389,3 +389,16 @@ export const getUserOrderStats = async (userId) => {
         throw new Error(error.response?.data?.error || "Failed to get user stats");
     }
 };
+
+/**
+ * Preview checkout calculation (Centralized Engine)
+ * @param {Object} previewData - { userId, addressId, selectedItems, voucherCodes, useCoin }
+ */
+export const previewCheckout = async (previewData) => {
+    try {
+        const response = await api.post("/checkout/preview", previewData);
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};

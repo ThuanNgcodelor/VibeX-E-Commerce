@@ -5,7 +5,7 @@ import ReactDOM from "react-dom";
 import Cookies from "js-cookie";
 import imgFallback from "../../../assets/images/shop/6.png";
 import { getAllAddress, getUser, getWalletBalance } from "../../../api/user.js";
-import { calculateShippingFee, createOrder, reserveStock } from "../../../api/order.js";
+import { calculateShippingFee, createOrder, reserveStock, previewCheckout } from "../../../api/order.js";
 import { createVnpayPayment, createMomoPayment } from "../../../api/payment.js";
 import { validateVoucher } from "../../../api/voucher.js";
 import { trackPurchase } from "../../../api/tracking";
@@ -55,6 +55,12 @@ export function CheckoutPage({
 
   // Wallet state
   const [walletBalance, setWalletBalance] = useState(0);
+
+  // NEW: Centralized Checkout State
+  const [checkoutData, setCheckoutData] = useState(null);
+  const [useCoin, setUseCoin] = useState(false);
+  const [platformVoucherCode, setPlatformVoucherCode] = useState("");
+  const [isPreviewing, setIsPreviewing] = useState(false);
 
 
 
@@ -146,81 +152,79 @@ export function CheckoutPage({
     });
   }, [token, navigate]);
 
-  // Calculate shipping fee when address or selected items change
+  // NEW: Centralized Calculation Effect
   useEffect(() => {
-    const calculateFee = async () => {
-      if (!selectedAddressId || selectedItems.length === 0) {
-        setShippingFee(0);
-        setShopShippingFees({});
+    const fetchPreview = async () => {
+      if (!selectedAddressId || selectedItems.length === 0 || !userId) {
+        setCheckoutData(null);
         return;
       }
 
-      setCalculatingShippingFee(true);
+      setIsPreviewing(true);
       try {
-        // Group items by shopOwnerId
-        const itemsByShop = {};
-        selectedItems.forEach(item => {
-          const shopId = item.shopOwnerId || 'unknown';
-          if (!itemsByShop[shopId]) {
-            itemsByShop[shopId] = [];
-          }
-          itemsByShop[shopId].push(item);
+        // Collect all voucher codes (Shop + Platform)
+        // Only include codes that are "applied" or entered?
+        // For simplicity, let's look at shopVoucherCodes (input) 
+        // In a real app, we might want a separate "appliedCodes" state, but here we can iterate inputs
+        const codes = [];
+        Object.values(shopVoucherCodes).forEach(c => {
+          if (c && c.trim()) codes.push(c.trim());
         });
+        if (platformVoucherCode.trim()) codes.push(platformVoucherCode.trim());
 
-        // Calculate shipping fee for EACH shop
-        const shopFees = {};
-        let totalFee = 0;
+        // Prepare request
+        const previewReq = {
+          userId: userId,
+          addressId: selectedAddressId,
+          selectedItems: selectedItems.map(item => ({
+            productId: item.productId || item.id,
+            sizeId: item.sizeId,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice || item.price,
+            shopOwnerId: item.shopOwnerId,
+            shopName: item.shopOwnerName || item.shopName, // Pass name for ease
+          })),
+          voucherCodes: codes,
+          useCoin: useCoin
+        };
 
-        for (const [shopOwnerId, shopItems] of Object.entries(itemsByShop)) {
-          if (shopOwnerId === 'unknown') {
-            console.warn('[Shipping] Skipping items without shopOwnerId');
-            continue;
-          }
+        const data = await previewCheckout(previewReq);
+        setCheckoutData(data);
 
-          try {
-            // Call API with items from THIS shop only
-            const result = await calculateShippingFee(selectedAddressId, shopItems, shopOwnerId);
+        // Sync legacy states for backward compatibility (prevent UI crash)
+        setShippingFee(data.totalShippingFee || 0);
+        // Map shop fees
+        const fees = {};
+        const appliedVouchers = {};
 
-            if (result && result.shippingFee) {
-              shopFees[shopOwnerId] = result.shippingFee;
-              totalFee += result.shippingFee;
-            } else {
-              shopFees[shopOwnerId] = 0;
+        if (data.shops) {
+          data.shops.forEach(s => {
+            fees[s.shopOwnerId] = s.shippingFee - (s.shippingDiscount || 0);
+            // If shop has voucher applied in preview
+            if (s.shopVoucherCode) {
+              appliedVouchers[s.shopOwnerId] = {
+                code: s.shopVoucherCode,
+                discount: s.shopVoucherDiscount,
+                title: "Voucher Shop", // Generic title if not returned
+                shopName: s.shopName
+              };
             }
-          } catch (error) {
-            console.error(`[Shipping] Failed to calculate for shop ${shopOwnerId}:`, error);
-
-            const errorData = error.response?.data;
-            if (errorData) {
-              if (errorData.error === 'SHOP_OWNER_ADDRESS_NOT_CONFIGURED') {
-                toast("warning", t('checkout.shopAddressMissing', 'Shop chưa cấu hình địa chỉ lấy hàng'));
-              } else if (errorData.error === 'ADDRESS_MISSING_GHN_FIELDS') {
-                toast("warning", t('checkout.addressMissingInfo', 'Địa chỉ của bạn thiếu thông tin quận/huyện'));
-              } else if (errorData.error === 'GHN_API_ERROR') {
-                toast("warning", t('checkout.ghnError', 'Lỗi từ đơn vị vận chuyển (GHN). Vui lòng kiểm tra lại địa chỉ giao hàng.'));
-              }
-            }
-            shopFees[shopOwnerId] = 30000; // Fallback to 30000
-          }
+          });
         }
-
-        setShopShippingFees(shopFees);
-        setShippingFee(totalFee);
+        setShopShippingFees(fees);
+        setShopAppliedVouchers(appliedVouchers);
+        setVoucherDiscount((data.totalShopVoucherDiscount || 0) + (data.totalPlatformVoucherDiscount || 0) + (data.totalCoinDiscount || 0));
 
       } catch (error) {
-        console.error("Failed to calculate shipping fee:", error);
-        setShippingFee(0);
-        // Do NOT reset shopShippingFees to empty here, as it might wipe partial results
-        // setShopShippingFees({}); 
+        console.error("Preview failed:", error);
       } finally {
-        setCalculatingShippingFee(false);
+        setIsPreviewing(false);
       }
     };
 
-    // Debounce calculation
-    const timeoutId = setTimeout(calculateFee, 500);
+    const timeoutId = setTimeout(fetchPreview, 800); // Debounce
     return () => clearTimeout(timeoutId);
-  }, [selectedAddressId, selectedItems]);
+  }, [selectedAddressId, selectedItems, userId, shopVoucherCodes, platformVoucherCode, useCoin]);
 
   // Update selectedAddress when selectedAddressId changes
   useEffect(() => {
@@ -1281,10 +1285,28 @@ export function CheckoutPage({
                     {/* Shop Shipping */}
                     <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px dashed #eee' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: '#666' }}>
-                        <span>🚚 {t('checkoutPage.shippingMethod', 'Phương thức vận chuyển')}: <span style={{ color: '#ee4d2d' }}>{t('checkoutPage.fast', 'Nhanh')}</span></span>
-                        <span style={{ fontWeight: 500 }}>
-                          {calculatingShipping[shopOwnerId] ? t('common.processing', 'Đang xử lý...') : formatVND(shopShipping)}
-                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span>🚚 {t('checkoutPage.shippingMethod', 'Phương thức vận chuyển')}: <span style={{ color: '#ee4d2d' }}>{t('checkoutPage.fast', 'Nhanh')}</span></span>
+                          {checkoutData?.shops?.find(s => s.shopOwnerId === shopOwnerId)?.isFreeShipXtra && (
+                            <span style={{ background: '#00bfa5', color: '#fff', fontSize: '10px', padding: '2px 4px', borderRadius: '2px', fontWeight: 600 }}>FREESHIP XTRA</span>
+                          )}
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          {isPreviewing || calculatingShipping[shopOwnerId] ? (
+                            <span>...</span>
+                          ) : (
+                            <div>
+                              {checkoutData?.shops?.find(s => s.shopOwnerId === shopOwnerId)?.shippingDiscount > 0 && (
+                                <span style={{ textDecoration: 'line-through', color: '#999', fontSize: '13px', marginRight: '6px' }}>
+                                  {formatVND((shopShippingFees[shopOwnerId] || 0) + (checkoutData?.shops?.find(s => s.shopOwnerId === shopOwnerId)?.shippingDiscount || 0))}
+                                </span>
+                              )}
+                              <span style={{ fontWeight: 500, color: '#333' }}>
+                                {formatVND(shopShippingFees[shopOwnerId])}
+                              </span>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
 
@@ -1416,29 +1438,90 @@ export function CheckoutPage({
 
             {/* Order Summary */}
             <div className="checkout-summary">
+              {/* Platform Voucher & Coin Section */}
+              <div style={{ padding: '12px 0', borderTop: '1px solid #f0f0f0', borderBottom: '1px solid #f0f0f0', marginBottom: '12px' }}>
+                {/* Platform Voucher */}
+                <div style={{ marginBottom: '12px' }}>
+                  <div style={{ fontSize: '14px', marginBottom: '8px', fontWeight: 500 }}>🎁 {t('cart.voucher.platformVoucher', 'Voucher Sàn')}</div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input
+                      type="text"
+                      placeholder="Mã giảm giá sàn..."
+                      value={platformVoucherCode}
+                      onChange={(e) => setPlatformVoucherCode(e.target.value)}
+                      style={{ flex: 1, padding: '8px', borderRadius: '4px', border: '1px solid #ddd', fontSize: '13px' }}
+                    />
+                    {/* Input change triggers effect automatically via debouncing */}
+                  </div>
+                  {checkoutData?.platformVoucherValue > 0 && (
+                    <div style={{ fontSize: '12px', color: '#52c41a', marginTop: '4px' }}>
+                      ✅ Giảm {formatVND(checkoutData.platformVoucherValue)}
+                    </div>
+                  )}
+                </div>
+
+                {/* Shop Coin */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: 500 }}>💰 {t('cart.coin.useCoin', 'Dùng Vibe Coin')}</div>
+                    <div style={{ fontSize: '12px', color: '#999' }}>
+                      Hiện có: {checkoutData?.availableCoins || 0} xu
+                      {checkoutData?.coinsUsed > 0 && <span style={{ color: '#ee4d2d', marginLeft: '4px' }}>(-{formatVND(checkoutData.totalCoinDiscount)})</span>}
+                    </div>
+                  </div>
+                  <label className="switch">
+                    <input
+                      type="checkbox"
+                      checked={useCoin}
+                      onChange={(e) => setUseCoin(e.target.checked)}
+                      disabled={!checkoutData || checkoutData.availableCoins <= 0}
+                    />
+                    <span className="slider round"></span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Summary Rows */}
               <div className="checkout-summary-row">
                 <span className="checkout-summary-label">{t('checkoutPage.totalMerchandise')}</span>
-                <span className="checkout-summary-value">{formatVND(subtotal)}</span>
+                <span className="checkout-summary-value">{formatVND(checkoutData?.subtotal || subtotal)}</span>
               </div>
               <div className="checkout-summary-row">
                 <span className="checkout-summary-label">{t('checkoutPage.totalShippingFee')}</span>
                 <span className="checkout-summary-value">
-                  {Object.values(calculatingShipping).some(v => v) ? (
-                    <small className="text-muted">{t('common.processing')}</small>
-                  ) : (
-                    formatVND(totalShippingFee)
-                  )}
+                  {isPreviewing ? <small>...</small> : formatVND(checkoutData?.totalShippingFee ?? totalShippingFee)}
                 </span>
               </div>
+
+              {/* Discounts */}
               <div className="checkout-summary-row">
-                <span className="checkout-summary-label">{t('checkoutPage.totalVoucherDiscount')}</span>
+                <span className="checkout-summary-label">{t('checkoutPage.totalVoucherDiscount')} (Shop)</span>
                 <span className="checkout-summary-value" style={{ color: '#ee4d2d' }}>
-                  -{formatVND(totalVoucherDiscount)}
+                  -{formatVND(checkoutData?.totalShopVoucherDiscount || 0)}
                 </span>
               </div>
+              {checkoutData?.totalPlatformVoucherDiscount > 0 && (
+                <div className="checkout-summary-row">
+                  <span className="checkout-summary-label">{t('checkoutPage.platformDiscount', 'Giảm giá Sàn')}</span>
+                  <span className="checkout-summary-value" style={{ color: '#ee4d2d' }}>
+                    -{formatVND(checkoutData.totalPlatformVoucherDiscount)}
+                  </span>
+                </div>
+              )}
+              {checkoutData?.totalCoinDiscount > 0 && (
+                <div className="checkout-summary-row">
+                  <span className="checkout-summary-label">{t('checkoutPage.coinDiscount', 'Ưu đãi Coin')}</span>
+                  <span className="checkout-summary-value" style={{ color: '#ee4d2d' }}>
+                    -{formatVND(checkoutData.totalCoinDiscount)}
+                  </span>
+                </div>
+              )}
+
               <div className="checkout-summary-row total">
                 <span className="checkout-summary-label">{t('checkoutPage.totalPayment')}</span>
-                <span className="checkout-summary-value total">{formatVND(total)}</span>
+                <span className="checkout-summary-value total">
+                  {isPreviewing ? "..." : formatVND(checkoutData?.finalAmount || 0)}
+                </span>
               </div>
               <button
                 className="checkout-place-order"
