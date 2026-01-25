@@ -24,6 +24,16 @@ const shopOwnerAdminApi = {
             console.error("Error toggling shop status:", error);
             throw error;
         }
+    },
+
+    verifyShop: async (userId) => {
+        try {
+            const response = await api.put(`/shop-owners/${userId}/verify`);
+            return response.data;
+        } catch (error) {
+            console.error("Error verifying shop:", error);
+            throw error;
+        }
     }
 };
 

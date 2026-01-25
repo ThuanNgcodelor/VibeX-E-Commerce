@@ -110,6 +110,24 @@ export default function ShopOwnerManagementPage() {
         }
     };
 
+    const handleVerifyShop = async (shopId) => {
+        try {
+            // Optimistic update
+            setShops(prevShops => prevShops.map(shop => {
+                if (shop.id === shopId) {
+                    return { ...shop, verified: true };
+                }
+                return shop;
+            }));
+
+            await shopOwnerAdminApi.verifyShop(shopId);
+            fetchShops(currentPage, searchTerm);
+        } catch (err) {
+            console.error("Failed to verify shop:", err);
+            fetchShops(currentPage, searchTerm);
+        }
+    };
+
     const selectedShop = shops.find(shop => shop.id === selectedShopId);
 
     if (loading) return <div className="p-5 text-center">Loading shop data...</div>;
@@ -165,6 +183,7 @@ export default function ShopOwnerManagementPage() {
                             <ShopStatsDashboard
                                 shop={selectedShop}
                                 onToggleStatus={handleToggleStatus}
+                                onVerifyShop={handleVerifyShop}
                             />
                         ) : (
                             <OverviewDashboard shops={shops} />

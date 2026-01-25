@@ -73,4 +73,10 @@ public class ShopOwnerController {
         ShopOwner updated = shopOwnerService.toggleShopStatus(userId);
         return ResponseEntity.ok(modelMapper.map(updated, ShopOwnerDto.class));
     }
+
+    @PutMapping("/{userId}/verify")
+    public ResponseEntity<ShopOwnerDto> verifyShop(@PathVariable String userId) {
+        ShopOwner updated = shopOwnerService.verifyShop(userId);
+        return ResponseEntity.ok(modelMapper.map(updated, ShopOwnerDto.class));
+    }
 }

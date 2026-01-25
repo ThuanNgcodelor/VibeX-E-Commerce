@@ -140,10 +140,20 @@ export default function AccountInfo() {
     e.preventDefault();
     setLoading(true);
     setMsg("");
+
+    if (!form.id) {
+      const errorMsg = t('accountInfo.errorDataNotLoaded') || "User data not loaded. Please refresh the page.";
+      setMsg(errorMsg);
+      setToast({ open: true, text: errorMsg });
+      setTimeout(() => setToast({ open: false, text: "" }), 2200);
+      setLoading(false);
+      return;
+    }
+
     try {
       // Chỉ gửi các field có giá trị thực sự
       const userDetailsToSend = {};
-      
+
       if (form.userDetails.firstName && form.userDetails.firstName.trim()) {
         userDetailsToSend.firstName = form.userDetails.firstName.trim();
       }
@@ -299,12 +309,12 @@ export default function AccountInfo() {
                 </div>
               </div>
               <div className="col-lg-6">
-            <div className="single-input-item">
+                <div className="single-input-item">
                   <label htmlFor="birthDate">{t('accountInfo.birthDate')}</label>
                   <input
                     type="date"
                     id="birthDate"
-                value={form.userDetails.birthDate || ""}
+                    value={form.userDetails.birthDate || ""}
                     onChange={onChangeDetails}
                   />
                 </div>

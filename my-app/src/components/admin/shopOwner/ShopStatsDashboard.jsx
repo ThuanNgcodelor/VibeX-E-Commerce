@@ -2,7 +2,7 @@ import React from 'react';
 import '../../../assets/admin/css/ShopStatsDashboard.css';
 import Swal from 'sweetalert2';
 
-export default function ShopStatsDashboard({ shop, onToggleStatus }) {
+export default function ShopStatsDashboard({ shop, onToggleStatus, onVerifyShop }) {
     // Mock data cho biểu đồ - sẽ thay bằng API call sau
     // Parse Data from Shop Prop
 
@@ -25,6 +25,29 @@ export default function ShopStatsDashboard({ shop, onToggleStatus }) {
                     Swal.fire(
                         `${action}ed!`,
                         `The shop has been ${action.toLowerCase()}ed.`,
+                        'success'
+                    );
+                }
+            }
+        });
+    };
+
+    const handleVerifyToggle = () => {
+        Swal.fire({
+            title: 'Verify this shop?',
+            text: "This will mark the shop as verified and legitimate.",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, verify it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                if (onVerifyShop) {
+                    onVerifyShop(shop.id);
+                    Swal.fire(
+                        'Verified!',
+                        'The shop has been verified.',
                         'success'
                     );
                 }
@@ -114,9 +137,9 @@ export default function ShopStatsDashboard({ shop, onToggleStatus }) {
                             </>
                         ) : (
                             shop.verified ? (
-                                <>
-                                    <i className="fas fa-check-circle text-success"></i> Verified
-                                </>
+                                <span style={{ color: '#1DA1F2', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <i className="fas fa-check-circle"></i> Verified
+                                </span>
                             ) : (
                                 <>
                                     <i className="fas fa-clock text-warning"></i> Unverified
@@ -126,13 +149,24 @@ export default function ShopStatsDashboard({ shop, onToggleStatus }) {
                     </span>
                 </div>
 
-                <button
-                    className={`btn ${shop.status === 'LOCKED' ? 'btn-success' : 'btn-danger'} d-flex align-items-center gap-2`}
-                    onClick={handleLockToggle}
-                >
-                    <i className={`fas ${shop.status === 'LOCKED' ? 'fa-lock-open' : 'fa-lock'}`}></i>
-                    {shop.status === 'LOCKED' ? 'Unlock Shop' : 'Lock Shop'}
-                </button>
+                <div className="d-flex gap-2">
+                    {!shop.verified && shop.status !== 'LOCKED' && (
+                        <button
+                            className="btn btn-primary d-flex align-items-center gap-2"
+                            onClick={handleVerifyToggle}
+                        >
+                            <i className="fas fa-check-circle"></i>
+                            Verify Shop
+                        </button>
+                    )}
+                    <button
+                        className={`btn ${shop.status === 'LOCKED' ? 'btn-success' : 'btn-danger'} d-flex align-items-center gap-2`}
+                        onClick={handleLockToggle}
+                    >
+                        <i className={`fas ${shop.status === 'LOCKED' ? 'fa-lock-open' : 'fa-lock'}`}></i>
+                        {shop.status === 'LOCKED' ? 'Unlock Shop' : 'Lock Shop'}
+                    </button>
+                </div>
             </div>
 
             {/* Summary Cards */}

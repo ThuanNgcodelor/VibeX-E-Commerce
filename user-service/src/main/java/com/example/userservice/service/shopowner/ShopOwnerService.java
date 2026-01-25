@@ -18,4 +18,6 @@ public interface ShopOwnerService {
             String sortDir);
 
     ShopOwner toggleShopStatus(String userId);
+
+    ShopOwner verifyShop(String userId);
 }

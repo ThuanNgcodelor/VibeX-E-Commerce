@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.example.userservice.client.AuthServiceClient;
 import com.example.userservice.client.FileStorageClient;
@@ -107,11 +108,41 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public User updateUserById(UserUpdateRequest request, MultipartFile file) {
         User toUpdate = findUserById(request.getId());
-        request.setUserDetails(updateUserDetails(toUpdate.getUserDetails(), request.getUserDetails(), file));
-        modelMapper.map(request, toUpdate);
+
+        System.out.println("DEBUG: User before update: " + toUpdate.getEmail());
+        if (toUpdate.getUserDetails() != null) {
+            System.out.println("DEBUG: UserDetails before: " + toUpdate.getUserDetails().getFirstName() + ", "
+                    + toUpdate.getUserDetails().getLastName());
+        }
+
+        if (request.getUserDetails() != null) {
+            System.out.println("DEBUG: Request UserDetails: " + request.getUserDetails().getFirstName() + ", "
+                    + request.getUserDetails().getLastName() + ", " + request.getUserDetails().getBirthDate());
+        } else {
+            System.out.println("DEBUG: Request UserDetails is NULL");
+        }
+
+        // Fix: Explicitly assign the updated UserDetails back to the entity
+        UserDetails updatedDetails = updateUserDetails(toUpdate.getUserDetails(), request.getUserDetails(), file);
+        toUpdate.setUserDetails(updatedDetails);
+
+        System.out.println("DEBUG: UserDetails after merge: " + updatedDetails.getFirstName() + ", "
+                + updatedDetails.getLastName());
+
+        // Map other root level fields if necessary (username, etc.) if they are allowed
+        // to be updated
+        if (request.getUsername() != null && !request.getUsername().isEmpty()) {
+            toUpdate.setUsername(request.getUsername());
+        }
+        // Email is usually not updatable here or unique check is needed, ignoring for
+        // now as per previous logic which relied on mapper
+
         User updatedUser = userRepository.save(toUpdate);
+
+        System.out.println("DEBUG: User saved.");
 
         // Send email notification to user about the update
         try {
@@ -209,13 +240,34 @@ public class UserServiceImpl implements UserService {
         if (file != null && !file.isEmpty()) {
             String profilePicture = fileStorageClient.uploadImageToFIleSystem(file).getBody();
             if (profilePicture != null) {
-                // nếu muốn xóa ảnh cũ, cần kiểm tra null trước
+                // Check if old image exists before deleting if needed
+                // if (toUpdate.getImageUrl() != null) {
                 // fileStorageClient.deleteImageFromFileSystem(toUpdate.getImageUrl());
+                // }
                 toUpdate.setImageUrl(profilePicture);
             }
         }
 
-        modelMapper.map(request, toUpdate);
+        // Manual mapping to ensure fields are updated correctly
+        if (request != null) {
+            if (request.getFirstName() != null)
+                toUpdate.setFirstName(request.getFirstName());
+            if (request.getLastName() != null)
+                toUpdate.setLastName(request.getLastName());
+            if (request.getPhoneNumber() != null)
+                toUpdate.setPhoneNumber(request.getPhoneNumber());
+            if (request.getGender() != null)
+                toUpdate.setGender(request.getGender());
+            if (request.getAboutMe() != null)
+                toUpdate.setAboutMe(request.getAboutMe());
+            if (request.getBirthDate() != null)
+                toUpdate.setBirthDate(request.getBirthDate());
+            // Intentionally not converting imageUrl from request as it should be handled
+            // via 'file' or preserved
+        }
+
+        // modelMapper.map(request, toUpdate); // Removed due to potential mapping
+        // issues with embedded objects
         return toUpdate;
     }
 
