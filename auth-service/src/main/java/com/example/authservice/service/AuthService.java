@@ -1,27 +1,37 @@
 package com.example.authservice.service;
 
-import com.example.authservice.client.UserServiceClient;
-import com.example.authservice.dto.*;
-import com.example.authservice.exception.WrongCredentialsException;
-import com.example.authservice.request.LoginRequest;
-import com.example.authservice.request.RegisterRequest;
-import com.example.authservice.enums.Role;
-import feign.FeignException;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.stereotype.Service;
-
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.concurrent.TimeUnit;
+
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.LockedException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.stereotype.Service;
+
+import com.example.authservice.client.UserServiceClient;
+import com.example.authservice.dto.AuthUserDto;
+import com.example.authservice.dto.ForgotPassword;
+import com.example.authservice.dto.RegisterDto;
+import com.example.authservice.dto.SendUserLockStatusEmailRequest;
+import com.example.authservice.dto.SendUserUpdateEmailRequest;
+import com.example.authservice.dto.TokenDto;
+import com.example.authservice.dto.UpdatePassword;
+import com.example.authservice.dto.UpdatePasswordRequest;
+import com.example.authservice.enums.Role;
+import com.example.authservice.exception.WrongCredentialsException;
+import com.example.authservice.request.LoginRequest;
+import com.example.authservice.request.RegisterRequest;
+
+import feign.FeignException;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
@@ -215,6 +225,11 @@ public class AuthService {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword()));
         if (authentication.isAuthenticated()) {
+            AuthUserDto user = userServiceClient.getUserByEmail(loginRequest.getEmail()).getBody();
+            if (user != null && !user.isActive()) {
+                throw new LockedException("Account is locked");
+            }
+
             return TokenDto.builder()
                     .token(jwtService.generateToken(loginRequest.getEmail()))
                     .refreshToken(jwtService.generateRefreshToken(loginRequest.getEmail()))
@@ -332,6 +347,10 @@ public class AuthService {
 
         if (authentication.isAuthenticated()) {
             AuthUserDto user = userServiceClient.getUserByEmail(loginRequest.getEmail()).getBody();
+
+            if (user != null && !user.isActive()) {
+                throw new LockedException("Account is locked");
+            }
 
             if (user != null && user.hasRole(Role.valueOf(selectedRole.toUpperCase()))) {
                 return TokenDto.builder()

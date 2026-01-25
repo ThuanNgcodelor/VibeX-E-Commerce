@@ -70,8 +70,8 @@ const createApiInstance = (baseURL) => {
             const originalRequest = error.config;
             const status = error?.response?.status;
 
-            // Nếu lỗi 401 và không phải là request refresh
-            if (status === 401 && !originalRequest._retry && !originalRequest.url.includes('/refresh')) {
+            // Nếu lỗi 401 và không phải là request refresh, và không phải là login
+            if (status === 401 && !originalRequest._retry && !originalRequest.url.includes('/refresh') && !originalRequest.url.includes('/login')) {
                 if (isPublicEndpoint(originalRequest.url)) {
                     return Promise.reject(error);
                 }

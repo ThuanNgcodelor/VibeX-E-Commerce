@@ -11,18 +11,16 @@ x-spring-boot-common: &spring-boot-common
   networks: [ vibe-network ]
   restart: unless-stopped
   environment:
-    # OPTIMIZED for 16GB RAM
-    # Heap upgraded to 768MB (from 512MB)
-    # Tăng Heap lên 512MB để giảm thiểu GC (Garbage Collection) gây lag
-    # Xms=Xmx để tránh việc JVM phải resize heap lúc runtime
-    JAVA_TOOL_OPTIONS: "-Xms768m -Xmx768m -XX:+UseG1GC"
+    # Tối ưu cho hệ thống >= 12GB RAM (WSL2)
+    # Tăng Heap lên để giảm tải CPU cho việc Garbage Collection
+    JAVA_TOOL_OPTIONS: "-Xms1G -Xmx1G -XX:+UseG1GC -XX:+UseStringDeduplication"
   deploy:
     resources:
       limits:
-        cpus: '2.0' # Cho phép dùng tối đa 2 nhân CPU khi cần thiết (Load cao)
-        memory: 1.5G # Increased from 1G # Nới lỏng giới hạn Docker để tránh OOM Kill (Heap 512 + Non-Heap)
+        cpus: '2.5' # Cho phép spike CPU cao hơn để xử lý request nhanh
+        memory: 2G
       reservations:
-        memory: 768M # Đảm bảo RAM cứng cho service
+        memory: 1G
 
 services:
   # ============================================
@@ -81,7 +79,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M # Doubled # Tăng gấp đôi cache size
+          memory: 256M
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.6.1
@@ -122,7 +120,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 3G # Increased from 2G # Kafka cần dư dả RAM
+          memory: 2G # Increased from 2G # Kafka cần dư dả RAM
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
@@ -191,13 +189,13 @@ services:
     environment:
       - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
       - EUREKA_URI=http://eureka-server:8761/eureka
-      # Gateway High Performance
-      # Gateway xử lý rất nhiều request, cần nhiều RAM nhất
-      - JAVA_TOOL_OPTIONS=-Xms1G -Xmx1G
+      # Gateway High Performance: Cần nhiều RAM nhất để routing & filter
+      - JAVA_TOOL_OPTIONS=-Xms2G -Xmx2G -XX:+UseG1GC -Dnetty.leakDetectionLevel=disabled
     deploy:
       resources:
         limits:
-          memory: 2G # 2GB Limit # Riêng Gateway cho thêm giới hạn
+          cpus: '4.0' # Gateway cần cực nhiều CPU khi traffic lớn
+          memory: 3.5G
     depends_on:
       eureka-server:
         condition: service_healthy
@@ -219,7 +217,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1.5G
+          memory: 500M
     depends_on:
       gateway:
         condition: service_started
@@ -341,11 +339,14 @@ services:
       - SPRING_DATASOURCE_USERNAME=sa
       - SPRING_DATASOURCE_PASSWORD=Thuan@417
       - FILE_UPLOAD_DIR=/app/uploads
-      - JAVA_TOOL_OPTIONS=-Xms1G -Xmx1G
+      - JAVA_TOOL_OPTIONS=-Xms1.5G -Xmx1.5G
     deploy:
       resources:
         limits:
-          memory: 2G
+          cpus: '3.0'
+          memory: 3G
+    tmpfs:
+      - /tmp:size=512M # Dùng RAM làm ổ đĩa ảo cho file tạm, tăng tốc upload cực nhanh
     volumes:
       - ./file-storage/src/main/resources/attachments:/app/uploads
     depends_on:
@@ -367,7 +368,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256M # Tăng gấp đôi cho xử lý video
+          memory: 512M
 
   my-app:
     build: ./my-app

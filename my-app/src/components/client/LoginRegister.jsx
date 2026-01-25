@@ -112,9 +112,16 @@ export default function Auth() {
             }
 
         } catch (error) {
-            console.log(loginData);
+            const responseData = error.response?.data;
+            const errorMessage = responseData?.message || responseData?.error || 'Login failed. Please check your credentials.';
 
-            setError(error.response?.data?.message || 'Login failed. Please check your credentials.');
+            // Check for specific error keywords (case-insensitive)
+            const lowerMsg = String(errorMessage).toLowerCase();
+            if (lowerMsg.includes('locked') || lowerMsg.includes('disabled') || lowerMsg.includes('bị khóa')) {
+                setError('Account is locked, please contact support.');
+            } else {
+                setError(errorMessage);
+            }
         } finally {
             setLoading(false);
         }
