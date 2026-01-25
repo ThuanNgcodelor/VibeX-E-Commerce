@@ -124,7 +124,7 @@ export default function SubscriptionPage() {
         if (loading || !shopOwnerId) return;
 
         const result = await Swal.fire({
-            title: t('shopOwner.subscription.confirmSubscribeTitle', 'Xác nhận đăng ký'),
+            title: t('shopOwner.subscription.confirmSubscribeTitle'),
             text: t('shopOwner.subscription.confirmSubscribe', {
                 plan: plan.name,
                 price: formatCurrency(planDuration === 'MONTHLY' ? plan.monthlyPrice : plan.yearlyPrice)
@@ -133,8 +133,8 @@ export default function SubscriptionPage() {
             showCancelButton: true,
             confirmButtonColor: '#28a745',
             cancelButtonColor: '#d33',
-            confirmButtonText: t('common.yes', 'Đồng ý'),
-            cancelButtonText: t('common.no', 'Hủy')
+            confirmButtonText: t('common.yes'),
+            cancelButtonText: t('common.no')
         });
 
         if (!result.isConfirmed) {
