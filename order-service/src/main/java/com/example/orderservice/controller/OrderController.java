@@ -204,6 +204,22 @@ public class OrderController {
             dto.setVoucherId(order.getVoucherId());
         }
 
+        // Platform Voucher
+        if (order.getPlatformVoucherCode() != null) {
+            dto.setPlatformVoucherCode(order.getPlatformVoucherCode());
+        }
+        if (order.getPlatformVoucherDiscount() != null) {
+            dto.setPlatformVoucherDiscount(order.getPlatformVoucherDiscount().doubleValue());
+        }
+
+        // Coins
+        if (order.getCoinsUsed() != null) {
+            dto.setCoinsUsed(order.getCoinsUsed());
+        }
+        if (order.getCoinDiscount() != null) {
+            dto.setCoinDiscount(order.getCoinDiscount().doubleValue());
+        }
+
         return dto;
     }
 
@@ -224,6 +240,9 @@ public class OrderController {
     @PostMapping("/create-from-cart")
     ResponseEntity<?> createOrderFromCart(@RequestBody FrontendOrderRequest request, HttpServletRequest httpRequest) {
         try {
+            log.info("[CONTROLLER] Received CreateOrder request. PlatformVoucher: {}, Discount: {}, UseCoin: {}", 
+                    request.getPlatformVoucherCode(), request.getPlatformVoucherDiscount(), request.isUseCoin());
+
             String paymentMethod = request.getPaymentMethod();
             // Only COD and WALLET use this endpoint; VNPay/Card should go through
             // payment-service

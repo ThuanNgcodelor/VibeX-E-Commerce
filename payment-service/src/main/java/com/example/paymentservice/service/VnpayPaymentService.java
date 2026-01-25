@@ -56,7 +56,6 @@ public class VnpayPaymentService {
         }
 
         // Use Asia/Ho_Chi_Minh timezone (GMT+7) - VNPay requires Vietnam timezone
-        // Note: "Etc/GMT+7" is actually UTC-7 (opposite!), so we use explicit timezone
         TimeZone vnTimezone = TimeZone.getTimeZone("Asia/Ho_Chi_Minh");
         Calendar cld = Calendar.getInstance(vnTimezone);
         SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss");
@@ -163,6 +162,8 @@ public class VnpayPaymentService {
                     .userId(extractUserIdFromOrderData(payment.getOrderData()))
                     .addressId(extractAddressIdFromOrderData(payment.getOrderData()))
                     .orderDataJson(payment.getOrderData())
+                    .platformVoucherCode(extractPlatformVoucherCodeFromOrderData(payment.getOrderData()))
+                    .platformVoucherDiscount(extractPlatformVoucherDiscountFromOrderData(payment.getOrderData()))
                     .timestamp(Instant.now())
                     .build();
 
@@ -211,17 +212,8 @@ public class VnpayPaymentService {
             return null;
         }
         try {
-            // OrderData format: {"userId": "...", "addressId": "...", "selectedItems": [...]}
-            // Simple extraction without full JSON parsing
-            if (orderDataJson.contains("\"userId\"")) {
-                int start = orderDataJson.indexOf("\"userId\"") + 9;
-                int end = orderDataJson.indexOf(",", start);
-                if (end == -1) end = orderDataJson.indexOf("}", start);
-                if (end > start) {
-                    String value = orderDataJson.substring(start, end).trim();
-                    return value.replace("\"", "").replace(":", "").trim();
-                }
-            }
+            com.fasterxml.jackson.databind.JsonNode node = objectMapper.readTree(orderDataJson).get("userId");
+            return node != null ? node.asText(null) : null;
         } catch (Exception e) {
             log.warn("[PAYMENT] Failed to extract userId from orderData: {}", e.getMessage());
         }
@@ -233,18 +225,35 @@ public class VnpayPaymentService {
             return null;
         }
         try {
-            if (orderDataJson.contains("\"addressId\"")) {
-                int start = orderDataJson.indexOf("\"addressId\"") + 12;
-                int end = orderDataJson.indexOf(",", start);
-                if (end == -1) end = orderDataJson.indexOf("}", start);
-                if (end > start) {
-                    String value = orderDataJson.substring(start, end).trim();
-                    return value.replace("\"", "").replace(":", "").trim();
-                }
-            }
+            com.fasterxml.jackson.databind.JsonNode node = objectMapper.readTree(orderDataJson).get("addressId");
+            return node != null ? node.asText(null) : null;
         } catch (Exception e) {
             log.warn("[PAYMENT] Failed to extract addressId from orderData: {}", e.getMessage());
         }
         return null;
+    }
+
+    private String extractPlatformVoucherCodeFromOrderData(String orderDataJson) {
+        if (orderDataJson == null || orderDataJson.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            com.fasterxml.jackson.databind.JsonNode node = objectMapper.readTree(orderDataJson).get("platformVoucherCode");
+            return node != null ? node.asText(null) : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private Double extractPlatformVoucherDiscountFromOrderData(String orderDataJson) {
+        if (orderDataJson == null || orderDataJson.trim().isEmpty()) {
+            return 0.0;
+        }
+        try {
+            com.fasterxml.jackson.databind.JsonNode node = objectMapper.readTree(orderDataJson).get("platformVoucherDiscount");
+            return node != null ? node.asDouble(0.0) : 0.0;
+        } catch (Exception e) {
+            return 0.0;
+        }
     }
 }

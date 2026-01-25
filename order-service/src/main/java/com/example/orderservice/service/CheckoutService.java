@@ -171,23 +171,25 @@ public class CheckoutService {
         Long availableCoins = 0L;
         BigDecimal coinDiscount = BigDecimal.ZERO;
 
-        if (request.isUseCoin() && request.getUserId() != null) {
+        if (request.getUserId() != null) {
             try {
                 var coinRes = userServiceClient.getUserCoinBalance(request.getUserId());
                 if (coinRes != null && coinRes.getBody() != null) {
                     availableCoins = coinRes.getBody();
-                    
-                    // Max 50% rule
-                    BigDecimal maxDiscount = totalAfterPlatform.multiply(MAX_COIN_DISCOUNT_PERCENT);
-                    BigDecimal coinValue = BigDecimal.valueOf(availableCoins); // 1 coin = 1 VND
-                    
-                    if (coinValue.compareTo(maxDiscount) > 0) {
-                        coinDiscount = maxDiscount;
-                    } else {
-                        coinDiscount = coinValue;
+
+                    if (request.isUseCoin()) {
+                        // Max 50% rule
+                        BigDecimal maxDiscount = totalAfterPlatform.multiply(MAX_COIN_DISCOUNT_PERCENT);
+                        BigDecimal coinValue = BigDecimal.valueOf(availableCoins); // 1 coin = 1 VND
+
+                        if (coinValue.compareTo(maxDiscount) > 0) {
+                            coinDiscount = maxDiscount;
+                        } else {
+                            coinDiscount = coinValue;
+                        }
+
+                        coinsUsed = coinDiscount.longValue();
                     }
-                    
-                    coinsUsed = coinDiscount.longValue();
                 }
             } catch (Exception e) {
                 log.warn("Failed to fetch user coin: {}", e.getMessage());

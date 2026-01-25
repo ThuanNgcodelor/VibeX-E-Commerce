@@ -18,9 +18,12 @@ import lombok.RequiredArgsConstructor;
 public class CheckoutController {
 
     private final CheckoutService checkoutService;
+    private final com.example.orderservice.jwt.JwtUtil jwtUtil;
 
     @PostMapping("/preview")
-    public ResponseEntity<CheckoutPreviewResponse> previewCheckout(@RequestBody CheckoutPreviewRequest request) {
+    public ResponseEntity<CheckoutPreviewResponse> previewCheckout(@RequestBody CheckoutPreviewRequest request, jakarta.servlet.http.HttpServletRequest httpRequest) {
+        String userId = jwtUtil.ExtractUserId(httpRequest);
+        request.setUserId(userId);
         return ResponseEntity.ok(checkoutService.previewCheckout(request));
     }
 }

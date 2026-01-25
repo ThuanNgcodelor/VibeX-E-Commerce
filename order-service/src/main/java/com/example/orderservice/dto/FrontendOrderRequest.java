@@ -1,12 +1,12 @@
 package com.example.orderservice.dto;
 
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
-import lombok.Data;
-
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import lombok.Data;
 
 @Data
 public class FrontendOrderRequest {
@@ -22,6 +22,10 @@ public class FrontendOrderRequest {
     private String voucherId;
     private Double voucherDiscount;
 
+    // Platform voucher fields
+    private String platformVoucherCode;
+    private Double platformVoucherDiscount;
+
     // Shipping fee
     private Double shippingFee;
 
@@ -30,4 +34,6 @@ public class FrontendOrderRequest {
 
     // Temporary order ID for confirming Flash Sale reservations
     private String tempOrderId;
+
+    private boolean useCoin;
 }

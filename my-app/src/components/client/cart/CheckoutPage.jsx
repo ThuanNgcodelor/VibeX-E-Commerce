@@ -10,6 +10,20 @@ import { createVnpayPayment, createMomoPayment } from "../../../api/payment.js";
 import { validateVoucher } from "../../../api/voucher.js";
 import { trackPurchase } from "../../../api/tracking";
 import Swal from "sweetalert2";
+import {
+  MdLocationOn,
+  MdChat,
+  MdLocalActivity,
+  MdLocalShipping,
+  MdMonetizationOn,
+  MdCheckCircle,
+  MdCardGiftcard,
+  MdAccountBalanceWallet,
+  MdPayments,
+  MdShoppingBag,
+  MdStars
+} from "react-icons/md";
+import { HiOutlineTicket } from "react-icons/hi";
 
 const formatVND = (n) => (Number(n) || 0).toLocaleString("vi-VN") + "₫";
 
@@ -50,6 +64,7 @@ export function CheckoutPage({
   const [, setCalculatingShippingFee] = useState(false);
   const [voucherCode, setVoucherCode] = useState("");
   const [voucherDiscount, setVoucherDiscount] = useState(0);
+  const [coinDiscount, setCoinDiscount] = useState(0);
   const [voucherLoading, setVoucherLoading] = useState(false);
   const [appliedVoucher, setAppliedVoucher] = useState(null);
 
@@ -174,7 +189,6 @@ export function CheckoutPage({
 
         // Prepare request
         const previewReq = {
-          userId: userId,
           addressId: selectedAddressId,
           selectedItems: selectedItems.map(item => ({
             productId: item.productId || item.id,
@@ -213,7 +227,8 @@ export function CheckoutPage({
         }
         setShopShippingFees(fees);
         setShopAppliedVouchers(appliedVouchers);
-        setVoucherDiscount((data.totalShopVoucherDiscount || 0) + (data.totalPlatformVoucherDiscount || 0) + (data.totalCoinDiscount || 0));
+        setVoucherDiscount((data.totalShopVoucherDiscount || 0) + (data.totalPlatformVoucherDiscount || 0));
+        setCoinDiscount(data.totalCoinDiscount || 0);
 
       } catch (error) {
         console.error("Preview failed:", error);
@@ -422,8 +437,11 @@ export function CheckoutPage({
         paymentMethod: paymentMethod || "COD",
         voucherId: appliedVoucher?.voucherId || null,
         voucherDiscount: voucherDiscount || 0,
+        platformVoucherCode: platformVoucherCode || null,
+        platformVoucherDiscount: checkoutData?.totalPlatformVoucherDiscount || 0,
         shippingFee: totalShippingFee || 0,
-        shopShippingFees: shopShippingFees // NEW: Per-shop shipping fees
+        shopShippingFees: shopShippingFees, // NEW: Per-shop shipping fees
+        useCoin: useCoin
       };
 
       Swal.fire({
@@ -487,8 +505,8 @@ export function CheckoutPage({
             }
           }
 
-          // STEP 2: Calculate final total with shipping and voucher discount
-          const totalWithShipping = subtotal + totalShippingFee - voucherDiscount;
+          // STEP 2: Calculate final total with shipping, voucher, and COIN discount
+          const totalWithShipping = subtotal + totalShippingFee - voucherDiscount - coinDiscount;
 
           if (!userId) {
             throw new Error("Cannot get user ID");
@@ -507,6 +525,9 @@ export function CheckoutPage({
               shopShippingFees: shopShippingFees, // NEW: Per-shop shipping fees
               voucherId: appliedVoucher?.voucherId || null,
               voucherDiscount: voucherDiscount || 0,
+              platformVoucherCode: platformVoucherCode || null,
+              platformVoucherDiscount: checkoutData?.totalPlatformVoucherDiscount || 0,
+              useCoin: useCoin, // NEW: Pass useCoin for VNPAY flow
               tempOrderId: tempOrderId, // IMPORTANT: For Flash Sale confirmation
               selectedItems: selectedItems.map(it => ({
                 productId: it.productId || it.id,
@@ -1077,6 +1098,20 @@ export function CheckoutPage({
         }
         .modal.show { display: block !important; }
         .modal-backdrop { z-index: 10000 !important; }
+        
+        .checkout-icon {
+          font-size: 18px;
+          flex-shrink: 0;
+        }
+        .checkout-section-title .checkout-icon {
+          color: #ee4d2d;
+        }
+        .checkout-icon-green {
+          color: #52c41a;
+        }
+        .checkout-icon-blue {
+          color: #1890ff;
+        }
       `}</style>
 
       <div className="checkout-page">
@@ -1084,7 +1119,7 @@ export function CheckoutPage({
         <div className="checkout-header">
           <div className="checkout-header-content">
             <div className="checkout-logo">
-              <span>VIBE</span>
+              <MdShoppingBag style={{ fontSize: '24px' }} /> <span>VIBE SHOP</span>
             </div>
             <div className="checkout-logo-separator"></div>
             <span style={{ color: '#ee4d2d', fontSize: '16px', fontWeight: 600 }}>Checkout</span>
@@ -1097,7 +1132,7 @@ export function CheckoutPage({
               {/* Shipping Address */}
               <div className="checkout-section">
                 <div className="checkout-section-title">
-                  <span>📍</span>
+                  <MdLocationOn className="checkout-icon" />
                   {t('checkoutPage.shippingAddress', 'Địa Chỉ Nhận Hàng')}
                   {addressLoading && (
                     <small className="text-muted">({t('checkout.loading', 'Đang tải...')})</small>
@@ -1177,7 +1212,7 @@ export function CheckoutPage({
                           }));
                         }}
                       >
-                        💬 {t('checkoutPage.chatNow', 'Chat ngay')}
+                        <MdChat className="checkout-icon" /> {t('checkoutPage.chatNow', 'Chat ngay')}
                       </button>
                     </div>
 
@@ -1225,7 +1260,7 @@ export function CheckoutPage({
                     {/* Shop Voucher Input */}
                     <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #f0f0f0' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                        <span>🎫</span>
+                        <HiOutlineTicket className="checkout-icon" style={{ color: '#ee4d2d' }} />
                         <span style={{ fontSize: '14px', color: '#666' }}>{t('cart.voucher.shopVoucher', 'Voucher của Shop')}</span>
                         <input
                           type="text"
@@ -1276,8 +1311,8 @@ export function CheckoutPage({
                         )}
                       </div>
                       {shopVoucher && (
-                        <div style={{ background: '#e8f5e9', padding: '8px 12px', borderRadius: '4px', fontSize: '13px', color: '#4caf50' }}>
-                          ✓ {shopVoucher.title}: -{formatVND(shopVoucher.discount)}
+                        <div style={{ background: '#e8f5e9', padding: '8px 12px', borderRadius: '4px', fontSize: '13px', color: '#4caf50', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <MdCheckCircle className="checkout-icon-green" /> {shopVoucher.title}: -{formatVND(shopVoucher.discount)}
                         </div>
                       )}
                     </div>
@@ -1286,7 +1321,7 @@ export function CheckoutPage({
                     <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px dashed #eee' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: '#666' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span>🚚 {t('checkoutPage.shippingMethod', 'Phương thức vận chuyển')}: <span style={{ color: '#ee4d2d' }}>{t('checkoutPage.fast', 'Nhanh')}</span></span>
+                          <MdLocalShipping className="checkout-icon" style={{ color: '#00bfa5' }} /> <span>{t('checkoutPage.shippingMethod', 'Phương thức vận chuyển')}: <span style={{ color: '#ee4d2d' }}>{t('checkoutPage.fast', 'Nhanh')}</span></span>
                           {checkoutData?.shops?.find(s => s.shopOwnerId === shopOwnerId)?.isFreeShipXtra && (
                             <span style={{ background: '#00bfa5', color: '#fff', fontSize: '10px', padding: '2px 4px', borderRadius: '2px', fontWeight: 600 }}>FREESHIP XTRA</span>
                           )}
@@ -1348,7 +1383,7 @@ export function CheckoutPage({
                       setPaymentMethod('WALLET');
                     }}
                   >
-                    {t('checkout.wallet', 'Ví')} ({formatVND(walletBalance)})
+                    {t('checkout.wallet', 'Wallet')} ({formatVND(walletBalance)})
                   </div>
                 </div>
                 <div style={{ marginTop: '16px' }}>
@@ -1363,8 +1398,8 @@ export function CheckoutPage({
                       onChange={() => setPaymentMethod('COD')}
                     />
                     <div className="checkout-payment-info">
-                      <div className="checkout-payment-name">
-                        {t('checkout.cod')}
+                      <div className="checkout-payment-name" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <MdPayments className="checkout-icon" /> {t('checkout.cod')}
                       </div>
                       <div className="checkout-payment-details">
                         {t('checkout.codDescription')}
@@ -1383,8 +1418,8 @@ export function CheckoutPage({
                       onChange={() => setPaymentMethod('WALLET')}
                     />
                     <div className="checkout-payment-info">
-                      <div className="checkout-payment-name">
-                        {t('checkout.wallet', 'Checkout with Wallet')} <span style={{ color: '#ee4d2d' }}>({formatVND(walletBalance)})</span>
+                      <div className="checkout-payment-name" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <MdAccountBalanceWallet className="checkout-icon" /> {t('checkout.wallet', 'Checkout with Wallet')} <span style={{ color: '#ee4d2d' }}>({formatVND(walletBalance)})</span>
                       </div>
                       <div className="checkout-payment-details">
                         {walletBalance < (subtotal + totalShippingFee - totalVoucherDiscount) ?
@@ -1405,8 +1440,8 @@ export function CheckoutPage({
                       onChange={() => setPaymentMethod('VNPAY')}
                     />
                     <div className="checkout-payment-info">
-                      <div className="checkout-payment-name">
-                        {t('checkout.vnpay')}
+                      <div className="checkout-payment-name" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <MdPayments className="checkout-icon-blue" /> {t('checkout.vnpay')}
                       </div>
                       <div className="checkout-payment-details">
                         {t('checkout.vnpayDescription')}
@@ -1424,8 +1459,8 @@ export function CheckoutPage({
                       onChange={() => setPaymentMethod('MOMO')}
                     />
                     <div className="checkout-payment-info">
-                      <div className="checkout-payment-name">
-                        MoMo
+                      <div className="checkout-payment-name" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <MdPayments className="checkout-icon" style={{ color: '#a50064' }} /> MoMo
                       </div>
                       <div className="checkout-payment-details">
                         {t('checkout.momoDescription', 'Checkout with MoMo')}
@@ -1442,11 +1477,13 @@ export function CheckoutPage({
               <div style={{ padding: '12px 0', borderTop: '1px solid #f0f0f0', borderBottom: '1px solid #f0f0f0', marginBottom: '12px' }}>
                 {/* Platform Voucher */}
                 <div style={{ marginBottom: '12px' }}>
-                  <div style={{ fontSize: '14px', marginBottom: '8px', fontWeight: 500 }}>🎁 {t('cart.voucher.platformVoucher', 'Voucher Sàn')}</div>
+                  <div style={{ fontSize: '14px', marginBottom: '8px', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <MdCardGiftcard className="checkout-icon" style={{ color: '#ee4d2d' }} /> {t('cart.voucher.platformVoucher', 'Platform Voucher')}
+                  </div>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <input
                       type="text"
-                      placeholder="Mã giảm giá sàn..."
+                      placeholder="Platform promo code..."
                       value={platformVoucherCode}
                       onChange={(e) => setPlatformVoucherCode(e.target.value)}
                       style={{ flex: 1, padding: '8px', borderRadius: '4px', border: '1px solid #ddd', fontSize: '13px' }}
@@ -1454,8 +1491,8 @@ export function CheckoutPage({
                     {/* Input change triggers effect automatically via debouncing */}
                   </div>
                   {checkoutData?.platformVoucherValue > 0 && (
-                    <div style={{ fontSize: '12px', color: '#52c41a', marginTop: '4px' }}>
-                      ✅ Giảm {formatVND(checkoutData.platformVoucherValue)}
+                    <div style={{ fontSize: '12px', color: '#52c41a', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <MdCheckCircle /> Saved {formatVND(checkoutData.platformVoucherValue)}
                     </div>
                   )}
                 </div>
@@ -1463,10 +1500,12 @@ export function CheckoutPage({
                 {/* Shop Coin */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
-                    <div style={{ fontSize: '14px', fontWeight: 500 }}>💰 {t('cart.coin.useCoin', 'Dùng Vibe Coin')}</div>
+                    <div style={{ fontSize: '14px', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <MdMonetizationOn className="checkout-icon" style={{ color: '#ffb100' }} /> {t('cart.coin.useCoin', 'Use Vibe Coin')}
+                    </div>
                     <div style={{ fontSize: '12px', color: '#999' }}>
-                      Hiện có: {checkoutData?.availableCoins || 0} xu
-                      {checkoutData?.coinsUsed > 0 && <span style={{ color: '#ee4d2d', marginLeft: '4px' }}>(-{formatVND(checkoutData.totalCoinDiscount)})</span>}
+                      {t('cart.coin.available', 'Available')}: {checkoutData?.availableCoins || 0} coins
+                      {useCoin && checkoutData?.totalCoinDiscount > 0 && <span style={{ color: '#ee4d2d', marginLeft: '4px' }}>(-{formatVND(checkoutData.totalCoinDiscount)})</span>}
                     </div>
                   </div>
                   <label className="switch">
@@ -1502,7 +1541,9 @@ export function CheckoutPage({
               </div>
               {checkoutData?.totalPlatformVoucherDiscount > 0 && (
                 <div className="checkout-summary-row">
-                  <span className="checkout-summary-label">{t('checkoutPage.platformDiscount', 'Giảm giá Sàn')}</span>
+                  <span className="checkout-summary-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <MdLocalActivity /> {t('checkoutPage.platformDiscount', 'Platform Discount')}
+                  </span>
                   <span className="checkout-summary-value" style={{ color: '#ee4d2d' }}>
                     -{formatVND(checkoutData.totalPlatformVoucherDiscount)}
                   </span>
@@ -1510,7 +1551,9 @@ export function CheckoutPage({
               )}
               {checkoutData?.totalCoinDiscount > 0 && (
                 <div className="checkout-summary-row">
-                  <span className="checkout-summary-label">{t('checkoutPage.coinDiscount', 'Ưu đãi Coin')}</span>
+                  <span className="checkout-summary-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <MdStars style={{ color: '#ffb100' }} /> {t('checkoutPage.coinDiscount', 'Coin Benefit')}
+                  </span>
                   <span className="checkout-summary-value" style={{ color: '#ee4d2d' }}>
                     -{formatVND(checkoutData.totalCoinDiscount)}
                   </span>
@@ -1542,9 +1585,9 @@ export function CheckoutPage({
         </div >
 
         {/* Floating Chat Button */}
-        < button className="checkout-chat-float" >
-          💬 Chat
-        </button >
+        <button className="checkout-chat-float">
+          <MdChat className="checkout-icon" /> Chat
+        </button>
 
         {/* Address Selection Modal */}
         {

@@ -29,4 +29,15 @@ public class OrderDto {
     // Voucher fields
     private String voucherId;
     private Double voucherDiscount;
+
+    // Platform Voucher
+    private String platformVoucherCode;
+    private Double platformVoucherDiscount;
+
+    // Coins
+    private Long coinsUsed;
+    private Double coinDiscount;
+
+    // Shipping Discount (if mapped, though currently stored in fee)
+    private Double shippingDiscount;
 }

@@ -53,7 +53,9 @@ public interface OrderService {
 
         Order createOrderFromPayment(String userId, String addressId,
                         List<SelectedItemDto> selectedItems, BigDecimal shippingFee,
-                        String voucherId, Double voucherDiscount);
+                        String voucherId, Double voucherDiscount,
+                        String platformVoucherCode, Double platformVoucherDiscount,
+                        boolean useCoin);
 
         Order createOrderFromWallet(FrontendOrderRequest request, String userId);
 

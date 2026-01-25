@@ -1,20 +1,22 @@
 package com.example.userservice.service.shopCoin;
 
+import java.time.LocalDate;
+
+import org.modelmapper.ModelMapper;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.example.userservice.client.StockServiceClient;
 import com.example.userservice.dto.ShopCoinDto;
 import com.example.userservice.exception.NotFoundException;
 import com.example.userservice.model.ShopCoin;
 import com.example.userservice.repository.shopCoin.ShopCoinRepository;
-import com.example.userservice.request.shopCoin.ShopCoinCheckInRequest;
 import com.example.userservice.request.shopCoin.ShopCoinAddPointsRequest;
+import com.example.userservice.request.shopCoin.ShopCoinCheckInRequest;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.modelmapper.ModelMapper;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDate;
-import org.springframework.transaction.annotation.Propagation;
 
 @Service
 @RequiredArgsConstructor
@@ -392,6 +394,25 @@ public class ShopCoinServiceImpl implements ShopCoinService {
 
         log.info("Added {} game points to user {} from score {}. Total points: {}",
                 pointsToAdd, userId, score, shopCoin.getPoints());
+
+        return modelMapper.map(shopCoin, ShopCoinDto.class);
+    }
+
+    @Override
+    @Transactional
+    public ShopCoinDto deductPoints(String userId, long points) {
+        ShopCoin shopCoin = shopCoinRepository.findByUserId(userId)
+                .orElseThrow(() -> new NotFoundException("ShopCoin not found for user: " + userId));
+
+        if (points <= 0) {
+            throw new IllegalArgumentException("Points to deduct must be greater than 0");
+        }
+
+        shopCoin.deductPoints(points);
+        shopCoin = shopCoinRepository.save(shopCoin);
+
+        log.info("Deducted {} points from user {}. Remaining points: {}",
+                points, userId, shopCoin.getPoints());
 
         return modelMapper.map(shopCoin, ShopCoinDto.class);
     }

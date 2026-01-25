@@ -215,6 +215,8 @@ public class MomoPaymentService {
                         .userId(extractFromOrderData(payment.getOrderData(), "userId"))
                         .addressId(extractFromOrderData(payment.getOrderData(), "addressId"))
                         .orderDataJson(payment.getOrderData())
+                        .platformVoucherCode(extractFromOrderData(payment.getOrderData(), "platformVoucherCode"))
+                        .platformVoucherDiscount(extractDiscountFromOrderData(payment.getOrderData()))
                         .timestamp(Instant.now())
                         .build();
 
@@ -258,10 +260,24 @@ public class MomoPaymentService {
         }
         try {
             JsonNode json = objectMapper.readTree(orderDataJson);
-            return json.has(field) ? json.get(field).asText() : null;
+            JsonNode node = json.get(field);
+            return node != null ? node.asText(null) : null;
         } catch (Exception e) {
             log.warn("[MOMO] Failed to extract {} from orderData: {}", field, e.getMessage());
             return null;
+        }
+    }
+
+    private Double extractDiscountFromOrderData(String orderDataJson) {
+        if (orderDataJson == null || orderDataJson.trim().isEmpty()) {
+            return 0.0;
+        }
+        try {
+            JsonNode json = objectMapper.readTree(orderDataJson);
+            JsonNode node = json.get("platformVoucherDiscount");
+            return node != null ? node.asDouble(0.0) : 0.0;
+        } catch (Exception e) {
+            return 0.0;
         }
     }
 }

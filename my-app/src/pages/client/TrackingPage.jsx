@@ -803,6 +803,16 @@ export default function TrackingPage() {
                                         {t('tracking.priceBreakdown.voucherDiscount')}
                                     </div>
                                 )}
+                                {(order?.platformVoucherDiscount > 0) && (
+                                    <div style={{ marginBottom: '12px', fontSize: '13px', color: '#666' }}>
+                                        Platform Voucher
+                                    </div>
+                                )}
+                                {(order?.coinDiscount > 0) && (
+                                    <div style={{ marginBottom: '12px', fontSize: '13px', color: '#666' }}>
+                                        Coins Used
+                                    </div>
+                                )}
                                 <div style={{ marginBottom: '12px', fontSize: '13px', color: '#666' }}>
                                     {t('tracking.priceBreakdown.total')}
                                 </div>
@@ -827,6 +837,16 @@ export default function TrackingPage() {
                                 {(order?.voucherDiscount > 0) && (
                                     <div style={{ marginBottom: '12px', fontSize: '13px', color: '#26aa99' }}>
                                         -{formatVND(order.voucherDiscount)}
+                                    </div>
+                                )}
+                                {(order?.platformVoucherDiscount > 0) && (
+                                    <div style={{ marginBottom: '12px', fontSize: '13px', color: '#26aa99' }}>
+                                        -{formatVND(order.platformVoucherDiscount)}
+                                    </div>
+                                )}
+                                {(order?.coinDiscount > 0) && (
+                                    <div style={{ marginBottom: '12px', fontSize: '13px', color: '#ffc107' }}>
+                                        -{formatVND(order.coinDiscount)}
                                     </div>
                                 )}
                                 <div style={{

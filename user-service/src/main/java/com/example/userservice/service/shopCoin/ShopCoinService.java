@@ -1,10 +1,11 @@
 package com.example.userservice.service.shopCoin;
 
-import com.example.userservice.dto.ShopCoinDto;
-import com.example.userservice.request.shopCoin.ShopCoinCheckInRequest;
-import com.example.userservice.request.shopCoin.ShopCoinAddPointsRequest;
-import com.example.userservice.dto.ShopCoinAdminDto;
 import java.util.List;
+
+import com.example.userservice.dto.ShopCoinAdminDto;
+import com.example.userservice.dto.ShopCoinDto;
+import com.example.userservice.request.shopCoin.ShopCoinAddPointsRequest;
+import com.example.userservice.request.shopCoin.ShopCoinCheckInRequest;
 
 public interface ShopCoinService {
 
@@ -43,4 +44,6 @@ public interface ShopCoinService {
                         com.example.userservice.request.shopCoin.MissionRequest request);
 
         void deleteMission(String id);
+
+        ShopCoinDto deductPoints(String userId, long points);
 }

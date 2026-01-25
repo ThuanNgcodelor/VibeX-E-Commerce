@@ -61,4 +61,16 @@ public class Order extends BaseEntity {
     @OneToMany(mappedBy = "order", orphanRemoval = true)
     @Builder.Default
     private List<OrderItem> orderItems = new ArrayList<>();
+
+    @Column(name = "coins_used")
+    private Long coinsUsed;
+
+    @Column(name = "coin_discount", precision = 15, scale = 2)
+    private BigDecimal coinDiscount;
+
+    @Column(name = "platform_voucher_code")
+    private String platformVoucherCode;
+
+    @Column(name = "platform_voucher_discount", precision = 15, scale = 2)
+    private BigDecimal platformVoucherDiscount;
 }

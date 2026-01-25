@@ -45,6 +45,12 @@ public class ShopCoinController {
         return ResponseEntity.ok(shopCoin.getPoints() != null ? shopCoin.getPoints() : 0L);
     }
 
+    @PostMapping("/internal/deduct/{userId}")
+    public ResponseEntity<ShopCoinDto> deductPoints(@PathVariable String userId, @RequestParam long points) {
+        log.info("Internal request to deduct {} points from user {}", points, userId);
+        return ResponseEntity.ok(shopCoinService.deductPoints(userId, points));
+    }
+
     @GetMapping("/user/{userId}")
     public ResponseEntity<ShopCoinDto> getUserShopCoins(@PathVariable String userId) {
         log.info("Getting ShopCoin for user: {}", userId);

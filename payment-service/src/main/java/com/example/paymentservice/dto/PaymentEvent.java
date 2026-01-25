@@ -30,6 +30,10 @@ public class PaymentEvent {
     private String addressId;
     private String orderDataJson; // JSON string of selectedItems
     
+    // Platform voucher fields
+    private String platformVoucherCode;
+    private Double platformVoucherDiscount;
+    
     private Instant timestamp;
 }
 

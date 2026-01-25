@@ -1,7 +1,8 @@
 package com.example.orderservice.client;
 
-import com.example.orderservice.config.FeignConfig;
-import com.example.orderservice.dto.*;
+import java.util.List;
+import java.util.Map;
+
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -9,9 +10,15 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
 
-import java.util.List;
-import java.util.Map;
+import com.example.orderservice.config.FeignConfig;
+import com.example.orderservice.dto.AddRefundRequestDto;
+import com.example.orderservice.dto.AddressDto;
+import com.example.orderservice.dto.ShopOwnerDto;
+import com.example.orderservice.dto.ShopSubscriptionDTO;
+import com.example.orderservice.dto.UserDto;
+import com.example.orderservice.dto.UserLocationStatDto;
 
 @FeignClient(name = "user-service", path = "/v1", configuration = FeignConfig.class)
 public interface UserServiceClient {
@@ -49,4 +56,7 @@ public interface UserServiceClient {
 
         @GetMapping("/user/shop-coin/internal/balance/{userId}")
         ResponseEntity<Long> getUserCoinBalance(@PathVariable String userId);
+
+        @PostMapping("/user/shop-coin/internal/deduct/{userId}")
+        ResponseEntity<Map<String, Object>> deductPoints(@PathVariable String userId, @RequestParam("points") long points);
 }

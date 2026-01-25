@@ -42,6 +42,13 @@ public class ShopCoin extends BaseEntity {
         this.points += pointsToAdd;
     }
 
+    public void deductPoints(Long pointsToDeduct) {
+        if (this.points < pointsToDeduct) {
+            throw new IllegalStateException("Insufficient points balance");
+        }
+        this.points -= pointsToDeduct;
+    }
+
     public void recordCheckIn() {
         LocalDate today = LocalDate.now();
         if (this.lastCheckInDate != null && this.lastCheckInDate.equals(today)) {

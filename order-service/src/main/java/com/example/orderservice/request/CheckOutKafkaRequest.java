@@ -27,4 +27,11 @@ public class CheckOutKafkaRequest {
     private Double voucherDiscount;
     private Map<String, java.math.BigDecimal> shopShippingFees; // Per-shop shipping fees
     private Double shippingFee;
+
+    private boolean useCoin;
+    private Long coinsUsed;
+    private BigDecimal coinDiscount;
+
+    private String platformVoucherCode;
+    private Double platformVoucherDiscount;
 }

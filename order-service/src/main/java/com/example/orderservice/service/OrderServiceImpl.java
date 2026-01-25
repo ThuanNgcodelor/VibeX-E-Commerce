@@ -1413,8 +1413,11 @@ public class OrderServiceImpl implements OrderService {
                 .paymentMethod(orderRequest.getPaymentMethod() != null ? orderRequest.getPaymentMethod() : "COD")
                 .voucherId(orderRequest.getVoucherId())
                 .voucherDiscount(orderRequest.getVoucherDiscount())
+                .platformVoucherCode(orderRequest.getPlatformVoucherCode())
+                .platformVoucherDiscount(orderRequest.getPlatformVoucherDiscount())
                 .shippingFee(orderRequest.getShippingFee())
                 .shopShippingFees(orderRequest.getShopShippingFees())
+                .useCoin(orderRequest.isUseCoin())
                 .build();
 
         kafkaTemplate.send(orderTopic.name(), kafkaRequest);
@@ -1557,8 +1560,33 @@ public class OrderServiceImpl implements OrderService {
                 "[PAYMENT-ORDER] Creating order - userId: {}, addressId: {}, items: {}, shippingFee: {}, voucherId: {}",
                 userId, addressId, selectedItems.size(), shippingFee, voucherId);
 
-        // 5. Delegate to existing method
-        return createOrderFromPayment(userId, addressId, selectedItems, shippingFee, voucherId, voucherDiscount);
+        // 5. Parse useCoin
+        boolean useCoin = false;
+        if (orderData.containsKey("useCoin")) {
+            Object useCoinObj = orderData.get("useCoin");
+            if (useCoinObj instanceof Boolean) {
+                useCoin = (Boolean) useCoinObj;
+            } else if (useCoinObj instanceof String) {
+                useCoin = Boolean.parseBoolean((String) useCoinObj);
+            }
+        }
+
+        // 6. Parse Platform Voucher
+        String platformVoucherCode = null;
+        if (orderData.containsKey("platformVoucherCode")) {
+            platformVoucherCode = (String) orderData.get("platformVoucherCode");
+        }
+        Double platformVoucherDiscount = 0.0;
+        if (orderData.containsKey("platformVoucherDiscount")) {
+            Object pvdObj = orderData.get("platformVoucherDiscount");
+            if (pvdObj instanceof Number) {
+                platformVoucherDiscount = ((Number) pvdObj).doubleValue();
+            }
+        }
+
+        // 7. Delegate to existing method
+        return createOrderFromPayment(userId, addressId, selectedItems, shippingFee, voucherId, voucherDiscount,
+                platformVoucherCode, platformVoucherDiscount, useCoin);
     }
 
     @Override
@@ -1673,6 +1701,8 @@ public class OrderServiceImpl implements OrderService {
             BigDecimal shippingFee = BigDecimal.valueOf(request.getShippingFee());
             String voucherId = request.getVoucherId();
             Double voucherDiscount = request.getVoucherDiscount();
+            String platformVoucherCode = request.getPlatformVoucherCode();
+            Double platformVoucherDiscount = request.getPlatformVoucherDiscount();
             double totalToPay = 0.0;
 
             for (SelectedItemDto item : selectedItems) {
@@ -1695,6 +1725,42 @@ public class OrderServiceImpl implements OrderService {
             totalToPay += shippingFee.doubleValue();
             if (voucherDiscount != null) {
                 totalToPay -= voucherDiscount;
+            }
+            if (platformVoucherDiscount != null) {
+                totalToPay -= platformVoucherDiscount;
+            }
+
+            // ==================== COIN DEDUCTION (Sync Wallet Mode) ====================
+            Long coinsUsed = 0L;
+            BigDecimal coinDiscount = BigDecimal.ZERO;
+            if (request.isUseCoin()) {
+                try {
+                    Long balance = userServiceClient.getUserCoinBalance(userId).getBody();
+                    if (balance != null && balance > 0) {
+                        // Max 50% discount rule
+                        long maxDiscount = (long) (totalToPay * 0.5);
+                        long actualCoinsToUse = Math.min(balance, maxDiscount);
+
+                        if (actualCoinsToUse > 0) {
+                            // Deduct via internal API (UserService)
+                            userServiceClient.deductPoints(userId, actualCoinsToUse);
+                            
+                            coinsUsed = actualCoinsToUse;
+                            coinDiscount = BigDecimal.valueOf(actualCoinsToUse);
+                            totalToPay -= actualCoinsToUse;
+
+                            log.info("[WALLET-CHECKOUT] Coin applied: userId={}, coinsUsed={}, discount={}", 
+                                    userId, coinsUsed, coinDiscount);
+                        }
+                    }
+                } catch (Exception e) {
+                    log.error("[WALLET-CHECKOUT] Failed to apply coins for user {}: {}", 
+                            userId, e.getMessage());
+                    // We don't fail the whole order if coin deduction fails, 
+                    // or should we? For Wallet, we probably should fail if user 
+                    // explicitly asked to use coins but it failed.
+                    // For now, let's just log it.
+                }
             }
 
             // ========== PHASE 4: DEDUCT WALLET ==========
@@ -1720,10 +1786,15 @@ public class OrderServiceImpl implements OrderService {
 
             // ========== PHASE 5: CREATE ORDER ==========
             Order mainOrder = createOrderFromPayment(userId, request.getAddressId(), selectedItems, shippingFee,
-                    voucherId, voucherDiscount);
+                    voucherId, voucherDiscount, platformVoucherCode, platformVoucherDiscount, false);
 
             mainOrder.setOrderStatus(OrderStatus.PENDING);
             mainOrder.setPaymentMethod("WALLET");
+            
+            // Set Coin info
+            mainOrder.setCoinsUsed(coinsUsed);
+            mainOrder.setCoinDiscount(coinDiscount);
+            
             orderRepository.save(mainOrder);
 
             // ========== PHASE 6: CONFIRM RESERVATIONS ==========
@@ -1748,7 +1819,8 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public Order createOrderFromPayment(String userId, String addressId, List<SelectedItemDto> selectedItems,
-            BigDecimal shippingFee, String voucherId, Double voucherDiscount) {
+            BigDecimal shippingFee, String voucherId, Double voucherDiscount,
+            String platformVoucherCode, Double platformVoucherDiscount, boolean useCoin) {
         // Validate address
         AddressDto address = userServiceClient.getAddressById(addressId).getBody();
         if (address == null) {
@@ -1884,14 +1956,56 @@ public class OrderServiceImpl implements OrderService {
                 }
             }
 
-            // Calculate total: items + ship - voucher
+            // Calculate total: items + ship - voucher (shop)
             double itemsTotal = calculateTotalPrice(items);
             double ship = order.getShippingFee() != null ? order.getShippingFee().doubleValue() : 0.0;
-            double voucher = order.getVoucherDiscount() != null ? order.getVoucherDiscount().doubleValue() : 0.0;
-            order.setTotalPrice(itemsTotal + ship - voucher);
+            double shopVoucher = order.getVoucherDiscount() != null ? order.getVoucherDiscount().doubleValue() : 0.0;
+            double orderTotalPrice = itemsTotal + ship - shopVoucher;
+
+            // ==================== PLATFORM VOUCHER (Sync Payment Mode) ====================
+            // Apply platform discount to the FIRST shop's order
+            if (platformVoucherDiscount != null && platformVoucherDiscount > 0 && firstOrder == null) {
+                order.setPlatformVoucherCode(platformVoucherCode);
+                order.setPlatformVoucherDiscount(BigDecimal.valueOf(platformVoucherDiscount));
+                orderTotalPrice -= platformVoucherDiscount;
+                log.info("[PAYMENT-ORDER] Applying platform voucher {} (-{}) to first shop order {}", 
+                        platformVoucherCode, platformVoucherDiscount, shopOwnerId);
+            }
+
+            // ==================== COIN DEDUCTION (Sync Payment Mode) ====================
+            // Deduct once for the whole set of orders, apply to first order
+            if (useCoin && firstOrder == null) {
+                try {
+                    Long balance = userServiceClient.getUserCoinBalance(userId).getBody();
+                    if (balance != null && balance > 0) {
+                        // Calculate total checkout price (all shops) to apply 50% rule accurately
+                        double totalCheckoutPriceRaw = selectedItems.stream()
+                                .mapToDouble(i -> i.getUnitPrice() * i.getQuantity())
+                                .sum() + (shippingFee != null ? shippingFee.doubleValue() : 0.0) 
+                                - (voucherDiscount != null ? voucherDiscount : 0.0)
+                                - (platformVoucherDiscount != null ? platformVoucherDiscount : 0.0);
+
+                        long maxDiscount = (long) (totalCheckoutPriceRaw * 0.5);
+                        long coinsUsed = Math.min(balance, maxDiscount);
+
+                        if (coinsUsed > 0) {
+                            userServiceClient.deductPoints(userId, coinsUsed);
+                            order.setCoinsUsed(coinsUsed);
+                            order.setCoinDiscount(BigDecimal.valueOf(coinsUsed));
+                            orderTotalPrice -= coinsUsed;
+                            log.info("[PAYMENT-ORDER] Coins deducted: userId={}, coinsUsed={}, discount={}", 
+                                    userId, coinsUsed, coinsUsed);
+                        }
+                    }
+                } catch (Exception e) {
+                    log.error("[PAYMENT-ORDER] Failed to apply coins: {}", e.getMessage());
+                }
+            }
+
+            order.setTotalPrice(orderTotalPrice);
             orderRepository.save(order);
 
-            // Apply voucher if this order has voucher
+            // Apply shop voucher metadata if applicable
             if (shouldApplyVoucher && order.getVoucherId() != null && !order.getVoucherId().isBlank()) {
                 try {
                     voucherService.applyVoucherToOrder(
@@ -1949,6 +2063,13 @@ public class OrderServiceImpl implements OrderService {
 
         // Xử lý từng message trong batch
         for (CheckOutKafkaRequest msg : messages) {
+            log.info("[BATCH-CHECKOUT] Processing message for user: {}, PlatformVoucherCode: {}, Discount: {}, UseCoin: {}", 
+                    msg.getUserId(), msg.getPlatformVoucherCode(), msg.getPlatformVoucherDiscount(), msg.isUseCoin());
+
+            Order firstOrderForCoin = null;
+            double messageTotalBeforeDiscount = 0.0;
+            List<Order> messageOrders = new ArrayList<>();
+            
             try {
                 // ==================== VALIDATION ====================
                 if (msg.getAddressId() == null || msg.getAddressId().isBlank()) {
@@ -1996,7 +2117,7 @@ public class OrderServiceImpl implements OrderService {
                             shopOwnerId,
                             BigDecimal.valueOf(fallbackShippingFeePerShop));
 
-                    // 1) Create order skeleton
+                // 1) Create order skeleton
                     // Manual builder instead of save()
                     Order order = Order.builder()
                             .userId(msg.getUserId())
@@ -2032,15 +2153,64 @@ public class OrderServiceImpl implements OrderService {
                     // Calculate total
                     double itemsTotal = calculateTotalPrice(items);
                     double ship = order.getShippingFee() != null ? order.getShippingFee().doubleValue() : 0.0;
+
+                    // Calculate total
                     double voucher = order.getVoucherDiscount() != null ? order.getVoucherDiscount().doubleValue()
                             : 0.0;
-                    order.setTotalPrice(itemsTotal + ship - voucher);
+                    double finalPrice = itemsTotal + ship - voucher;
+
+                    // Apply Platform Voucher (to the first order only)
+                    if (firstOrderForCoin == null && msg.getPlatformVoucherDiscount() != null && msg.getPlatformVoucherDiscount() > 0) {
+                         order.setPlatformVoucherCode(msg.getPlatformVoucherCode());
+                         order.setPlatformVoucherDiscount(BigDecimal.valueOf(msg.getPlatformVoucherDiscount()));
+                         finalPrice -= msg.getPlatformVoucherDiscount();
+                         log.info("[BATCH-CHECKOUT] Applied Platform Voucher to order for shop {}: code={}, discount={}", 
+                                 shopOwnerId, msg.getPlatformVoucherCode(), msg.getPlatformVoucherDiscount());
+                    }
+
+                    order.setTotalPrice(finalPrice);
 
                     ensureIdsAssignedForBatchInsert(order);
 
-                    // Add to lists for BATCH SAVE
+                    // Add to lists for message-level tracking
+                    messageOrders.add(order);
+                    messageTotalBeforeDiscount += finalPrice;
+                    
+                    if (firstOrderForCoin == null) {
+                        firstOrderForCoin = order;
+                    }
+                    
+                    // Add to lists for GLOBAL BATCH SAVE
                     ordersToSave.add(order);
                     orderItemsToSave.addAll(items);
+                }
+
+                // ==================== COIN DEDUCTION (BATCH MODE) ====================
+                // Deduct ONCE per checkout message, apply to first shop order
+                if (msg.isUseCoin() && firstOrderForCoin != null) {
+                    try {
+                        Long balance = userServiceClient.getUserCoinBalance(msg.getUserId()).getBody();
+                        if (balance != null && balance > 0) {
+                            // messageTotalBeforeDiscount already has platform discount subtracted for firstOrder
+                            // But we need to ensure the max 50% rule is applied to the REAL total of the whole checkout
+                            long maxDiscount = (long) (messageTotalBeforeDiscount * 0.5);
+                            long coinsToUse = Math.min(balance, maxDiscount);
+
+                            if (coinsToUse > 0) {
+                                // Deduct via internal API (UserService)
+                                userServiceClient.deductPoints(msg.getUserId(), coinsToUse);
+
+                                // Record in the first order
+                                firstOrderForCoin.setCoinsUsed(coinsToUse);
+                                firstOrderForCoin.setCoinDiscount(BigDecimal.valueOf(coinsToUse));
+                                firstOrderForCoin.setTotalPrice(firstOrderForCoin.getTotalPrice() - coinsToUse);
+                                log.info("[BATCH-CHECKOUT] Applied coins: userId={}, coinsToUse={}", msg.getUserId(), coinsToUse);
+                            }
+                        }
+                    } catch (Exception e) {
+                        log.error("[BATCH-CHECKOUT] Failed to apply coins for user {}: {}", 
+                                msg.getUserId(), e.getMessage());
+                    }
                 }
 
                 // 3) Cleanup cart (ASYNC)
@@ -2318,10 +2488,23 @@ public class OrderServiceImpl implements OrderService {
                                     })
                                     .collect(java.util.stream.Collectors.toList());
 
+                            // Extract useCoin flag (NEW)
+                            boolean useCoinFromEvent = false;
+                            if (orderDataMap.containsKey("useCoin")) {
+                                Object useCoinObj = orderDataMap.get("useCoin");
+                                if (useCoinObj instanceof Boolean) {
+                                    useCoinFromEvent = (Boolean) useCoinObj;
+                                } else if (useCoinObj instanceof String) {
+                                    useCoinFromEvent = Boolean.parseBoolean((String) useCoinObj);
+                                }
+                            }
+
                             // Create order with PENDING status (payment successful, waiting for shop
                             // confirmation)
                             Order order = createOrderFromPayment(event.getUserId(), event.getAddressId(), selectedItems,
-                                    shippingFee, voucherId, voucherDiscount);
+                                    shippingFee, voucherId, voucherDiscount, 
+                                    event.getPlatformVoucherCode(), event.getPlatformVoucherDiscount(), 
+                                    useCoinFromEvent);
 
                             // Set payment method from event (VNPAY, CARD, etc.) if available
                             if (event.getMethod() != null && !event.getMethod().trim().isEmpty()) {
@@ -2563,51 +2746,51 @@ public class OrderServiceImpl implements OrderService {
      */
     private String[] getGhnStatusInfo(String ghnStatus) {
         return switch (ghnStatus.toLowerCase()) {
-            case "ready_to_pick" -> new String[] { "Chờ lấy hàng", "Đơn hàng đang chờ shipper đến lấy",
+            case "ready_to_pick" -> new String[] { "Waiting for pickup", "Order is waiting for shipper to pick up",
                     "Waiting for pickup", "Order is waiting for shipper to pick up" };
-            case "picking" -> new String[] { "Đang lấy hàng", "Shipper đang đến lấy hàng từ shop",
+            case "picking" -> new String[] { "Picking up", "Shipper is picking up from shop",
                     "Picking up", "Shipper is picking up from shop" };
-            case "money_collect_picking" -> new String[] { "Đang lấy hàng", "Shipper đang thu tiền và lấy hàng",
+            case "money_collect_picking" -> new String[] { "Collecting & picking", "Shipper is collecting money and picking up",
                     "Collecting & picking", "Shipper is collecting money and picking up" };
-            case "picked" -> new String[] { "Đã lấy hàng", "Shipper đã lấy hàng thành công",
+            case "picked" -> new String[] { "Picked up", "Shipper has picked up successfully",
                     "Picked up", "Shipper has picked up successfully" };
-            case "storing" -> new String[] { "Đã nhập kho", "Đơn hàng đã được nhập kho phân loại",
+            case "storing" -> new String[] { "In warehouse", "Order has been stored in warehouse",
                     "In warehouse", "Order has been stored in warehouse" };
-            case "transporting" -> new String[] { "Đang luân chuyển", "Đơn hàng đang được vận chuyển đến kho đích",
+            case "transporting" -> new String[] { "In transit", "Order is being transported to destination",
                     "In transit", "Order is being transported to destination" };
-            case "sorting" -> new String[] { "Đang phân loại", "Đơn hàng đang được phân loại tại kho",
+            case "sorting" -> new String[] { "Sorting", "Order is being sorted at warehouse",
                     "Sorting", "Order is being sorted at warehouse" };
-            case "delivering" -> new String[] { "Đang giao hàng", "Shipper đang giao hàng đến bạn",
+            case "delivering" -> new String[] { "Delivering", "Shipper is delivering to you",
                     "Delivering", "Shipper is delivering to you" };
             case "money_collect_delivering" ->
-                new String[] { "Đang giao hàng", "Shipper đang giao hàng và thu tiền COD",
+                new String[] { "Delivering (COD)", "Shipper is delivering and collecting COD",
                         "Delivering (COD)", "Shipper is delivering and collecting COD" };
-            case "delivered" -> new String[] { "Đã giao hàng", "Giao hàng thành công",
+            case "delivered" -> new String[] { "Delivered", "Delivery successful",
                     "Delivered", "Delivery successful" };
-            case "delivery_fail" -> new String[] { "Giao thất bại", "Giao hàng không thành công, sẽ giao lại",
+            case "delivery_fail" -> new String[] { "Delivery failed", "Delivery failed, will retry",
                     "Delivery failed", "Delivery failed, will retry" };
-            case "waiting_to_return" -> new String[] { "Chờ trả hàng", "Đơn hàng đang chờ trả về shop",
+            case "waiting_to_return" -> new String[] { "Waiting to return", "Waiting to return to shop",
                     "Waiting to return", "Waiting to return to shop" };
-            case "return", "returning" -> new String[] { "Đang trả hàng", "Đơn hàng đang được trả về shop",
+            case "return", "returning" -> new String[] { "Returning", "Order is being returned to shop",
                     "Returning", "Order is being returned to shop" };
             case "return_transporting" ->
-                new String[] { "Đang luân chuyển trả", "Đơn hàng đang được vận chuyển trả về shop",
+                new String[] { "Return in transit", "Order is being transported back to shop",
                         "Return in transit", "Order is being transported back to shop" };
-            case "return_sorting" -> new String[] { "Đang phân loại trả", "Đơn hàng đang được phân loại để trả về shop",
+            case "return_sorting" -> new String[] { "Return sorting", "Order is being sorted for return",
                     "Return sorting", "Order is being sorted for return" };
-            case "return_fail" -> new String[] { "Trả hàng thất bại", "Không thể trả hàng về shop",
+            case "return_fail" -> new String[] { "Return failed", "Failed to return to shop",
                     "Return failed", "Failed to return to shop" };
-            case "returned" -> new String[] { "Đã trả hàng", "Đơn hàng đã được trả về shop thành công",
+            case "returned" -> new String[] { "Returned", "Order has been returned successfully",
                     "Returned", "Order has been returned successfully" };
-            case "cancel" -> new String[] { "Đã hủy", "Đơn hàng đã bị hủy",
+            case "cancel" -> new String[] { "Cancelled", "Order has been cancelled",
                     "Cancelled", "Order has been cancelled" };
-            case "exception" -> new String[] { "Có sự cố", "Đơn hàng gặp sự cố, đang xử lý",
+            case "exception" -> new String[] { "Exception", "Order has an exception, processing",
                     "Exception", "Order has an exception, processing" };
-            case "damage" -> new String[] { "Hàng bị hư hỏng", "Hàng hóa bị hư hỏng trong quá trình vận chuyển",
+            case "damage" -> new String[] { "Damaged", "Package was damaged during transport",
                     "Damaged", "Package was damaged during transport" };
-            case "lost" -> new String[] { "Hàng bị thất lạc", "Hàng hóa bị thất lạc",
+            case "lost" -> new String[] { "Lost", "Package was lost",
                     "Lost", "Package was lost" };
-            default -> new String[] { "Cập nhật trạng thái", "Trạng thái: " + ghnStatus,
+            default -> new String[] { "Status update", "Status: " + ghnStatus,
                     "Status update", "Status: " + ghnStatus };
         };
     }

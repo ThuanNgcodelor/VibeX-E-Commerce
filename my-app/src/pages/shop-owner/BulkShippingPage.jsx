@@ -786,6 +786,9 @@ export default function BulkShippingPage() {
         <div class="section-title">${t('shopOwner.manageOrder.paymentInfo')}</div>
         <div class="row"><span>${t('shopOwner.manageOrder.subtotal')}:</span><span>${formatPrice(subtotal)}</span></div>
         <div class="row"><span>${t('shopOwner.manageOrder.shippingFee')}:</span><span>${formatPrice(shippingFee)}</span></div>
+        ${order.voucherDiscount > 0 ? `<div class="row"><span>Shop Voucher:</span><span>-${formatPrice(order.voucherDiscount)}</span></div>` : ''}
+        ${order.platformVoucherDiscount > 0 ? `<div class="row"><span>Platform Voucher:</span><span>-${formatPrice(order.platformVoucherDiscount)}</span></div>` : ''}
+        ${order.coinDiscount > 0 ? `<div class="row"><span>Coins:</span><span>-${formatPrice(order.coinDiscount)}</span></div>` : ''}
         <div class="row total-row"><span>${t('shopOwner.manageOrder.total')}:</span><span style="color: #ee4d2d;">${formatPrice(total)}</span></div>
     </div>
 
@@ -1373,6 +1376,18 @@ export default function BulkShippingPage() {
                                                                                     <div className="d-flex justify-content-between mb-2">
                                                                                         <span className="text-muted small">{t('shopOwner.manageOrder.voucher')}:</span>
                                                                                         <span className="fw-medium text-success">-{formatPrice(voucherDiscount)}</span>
+                                                                                    </div>
+                                                                                )}
+                                                                                {order.platformVoucherDiscount > 0 && (
+                                                                                    <div className="d-flex justify-content-between mb-2">
+                                                                                        <span className="text-muted small">Platform Voucher:</span>
+                                                                                        <span className="fw-medium text-success">-{formatPrice(order.platformVoucherDiscount)}</span>
+                                                                                    </div>
+                                                                                )}
+                                                                                {order.coinDiscount > 0 && (
+                                                                                    <div className="d-flex justify-content-between mb-2">
+                                                                                        <span className="text-muted small">Coins Used:</span>
+                                                                                        <span className="fw-medium text-warning">-{formatPrice(order.coinDiscount)}</span>
                                                                                     </div>
                                                                                 )}
                                                                                 <div className="d-flex justify-content-between pt-2 border-top mt-2">
