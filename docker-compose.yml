@@ -1,21 +1,18 @@
 version: '3.8'
 
-# ==========================================
-# Cấu hình chung tối ưu cho máy 16GB RAM
-# ==========================================
 x-spring-boot-common: &spring-boot-common
   networks: [ vibe-network ]
   restart: unless-stopped
   environment:
-    # OPTIMIZED: Giảm RAM cho máy 8GB - Heap 128-384MB
-    JAVA_TOOL_OPTIONS: "-Xms128m -Xmx384m -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:+UseStringDeduplication"
+    # OPTIMIZED: Lean heap for 8GB RAM host
+    JAVA_TOOL_OPTIONS: "-Xms64m -Xmx256m -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:+UseStringDeduplication"
   deploy:
     resources:
       limits:
-        cpus: '1.0' # Giảm CPU limit để tiết kiệm tài nguyên
-        memory: 512M # Đủ cho 384MB Heap + 128MB overhead
+        cpus: '0.5'
+        memory: 448M
       reservations:
-        memory: 200M
+        memory: 128M
 
 services:
   # ==========================================
@@ -30,8 +27,8 @@ services:
       MYSQL_DATABASE: shopee
       MYSQL_USER: sa
       MYSQL_PASSWORD: Thuan@417
-    # OPTIMIZED: Giảm buffer pool và connections cho máy 8GB RAM
-    command: --default-authentication-plugin=mysql_native_password --max_connections=150 --innodb-buffer-pool-size=192M
+    # OPTIMIZED: Reduced buffer pool for low memory host
+    command: --default-authentication-plugin=mysql_native_password --max_connections=100 --innodb-buffer-pool-size=128M
     ports:
       - "3306:3306"
     volumes:
@@ -40,7 +37,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 768M # Giảm từ 1G -> 768M
+          memory: 512M
     healthcheck:
       test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
       interval: 10s
@@ -73,7 +70,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 64M # Đã tối ưu
+          memory: 128M # Redis 128M as requested
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.6.1
@@ -82,14 +79,14 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: "2181"
       ZOOKEEPER_TICK_TIME: "2000"
-      KAFKA_OPTS: "-Xmx128m -Xms128m" # OPTIMIZED: Giảm cho máy 8GB
+      KAFKA_OPTS: "-Xmx128m -Xms64m"
     ports:
       - "2181:2181"
     networks: [ vibe-network ]
     deploy:
       resources:
         limits:
-          memory: 384M # Giảm từ 512M -> 384M
+          memory: 256M
 
   kafka:
     image: confluentinc/cp-kafka:7.6.1
@@ -104,8 +101,8 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
-      # OPTIMIZED: Giảm heap cho máy 8GB RAM
-      KAFKA_HEAP_OPTS: "-Xmx384m -Xms384m"
+      # OPTIMIZED: Minimized heap
+      KAFKA_HEAP_OPTS: "-Xmx384m -Xms128m"
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
     ports:
       - "9092:9092"
@@ -114,7 +111,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 768M # Giảm từ 1G -> 768M
+          memory: 512M
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
@@ -125,14 +122,14 @@ services:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
       KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
-      JAVA_OPTS: "-Xmx256m" # OPTIMIZED: Giảm cho máy 8GB
+      JAVA_OPTS: "-Xmx192m"
     ports:
       - "9090:8080"
     networks: [ vibe-network ]
     deploy:
       resources:
         limits:
-          memory: 384M # Giảm từ 512M -> 384M
+          memory: 256M
 
   # ============================================
   # SPRING CLOUD & BACKEND SERVICES
@@ -148,12 +145,12 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=native
       - SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS=file:///config
-      # OPTIMIZED: Config server rất nhẹ
-      - JAVA_TOOL_OPTIONS=-Xms128m -Xmx384m -XX:+UseG1GC
+      # OPTIMIZED: Minimal heap for config server
+      - JAVA_TOOL_OPTIONS=-Xms64m -Xmx256m -XX:+UseG1GC
     deploy:
       resources:
         limits:
-          memory: 512M # Đã tối ưu
+          memory: 384M
     healthcheck:
       test: [ "CMD", "wget", "-qO-", "http://localhost:8888/actuator/health" ]
       interval: 15s
@@ -168,11 +165,11 @@ services:
       - "8761:8761"
     environment:
       - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
-      - JAVA_TOOL_OPTIONS=-Xms128m -Xmx384m -XX:+UseG1GC
+      - JAVA_TOOL_OPTIONS=-Xms64m -Xmx256m -XX:+UseG1GC
     deploy:
       resources:
         limits:
-          memory: 512M # Đã tối ưu
+          memory: 448M
     depends_on:
       config-server:
         condition: service_healthy
@@ -191,13 +188,13 @@ services:
     environment:
       - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
       - EUREKA_URI=http://eureka-server:8761/eureka
-      # OPTIMIZED: Gateway cần thêm RAM cho Netty
-      - JAVA_TOOL_OPTIONS=-Xms128m -Xmx512m -XX:+UseG1GC -Dnetty.leakDetectionLevel=disabled
+      # OPTIMIZED: Gateway optimization
+      - JAVA_TOOL_OPTIONS=-Xms128m -Xmx384m -XX:+UseG1GC -Dnetty.leakDetectionLevel=disabled
     deploy:
       resources:
         limits:
-          cpus: '1.5'
-          memory: 640M # Giảm từ 800M -> 640M
+          cpus: '1.0'
+          memory: 512M
     depends_on:
       eureka-server:
         condition: service_healthy
@@ -329,11 +326,19 @@ services:
       - SPRING_DATASOURCE_USERNAME=sa
       - SPRING_DATASOURCE_PASSWORD=Thuan@417
       - FILE_UPLOAD_DIR=/app/uploads
-      # OPTIMIZED: Dùng common config
+      # OPTIMIZED: High performance for file-storage
+      - JAVA_TOOL_OPTIONS=-Xms256m -Xmx768m -XX:+UseG1GC
     tmpfs:
-      - /tmp:size=64M # Giảm tmpfs từ 128M -> 64M
+      - /tmp:size=128M
     volumes:
       - ./file-storage/src/main/resources/attachments:/app/uploads
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1024M
+        reservations:
+          memory: 512M
     depends_on:
       gateway:
         condition: service_started
@@ -353,7 +358,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 192M # Giảm từ 256M -> 192M
+          memory: 128M
 
   my-app:
     build: ./my-app
@@ -368,7 +373,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 192M # Giảm từ 256M -> 192M
+          memory: 128M
 
 volumes:
   zookeeper_data:
@@ -377,7 +382,7 @@ volumes:
   redis_data:
   file_storage_data:
 
-
+    # Networks configuration
 networks:
   vibe-network:
     driver: bridge
