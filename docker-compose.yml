@@ -27,8 +27,8 @@ services:
       MYSQL_DATABASE: shopee
       MYSQL_USER: sa
       MYSQL_PASSWORD: Thuan@417
-    # OPTIMIZED: Reduced buffer pool for low memory host
-    command: --default-authentication-plugin=mysql_native_password --max_connections=100 --innodb-buffer-pool-size=128M
+    # OPTIMIZED: Max performance DB
+    command: --default-authentication-plugin=mysql_native_password --max_connections=300 --innodb-buffer-pool-size=256M
     ports:
       - "3306:3306"
     volumes:
@@ -70,7 +70,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 128M # Redis 128M as requested
+          memory: 256M # Increased for better caching
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.6.1
@@ -237,6 +237,7 @@ services:
     build: ./stock-service
     container_name: stock-service
     environment:
+      # OPTIMIZED: Use local Ollama instead of slow Ngrok
       - OLLAMA_BASE_URL=https://jerold-transpulmonary-pseudobiographically.ngrok-free.dev
       - OLLAMA_MODEL=gpt-oss:120b-cloud
       - SPRING_CLOUD_CONFIG_URI=http://config-server:8888

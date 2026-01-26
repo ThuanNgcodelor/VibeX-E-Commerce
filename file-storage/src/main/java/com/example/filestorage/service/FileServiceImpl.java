@@ -10,10 +10,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 
 @RequiredArgsConstructor
 @Service
@@ -61,26 +62,18 @@ public class FileServiceImpl implements FileService {
     }
 
     @Override
-    public byte[] downloadImageFromFileSystem(String id) {
-        try {
-            // Construct path dynamically to avoid issues with absolute paths stored in DB
-            // from different environments
-            String filePath = FOLDER_PATH + java.io.File.separator + id;
-            java.io.File file = new java.io.File(filePath);
-            if (!file.exists()) {
-                throw GenericErrorResponse.builder()
-                        .message("File not found in storage: " + id)
-                        .httpStatus(HttpStatus.NOT_FOUND)
-                        .build();
-            }
-            return Files.readAllBytes(file.toPath());
-        } catch (IOException e) {
+    public Resource downloadImageFromFileSystem(String id) {
+        // Construct path dynamically to avoid issues with absolute paths stored in DB
+        // from different environments
+        String filePath = FOLDER_PATH + java.io.File.separator + id;
+        java.io.File file = new java.io.File(filePath);
+        if (!file.exists()) {
             throw GenericErrorResponse.builder()
-                    .message("Unable to read file from storage")
-                    .httpStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .message("File not found in storage: " + id)
+                    .httpStatus(HttpStatus.NOT_FOUND)
                     .build();
         }
-
+        return new FileSystemResource(file);
     }
 
     @Override

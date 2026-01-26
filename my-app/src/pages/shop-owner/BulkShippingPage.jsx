@@ -503,12 +503,12 @@ export default function BulkShippingPage() {
                 Swal.fire({
                     icon: 'warning',
                     title: t('shopOwner.manageOrder.partialSuccess'),
-                    text: `${message}\n${response.rejected} The application was rejected.` // Note: Backend response might be strict string?
+                    text: `${message}\n${response.rejected} ${t('shopOwner.manageOrder.ordersRejected', 'orders failed')}.`
                 });
             } else {
                 Swal.fire({
                     icon: 'success',
-                    title: 'Success',
+                    title: t('common.success', 'Success'),
                     text: message,
                     timer: 2000
                 });
@@ -1291,7 +1291,7 @@ export default function BulkShippingPage() {
                                                         <button
                                                             className="btn btn-sm btn-outline-primary"
                                                             onClick={() => toggleRowExpansion(order.id)}
-                                                            title="View details"
+                                                            title={t('shopOwner.manageOrder.viewDetails', 'View details')}
                                                         >
                                                             <i className={`fas ${isExpanded ? 'fa-eye-slash' : 'fa-eye'}`}></i>
                                                         </button>
@@ -1299,7 +1299,7 @@ export default function BulkShippingPage() {
                                                             <button
                                                                 className="btn btn-sm btn-outline-success"
                                                                 onClick={() => handleStatusUpdate(order.id, nextStatus)}
-                                                                title={`Update to ${getStatusLabel(nextStatus)}`}
+                                                                title={t('shopOwner.manageOrder.updateTo', { status: getStatusLabel(nextStatus) })}
                                                             >
                                                                 <i className="fas fa-check"></i>
                                                             </button>

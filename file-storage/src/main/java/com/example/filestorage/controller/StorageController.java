@@ -3,6 +3,7 @@ package com.example.filestorage.controller;
 import com.example.filestorage.model.File;
 import com.example.filestorage.service.FileService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -30,10 +31,11 @@ public class StorageController {
     }
 
     @GetMapping("/download/{id}")
-    public ResponseEntity<?> downloadImageFromFileSystem(@PathVariable String id) {
+    public ResponseEntity<Resource> downloadImageFromFileSystem(@PathVariable String id) {
+        Resource resource = fileService.downloadImageFromFileSystem(id);
         return ResponseEntity.ok()
-                .contentType(MediaType.valueOf("image/png"))
-                .body(fileService.downloadImageFromFileSystem(id));
+                .contentType(MediaType.parseMediaType("application/octet-stream"))
+                .body(resource);
     }
 
     @DeleteMapping("/delete/{id}")
@@ -43,11 +45,21 @@ public class StorageController {
     }
 
     @GetMapping("/get/{id}")
-    ResponseEntity<byte[]> getImageById(@PathVariable String id) {
-      File file = fileService.findFileById(id);
-      byte[] imageData = fileService.downloadImageFromFileSystem(id);
-      return ResponseEntity.ok()
-                .contentType(MediaType.valueOf(file.getType()))
-                .body(imageData);
+    ResponseEntity<Resource> getImageById(@PathVariable String id) {
+        File file = fileService.findFileById(id);
+        Resource resource = fileService.downloadImageFromFileSystem(id);
+        // Default to octet-stream if type is missing, but usually type is present
+        MediaType mediaType = MediaType.APPLICATION_OCTET_STREAM;
+        if (file.getType() != null) {
+            try {
+                mediaType = MediaType.parseMediaType(file.getType());
+            } catch (Exception e) {
+                // fallback
+            }
+        }
+        
+        return ResponseEntity.ok()
+                .contentType(mediaType)
+                .body(resource);
     }
 }

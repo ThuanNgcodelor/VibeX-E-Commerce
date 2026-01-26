@@ -1015,11 +1015,13 @@ public class OrderServiceImpl implements OrderService {
             // 1. Lấy địa chỉ khách hàng
             AddressDto customerAddress = userServiceClient.getAddressById(order.getAddressId()).getBody();
             if (customerAddress == null) {
+                log.warn("[GHN] Customer address not found for order {}", order.getId());
                 return;
             }
 
             // 2. Validate GHN fields
             if (customerAddress.getDistrictId() == null || customerAddress.getWardCode() == null) {
+                log.warn("[GHN] Customer address missing GHN fields for order {}", order.getId());
                 return;
             }
 
@@ -1065,6 +1067,7 @@ public class OrderServiceImpl implements OrderService {
                     }
                 }
             } catch (Exception e) {
+                log.error("[GHN] Failed to get shop owner ID from product: {}", e.getMessage());
             }
 
             // Lấy shop owner info để có FROM address
@@ -1077,11 +1080,13 @@ public class OrderServiceImpl implements OrderService {
                         shopOwner = shopOwnerResponse.getBody();
                     }
                 } catch (Exception e) {
+                    log.error("[GHN] Failed to get shop owner info: {}", e.getMessage());
                 }
             }
 
             // Validate shop owner address
             if (shopOwner == null || shopOwner.getDistrictId() == null || shopOwner.getWardCode() == null) {
+                log.warn("[GHN] Shop owner address invalid/missing for order {}. ShopOwner: {}", order.getId(), shopOwner);
                 return;
             }
 
@@ -2987,7 +2992,7 @@ public class OrderServiceImpl implements OrderService {
         Map<String, Object> response = new HashMap<>();
         response.put("accepted", sent);
         response.put("rejected", rejected);
-        response.put("message", String.format("Đang xử lý %d đơn hàng...", sent));
+        response.put("message", String.format("Processing %d orders...", sent));
         if (!rejectedOrderIds.isEmpty()) {
             response.put("rejectedOrderIds", rejectedOrderIds);
         }
@@ -3108,9 +3113,9 @@ public class OrderServiceImpl implements OrderService {
             long failedCount = results.stream().filter(r -> r.startsWith("FAILED:")).count();
 
             String message = String.format(
-                    "Đã cập nhật %d đơn hàng thành công%s",
+                    "Updated %d orders successfully%s",
                     successCount,
-                    failedCount > 0 ? String.format(", %d đơn thất bại", failedCount) : "");
+                    failedCount > 0 ? String.format(", %d failed", failedCount) : "");
 
             try {
                 SendNotificationRequest notification = SendNotificationRequest.builder()
