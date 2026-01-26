@@ -787,12 +787,6 @@ USERS ||..o{ BEHAVIOR_LOGS : "generates_log"
 @enduml
 
 
-
-
-38cDDgFlWvKavqumyhpPdhmrv3N_3XKmvEw3unFEN3jFyYWxP  Trang
-
-
-
 38knDy0XCqg8Z6T3SLDio5tfZf5_5BEpPq34cRkMK2NaeF5ff Thuan
 https://procommunity-constrainingly-dalila.ngrok-free.dev
 38cClGMScnqN33v4eUKDzGthVdd_6DRD8y1QCjg9sYH1uMcNz Dinh

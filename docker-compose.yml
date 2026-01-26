@@ -4,15 +4,15 @@ x-spring-boot-common: &spring-boot-common
   networks: [ vibe-network ]
   restart: unless-stopped
   environment:
-    # OPTIMIZED: Lean heap for 8GB RAM host
-    JAVA_TOOL_OPTIONS: "-Xms64m -Xmx256m -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:+UseStringDeduplication"
+    # OPTIMIZED: Max performance - Heap up to 384MB
+    JAVA_TOOL_OPTIONS: "-Xms128m -Xmx384m -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:+UseStringDeduplication"
   deploy:
     resources:
       limits:
-        cpus: '0.5'
-        memory: 448M
+        # CPU unlocked
+        memory: 640M
       reservations:
-        memory: 128M
+        memory: 256M
 
 services:
   # ==========================================
@@ -188,13 +188,13 @@ services:
     environment:
       - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
       - EUREKA_URI=http://eureka-server:8761/eureka
-      # OPTIMIZED: Gateway optimization
-      - JAVA_TOOL_OPTIONS=-Xms128m -Xmx384m -XX:+UseG1GC -Dnetty.leakDetectionLevel=disabled
+      # OPTIMIZED: Gateway enhanced
+      - JAVA_TOOL_OPTIONS=-Xms256m -Xmx512m -XX:+UseG1GC -Dnetty.leakDetectionLevel=disabled
     deploy:
       resources:
         limits:
-          cpus: '1.0'
-          memory: 512M
+          # CPU unlocked
+          memory: 800M
     depends_on:
       eureka-server:
         condition: service_healthy
@@ -326,19 +326,21 @@ services:
       - SPRING_DATASOURCE_USERNAME=sa
       - SPRING_DATASOURCE_PASSWORD=Thuan@417
       - FILE_UPLOAD_DIR=/app/uploads
-      # OPTIMIZED: High performance for file-storage
-      - JAVA_TOOL_OPTIONS=-Xms256m -Xmx768m -XX:+UseG1GC
+      - SPRING_DATASOURCE_PASSWORD=Thuan@417
+      - FILE_UPLOAD_DIR=/app/uploads
+      # OPTIMIZED: Max performance for file-storage
+      - JAVA_TOOL_OPTIONS=-Xms512m -Xmx1024m -XX:+UseG1GC
     tmpfs:
-      - /tmp:size=128M
+      - /tmp:size=256M
     volumes:
       - ./file-storage/src/main/resources/attachments:/app/uploads
     deploy:
       resources:
         limits:
-          cpus: '2.0'
-          memory: 1024M
+          # CPU unlocked
+          memory: 1536M
         reservations:
-          memory: 512M
+          memory: 768M
     depends_on:
       gateway:
         condition: service_started
