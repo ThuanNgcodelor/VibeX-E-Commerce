@@ -1207,7 +1207,7 @@ export default function LiveManagePage() {
 
                             {/* Right Sidebar - Chat */}
                             <div style={{ background: 'white', borderRadius: '8px', padding: '15px', display: 'flex', flexDirection: 'column', height: '100%' }}>
-                                <h4 style={{ fontSize: '14px', marginBottom: '15px', margin: '0 0 15px 0' }}>Bình luận</h4>
+                                <h4 style={{ fontSize: '14px', marginBottom: '15px', margin: '0 0 15px 0' }}>Comments</h4>
 
                                 {/* Chat Messages */}
                                 <div
@@ -1229,7 +1229,7 @@ export default function LiveManagePage() {
                                     {chatMessages.length === 0 ? (
                                         <div style={{ textAlign: 'center', color: '#999', padding: '40px 10px', fontSize: '13px' }}>
                                             <div style={{ fontSize: '36px', marginBottom: '8px' }}>💬</div>
-                                            Không có bình luận nào
+                                            No comments yet
                                         </div>
                                     ) : (
                                         chatMessages.map((chat, idx) => {
@@ -1242,7 +1242,7 @@ export default function LiveManagePage() {
                                                             color: chat.isOwner ? '#ee4d2d' : '#333',
                                                             marginRight: '6px'
                                                         }}>
-                                                            {chat.username || 'Khách'}:
+                                                            {chat.username || 'Guest'}:
                                                         </span>
                                                     )}
                                                     {chat.isOwner && !isSystem && (
@@ -1255,7 +1255,7 @@ export default function LiveManagePage() {
                                                             marginRight: '6px',
                                                             verticalAlign: 'middle'
                                                         }}>
-                                                            CHỦ SHOP
+                                                            SHOP OWNER
                                                         </span>
                                                     )}
                                                     <span style={{
@@ -1284,11 +1284,11 @@ export default function LiveManagePage() {
                                 }}>
                                     <div style={{ textAlign: 'center' }}>
                                         <div style={{ fontSize: '20px', fontWeight: '600', color: '#333' }}>{viewerCount}</div>
-                                        <div style={{ fontSize: '11px', color: '#999' }}>Người xem</div>
+                                        <div style={{ fontSize: '11px', color: '#999' }}>Viewers</div>
                                     </div>
                                     <div style={{ textAlign: 'center' }}>
                                         <div style={{ fontSize: '20px', fontWeight: '600', color: '#333' }}>{likeCount}</div>
-                                        <div style={{ fontSize: '11px', color: '#999' }}>Lượt thích</div>
+                                        <div style={{ fontSize: '11px', color: '#999' }}>Likes</div>
                                     </div>
                                 </div>
 
@@ -1299,7 +1299,7 @@ export default function LiveManagePage() {
                                         value={chatInput}
                                         onChange={(e) => setChatInput(e.target.value)}
                                         onKeyPress={(e) => e.key === 'Enter' && sendChat()}
-                                        placeholder="Nhập bình luận..."
+                                        placeholder="Enter comment..."
                                         style={{
                                             flex: 1,
                                             padding: '10px 12px',
@@ -1322,7 +1322,7 @@ export default function LiveManagePage() {
                                             fontWeight: '500'
                                         }}
                                     >
-                                        Gửi
+                                        Send
                                     </button>
                                 </div>
                             </div>
@@ -1364,7 +1364,7 @@ export default function LiveManagePage() {
                                 alignItems: 'center'
                             }}>
                                 <h3 style={{ margin: 0, fontSize: '16px' }}>
-                                    ☑️ Thêm sản phẩm liên quan
+                                    ☑️ Add Related Products
                                 </h3>
                                 <button
                                     onClick={() => setShowProductModal(false)}
@@ -1393,7 +1393,7 @@ export default function LiveManagePage() {
                                         cursor: 'pointer',
                                         fontSize: '14px'
                                     }}>
-                                        Shop của tôi
+                                        My Shop
                                     </div>
                                 </div>
 
@@ -1403,7 +1403,7 @@ export default function LiveManagePage() {
                                     <div style={{ padding: '15px' }}>
                                         <input
                                             type="text"
-                                            placeholder="Tìm kiếm sản phẩm"
+                                            placeholder="Search products"
                                             value={productSearchKeyword}
                                             onChange={(e) => setProductSearchKeyword(e.target.value)}
                                             style={{
@@ -1423,15 +1423,15 @@ export default function LiveManagePage() {
                                         padding: '0 15px'
                                     }}>
                                         <div style={{ fontSize: '13px', color: '#666', marginBottom: '10px' }}>
-                                            Sản phẩm
+                                            Products
                                         </div>
                                         {loadingProducts ? (
                                             <div style={{ textAlign: 'center', padding: '40px', color: '#999' }}>
-                                                Đang tải...
+                                                Loading...
                                             </div>
                                         ) : shopProducts.length === 0 ? (
                                             <div style={{ textAlign: 'center', padding: '40px', color: '#999' }}>
-                                                Không có sản phẩm nào
+                                                No products found
                                             </div>
                                         ) : (
                                             <div style={{

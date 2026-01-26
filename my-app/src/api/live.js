@@ -7,9 +7,9 @@ const api = createApiInstance(API_URL);
 // ==================== ROOM MANAGEMENT ====================
 
 /**
- * Tạo phòng live mới
+ * Create a new live room
  * @param {Object} data - { title, description, thumbnailUrl }
- * @returns {Promise<Object>} - LiveRoom với streamKey
+ * @returns {Promise<Object>} - LiveRoom with streamKey
  */
 export const createLiveRoom = async (data) => {
     try {
@@ -22,9 +22,9 @@ export const createLiveRoom = async (data) => {
 };
 
 /**
- * Lấy danh sách phòng đang live (public)
- * @param {number} page - Số trang
- * @param {number} size - Số phần tử mỗi trang
+ * Get list of live rooms (public)
+ * @param {number} page - Page number
+ * @param {number} size - Items per page
  * @returns {Promise<Object>} - Page<LiveRoomDto>
  */
 export const getLiveRooms = async (page = 0, size = 10) => {
@@ -38,8 +38,8 @@ export const getLiveRooms = async (page = 0, size = 10) => {
 };
 
 /**
- * Lấy chi tiết phòng live (public)
- * @param {string} roomId - ID của phòng
+ * Get live room details (public)
+ * @param {string} roomId - Room ID
  * @returns {Promise<Object>} - LiveRoomDto
  */
 export const getLiveRoom = async (roomId) => {
@@ -53,9 +53,9 @@ export const getLiveRoom = async (roomId) => {
 };
 
 /**
- * Lấy chi tiết phòng live với stream key (chỉ shop owner)
- * @param {string} roomId - ID của phòng
- * @returns {Promise<Object>} - LiveRoomDto với streamKey
+ * Get live room details with stream key (shop owner only)
+ * @param {string} roomId - Room ID
+ * @returns {Promise<Object>} - LiveRoomDto with streamKey
  */
 export const getLiveRoomDetails = async (roomId) => {
     try {
@@ -68,9 +68,9 @@ export const getLiveRoomDetails = async (roomId) => {
 };
 
 /**
- * Lấy danh sách phòng của shop owner
- * @param {number} page - Số trang
- * @param {number} size - Số phần tử mỗi trang
+ * Get list of live rooms for shop owner
+ * @param {number} page - Page number
+ * @param {number} size - Items per page
  * @returns {Promise<Object>} - Page<LiveRoomDto>
  */
 export const getMyLiveRooms = async (page = 0, size = 10) => {
@@ -84,8 +84,8 @@ export const getMyLiveRooms = async (page = 0, size = 10) => {
 };
 
 /**
- * Bắt đầu live
- * @param {string} roomId - ID của phòng
+ * Start live
+ * @param {string} roomId - Room ID
  * @returns {Promise<Object>} - LiveRoomDto
  */
 export const startLive = async (roomId) => {
@@ -99,8 +99,8 @@ export const startLive = async (roomId) => {
 };
 
 /**
- * Kết thúc live
- * @param {string} roomId - ID của phòng
+ * End live
+ * @param {string} roomId - Room ID
  * @returns {Promise<Object>} - LiveRoomDto
  */
 export const endLive = async (roomId) => {
@@ -116,8 +116,8 @@ export const endLive = async (roomId) => {
 // ==================== PRODUCT MANAGEMENT ====================
 
 /**
- * Thêm sản phẩm vào live room
- * @param {string} roomId - ID của phòng
+ * Add product to live room
+ * @param {string} roomId - Room ID
  * @param {Object} data - { productId, livePrice, quantityLimit, displayOrder }
  * @returns {Promise<Object>} - LiveProductDto
  */
@@ -132,8 +132,8 @@ export const addProductToLive = async (roomId, data) => {
 };
 
 /**
- * Lấy danh sách sản phẩm trong live room
- * @param {string} roomId - ID của phòng
+ * Get list of products in live room
+ * @param {string} roomId - Room ID
  * @returns {Promise<Array>} - List<LiveProductDto>
  */
 export const getLiveProducts = async (roomId) => {
@@ -147,9 +147,9 @@ export const getLiveProducts = async (roomId) => {
 };
 
 /**
- * Highlight sản phẩm
- * @param {string} roomId - ID của phòng
- * @param {string} productId - ID của sản phẩm
+ * Highlight product
+ * @param {string} roomId - Room ID
+ * @param {string} productId - Product ID
  * @returns {Promise<Object>} - LiveProductDto
  */
 export const featureProduct = async (roomId, productId) => {
@@ -163,9 +163,9 @@ export const featureProduct = async (roomId, productId) => {
 };
 
 /**
- * Xóa sản phẩm khỏi live room
- * @param {string} roomId - ID của phòng
- * @param {string} productId - ID của sản phẩm
+ * Remove product from live room
+ * @param {string} roomId - Room ID
+ * @param {string} productId - Product ID
  * @returns {Promise<void>}
  */
 export const removeProductFromLive = async (roomId, productId) => {
@@ -180,8 +180,8 @@ export const removeProductFromLive = async (roomId, productId) => {
 // ==================== CHAT ====================
 
 /**
- * Lấy tin nhắn gần đây
- * @param {string} roomId - ID của phòng
+ * Get recent chats
+ * @param {string} roomId - Room ID
  * @returns {Promise<Array>} - List<LiveChatDto>
  */
 export const getRecentChats = async (roomId) => {
@@ -195,9 +195,9 @@ export const getRecentChats = async (roomId) => {
 };
 
 /**
- * Gửi tin nhắn chat (REST fallback)
- * @param {string} roomId - ID của phòng
- * @param {string} message - Nội dung tin nhắn
+ * Send chat message (REST fallback)
+ * @param {string} roomId - Room ID
+ * @param {string} message - Message content
  * @returns {Promise<Object>} - LiveChatDto
  */
 export const sendChatMessage = async (roomId, message) => {
@@ -213,7 +213,7 @@ export const sendChatMessage = async (roomId, message) => {
 // ==================== WEBSOCKET URL ====================
 
 /**
- * Lấy WebSocket URL cho live room
+ * Get WebSocket URL for live room
  * @returns {string} - WebSocket URL (dynamic based on current location)
  */
 export const getWebSocketUrl = () => {
@@ -222,8 +222,8 @@ export const getWebSocketUrl = () => {
 };
 
 /**
- * Lấy HLS stream URL
- * @param {string} streamKey - Stream key của phòng
+ * Get HLS stream URL
+ * @param {string} streamKey - Stream key of the room
  * @returns {string} - HLS URL (use nginx-rtmp service)
  */
 export const getStreamUrl = (streamKey) => {
@@ -251,7 +251,7 @@ export const getStreamUrl = (streamKey) => {
 const stockApi = createApiInstance('/v1/stock/cart');
 
 /**
- * Thêm sản phẩm từ Live vào giỏ hàng với giá live
+ * Add product from Live to cart with live price
  * @param {Object} data - { productId, sizeId, quantity, liveRoomId, liveProductId, livePrice, originalPrice }
  * @returns {Promise<Object>} - RedisCartItemDto
  */

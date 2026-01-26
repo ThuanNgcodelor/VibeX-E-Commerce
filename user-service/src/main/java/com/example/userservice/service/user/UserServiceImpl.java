@@ -4,7 +4,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import com.example.userservice.specification.UserSpecification;
 import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -85,9 +88,9 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public org.springframework.data.domain.Page<User> getAllUsers(String search, String role, String status,
-            org.springframework.data.domain.Pageable pageable) {
-        org.springframework.data.jpa.domain.Specification<User> spec = com.example.userservice.specification.UserSpecification
+    public Page<User> getAllUsers(String search, String role, String status,
+                                  org.springframework.data.domain.Pageable pageable) {
+        Specification<User> spec = UserSpecification
                 .filterUsers(search, role, status);
         return userRepository.findAll(spec, pageable);
     }
@@ -112,7 +115,6 @@ public class UserServiceImpl implements UserService {
     public User updateUserById(UserUpdateRequest request, MultipartFile file) {
         User toUpdate = findUserById(request.getId());
 
-        System.out.println("DEBUG: User before update: " + toUpdate.getEmail());
         if (toUpdate.getUserDetails() != null) {
             System.out.println("DEBUG: UserDetails before: " + toUpdate.getUserDetails().getFirstName() + ", "
                     + toUpdate.getUserDetails().getLastName());

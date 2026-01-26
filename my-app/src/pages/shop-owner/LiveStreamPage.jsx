@@ -233,7 +233,7 @@ export default function LiveStreamPage() {
                                             <td>
                                                 <div className="fw-bold">{room.title}</div>
                                                 <small className="text-muted">
-                                                    {new Date(room.createdAt).toLocaleDateString('vi-VN')}
+                                                    {new Date(room.createdAt).toLocaleDateString('en-US')}
                                                 </small>
                                             </td>
                                             <td>{getStatusBadge(room.status)}</td>
@@ -243,7 +243,7 @@ export default function LiveStreamPage() {
                                             </td>
                                             <td>{room.totalOrders || 0}</td>
                                             <td>
-                                                {new Intl.NumberFormat('vi-VN', {
+                                                {new Intl.NumberFormat('en-US', {
                                                     style: 'currency',
                                                     currency: 'VND'
                                                 }).format(room.totalRevenue || 0)}
@@ -289,7 +289,7 @@ export default function LiveStreamPage() {
                                                     {room.status === 'ENDED' && (
                                                         <span className="text-muted small">
                                                             Ended at {room.endedAt ?
-                                                                new Date(room.endedAt).toLocaleTimeString('vi-VN') :
+                                                                new Date(room.endedAt).toLocaleTimeString('en-US') :
                                                                 '--'}
                                                         </span>
                                                     )}

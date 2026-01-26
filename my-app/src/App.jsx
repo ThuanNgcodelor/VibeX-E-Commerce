@@ -142,7 +142,6 @@ export default function App() {
 
 
           {/* Admin routes */}
-          {/* Admin routes */}
           <Route
             path="/admin/*"
             element={
