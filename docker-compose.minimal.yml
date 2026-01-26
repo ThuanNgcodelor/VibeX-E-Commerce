@@ -1,0 +1,229 @@
+version: '3.8'
+
+# ==========================================
+# MINIMAL DEVELOPMENT ENVIRONMENT - ~3.5GB RAM
+# Chỉ infrastructure + core services để test nhanh
+# ==========================================
+
+x-spring-boot-common: &spring-boot-common
+  networks: [ vibe-network ]
+  restart: unless-stopped
+  environment:
+    JAVA_TOOL_OPTIONS: "-Xms128m -Xmx384m -XX:+UseG1GC -XX:MaxGCPauseMillis=100"
+  deploy:
+    resources:
+      limits:
+        cpus: '1.0'
+        memory: 512M
+      reservations:
+        memory: 200M
+
+services:
+  # ==========================================
+  # INFRASTRUCTURE SERVICES
+  # ==========================================
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: shopee
+      MYSQL_USER: sa
+      MYSQL_PASSWORD: Thuan@417
+    command: --default-authentication-plugin=mysql_native_password --max_connections=150 --innodb-buffer-pool-size=192M
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks: [ vibe-network ]
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks: [ vibe-network ]
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.1
+    container_name: zookeeper
+    restart: unless-stopped
+    environment:
+      ZOOKEEPER_CLIENT_PORT: "2181"
+      ZOOKEEPER_TICK_TIME: "2000"
+      KAFKA_OPTS: "-Xmx128m -Xms128m"
+    ports:
+      - "2181:2181"
+    networks: [ vibe-network ]
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.1
+    container_name: kafka
+    restart: unless-stopped
+    depends_on: [ zookeeper ]
+    environment:
+      KAFKA_BROKER_ID: "1"
+      KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,EXTERNAL://0.0.0.0:9094
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
+      KAFKA_HEAP_OPTS: "-Xmx384m -Xms384m"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    ports:
+      - "9092:9092"
+      - "9094:9094"
+    networks: [ vibe-network ]
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+
+  # ============================================
+  # SPRING CLOUD CORE
+  # ============================================
+  config-server:
+    <<: *spring-boot-common
+    build: ./config-server
+    container_name: config-server
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./config:/config
+    environment:
+      - SPRING_PROFILES_ACTIVE=native
+      - SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS=file:///config
+      - JAVA_TOOL_OPTIONS=-Xms128m -Xmx384m -XX:+UseG1GC
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    healthcheck:
+      test: [ "CMD", "wget", "-qO-", "http://localhost:8888/actuator/health" ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  eureka-server:
+    <<: *spring-boot-common
+    build: ./eureka-server
+    container_name: eureka-server
+    ports:
+      - "8761:8761"
+    environment:
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
+      - JAVA_TOOL_OPTIONS=-Xms128m -Xmx384m -XX:+UseG1GC
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    depends_on:
+      config-server:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "wget", "-qO-", "http://localhost:8761/actuator/health" ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  gateway:
+    <<: *spring-boot-common
+    build: ./gateway
+    container_name: gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
+      - EUREKA_URI=http://eureka-server:8761/eureka
+      - JAVA_TOOL_OPTIONS=-Xms128m -Xmx512m -XX:+UseG1GC -Dnetty.leakDetectionLevel=disabled
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 640M
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  # ============================================
+  # ESSENTIAL BACKEND SERVICES (2 services only)
+  # ============================================
+  auth-service:
+    <<: *spring-boot-common
+    build: ./auth-service
+    container_name: auth-service
+    environment:
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
+      - EUREKA_URI=http://eureka-server:8761/eureka
+      - SPRING_DATA_REDIS_HOST=redis
+      - GOOGLE_REDIRECT_URI=https://impactive-pteridological-sherron.ngrok-free.dev/oauth2/callback
+      - FACEBOOK_REDIRECT_URI=https://impactive-pteridological-sherron.ngrok-free.dev/oauth2/callback
+    depends_on:
+      gateway:
+        condition: service_started
+
+  user-service:
+    <<: *spring-boot-common
+    build: ./user-service
+    container_name: user-service
+    environment:
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
+      - EUREKA_URI=http://eureka-server:8761/eureka
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/shopee
+      - SPRING_DATASOURCE_USERNAME=sa
+      - SPRING_DATASOURCE_PASSWORD=Thuan@417
+    depends_on:
+      gateway:
+        condition: service_started
+      mysql:
+        condition: service_healthy
+
+  # ============================================
+  # FRONTEND (Optional)
+  # ============================================
+  my-app:
+    build: ./my-app
+    container_name: my-app
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      gateway:
+        condition: service_started
+    networks: [ vibe-network ]
+    deploy:
+      resources:
+        limits:
+          memory: 192M
+
+volumes:
+  mysql_data:
+  redis_data:
+
+networks:
+  vibe-network:
+    driver: bridge
