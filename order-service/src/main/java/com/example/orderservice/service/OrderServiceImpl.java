@@ -34,6 +34,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 
 import com.example.orderservice.client.FlashSaleClient;
+import com.example.orderservice.config.UserContext;
 import com.example.orderservice.client.GhnApiClient;
 import com.example.orderservice.client.PaymentServiceClient;
 import com.example.orderservice.client.StockServiceClient;
@@ -978,7 +979,7 @@ public class OrderServiceImpl implements OrderService {
             double totalAmount = items.stream().mapToDouble(OrderItem::getTotalPrice).sum();
 
             String message = String.format(
-                    "Bạn có đơn hàng mới #%s với %d sản phẩm, tổng giá trị: %.0f VNĐ",
+                    "You have a new order #%s with %d products, total value: %.0f VND",
                     order.getId(), totalItems, totalAmount);
 
             try {
@@ -1013,20 +1014,30 @@ public class OrderServiceImpl implements OrderService {
         try {
 
             // 1. Lấy địa chỉ khách hàng
-            AddressDto customerAddress = userServiceClient.getAddressById(order.getAddressId()).getBody();
+            log.info("[GHN-DEBUG] Fetching address for order {}", order.getId());
+            AddressDto customerAddress;
+            try {
+                customerAddress = userServiceClient.getAddressById(order.getAddressId()).getBody();
+            } catch (Exception e) {
+                log.info("[GHN-DEBUG] Failed to fetch address: {}", e.getMessage());
+                throw e;
+            }
+            
             if (customerAddress == null) {
-                log.warn("[GHN] Customer address not found for order {}", order.getId());
+                log.info("[GHN-DEBUG] Customer address is NULL for order {}", order.getId());
                 return;
             }
+            log.info("[GHN-DEBUG] Address found: district={}, ward={}", customerAddress.getDistrictId(), customerAddress.getWardCode());
 
             // 2. Validate GHN fields
             if (customerAddress.getDistrictId() == null || customerAddress.getWardCode() == null) {
-                log.warn("[GHN] Customer address missing GHN fields for order {}", order.getId());
+                log.info("[GHN-DEBUG] Customer address missing GHN fields (district/ward) for order {}", order.getId());
                 return;
             }
 
             // 3. Validate order items
             if (order.getOrderItems() == null || order.getOrderItems().isEmpty()) {
+                log.info("[GHN-DEBUG] Order items empty for order {}", order.getId());
                 return;
             }
 
@@ -1039,21 +1050,16 @@ public class OrderServiceImpl implements OrderService {
                             .getSizeById(item.getSizeId());
                     if (sizeResponse != null && sizeResponse.getBody() != null) {
                         com.example.orderservice.dto.SizeDto size = sizeResponse.getBody();
-                        int itemWeight = (size.getWeight() != null && size.getWeight() > 0) ? size.getWeight() : 500; // Default
-                                                                                                                      // 500g
-                                                                                                                      // if
-                                                                                                                      // not
-                                                                                                                      // set
+                        int itemWeight = (size.getWeight() != null && size.getWeight() > 0) ? size.getWeight() : 500; 
                         totalWeight += item.getQuantity() * itemWeight;
                     } else {
-                        // Fallback to 500g if size not found
                         totalWeight += item.getQuantity() * 500;
                     }
                 } catch (Exception e) {
-                    // Fallback to 500g if error
                     totalWeight += item.getQuantity() * 500;
                 }
             }
+            log.info("[GHN-DEBUG] Calculated weight: {}", totalWeight);
 
             // 5. Lấy shop owner address (FROM address)
             // Lấy shop owner ID từ product đầu tiên
@@ -1069,6 +1075,8 @@ public class OrderServiceImpl implements OrderService {
             } catch (Exception e) {
                 log.error("[GHN] Failed to get shop owner ID from product: {}", e.getMessage());
             }
+
+            log.info("[GHN-DEBUG] ShopOwnerId: {}", shopOwnerId);
 
             // Lấy shop owner info để có FROM address
             ShopOwnerDto shopOwner = null;
@@ -1089,6 +1097,8 @@ public class OrderServiceImpl implements OrderService {
                 log.warn("[GHN] Shop owner address invalid/missing for order {}. ShopOwner: {}", order.getId(), shopOwner);
                 return;
             }
+
+            log.info("[GHN-DEBUG] Shop Address OK. Creating GHN items...");
 
             // 6. Build items cho GHN (bao gồm weight cho mỗi item - required for
             // service_type_id = 5)
@@ -2929,7 +2939,7 @@ public class OrderServiceImpl implements OrderService {
     // ==================== BULK UPDATE STATUS PRODUCER ====================
 
     @Override
-    public Map<String, Object> bulkUpdateOrderStatus(String shopOwnerId, List<String> orderIds, String newStatus) {
+    public Map<String, Object> bulkUpdateOrderStatus(String shopOwnerId, List<String> orderIds, String newStatus, String token) {
         if (orderIds == null || orderIds.isEmpty()) {
             throw new IllegalArgumentException("Order IDs are required");
         }
@@ -2972,6 +2982,8 @@ public class OrderServiceImpl implements OrderService {
                         .orderId(orderId)
                         .shopOwnerId(shopOwnerId)
                         .newStatus(newStatus)
+                        .newStatus(newStatus)
+                        .token(token)
                         .timestamp(LocalDateTime.now())
                         .build();
 
@@ -3045,6 +3057,11 @@ public class OrderServiceImpl implements OrderService {
 
         for (UpdateStatusOrderRequest msg : messages) {
             try {
+                // Set context for Feign clients
+                if (msg.getToken() != null) {
+                    UserContext.setAuthToken(msg.getToken());
+                }
+
                 log.info("[BULK-STATUS-CONSUMER] Processing: orderId={}, newStatus={}",
                         msg.getOrderId(), msg.getNewStatus());
 
@@ -3101,6 +3118,8 @@ public class OrderServiceImpl implements OrderService {
                         msg.getOrderId(), e.getMessage(), e);
                 failed++;
                 addResult(resultsByShopOwner, msg.getShopOwnerId(), "FAILED:" + msg.getOrderId());
+            } finally {
+                UserContext.clear();
             }
         }
 

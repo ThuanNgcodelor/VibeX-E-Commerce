@@ -19,4 +19,5 @@ public class UpdateStatusOrderRequest {
     private String shopOwnerId;
     private String newStatus;
     private LocalDateTime timestamp;
+    private String token;
 }

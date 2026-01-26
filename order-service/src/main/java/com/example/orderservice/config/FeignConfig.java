@@ -26,6 +26,16 @@ public class FeignConfig {
                 if (authorization != null) {
                     requestTemplate.header("Authorization", authorization);
                 }
+            } else {
+                // Fallback: Check UserContext (for async threads like Kafka consumers)
+                String token = UserContext.getAuthToken();
+                if (token != null) {
+                    // Check if token already has "Bearer " prefix
+                    if (!token.startsWith("Bearer ")) {
+                        token = "Bearer " + token;
+                    }
+                    requestTemplate.header("Authorization", token);
+                }
             }
         };
     }

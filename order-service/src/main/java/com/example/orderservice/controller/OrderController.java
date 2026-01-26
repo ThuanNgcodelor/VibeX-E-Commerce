@@ -826,7 +826,8 @@ public class OrderController {
             Map<String, Object> result = orderService.bulkUpdateOrderStatus(
                     shopOwnerId,
                     request.getOrderIds(),
-                    request.getNewStatus());
+                    request.getNewStatus(),
+                    httpRequest.getHeader("Authorization"));
 
             return ResponseEntity.accepted().body(result);
 
@@ -1180,7 +1181,7 @@ public class OrderController {
      */
     @PostMapping("/internal/shop-owner/{shopOwnerId}/bulk-confirm")
     public ResponseEntity<Map<String, Object>> bulkConfirmPendingOrdersInternal(
-            @PathVariable String shopOwnerId) {
+            @PathVariable String shopOwnerId, HttpServletRequest request) {
         try {
             // Get all pending orders
             List<Order> pendingOrders = orderService.getOrdersByShopOwner(shopOwnerId, "PENDING");
@@ -1200,7 +1201,7 @@ public class OrderController {
                     .collect(Collectors.toList());
 
             Map<String, Object> result = orderService.bulkUpdateOrderStatus(
-                    shopOwnerId, orderIds, "CONFIRMED");
+                    shopOwnerId, orderIds, "CONFIRMED", request.getHeader("Authorization"));
 
             result.put("totalPending", totalPending);
             result.put("successCount", result.get("accepted"));

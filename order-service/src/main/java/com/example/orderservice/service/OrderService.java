@@ -85,7 +85,7 @@ public interface OrderService {
          * @param newStatus   Trạng thái mới
          * @return Map chứa accepted, rejected counts và message
          */
-        Map<String, Object> bulkUpdateOrderStatus(String shopOwnerId, List<String> orderIds, String newStatus);
+        Map<String, Object> bulkUpdateOrderStatus(String shopOwnerId, List<String> orderIds, String newStatus, String token);
 
         /**
          * Search orders by query (order ID, customer name, etc.)

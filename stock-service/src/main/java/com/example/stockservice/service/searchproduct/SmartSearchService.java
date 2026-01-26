@@ -137,26 +137,26 @@ public class SmartSearchService {
         // Remove price patterns from query
         query = removePricePatterns(query);
         
-        // 2. Extract categories
-        List<String> categories = extractCategories(query);
-        criteria.setCategories(categories);
+        // 2. Extract categories - DISABLED to prevent strict filtering mismatch
+        // List<String> categories = extractCategories(query);
+        // criteria.setCategories(categories);
         
         // Remove category keywords from query
-        query = removeCategoryKeywords(query);
+        // query = removeCategoryKeywords(query);
         
-        // 3. Extract sizes
-        List<String> sizes = extractSizes(query);
-        criteria.setSizes(sizes);
+        // 3. Extract sizes - DISABLED
+        // List<String> sizes = extractSizes(query);
+        // criteria.setSizes(sizes);
         
         // Remove size patterns from query
-        query = removeSizePatterns(query);
+        // query = removeSizePatterns(query);
         
-        // 4. Extract locations
-        List<String> locations = extractLocations(query);
-        criteria.setLocations(locations);
+        // 4. Extract locations - DISABLED
+        // List<String> locations = extractLocations(query);
+        // criteria.setLocations(locations);
         
         // Remove location keywords from query
-        query = removeLocationKeywords(query);
+        // query = removeLocationKeywords(query);
         
         // 5. Remaining words = main keywords
         List<String> keywords = Arrays.stream(query.trim().split("\\s+"))

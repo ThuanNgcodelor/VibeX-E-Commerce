@@ -105,7 +105,7 @@ export default function BulkShippingPage() {
     const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || 'PENDING');
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
-    const [pageSize] = useState(10);
+    const [pageSize] = useState(20);
     const [usernames, setUsernames] = useState({});
     const [selectedOrders, setSelectedOrders] = useState(new Set());
     const [bulkStatus, setBulkStatus] = useState('');
@@ -399,8 +399,8 @@ export default function BulkShippingPage() {
             showCancelButton: true,
             confirmButtonColor: '#3085d6',
             cancelButtonColor: '#d33',
-            confirmButtonText: t('common.yes', 'Đồng ý'),
-            cancelButtonText: t('common.no', 'Hủy')
+            confirmButtonText: t('common.yes', 'Confirm'),
+            cancelButtonText: t('common.no', 'Cancel')
         });
 
         if (!result.isConfirmed) {
@@ -481,8 +481,8 @@ export default function BulkShippingPage() {
             showCancelButton: true,
             confirmButtonColor: '#3085d6',
             cancelButtonColor: '#d33',
-            confirmButtonText: t('common.yes', 'Đồng ý'),
-            cancelButtonText: t('common.no', 'Hủy')
+            confirmButtonText: t('common.yes', 'Confirm'),
+            cancelButtonText: t('common.no', 'Cancel')
         });
 
         if (!result.isConfirmed) {
