@@ -1,31 +1,27 @@
-######################################## Đã tối ưu hóa  ################################################################################
 version: '3.8'
 
-# ==============================================================================
-# OPTIMIZED CONFIGURATION (HIGH PERFORMANCE)
-# - RAM: Doubled Heap (256MB -> 512MB)
-# - CPU: Increased (0.8 -> 2.0)
-# ==============================================================================
-
+# ==========================================
+# Cấu hình chung tối ưu cho máy 16GB RAM
+# ==========================================
 x-spring-boot-common: &spring-boot-common
   networks: [ vibe-network ]
   restart: unless-stopped
   environment:
-    # Tăng Heap lên 512MB để giảm thiểu GC (Garbage Collection) gây lag
-    # Xms=Xmx để tránh việc JVM phải resize heap lúc runtime
-    JAVA_TOOL_OPTIONS: "-Xms512m -Xmx512m -XX:+UseG1GC"
+    # Dev mode: Chỉ cần 256MB khởi động, tối đa 512MB. 
+    # Giúp tiết kiệm RAM khi service đang idle.
+    JAVA_TOOL_OPTIONS: "-Xms256m -Xmx512m -XX:+UseG1GC -XX:+UseStringDeduplication"
   deploy:
     resources:
       limits:
-        cpus: '2.0' # Cho phép dùng tối đa 2 nhân CPU khi cần thiết (Load cao)
-        memory: 1G # Nới lỏng giới hạn Docker để tránh OOM Kill (Heap 512 + Non-Heap)
+        cpus: '1.5' # Giới hạn CPU để không bị đơ máy khi tất cả cùng start
+        memory: 768M # Limit phải > Xmx (512MB Heap + ~256MB Non-Heap/Overhead)
       reservations:
-        memory: 512M # Đảm bảo RAM cứng cho service
+        memory: 300M
 
 services:
-  # ============================================
-  # INFRASTRUCTURE (DB, CACHE, BROKER)
-  # ============================================
+  # ==========================================
+  # INFRASTRUCTURE SERVICES
+  # ==========================================
   mysql:
     image: mysql:8.0
     container_name: mysql
@@ -35,8 +31,8 @@ services:
       MYSQL_DATABASE: shopee
       MYSQL_USER: sa
       MYSQL_PASSWORD: Thuan@417
-    # Tăng max_connections và bộ nhớ đệm
-    command: --default-authentication-plugin=mysql_native_password --max_connections=300 --innodb-buffer-pool-size=512M
+    # Giảm connection và buffer pool (256MB là đủ cho dev local)
+    command: --default-authentication-plugin=mysql_native_password --max_connections=200 --innodb-buffer-pool-size=256M
     ports:
       - "3306:3306"
     volumes:
@@ -45,12 +41,26 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1.5G # Cấp nhiều RAM hơn cho MySQL xử lý query phức tạp
+          memory: 1G # Giảm từ 3G -> 1G
     healthcheck:
       test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
-      interval: 5s # Check nhanh hơn để service khác start sớm hơn
-      timeout: 3s
+      interval: 10s
+      timeout: 5s
       retries: 5
+
+  adminer:
+    image: adminer
+    container_name: adminer
+    restart: unless-stopped
+    ports:
+      - "8085:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: mysql
+    networks: [ vibe-network ]
+    deploy:
+      resources:
+        limits:
+          memory: 128M
 
   redis:
     image: redis:7-alpine
@@ -64,7 +74,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256M # Tăng gấp đôi cache size
+          memory: 256M
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.6.1
@@ -73,14 +83,14 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: "2181"
       ZOOKEEPER_TICK_TIME: "2000"
-      KAFKA_OPTS: "-Xmx512m -Xms512m" # Tăng RAM cho ZK
+      KAFKA_OPTS: "-Xmx256m -Xms256m" # Tối ưu cho dev
     ports:
       - "2181:2181"
     networks: [ vibe-network ]
     deploy:
       resources:
         limits:
-          memory: 768M
+          memory: 512M
 
   kafka:
     image: confluentinc/cp-kafka:7.6.1
@@ -95,8 +105,8 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
-      # Kafka cần nhiều RAM để lưu page cache -> Tăng lên 1GB
-      KAFKA_HEAP_OPTS: "-Xmx1G -Xms1G"
+      # Dev: Heap 512MB là đủ chạy message cơ bản
+      KAFKA_HEAP_OPTS: "-Xmx512m -Xms512m"
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
     ports:
       - "9092:9092"
@@ -105,7 +115,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 2G # Kafka cần dư dả RAM
+          memory: 1G # Kafka cần ít nhất 1GB để ổn định
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
@@ -116,17 +126,17 @@ services:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
       KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
-      JAVA_OPTS: "-Xmx512m"
+      JAVA_OPTS: "-Xmx384m"
     ports:
       - "9090:8080"
     networks: [ vibe-network ]
     deploy:
       resources:
         limits:
-          memory: 768M
+          memory: 512M
 
   # ============================================
-  # BACKEND SERVICES (High Performance Mode)
+  # SPRING CLOUD & BACKEND SERVICES
   # ============================================
   config-server:
     <<: *spring-boot-common
@@ -139,11 +149,15 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=native
       - SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS=file:///config
-      # Config Server nhẹ, nhưng vẫn tăng để load file nhanh hơn
-      - JAVA_TOOL_OPTIONS=-Xms256m -Xmx512m
+      # Config server rất nhẹ
+      - JAVA_TOOL_OPTIONS=-Xms256m -Xmx384m
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     healthcheck:
       test: [ "CMD", "wget", "-qO-", "http://localhost:8888/actuator/health" ]
-      interval: 10s # Giảm thời gian chờ
+      interval: 15s
       timeout: 5s
       retries: 5
 
@@ -155,13 +169,17 @@ services:
       - "8761:8761"
     environment:
       - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
-      - JAVA_TOOL_OPTIONS=-Xms256m -Xmx512m
+      - JAVA_TOOL_OPTIONS=-Xms256m -Xmx384m
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     depends_on:
       config-server:
         condition: service_healthy
     healthcheck:
       test: [ "CMD", "wget", "-qO-", "http://localhost:8761/actuator/health" ]
-      interval: 10s
+      interval: 15s
       timeout: 5s
       retries: 5
 
@@ -174,12 +192,13 @@ services:
     environment:
       - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
       - EUREKA_URI=http://eureka-server:8761/eureka
-      # Gateway xử lý rất nhiều request, cần nhiều RAM nhất
-      - JAVA_TOOL_OPTIONS=-Xms512m -Xmx768m
+      # Gateway dev chỉ cần 512MB Heap
+      - JAVA_TOOL_OPTIONS=-Xms256m -Xmx512m -XX:+UseG1GC -Dnetty.leakDetectionLevel=disabled
     deploy:
       resources:
         limits:
-          memory: 1.2G # Riêng Gateway cho thêm giới hạn
+          cpus: '2.0'
+          memory: 800M # Đủ cho Netty + Java Heap
     depends_on:
       eureka-server:
         condition: service_healthy
@@ -187,17 +206,21 @@ services:
         condition: service_started
 
   auth-service:
+    <<: *spring-boot-common
     build: ./auth-service
     container_name: auth-service
-    restart: unless-stopped
-    networks: [ vibe-network ]
     environment:
-      JAVA_TOOL_OPTIONS: "-Xms512m -Xmx512m -XX:+UseG1GC"
-      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
-      EUREKA_URI: http://eureka-server:8761/eureka
-      SPRING_DATA_REDIS_HOST: redis
-      GOOGLE_REDIRECT_URI: http://localhost/oauth2/callback
-      FACEBOOK_REDIRECT_URI: http://localhost/oauth2/callback
+      # FIX CRITICAL: Giảm Heap xuống để vừa với Limit
+      - JAVA_TOOL_OPTIONS=-Xms256m -Xmx384m -XX:+UseG1GC
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
+      - EUREKA_URI=http://eureka-server:8761/eureka
+      - SPRING_DATA_REDIS_HOST=redis
+      - GOOGLE_REDIRECT_URI=https://impactive-pteridological-sherron.ngrok-free.dev/oauth2/callback
+      - FACEBOOK_REDIRECT_URI=https://impactive-pteridological-sherron.ngrok-free.dev/oauth2/callback
+    deploy:
+      resources:
+        limits:
+          memory: 600M # Tăng limit lên một chút để an toàn
     depends_on:
       gateway:
         condition: service_started
@@ -223,8 +246,8 @@ services:
     build: ./stock-service
     container_name: stock-service
     environment:
-      - OLLAMA_BASE_URL=http://26.20.214.252:11434
-      - OLLAMA_MODEL=qwen2.5:7b
+      - OLLAMA_BASE_URL=https://jerold-transpulmonary-pseudobiographically.ngrok-free.dev
+      - OLLAMA_MODEL=gpt-oss:120b-cloud
       - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
       - EUREKA_URI=http://eureka-server:8761/eureka
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/shopee
@@ -232,8 +255,6 @@ services:
       - SPRING_DATASOURCE_PASSWORD=Thuan@417
       - SPRING_DATA_REDIS_HOST=redis
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
-      # Service này có AI connect, cho thêm chút RAM
-      - JAVA_TOOL_OPTIONS=-Xms512m -Xmx768m
     depends_on:
       gateway:
         condition: service_started
@@ -294,9 +315,9 @@ services:
       - SPRING_DATASOURCE_USERNAME=sa
       - SPRING_DATASOURCE_PASSWORD=Thuan@417
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
-      - VNPAY_RETURN_URL=http://localhost/payment/vnpay/return
-      - MOMO_RETURN_URL=http://localhost/payment/momo/return
-      - MOMO_IPN_URL=http://localhost/v1/payment/momo/ipn
+      - VNPAY_RETURN_URL=https://impactive-pteridological-sherron.ngrok-free.dev/payment/vnpay/return
+      - MOMO_RETURN_URL=https://impactive-pteridological-sherron.ngrok-free.dev/payment/momo/return
+      - MOMO_IPN_URL=https://impactive-pteridological-sherron.ngrok-free.dev/v1/payment/momo/ipn
     depends_on:
       gateway:
         condition: service_started
@@ -314,6 +335,15 @@ services:
       - SPRING_DATASOURCE_USERNAME=sa
       - SPRING_DATASOURCE_PASSWORD=Thuan@417
       - FILE_UPLOAD_DIR=/app/uploads
+      # Tối ưu RAM cho file upload
+      - JAVA_TOOL_OPTIONS=-Xms256m -Xmx512m
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 768M
+    tmpfs:
+      - /tmp:size=128M # Giảm size tmpfs
     volumes:
       - ./file-storage/src/main/resources/attachments:/app/uploads
     depends_on:
@@ -335,7 +365,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256M # Tăng gấp đôi cho xử lý video
+          memory: 256M
 
   my-app:
     build: ./my-app
@@ -350,7 +380,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M # Tăng RAM cho Frontend
+          memory: 256M
 
 volumes:
   zookeeper_data:
@@ -363,323 +393,3 @@ volumes:
 networks:
   vibe-network:
     driver: bridge
-
-# version: '3.8'
-
-# services:
-#   mysql:
-#     image: mysql:8.0
-#     container_name: mysql
-#     restart: unless-stopped
-#     environment:
-#       MYSQL_ROOT_PASSWORD: root
-#       MYSQL_DATABASE: shopee
-#       MYSQL_USER: sa
-#       MYSQL_PASSWORD: Thuan@417
-#     command: --default-authentication-plugin=mysql_native_password
-#     ports:
-#       - "3306:3306"
-#     volumes:
-#       - mysql_data:/var/lib/mysql
-#     networks: [ vibe-network ]
-#     healthcheck:
-#       test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
-#       interval: 10s
-#       timeout: 5s
-#       retries: 5
-
-#   redis:
-#     image: redis:7
-#     container_name: redis
-#     restart: unless-stopped
-#     ports:
-#       - "6379:6379"
-#     volumes:
-#       - redis_data:/data
-#     networks: [ vibe-network ]
-
-#   zookeeper:
-#     image: confluentinc/cp-zookeeper:7.6.1
-#     container_name: zookeeper
-#     restart: unless-stopped
-#     environment:
-#       ZOOKEEPER_CLIENT_PORT: "2181"
-#       ZOOKEEPER_TICK_TIME: "2000"
-#     ports:
-#       - "2181:2181"
-#     networks: [ vibe-network ]
-
-#   kafka:
-#     image: confluentinc/cp-kafka:7.6.1
-#     container_name: kafka
-#     restart: unless-stopped
-#     depends_on: [ zookeeper ]
-#     environment:
-#       KAFKA_BROKER_ID: "1"
-#       KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
-#       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,EXTERNAL://0.0.0.0:9094
-#       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
-#       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
-#       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-#       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
-#       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "1"
-#       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "1"
-#       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: "0"
-#       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
-#     ports:
-#       - "9092:9092"
-#       - "9094:9094"
-#     networks: [ vibe-network ]
-
-#   kafka-ui:
-#     image: provectuslabs/kafka-ui:latest
-#     container_name: kafka-ui
-#     restart: unless-stopped
-#     depends_on: [ kafka ]
-#     environment:
-#       KAFKA_CLUSTERS_0_NAME: local
-#       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
-#       KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
-#     ports:
-#       - "9090:8080"
-#     networks: [ vibe-network ]
-
-#   nginx-rtmp:
-#     image: tiangolo/nginx-rtmp
-#     container_name: nginx-rtmp
-#     restart: unless-stopped
-#     ports:
-#       - "1935:1935"
-#       - "8088:8080"
-#     volumes:
-#       - ./config/nginx-rtmp/nginx.conf:/etc/nginx/nginx.conf:ro
-#     networks: [ vibe-network ]
-
-#   # ============================================
-#   # BACKEND SERVICES
-#   # ============================================
-#   config-server:
-#     build: ./config-server
-#     container_name: config-server
-#     restart: unless-stopped
-#     ports:
-#       - "8888:8888"
-#     volumes:
-#       - ./config:/config
-#     environment:
-#       - SPRING_PROFILES_ACTIVE=native
-#       - SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS=file:///config
-#     networks: [ vibe-network ]
-#     healthcheck:
-#       test: [ "CMD", "wget", "-qO-", "http://localhost:8888/actuator/health" ]
-#       interval: 10s
-#       timeout: 5s
-#       retries: 5
-
-#   eureka-server:
-#     build: ./eureka-server
-#     container_name: eureka-server
-#     restart: unless-stopped
-#     ports:
-#       - "8761:8761"
-#     environment:
-#       - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
-#     depends_on:
-#       config-server:
-#         condition: service_healthy
-#     networks: [ vibe-network ]
-#     healthcheck:
-#       test: [ "CMD", "wget", "-qO-", "http://localhost:8761/actuator/health" ]
-#       interval: 10s
-#       timeout: 5s
-#       retries: 5
-
-#   gateway:
-#     build: ./gateway
-#     container_name: gateway
-#     restart: unless-stopped
-#     ports:
-#       - "8080:8080"
-#     environment:
-#       - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
-#       - EUREKA_URI=http://eureka-server:8761/eureka
-#     depends_on:
-#       eureka-server:
-#         condition: service_healthy
-#       redis:
-#         condition: service_started
-#     networks: [ vibe-network ]
-
-#   auth-service:
-#     build: ./auth-service
-#     container_name: auth-service
-#     restart: unless-stopped
-#     environment:
-#       - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
-#       - EUREKA_URI=http://eureka-server:8761/eureka
-#       - SPRING_DATA_REDIS_HOST=redis
-#       # ===== OAuth Redirect URIs (Change for production) =====
-#       - GOOGLE_REDIRECT_URI=http://localhost/oauth2/callback
-#       - FACEBOOK_REDIRECT_URI=http://localhost/oauth2/callback
-#     depends_on:
-#       gateway:
-#         condition: service_started
-#     networks: [ vibe-network ]
-
-#   user-service:
-#     build: ./user-service
-#     container_name: user-service
-#     restart: unless-stopped
-#     environment:
-#       - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
-#       - EUREKA_URI=http://eureka-server:8761/eureka
-#       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/shopee
-#       - SPRING_DATASOURCE_USERNAME=sa
-#       - SPRING_DATASOURCE_PASSWORD=Thuan@417
-#     depends_on:
-#       gateway:
-#         condition: service_started
-#       mysql:
-#         condition: service_healthy
-#     networks: [ vibe-network ]
-
-#   stock-service:
-#     build: ./stock-service
-#     container_name: stock-service
-#     restart: unless-stopped
-#     environment:
-#       - OLLAMA_BASE_URL=http://26.20.214.252:11434
-#       - OLLAMA_MODEL=qwen2.5:7b
-#       - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
-#       - EUREKA_URI=http://eureka-server:8761/eureka
-#       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/shopee
-#       - SPRING_DATASOURCE_USERNAME=sa
-#       - SPRING_DATASOURCE_PASSWORD=Thuan@417
-#       - SPRING_DATA_REDIS_HOST=redis
-#       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
-#     depends_on:
-#       gateway:
-#         condition: service_started
-#       mysql:
-#         condition: service_healthy
-#       redis:
-#         condition: service_started
-#     networks: [ vibe-network ]
-
-#   order-service:
-#     build: ./order-service
-#     container_name: order-service
-#     restart: unless-stopped
-#     environment:
-#       - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
-#       - EUREKA_URI=http://eureka-server:8761/eureka
-#       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/shopee
-#       - SPRING_DATASOURCE_USERNAME=sa
-#       - SPRING_DATASOURCE_PASSWORD=Thuan@417
-#       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
-#     depends_on:
-#       gateway:
-#         condition: service_started
-#       mysql:
-#         condition: service_healthy
-#       kafka:
-#         condition: service_started
-#     networks: [ vibe-network ]
-
-#   notification-service:
-#     build: ./notification-service
-#     container_name: notification-service
-#     restart: unless-stopped
-#     environment:
-#       - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
-#       - EUREKA_URI=http://eureka-server:8761/eureka
-#       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
-#       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/shopee
-#       - SPRING_DATASOURCE_USERNAME=sa
-#       - SPRING_DATASOURCE_PASSWORD=Thuan@417
-#       - KAFKA_TOPIC_NOTIFICATION=notification-topic
-#       - SPRING_KAFKA_CONSUMER_GROUP_ID=notification-service-group
-#       - SPRING_KAFKA_CONSUMER_BOOTSTRAP_SERVERS=kafka:9092
-#     depends_on:
-#       gateway:
-#         condition: service_started
-#       kafka:
-#         condition: service_started
-#       mysql:
-#         condition: service_healthy
-#       redis:
-#         condition: service_started
-#       config-server:
-#         condition: service_healthy
-#     networks: [ vibe-network ]
-
-#   payment-service:
-#     build: ./payment-service
-#     container_name: payment-service
-#     restart: unless-stopped
-#     environment:
-#       - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
-#       - EUREKA_URI=http://eureka-server:8761/eureka
-#       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/shopee
-#       - SPRING_DATASOURCE_USERNAME=sa
-#       - SPRING_DATASOURCE_PASSWORD=Thuan@417
-#       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
-#       # ===== PAYMENT URLs (Change for production) =====
-#       - VNPAY_RETURN_URL=http://localhost/payment/vnpay/return
-#       - MOMO_RETURN_URL=http://localhost/payment/momo/return
-#       - MOMO_IPN_URL=http://localhost/v1/payment/momo/ipn
-#     depends_on:
-#       gateway:
-#         condition: service_started
-#       mysql:
-#         condition: service_healthy
-#       config-server:
-#         condition: service_healthy
-#     networks: [ vibe-network ]
-
-#   file-storage:
-#     build: ./file-storage
-#     container_name: file-storage
-#     restart: unless-stopped
-#     environment:
-#       - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
-#       - EUREKA_URI=http://eureka-server:8761/eureka
-#       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/shopee
-#       - SPRING_DATASOURCE_USERNAME=sa
-#       - SPRING_DATASOURCE_PASSWORD=Thuan@417
-#       - FILE_UPLOAD_DIR=/app/uploads
-#     volumes:
-#       - ./file-storage/src/main/resources/attachments:/app/uploads
-#     depends_on:
-#       gateway:
-#         condition: service_started
-#       mysql:
-#         condition: service_healthy
-#       config-server:
-#         condition: service_healthy
-#     networks: [ vibe-network ]
-
-#   # ============================================
-#   # FRONTEND
-#   # ============================================
-#   my-app:
-#     build: ./my-app
-#     container_name: my-app
-#     restart: unless-stopped
-#     ports:
-#       - "80:80"
-#     depends_on:
-#       gateway:
-#         condition: service_started
-#     networks: [ vibe-network ]
-
-# volumes:
-#   zookeeper_data:
-#   kafka_data:
-#   mysql_data:
-#   redis_data:
-#   file_storage_data:
-
-# networks:
-#   vibe-network:
-#     driver: bridge
