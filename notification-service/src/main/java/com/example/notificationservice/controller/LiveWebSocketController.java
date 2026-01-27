@@ -145,7 +145,7 @@ public class LiveWebSocketController {
         LiveChatDto systemMsg = LiveChatDto.builder()
                 .liveRoomId(roomId)
                 .type(LiveChatType.SYSTEM)
-                .message("Một người mới vừa tham gia!")
+                .message("A new person has just joined.!")
                 .createdAt(LocalDateTime.now())
                 .build();
         messagingTemplate.convertAndSend("/topic/live/" + roomId + "/chat", systemMsg);

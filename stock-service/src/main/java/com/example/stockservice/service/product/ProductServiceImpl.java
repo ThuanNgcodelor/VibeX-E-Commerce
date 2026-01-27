@@ -199,7 +199,7 @@ public class ProductServiceImpl implements ProductService {
                     .builder()
                     .userId(product.getUserId()) // Shop Owner ID
                     .shopId(product.getUserId()) // Shop ID is usually same as Owner ID in this context
-                    .message("Cảnh báo: Sản phẩm '" + product.getName() + "' sắp hết hàng! Hiện còn: " + totalStock)
+                    .message("Warning: This product '" + product.getName() + "' Almost sold out! Currently available: " + totalStock)
                     .isShopOwnerNotification(true)
                     .build();
 

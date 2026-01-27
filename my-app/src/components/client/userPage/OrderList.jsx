@@ -514,7 +514,7 @@ export default function OrderList() {
 
             // Show appropriate success message based on payment method
             if (isVnpay) {
-                setSuccessMessage(t('orders.cancelSuccessWithRefund') || 'Đơn hàng đã được hủy. Tiền đã được hoàn vào ví của bạn. Bạn có thể rút tiền về tài khoản ngân hàng bất cứ lúc nào.');
+                setSuccessMessage(t('orders.cancelSuccessWithRefund') || 'The order has been cancelled. The money has been refunded to your wallet. You can withdraw the money to your bank account at any time..');
             } else {
                 setSuccessMessage(t('orders.cancelSuccess'));
             }

@@ -115,7 +115,7 @@ export default function LiveWatchPage() {
                     destination: `/app/live/${roomId}/join`,
                     body: JSON.stringify({
                         userId: userInfo?.id,
-                        username: userInfo?.userDetails?.fullName || userInfo?.username || 'Một người mới',
+                        username: userInfo?.userDetails?.fullName || userInfo?.username || 'A newcomer',
                         avatarUrl: userInfo?.userDetails?.avatarUrl || null,
                     })
                 });
@@ -786,7 +786,7 @@ export default function LiveWatchPage() {
                                                         opacity: product.isOutOfStock ? 0.6 : 1
                                                     }}
                                                 >
-                                                    {product.isOutOfStock ? '❌ Hết hàng' : (addingToCart === product.id ? 'Đang thêm...' : '🛒 Thêm vào giỏ')}
+                                                    {product.isOutOfStock ? '❌ Out Stock' : (addingToCart === product.id ? 'Adding...' : '🛒 Add to cart')}
                                                 </button>
                                             </div>
                                         </div>

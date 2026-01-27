@@ -50,7 +50,7 @@ export default function Address() {
 
     // Address Form State
     const [newAddress, setNewAddress] = useState({
-        addressName: 'Nhà Riêng', // Default to "Nhà Riêng"
+        addressName: 'Home', // Default to "Nhà Riêng"
         recipientName: '',
         recipientPhone: '',
         provinceId: null,
@@ -67,7 +67,7 @@ export default function Address() {
 
     const [editAddress, setEditAddress] = useState({
         id: '',
-        addressName: 'Nhà Riêng',
+        addressName: 'Home',
         recipientName: '',
         recipientPhone: '',
         provinceId: null,
@@ -369,7 +369,7 @@ export default function Address() {
 
             setEditAddress({
                 id: address.id,
-                addressName: address.addressName || 'Nhà Riêng',
+                addressName: address.addressName || 'Home',
                 recipientName: address.recipientName || '',
                 recipientPhone: address.recipientPhone || '',
                 provinceId: address.provinceId || null,
@@ -617,8 +617,8 @@ export default function Address() {
                                         color: '#856404'
                                     }}>
                                         <strong>⚠️ GHN API not configured:</strong> {error.includes('not configured')
-                                        ? 'Please configure VITE_GHN_TOKEN in .env file to enable location selection. You can still add addresses manually below.'
-                                        : error}
+                                            ? 'Please configure VITE_GHN_TOKEN in .env file to enable location selection. You can still add addresses manually below.'
+                                            : error}
                                     </div>
                                 )}
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
@@ -1063,10 +1063,10 @@ export default function Address() {
                                             </div>
                                             <div>
                                                 <strong>Location:</strong> {
-                                                address.wardName && address.districtName && address.provinceName
-                                                    ? `${address.wardName}, ${address.districtName}, ${address.provinceName}`
-                                                    : address.province || 'N/A'
-                                            }
+                                                    address.wardName && address.districtName && address.provinceName
+                                                        ? `${address.wardName}, ${address.districtName}, ${address.provinceName}`
+                                                        : address.province || 'N/A'
+                                                }
                                             </div>
                                         </div>
                                     </div>
