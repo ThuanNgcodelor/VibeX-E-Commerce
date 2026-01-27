@@ -210,8 +210,8 @@ services:
       - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
       - EUREKA_URI=http://eureka-server:8761/eureka
       - SPRING_DATA_REDIS_HOST=redis
-      - GOOGLE_REDIRECT_URI=https://impactive-pteridological-sherron.ngrok-free.dev/oauth2/callback
-      - FACEBOOK_REDIRECT_URI=https://impactive-pteridological-sherron.ngrok-free.dev/oauth2/callback
+      - GOOGLE_REDIRECT_URI=https://donny-unceilinged-astoundingly.ngrok-free.dev/oauth2/callback
+      - FACEBOOK_REDIRECT_URI=https://donny-unceilinged-astoundingly.ngrok-free.dev/oauth2/callback
     depends_on:
       gateway:
         condition: service_started
@@ -307,9 +307,9 @@ services:
       - SPRING_DATASOURCE_USERNAME=sa
       - SPRING_DATASOURCE_PASSWORD=Thuan@417
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
-      - VNPAY_RETURN_URL=https://impactive-pteridological-sherron.ngrok-free.dev/payment/vnpay/return
-      - MOMO_RETURN_URL=https://impactive-pteridological-sherron.ngrok-free.dev/payment/momo/return
-      - MOMO_IPN_URL=https://impactive-pteridological-sherron.ngrok-free.dev/v1/payment/momo/ipn
+      - VNPAY_RETURN_URL=https://donny-unceilinged-astoundingly.ngrok-free.dev/payment/vnpay/return
+      - MOMO_RETURN_URL=https://donny-unceilinged-astoundingly.ngrok-free.dev/payment/momo/return
+      - MOMO_IPN_URL=https://donny-unceilinged-astoundingly.ngrok-free.dev/v1/payment/momo/ipn
     depends_on:
       gateway:
         condition: service_started
