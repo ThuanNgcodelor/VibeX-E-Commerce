@@ -27,7 +27,7 @@ spring:
             allowedOrigins:
               - http://localhost:5173     
               - http://localhost                    # Development
-              - https://impactive-pteridological-sherron.ngrok-free.dev
+              - https://donny-unceilinged-astoundingly.ngrok-free.dev
             allowedMethods:
               - GET
               - POST
