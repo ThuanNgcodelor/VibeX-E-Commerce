@@ -82,6 +82,17 @@ public class FlashSaleController {
         return ResponseEntity.ok(flashSaleService.getMyRegistrations(shopId));
     }
 
+    @DeleteMapping("/registration/{id}")
+    public ResponseEntity<?> deleteRegistration(@PathVariable String id, HttpServletRequest httpRequest) {
+        try {
+            String shopId = jwtUtil.ExtractUserId(httpRequest);
+            flashSaleService.deleteProductRegistration(id, shopId);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("message", e.getMessage()));
+        }
+    }
+
     // --- Public / User Endpoints ---
 
     @GetMapping("/public/current")

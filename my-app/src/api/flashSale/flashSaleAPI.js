@@ -49,6 +49,10 @@ const flashSaleAPI = {
         const response = await api.get('/my-registrations');
         return response.data;
     },
+    deleteRegistration: async (registrationId) => {
+        const response = await api.delete(`/registration/${registrationId}`);
+        return response.data;
+    },
 
     // --- User ---
     getCurrentSession: async () => {

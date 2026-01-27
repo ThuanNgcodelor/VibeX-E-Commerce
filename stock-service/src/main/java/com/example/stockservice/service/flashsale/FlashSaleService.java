@@ -254,6 +254,36 @@ public class FlashSaleService {
         return saved;
     }
 
+    @Transactional
+    public void deleteProductRegistration(String flashSaleProductId, String shopId) {
+        log.info("[FLASH-SALE-DELETE] Attempting to delete registration: {} by shop: {}", flashSaleProductId, shopId);
+
+        FlashSaleProduct fsp = flashSaleProductRepository.findById(flashSaleProductId)
+                .orElseThrow(() -> new RuntimeException("Registration not found: " + flashSaleProductId));
+
+        // Verify ownership
+        if (!fsp.getShopId().equals(shopId)) {
+            log.error("[FLASH-SALE-DELETE] Ownership mismatch: expected {}, got {}", fsp.getShopId(), shopId);
+            throw new RuntimeException("You don't have permission to delete this registration");
+        }
+
+        // Get session and check if it's INACTIVE
+        FlashSaleSession session = sessionRepository.findById(fsp.getSessionId())
+                .orElseThrow(() -> new RuntimeException("Session not found: " + fsp.getSessionId()));
+
+        log.info("[FLASH-SALE-DELETE] Session {} status: {}", session.getName(), session.getStatus());
+
+        if (session.getStatus() != FlashSaleStatus.INACTIVE) {
+            throw new RuntimeException(
+                    "Can only delete registrations when session is INACTIVE. Current session status: "
+                            + session.getStatus());
+        }
+
+        // Delete the registration
+        flashSaleProductRepository.delete(fsp);
+        log.info("[FLASH-SALE-DELETE] Successfully deleted flash sale registration: {}", flashSaleProductId);
+    }
+
     // --- Public / Data Access ---
 
     public FlashSaleSession getActiveSession() {

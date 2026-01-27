@@ -54,7 +54,7 @@ const ShopFlashSale = () => {
         try {
             const data = await flashSaleAPI.getAllSessions();
             if (Array.isArray(data)) {
-                setSessions(data.filter(s => s.status === 'ACTIVE' || new Date(s.endTime) > new Date()));
+                setSessions(data);
             } else {
                 console.error("Sessions data is not an array:", data);
                 setSessions([]);
@@ -155,6 +155,41 @@ const ShopFlashSale = () => {
             });
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleDelete = async (registrationId, productName, sessionName) => {
+        const result = await Swal.fire({
+            icon: 'warning',
+            title: 'Delete Registration?',
+            html: `Are you sure you want to delete the registration for <b>${productName}</b> in <b>${sessionName}</b>?<br/><br/><span style="color: red;">This action cannot be undone.</span>`,
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, delete it!',
+            cancelButtonText: 'Cancel'
+        });
+
+        if (result.isConfirmed) {
+            try {
+                await flashSaleAPI.deleteRegistration(registrationId);
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Deleted!',
+                    text: 'Registration has been deleted successfully.',
+                    showConfirmButton: false,
+                    timer: 1500
+                });
+                fetchMyRegistrations();
+            } catch (error) {
+                console.error("Delete error:", error);
+                const errorMsg = error.response?.data?.message || error.message || 'Unknown error occurred';
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Delete Failed',
+                    text: 'Error: ' + errorMsg
+                });
+            }
         }
     };
 
@@ -400,6 +435,7 @@ const ShopFlashSale = () => {
                                             <th className="py-3">Sold</th>
                                             <th className="py-3">Revenue</th>
                                             <th className="py-3 text-center">Status</th>
+                                            <th className="py-3 text-center">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -468,6 +504,17 @@ const ShopFlashSale = () => {
                                                             <div className="text-danger small mt-1" style={{ fontSize: '11px', maxWidth: '150px', margin: '0 auto' }}>
                                                                 {reg.rejectionReason}
                                                             </div>
+                                                        )}
+                                                    </td>
+                                                    <td className="py-3 text-center">
+                                                        {session && session.status === 'INACTIVE' && (
+                                                            <button
+                                                                className="btn btn-danger btn-sm"
+                                                                onClick={() => handleDelete(reg.id, product?.name || 'Product', session?.name || 'Session')}
+                                                                title="Delete registration (only available when session is INACTIVE)"
+                                                            >
+                                                                <i className="fas fa-trash"></i>
+                                                            </button>
                                                         )}
                                                     </td>
                                                 </tr>
