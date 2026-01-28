@@ -57,6 +57,7 @@ public class OrderController {
     private final ShippingOrderRepository shippingOrderRepository;
     private final GhnApiClient ghnApiClient;
     private final com.example.orderservice.service.TrackingEmitterService trackingEmitterService;
+    private final com.example.orderservice.service.DebugLogService debugLogService;
 
     private OrderDto enrichOrderDto(Order order) {
         OrderDto dto = modelMapper.map(order, OrderDto.class);
@@ -1216,5 +1217,34 @@ public class OrderController {
                     "failCount", 0,
                     "message", "Lỗi: " + e.getMessage()));
         }
+    }
+
+    // ==================== DEBUG ENDPOINTS (FOR DEMO ONLY) ====================
+
+    /**
+     * Get recent server logs for demo purposes.
+     * WARNING: Only use in DEV/DEMO environment!
+     */
+    @GetMapping("/debug/logs")
+    public ResponseEntity<Map<String, Object>> getDebugLogs(
+            @RequestParam(defaultValue = "50") int count) {
+        List<String> logs = debugLogService.getRecentLogs(count);
+        return ResponseEntity.ok(Map.of(
+                "logs", logs,
+                "count", logs.size(),
+                "timestamp", System.currentTimeMillis()
+        ));
+    }
+
+    /**
+     * Clear log buffer
+     */
+    @PostMapping("/debug/logs/clear")
+    public ResponseEntity<Map<String, Object>> clearDebugLogs() {
+        debugLogService.clearLogs();
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Log buffer cleared"
+        ));
     }
 }

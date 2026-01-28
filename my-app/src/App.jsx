@@ -102,8 +102,8 @@ function GlobalChatWidget() {
   );
 }
 
-
 import { Toaster } from 'react-hot-toast';
+import DebugLogOverlay from './components/common/DebugLogOverlay.jsx';
 
 
 export default function App() {
@@ -112,6 +112,7 @@ export default function App() {
       <BrowserRouter>
         <ScrollToTop />
         <GlobalChatWidget />
+        <DebugLogOverlay />
         <Toaster position="top-right" reverseOrder={false} />
         <Routes>
           <Route path="/" element={<HomePage />} />

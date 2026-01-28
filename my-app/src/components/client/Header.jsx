@@ -363,6 +363,26 @@ export default function Header() {
                   </Link>
                 </div>
               )}
+              {/* Debug Log Toggle Button */}
+              <button
+                onClick={() => window.dispatchEvent(new CustomEvent('toggle-debug-logs'))}
+                style={{
+                  background: 'rgba(255,255,255,0.15)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  padding: '4px 10px',
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  opacity: 0.9
+                }}
+              >
+                <i className="fa fa-terminal"></i>
+                <span className="d-none d-md-inline">Log</span>
+              </button>
               <Link
                 to="#"
                 style={{ color: 'white', textDecoration: 'none', opacity: 0.9 }}

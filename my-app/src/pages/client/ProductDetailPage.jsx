@@ -599,22 +599,6 @@ export default function ProductDetailPage() {
                                             )}
                                         </div>
 
-                                        {/* Vouchers (Placeholder for future development) */}
-                                        <div className="mb-4">
-                                            <div className="d-flex align-items-center gap-2 mb-2">
-                                                <i className="fa fa-tag" style={{ color: '#ee4d2d' }}></i>
-                                                <strong style={{ fontSize: '0.9rem' }}>Shop Voucher</strong>
-                                            </div>
-                                            <div className="d-flex flex-wrap gap-2">
-                                                <span className="badge" style={{ fontSize: '0.8rem', padding: '4px 8px', backgroundColor: '#ee4d2d' }}>
-                                                    2% OFF
-                                                </span>
-                                                <span className="badge" style={{ fontSize: '0.8rem', padding: '4px 8px', backgroundColor: '#ee4d2d' }}>
-                                                    3% OFF
-                                                </span>
-                                                {/* Add more vouchers here */}
-                                            </div>
-                                        </div>
 
                                         {/* Size Selection */}
                                         {product.sizes && product.sizes.length > 0 && (
@@ -625,7 +609,11 @@ export default function ProductDetailPage() {
                                                 <div className="d-flex flex-wrap gap-2">
                                                     {product.sizes.map((size) => {
                                                         const isSelected = selectedSizeId === size.id;
-                                                        const isOutOfStock = (size.stock || 0) <= 0;
+                                                        // When flash sale is active, check flashSaleStock; otherwise check regular stock
+                                                        const effectiveStock = (isFlashSale && size.flashSaleStock !== undefined && size.flashSaleStock !== null)
+                                                            ? size.flashSaleStock
+                                                            : (size.stock || 0);
+                                                        const isOutOfStock = effectiveStock <= 0;
                                                         return (
                                                             <button
                                                                 key={size.id}
@@ -662,9 +650,7 @@ export default function ProductDetailPage() {
                                                                 <div>{size.name}</div>
                                                                 <small style={{ fontSize: '0.7rem', display: 'block', marginTop: '2px', color: isSelected ? '#fff' : '#666' }}>
                                                                     {isOutOfStock ? t('product.outOfStock') :
-                                                                        (isFlashSale && size.flashSaleStock !== undefined && size.flashSaleStock !== null)
-                                                                            ? `${t('product.stock')} ${size.flashSaleStock}`
-                                                                            : `${t('product.stock')} ${size.stock}`
+                                                                        `${t('product.stock')} ${effectiveStock}`
                                                                     }
                                                                 </small>
                                                             </button>
