@@ -16,7 +16,7 @@ public interface UserServiceClient {
     @GetMapping(value = "/getUserByEmail", headers = "X-Internal-Call=true")
     ResponseEntity<AuthUserDto> getUserByEmail(@RequestParam String email);
 
-    @PostMapping("/update-password")
+    @PostMapping(value = "/update-password",headers = "X-Internal-Call=true")
     ResponseEntity<Void> updatePassword(@RequestBody UpdatePassword request);
 }
 

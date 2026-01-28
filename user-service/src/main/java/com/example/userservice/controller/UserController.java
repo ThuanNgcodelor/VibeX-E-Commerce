@@ -1,20 +1,37 @@
 package com.example.userservice.controller;
 
-import com.example.userservice.dto.*;
+import org.modelmapper.ModelMapper;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.example.userservice.dto.AuthUserDto;
+import com.example.userservice.dto.CartDto;
+import com.example.userservice.dto.UpdatePassword;
+import com.example.userservice.dto.UserAdminDto;
+import com.example.userservice.dto.UserDto;
+import com.example.userservice.dto.UserInformationDto;
+import com.example.userservice.dto.UserLocationStatDto;
 import com.example.userservice.jwt.JwtUtil;
 import com.example.userservice.model.User;
 import com.example.userservice.request.RegisterRequest;
 import com.example.userservice.request.UserUpdateRequest;
 import com.example.userservice.service.user.UserService;
+
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.modelmapper.ModelMapper;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/v1/user")
@@ -96,9 +113,8 @@ public class UserController {
 
     @PostMapping("/update-password")
     public ResponseEntity<Void> updatePassword(@RequestBody UpdatePassword request) {
-        User user = userService.findUserByEmail(request.getEmail());
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-        return ResponseEntity.noContent().build();
+        userService.updatePasswordByEmail(request.getEmail(), request.getPassword());
+        return ResponseEntity.ok().build();
     }
 
     /**
