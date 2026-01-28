@@ -2,9 +2,6 @@ import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import imgFallback from "../../../assets/images/shop/6.png";
-import {
-    fetchProductImageById,
-} from "../../../api/product.js";
 import { searchProducts } from "../../../api/searchApi.js";
 import { trackSearch } from "../../../api/tracking";
 import categoryApi from "../../../api/categoryApi.js";
@@ -27,7 +24,6 @@ const SearchProduct = () => {
     const navigate = useNavigate();
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [imageUrls, setImageUrls] = useState({});
     const [total, setTotal] = useState(0);
     const [totalPages, setTotalPages] = useState(1);
     const [cached, setCached] = useState(false);
@@ -46,8 +42,6 @@ const SearchProduct = () => {
     const [categories, setCategories] = useState([]);
     const [availableCategories, setAvailableCategories] = useState([]);
     const [showFilters, setShowFilters] = useState(true);
-
-    const createdUrlsRef = useRef([]);
 
     useEffect(() => {
         const loadCategories = async () => {
@@ -167,62 +161,6 @@ const SearchProduct = () => {
     }, [debouncedQuery, sortBy, priceMin, priceMax, categories, selectedAreas]);
 
     const currentPage = Math.min(page, totalPages);
-
-    useEffect(() => {
-        if (products.length === 0) {
-            setImageUrls({});
-            return;
-        }
-
-        let isActive = true;
-        const newUrls = {};
-        const tempCreatedUrls = [];
-
-        const loadImages = async () => {
-            await Promise.all(
-                products.map(async (product) => {
-                    try {
-                        if (product.imageId) {
-                            const res = await fetchProductImageById(product.imageId);
-                            const contentType = res.headers?.["content-type"] || "image/png";
-
-                            if (USE_OBJECT_URL) {
-                                const blob = new Blob([res.data], { type: contentType });
-                                const url = URL.createObjectURL(blob);
-                                newUrls[product.id] = url;
-                                tempCreatedUrls.push(url);
-                            } else {
-                                newUrls[product.id] = arrayBufferToDataUrl(res.data, contentType);
-                            }
-                        } else {
-                            newUrls[product.id] = imgFallback;
-                        }
-                    } catch {
-                        newUrls[product.id] = imgFallback;
-                    }
-                })
-            );
-
-            if (!isActive) return;
-
-            if (USE_OBJECT_URL && createdUrlsRef.current.length) {
-                createdUrlsRef.current.forEach((u) => URL.revokeObjectURL(u));
-            }
-            createdUrlsRef.current = tempCreatedUrls;
-
-            setImageUrls(newUrls);
-        };
-
-        loadImages();
-
-        return () => {
-            isActive = false;
-            if (USE_OBJECT_URL && createdUrlsRef.current.length) {
-                createdUrlsRef.current.forEach((u) => URL.revokeObjectURL(u));
-                createdUrlsRef.current = [];
-            }
-        };
-    }, [products]);
 
     const handleSearchSubmit = (e) => {
         e.preventDefault();
@@ -666,8 +604,9 @@ const SearchProduct = () => {
                                                         {/* Product Image */}
                                                         <div style={{ position: 'relative', paddingTop: '100%', background: '#f7f7f7' }}>
                                                             <img
-                                                                src={imageUrls[product.id] || imgFallback}
+                                                                src={product.imageId ? `/v1/file-storage/get/${product.imageId}` : imgFallback}
                                                                 alt={product.name}
+                                                                loading="lazy"
                                                                 onError={(e) => {
                                                                     e.currentTarget.src = imgFallback;
                                                                 }}

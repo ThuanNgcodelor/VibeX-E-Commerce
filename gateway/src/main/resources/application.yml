@@ -26,8 +26,11 @@ spring:
           '[/v1/**]':
             allowedOrigins:
               - http://localhost:5173     
-              - http://localhost                    # Development
+              - http://localhost                    # Development   # LAN Access
+              - http://10.16.26.156.nip.io  
+              - http://10.18.223.76.nip.io
               - https://donny-unceilinged-astoundingly.ngrok-free.dev
+            
             allowedMethods:
               - GET
               - POST

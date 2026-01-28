@@ -2,8 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { isAuthenticated } from "../../api/auth.js";
-import { getRecentlyViewed } from "../../api/tracking.js";
-import { fetchProductById, fetchProductImageById } from "../../api/product.js";
+import { getRecentlyViewedProducts } from "../../api/recommendation.js";
 import imgFallback from "../../assets/images/shop/6.png";
 
 /**
@@ -14,9 +13,7 @@ export default function RecentlyViewed() {
     const { t } = useTranslation();
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [imageUrls, setImageUrls] = useState({});
     const scrollRef = useRef(null);
-    const createdUrlsRef = useRef([]);
 
     // Check authentication
     const isLoggedIn = isAuthenticated();
@@ -29,28 +26,14 @@ export default function RecentlyViewed() {
 
         const loadRecentlyViewed = async () => {
             try {
-                // Get recently viewed product IDs from tracking API
-                const productIds = await getRecentlyViewed(10);
+                // Get recently viewed products with details
+                const data = await getRecentlyViewedProducts(10);
 
-                if (!productIds || productIds.length === 0) {
+                if (Array.isArray(data) && data.length > 0) {
+                    setProducts(data);
+                } else {
                     setProducts([]);
-                    setLoading(false);
-                    return;
                 }
-
-                // Fetch product details for each ID
-                const productPromises = productIds.map(async (id) => {
-                    try {
-                        const res = await fetchProductById(id);
-                        return res.data;
-                    } catch {
-                        return null;
-                    }
-                });
-
-                const fetchedProducts = await Promise.all(productPromises);
-                const validProducts = fetchedProducts.filter(p => p !== null);
-                setProducts(validProducts);
             } catch (error) {
                 console.error("Failed to load recently viewed:", error);
                 setProducts([]);
@@ -62,56 +45,7 @@ export default function RecentlyViewed() {
         loadRecentlyViewed();
     }, [isLoggedIn]);
 
-    // Load product images
-    useEffect(() => {
-        if (products.length === 0) {
-            setImageUrls({});
-            return;
-        }
 
-        let isActive = true;
-        const newUrls = {};
-        const tempCreatedUrls = [];
-
-        const loadImages = async () => {
-            await Promise.all(
-                products.map(async (product) => {
-                    try {
-                        if (product.imageId) {
-                            const res = await fetchProductImageById(product.imageId);
-                            const contentType = res.headers?.["content-type"] || "image/png";
-                            const blob = new Blob([res.data], { type: contentType });
-                            const url = URL.createObjectURL(blob);
-                            newUrls[product.id] = url;
-                            tempCreatedUrls.push(url);
-                        } else {
-                            newUrls[product.id] = imgFallback;
-                        }
-                    } catch {
-                        newUrls[product.id] = imgFallback;
-                    }
-                })
-            );
-
-            if (!isActive) return;
-
-            if (createdUrlsRef.current.length) {
-                createdUrlsRef.current.forEach((u) => URL.revokeObjectURL(u));
-            }
-            createdUrlsRef.current = tempCreatedUrls;
-            setImageUrls(newUrls);
-        };
-
-        loadImages();
-
-        return () => {
-            isActive = false;
-            if (createdUrlsRef.current.length) {
-                createdUrlsRef.current.forEach((u) => URL.revokeObjectURL(u));
-                createdUrlsRef.current = [];
-            }
-        };
-    }, [products]);
 
     const formatVND = (n) => (Number(n) || 0).toLocaleString("vi-VN") + "₫";
 
@@ -227,9 +161,10 @@ export default function RecentlyViewed() {
                             >
                                 <div style={{ position: 'relative', paddingBottom: '100%', background: '#f5f5f5' }}>
                                     <img
-                                        src={imageUrls[product.id] || imgFallback}
+                                        src={product.imageId ? `/v1/file-storage/get/${product.imageId}` : imgFallback}
                                         onError={(e) => { e.currentTarget.src = imgFallback; }}
                                         alt={product.name}
+                                        loading="lazy"
                                         style={{
                                             position: 'absolute',
                                             top: 0,

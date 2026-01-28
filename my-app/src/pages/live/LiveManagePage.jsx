@@ -17,7 +17,7 @@ import {
     removeProductFromLive
 } from '../../api/live';
 import { getProducts, searchProducts } from '../../api/shopOwner';
-import { fetchProductImageById } from '../../api/product';
+
 import { getShopOwnerInfo } from '../../api/user';
 import imgFallback from '../../assets/images/shop/6.png';
 import { uploadImage } from '../../api/image';
@@ -267,23 +267,15 @@ export default function LiveManagePage() {
             setProductPage(page);
 
             // Load images for products
+            // Load images for products
             const newImageUrls = {};
-            await Promise.all(
-                products.map(async (product) => {
-                    try {
-                        if (product.imageId) {
-                            const res = await fetchProductImageById(product.imageId);
-                            const contentType = res.headers?.['content-type'] || 'image/png';
-                            const blob = new Blob([res.data], { type: contentType });
-                            newImageUrls[product.id] = URL.createObjectURL(blob);
-                        } else {
-                            newImageUrls[product.id] = imgFallback;
-                        }
-                    } catch {
-                        newImageUrls[product.id] = imgFallback;
-                    }
-                })
-            );
+            products.forEach((product) => {
+                if (product.imageId) {
+                    newImageUrls[product.id] = `/v1/file-storage/get/${product.imageId}`;
+                } else {
+                    newImageUrls[product.id] = imgFallback;
+                }
+            });
             setProductImageUrls(prev => ({ ...prev, ...newImageUrls }));
         } catch (error) {
             console.error('Error fetching products:', error);

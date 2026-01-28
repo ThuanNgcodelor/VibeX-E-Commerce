@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { getTrendingProductsWithDetails } from "../../api/recommendation.js";
-import { fetchProductImageById } from "../../api/product.js";
+
 import imgFallback from "../../assets/images/shop/6.png";
 import Loading from "./Loading.jsx";
 
@@ -15,8 +15,6 @@ export default function TrendingProducts() {
     const { t } = useTranslation();
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [imageUrls, setImageUrls] = useState({});
-    const createdUrlsRef = useRef([]);
 
     useEffect(() => {
         const loadTrendingProducts = async () => {
@@ -35,57 +33,7 @@ export default function TrendingProducts() {
         loadTrendingProducts();
     }, []);
 
-    // Load product images
-    useEffect(() => {
-        if (products.length === 0) {
-            setImageUrls({});
-            return;
-        }
 
-        let isActive = true;
-        const newUrls = {};
-        const tempCreatedUrls = [];
-
-        const loadImages = async () => {
-            await Promise.all(
-                products.map(async (product) => {
-                    const pid = product.productId || product.id;
-                    try {
-                        if (product.imageId) {
-                            const res = await fetchProductImageById(product.imageId);
-                            const contentType = res.headers?.["content-type"] || "image/png";
-                            const blob = new Blob([res.data], { type: contentType });
-                            const url = URL.createObjectURL(blob);
-                            newUrls[pid] = url;
-                            tempCreatedUrls.push(url);
-                        } else {
-                            newUrls[pid] = imgFallback;
-                        }
-                    } catch {
-                        newUrls[pid] = imgFallback;
-                    }
-                })
-            );
-
-            if (!isActive) return;
-
-            if (createdUrlsRef.current.length) {
-                createdUrlsRef.current.forEach((u) => URL.revokeObjectURL(u));
-            }
-            createdUrlsRef.current = tempCreatedUrls;
-            setImageUrls(newUrls);
-        };
-
-        loadImages();
-
-        return () => {
-            isActive = false;
-            if (createdUrlsRef.current.length) {
-                createdUrlsRef.current.forEach((u) => URL.revokeObjectURL(u));
-                createdUrlsRef.current = [];
-            }
-        };
-    }, [products]);
 
     const formatVND = (n) => (Number(n) || 0).toLocaleString("vi-VN") + "₫";
     const calculateDiscount = (original, current) => {
@@ -184,9 +132,10 @@ export default function TrendingProducts() {
                                 >
                                     <div style={{ position: 'relative', paddingBottom: '100%', background: '#f5f5f5' }}>
                                         <img
-                                            src={imageUrls[pid] || imgFallback}
+                                            src={product.imageId ? `/v1/file-storage/get/${product.imageId}` : imgFallback}
                                             onError={(e) => { e.currentTarget.src = imgFallback; }}
                                             alt={product.name}
+                                            loading="lazy"
                                             style={{
                                                 position: 'absolute',
                                                 top: 0,

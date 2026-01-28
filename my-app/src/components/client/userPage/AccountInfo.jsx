@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { updateUser, getUser } from "../../../api/user.js";
-import { fetchImageById } from "../../../api/image.js";
+
 
 export default function AccountInfo() {
   const { t } = useTranslation();
@@ -35,27 +35,23 @@ export default function AccountInfo() {
     return raw.split("T")[0].split(" ")[0];
   };
 
-  const loadAvatar = async (me) => {
+  const loadAvatar = (me) => {
     const imageId = me?.userDetails?.imageUrl ?? me?.imageUrl;
     if (!imageId) {
       setAvatarUrl("");
       window.dispatchEvent(new CustomEvent("userAvatarUpdated", { detail: { avatarUrl: "", imageId: null } }));
       return;
     }
-    try {
-      const resp = await fetchImageById(imageId); // arraybuffer
-      const type = resp.headers?.["content-type"] || "image/jpeg";
-      const blob = new Blob([resp.data], { type });
-      const url = URL.createObjectURL(blob);
-      if (prevUrlRef.current) URL.revokeObjectURL(prevUrlRef.current);
-      prevUrlRef.current = url;
-      setAvatarUrl(url);
-      window.dispatchEvent(new CustomEvent("userAvatarUpdated", { detail: { avatarUrl: url, imageId } }));
-    } catch (e) {
-      console.error("Failed to fetch avatar", e);
-      setAvatarUrl("");
-      window.dispatchEvent(new CustomEvent("userAvatarUpdated", { detail: { avatarUrl: "", imageId: null } }));
+
+    // Direct URL
+    const url = `/v1/file-storage/get/${imageId}`;
+
+    if (prevUrlRef.current && prevUrlRef.current.startsWith('blob:')) {
+      URL.revokeObjectURL(prevUrlRef.current);
     }
+    prevUrlRef.current = url;
+    setAvatarUrl(url);
+    window.dispatchEvent(new CustomEvent("userAvatarUpdated", { detail: { avatarUrl: url, imageId } }));
   };
 
   const loadUserProfile = async () => {
@@ -76,7 +72,7 @@ export default function AccountInfo() {
         },
       });
 
-      await loadAvatar(me);
+      loadAvatar(me);
     } catch (e) {
       console.error("Failed to fetch user data", e);
     }

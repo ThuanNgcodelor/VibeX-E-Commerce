@@ -3,16 +3,7 @@ import createApiInstance from "./createApiInstance.js";
 const API_URL = "/v1";
 const api = createApiInstance(API_URL);
 
-/**
- * Lấy ảnh theo ID
- * @param {string} imageId - ID của ảnh cần lấy
- * @returns {Promise<ArrayBuffer>} - Promise trả về dữ liệu ảnh dạng arraybuffer
- */
-export const fetchImageById = (imageId) => {
-    return api.get(`/file-storage/get/${imageId}`, {
-        responseType: "arraybuffer",
-    });
-};
+
 
 
 /**
@@ -79,14 +70,7 @@ export const uploadImage = async (file) => {
     }
 };
 
-/**
- * Lấy ảnh sản phẩm theo ID (alias cho fetchImageById để dễ hiểu)
- * @param {string} imageId - ID của ảnh sản phẩm
- * @returns {Promise<ArrayBuffer>} - Promise trả về dữ liệu ảnh dạng arraybuffer
- */
-export const fetchProductImageById = (imageId) => {
-    return fetchImageById(imageId);
-};
+
 
 /**
  * Tạo URL string cho thẻ <img> (tránh hardcode localhost).

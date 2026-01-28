@@ -1,24 +1,15 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { getActiveBanners, trackBannerClick } from '../../api/banner';
 import adAPI from '../../api/ads/adAPI';
-import { fetchImageById } from '../../api/image';
 
 export default function ShopeeBanner() {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [banners, setBanners] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [bannerImageUrls, setBannerImageUrls] = useState({});
-    const createdUrlsRef = useRef([]);
 
     // Fetch banners from API
     useEffect(() => {
         fetchBanners();
-
-        // Cleanup blob URLs on unmount
-        return () => {
-            createdUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
-            createdUrlsRef.current = [];
-        };
     }, []);
 
     // Helper to build full image URL from relative path or return full URL as-is
@@ -262,9 +253,8 @@ export default function ShopeeBanner() {
     const renderBanner = (banner, isMain = false) => {
         if (!banner) return null;
 
-        const loadedImageUrl = bannerImageUrls[banner.id];
-        const hasImage = loadedImageUrl || (banner.imageUrl && !banner.imageUrl.includes('default'));
-        const imageUrl = loadedImageUrl || (banner.imageUrl ? buildImageUrl(banner.imageUrl) : null);
+        const hasImage = banner.imageUrl && !banner.imageUrl.includes('default');
+        const imageUrl = banner.imageUrl ? buildImageUrl(banner.imageUrl) : null;
 
         const background = !hasImage
             ? (banner.bg || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)')

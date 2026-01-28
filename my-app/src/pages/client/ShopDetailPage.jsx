@@ -4,7 +4,7 @@ import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import Header from '../../components/client/Header.jsx';
 import { getShopOwnerByUserId, getFollowerCount, checkIsFollowing, followShop, unfollowShop, getShopDecoration } from '../../api/user';
-import { getShopProducts, getShopStats, fetchProductImageById } from '../../api/product';
+import { getShopProducts, getShopStats } from '../../api/product';
 import imgFallback from "../../assets/images/shop/6.png";
 import DecorationRenderer from '../../components/shop-owner/decoration/DecorationRenderer';
 import { API_BASE_URL } from '../../config/config';
@@ -19,7 +19,6 @@ export default function ShopDetailPage() {
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('products');
-    const [imageUrls, setImageUrls] = useState({});
     const [decorationConfig, setDecorationConfig] = useState(null);
     const [headerImageUrl, setHeaderImageUrl] = useState(null);
     const [avatarImageUrl, setAvatarImageUrl] = useState(null);
@@ -69,22 +68,10 @@ export default function ShopDetailPage() {
 
                 // 6. Load Shop Images (header & avatar)
                 if (shopData.headerImageUrl) {
-                    try {
-                        const res = await fetchProductImageById(shopData.headerImageUrl);
-                        const blob = new Blob([res.data], { type: res.headers?.["content-type"] || "image/png" });
-                        setHeaderImageUrl(URL.createObjectURL(blob));
-                    } catch (e) {
-                        console.error("Header image load error", e);
-                    }
+                    setHeaderImageUrl(`/v1/file-storage/get/${shopData.headerImageUrl}`);
                 }
                 if (shopData.imageUrl) {
-                    try {
-                        const res = await fetchProductImageById(shopData.imageUrl);
-                        const blob = new Blob([res.data], { type: res.headers?.["content-type"] || "image/png" });
-                        setAvatarImageUrl(URL.createObjectURL(blob));
-                    } catch (e) {
-                        console.error("Avatar image load error", e);
-                    }
+                    setAvatarImageUrl(`/v1/file-storage/get/${shopData.imageUrl}`);
                 }
 
             } catch (error) {
@@ -105,30 +92,10 @@ export default function ShopDetailPage() {
             const res = await getShopProducts(userId, 1, 24); // Fetch first page
             if (res && res.content) {
                 setProducts(res.content);
-                // Load images for products
-                loadProductImages(res.content);
             }
         } catch (error) {
             console.error("Failed to load products", error);
         }
-    };
-
-    const loadProductImages = async (productList) => {
-        const newUrls = {};
-        await Promise.all(productList.map(async (p) => {
-            try {
-                if (p.imageId) {
-                    const res = await fetchProductImageById(p.imageId);
-                    const blob = new Blob([res.data], { type: res.headers?.["content-type"] || "image/png" });
-                    newUrls[p.id] = URL.createObjectURL(blob);
-                } else {
-                    newUrls[p.id] = imgFallback;
-                }
-            } catch {
-                newUrls[p.id] = imgFallback;
-            }
-        }));
-        setImageUrls(prev => ({ ...prev, ...newUrls }));
     };
 
     const handleFollow = async () => {
@@ -414,11 +381,12 @@ export default function ShopDetailPage() {
                                                         <div className="card h-100 border-0 shadow-sm product-card hover-shadow transition">
                                                             <div className="position-relative" style={{ paddingBottom: '100%', overflow: 'hidden' }}>
                                                                 <img
-                                                                    src={imageUrls[product.id] || imgFallback}
+                                                                    src={product.imageId ? `/v1/file-storage/get/${product.imageId}` : imgFallback}
                                                                     alt={product.name}
                                                                     className="position-absolute w-100 h-100"
                                                                     style={{ objectFit: 'cover', top: 0, left: 0 }}
                                                                     onError={(e) => { e.currentTarget.src = imgFallback; }}
+                                                                    loading="lazy"
                                                                 />
                                                                 {product.discountPercent > 0 && (
                                                                     <div className="position-absolute top-0 end-0 bg-warning text-dark px-2 py-1 small fw-bold m-1 rounded">

@@ -3,9 +3,8 @@ import Cookies from "js-cookie";
 import { useTranslation } from 'react-i18next';
 import { getConversations, getMessages, sendMessage, markAsRead, startConversation } from "../../api/chat";
 import { connectWebSocket, subscribeToConversation, disconnectWebSocket, isConnected } from "../../utils/websocket";
-import { fetchImageById } from "../../api/image";
+import { fetchProductById } from "../../api/product";
 import { getUser, getShopOwnerByUserId } from "../../api/user";
-import { fetchProductById, fetchProductImageById } from "../../api/product";
 
 // Helper functions
 const formatDate = (dateString, t) => {
@@ -58,7 +57,6 @@ export default function ChatBotWidget() {
   const [loading, setLoading] = React.useState(false);
   const [messageInput, setMessageInput] = React.useState("");
   const [wsSubscription, setWsSubscription] = React.useState(null);
-  const [imageUrls, setImageUrls] = React.useState({});
   const [currentUserId, setCurrentUserId] = React.useState(null);
   const [productImageUrl, setProductImageUrl] = React.useState(null);
   const [shopNames, setShopNames] = React.useState({}); // Cache shop names: { userId: shopName }
@@ -357,7 +355,7 @@ export default function ChatBotWidget() {
       setMessages(reversedData);
 
       // Load images for messages
-      loadMessageImages(data);
+      // No need to load blobs anymore
     } catch (error) {
       console.error('Error loading messages:', error);
       setMessages([]);
@@ -370,23 +368,7 @@ export default function ChatBotWidget() {
     }
   };
 
-  const loadMessageImages = async (msgs) => {
-    const imagePromises = msgs
-      .filter(m => m.imageId)
-      .map(async (msg) => {
-        try {
-          const res = await fetchImageById(msg.imageId);
-          const blob = new Blob([res.data], {
-            type: res.headers["content-type"] || "image/jpeg",
-          });
-          const url = URL.createObjectURL(blob);
-          setImageUrls(prev => ({ ...prev, [msg.imageId]: url }));
-        } catch (err) {
-          console.error(`Error loading image ${msg.imageId}:`, err);
-        }
-      });
-    await Promise.all(imagePromises);
-  };
+
 
   const loadProductData = async (productId) => {
     try {
@@ -400,12 +382,7 @@ export default function ChatBotWidget() {
 
         // Load product image
         if (product?.imageId) {
-          const imgRes = await fetchProductImageById(product.imageId);
-          const blob = new Blob([imgRes.data], {
-            type: imgRes.headers["content-type"] || "image/jpeg",
-          });
-          const url = URL.createObjectURL(blob);
-          setProductImageUrl(url);
+          setProductImageUrl(`/v1/file-storage/get/${product.imageId}`);
         } else if (product?.imageUrl) {
           setProductImageUrl(product.imageUrl);
         } else {
@@ -755,11 +732,12 @@ export default function ChatBotWidget() {
                                   </div>
                                 )}
                                 <div>{msg.content}</div>
-                                {msg.imageId && imageUrls[msg.imageId] && (
+                                {msg.imageId && (
                                   <img
-                                    src={imageUrls[msg.imageId]}
+                                    src={`/v1/file-storage/get/${msg.imageId}`}
                                     alt="Message"
                                     style={{ maxWidth: '200px', marginTop: '8px', borderRadius: '8px' }}
+                                    loading="lazy"
                                   />
                                 )}
                                 <div style={{

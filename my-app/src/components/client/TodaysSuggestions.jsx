@@ -1,35 +1,19 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import imgFallback from "../../assets/images/shop/6.png";
 import Loading from "./Loading.jsx";
 import {
-  fetchProductImageById,
   fetchTrendingProducts,
 } from "../../api/product.js";
-
-const USE_OBJECT_URL = true;
-
-const arrayBufferToDataUrl = (buffer, contentType) => {
-  const bytes = new Uint8Array(buffer);
-  let binary = "";
-  for (let i = 0; i < bytes.byteLength; i++)
-    binary += String.fromCharCode(bytes[i]);
-  const base64 = btoa(binary);
-  return `data:${contentType || "image/png"};base64,${base64}`;
-};
 
 export default function TodaysSuggestions() {
   const { t } = useTranslation();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [imageUrls, setImageUrls] = useState({});
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-
-  // Track created URLs for cleanup
-  const createdUrlsRef = useRef([]);
 
   const pageSize = 12; // Use a multiple of 6 (2, 3, 4, 6 col)
 
@@ -70,38 +54,6 @@ export default function TodaysSuggestions() {
       }
 
       if (newProducts.length > 0) {
-        // Load images for NEW products only
-        const newUrls = {};
-
-        await Promise.all(
-          newProducts.map(async (product) => {
-            try {
-              if (product.imageId) {
-                // Fetch image
-                const resImg = await fetchProductImageById(product.imageId);
-                const contentType = resImg.headers?.["content-type"] || "image/png";
-
-                if (USE_OBJECT_URL) {
-                  const blob = new Blob([resImg.data], { type: contentType });
-                  const url = URL.createObjectURL(blob);
-                  newUrls[product.id] = url;
-                  createdUrlsRef.current.push(url);
-                } else {
-                  newUrls[product.id] = arrayBufferToDataUrl(resImg.data, contentType);
-                }
-              } else {
-                // No image ID
-                newUrls[product.id] = imgFallback;
-              }
-            } catch (err) {
-              console.warn("Failed to load image for product", product.id);
-              newUrls[product.id] = imgFallback;
-            }
-          })
-        );
-
-        setImageUrls(prev => ({ ...prev, ...newUrls }));
-
         if (currentPage === 1) {
           setProducts(newProducts);
         } else {
@@ -123,15 +75,6 @@ export default function TodaysSuggestions() {
 
   useEffect(() => {
     loadProductsData(1);
-
-    // Cleanup function
-    return () => {
-      // Revoke all URLs on unmount
-      if (USE_OBJECT_URL && createdUrlsRef.current.length) {
-        createdUrlsRef.current.forEach((u) => URL.revokeObjectURL(u));
-        createdUrlsRef.current = [];
-      }
-    };
   }, []);
 
   const handleLoadMore = () => {
@@ -217,7 +160,8 @@ export default function TodaysSuggestions() {
                   {/* Image Container */}
                   <div style={{ position: 'relative', paddingBottom: '100%' }}>
                     <img
-                      src={imageUrls[product.id] || imgFallback}
+                      src={product.imageId ? `/v1/file-storage/get/${product.imageId}` : imgFallback}
+                      loading="lazy"
                       onError={(e) => {
                         e.currentTarget.src = imgFallback;
                       }}

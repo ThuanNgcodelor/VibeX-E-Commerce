@@ -10,7 +10,7 @@ import OrderList from "./OrderList.jsx";
 import NotificationPage from "./NotificationPage.jsx";
 import CoinPage from "./CoinPage.jsx";
 import Loading from "../Loading.jsx";
-import { fetchImageById } from "../../../api/image.js";
+
 import UserWalletPage from "./UserWalletPage.jsx";
 
 export default function User() {
@@ -20,7 +20,7 @@ export default function User() {
     const [userData, setUserData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [avatarUrl, setAvatarUrl] = useState("");
-    const avatarRef = useRef("");
+
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState("dashboard");
 
@@ -42,18 +42,7 @@ export default function User() {
                 // load avatar if available
                 const imageId = response?.userDetails?.imageUrl || response?.imageUrl;
                 if (imageId) {
-                    try {
-                        const resp = await fetchImageById(imageId);
-                        const type = resp.headers?.["content-type"] || "image/jpeg";
-                        const blob = new Blob([resp.data], { type });
-                        const url = URL.createObjectURL(blob);
-                        if (avatarRef.current) URL.revokeObjectURL(avatarRef.current);
-                        avatarRef.current = url;
-                        setAvatarUrl(url);
-                    } catch (e) {
-                        console.error("Failed to load avatar", e);
-                        setAvatarUrl("");
-                    }
+                    setAvatarUrl(`/v1/file-storage/get/${imageId}`);
                 } else {
                     setAvatarUrl("");
                 }
@@ -65,43 +54,21 @@ export default function User() {
         };
 
         fetchUserInfo();
-
-        return () => {
-            if (avatarRef.current) {
-                URL.revokeObjectURL(avatarRef.current);
-                avatarRef.current = "";
-            }
-        };
     }, []);
 
     // Listen for avatar updates from AccountInfo
+    // Listen for avatar updates from AccountInfo
     useEffect(() => {
-        const handleAvatarUpdated = async (event) => {
+        const handleAvatarUpdated = (event) => {
             const detail = event?.detail || {};
             const imageId = detail.imageId;
-            const urlFromDetail = detail.avatarUrl;
 
-            // If we get an imageId, refetch to ensure fresh blob
             if (imageId) {
-                try {
-                    const resp = await fetchImageById(imageId);
-                    const type = resp.headers?.["content-type"] || "image/jpeg";
-                    const blob = new Blob([resp.data], { type });
-                    const url = URL.createObjectURL(blob);
-                    if (avatarRef.current) URL.revokeObjectURL(avatarRef.current);
-                    avatarRef.current = url;
-                    setAvatarUrl(url);
-                    return;
-                } catch (e) {
-                    console.error("Failed to refresh avatar from imageId", e);
-                }
-            }
-
-            // Fallback: use provided URL (object URL from AccountInfo)
-            if (urlFromDetail) {
-                if (avatarRef.current) URL.revokeObjectURL(avatarRef.current);
-                avatarRef.current = urlFromDetail;
-                setAvatarUrl(urlFromDetail);
+                setAvatarUrl(`/v1/file-storage/get/${imageId}`);
+            } else if (detail.avatarUrl) {
+                // If direct URL provided (e.g. preview although usually we want persistent URL)
+                // For direct file storage URL, it's string.
+                setAvatarUrl(detail.avatarUrl);
             }
         };
 

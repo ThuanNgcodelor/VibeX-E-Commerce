@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 import { getTrendingKeywords, searchProducts } from '../../api/searchApi';
-import { fetchProductImageById } from '../../api/product';
 
 export default function TopSearch() {
   const { t } = useTranslation();
@@ -34,14 +33,7 @@ export default function TopSearch() {
                 }
 
                 if (imgIdToFetch) {
-                  try {
-                    const imgRes = await fetchProductImageById(imgIdToFetch);
-                    const contentType = imgRes.headers["content-type"] || "image/jpeg";
-                    const blob = new Blob([imgRes.data], { type: contentType });
-                    imageUrl = URL.createObjectURL(blob);
-                  } catch (e) {
-                    console.error('Error load img for', keyword, e);
-                  }
+                  imageUrl = `/v1/file-storage/get/${imgIdToFetch}`;
                 }
               }
               return { keyword, imageUrl, sales };

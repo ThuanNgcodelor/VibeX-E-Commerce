@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import flashSaleAPI from '../../api/flashSale/flashSaleAPI';
-import { fetchProductImageById, fetchProductById } from '../../api/product';
+import { fetchProductById } from '../../api/product';
 
 export default function FlashSale({ isPage = false }) {
   const { t } = useTranslation();
@@ -10,7 +10,6 @@ export default function FlashSale({ isPage = false }) {
   const [selectedSessionId, setSelectedSessionId] = useState(null);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [imageUrls, setImageUrls] = useState({});
   const [timeLeft, setTimeLeft] = useState(null); // { hours, minutes, seconds }
 
   // Timer interval ref
@@ -85,30 +84,12 @@ export default function FlashSale({ isPage = false }) {
       }));
 
       setProducts(detailedProducts);
-      loadProductImages(detailedProducts);
     } catch (error) {
       console.error('Failed to load products for session:', error);
       setProducts([]);
     } finally {
       setLoading(false);
     }
-  };
-
-  const loadProductImages = async (products) => {
-    const urls = {};
-    for (const product of products) {
-      if (product.productImageId && !imageUrls[product.productId]) { // Avoid refetching if already exists
-        try {
-          const imgRes = await fetchProductImageById(product.productImageId);
-          const contentType = imgRes.headers["content-type"] || "image/jpeg";
-          const blob = new Blob([imgRes.data], { type: contentType });
-          urls[product.productId] = URL.createObjectURL(blob);
-        } catch (err) {
-          console.error(`Failed to load image for product ${product.productId}:`, err);
-        }
-      }
-    }
-    setImageUrls(prev => ({ ...prev, ...urls }));
   };
 
   const startCountdown = (sessionId) => {
@@ -364,25 +345,30 @@ export default function FlashSale({ isPage = false }) {
                             overflow: 'hidden'
                           }}
                         >
-                          {imageUrls[product.productId] ? (
-                            <img
-                              src={imageUrls[product.productId]}
-                              alt={product.productName}
-                              style={{
-                                position: 'absolute',
-                                top: 0,
-                                left: 0,
-                                width: '100%',
-                                height: '100%',
-                                objectFit: 'cover'
-                              }}
-                            />
-                          ) : (
-                            <i className="fa fa-image" style={{
-                              position: 'absolute', top: '50%', left: '50%',
-                              transform: 'translate(-50%, -50%)', fontSize: '32px', color: '#ccc'
-                            }}></i>
-                          )}
+                          <img
+                            src={product.productImageId ? `/v1/file-storage/get/${product.productImageId}` : (product.imageIds && product.imageIds[0] ? `/v1/file-storage/get/${product.imageIds[0]}` : "fallback")}
+                            alt={product.productName}
+                            loading="lazy"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                              e.currentTarget.nextSibling.style.display = 'block';
+                            }}
+                            style={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'cover'
+                            }}
+                          />
+                          <div style={{
+                            display: 'none',
+                            position: 'absolute', top: '50%', left: '50%',
+                            transform: 'translate(-50%, -50%)', fontSize: '32px', color: '#ccc'
+                          }}>
+                            <i className="fa fa-image"></i>
+                          </div>
 
                           {/* Overlay for Upcoming */}
                           {isUpcoming && (

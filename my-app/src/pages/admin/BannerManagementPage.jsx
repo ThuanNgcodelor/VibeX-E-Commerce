@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { getAllBanners, deleteBanner, toggleBannerActive, createBanner, updateBanner } from '../../api/banner';
-import { fetchImageById } from '../../api/image';
+
 import Swal from 'sweetalert2';
 import '../../assets/admin/css/BannerManagement.css';
 
@@ -33,16 +33,8 @@ const BannerManagementPage = () => {
     const [imageFile, setImageFile] = useState(null);
     const [imagePreview, setImagePreview] = useState(null);
     const [bannerImageUrls, setBannerImageUrls] = useState({}); // Store loaded image URLs by banner ID
-    const createdUrlsRef = useRef([]); // Track created blob URLs for cleanup
-
     useEffect(() => {
         fetchBanners();
-
-        // Cleanup blob URLs on unmount
-        return () => {
-            createdUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
-            createdUrlsRef.current = [];
-        };
     }, []);
 
     useEffect(() => {
@@ -66,37 +58,12 @@ const BannerManagementPage = () => {
     };
 
     const loadBannerImages = async (banners) => {
-        const imagePromises = banners.map(async (banner) => {
-            // Priority: imageId > imageUrl
-            if (banner.imageId) {
-                try {
-                    const response = await fetchImageById(banner.imageId);
-                    const blob = new Blob([response.data], {
-                        type: response.headers['content-type'] || 'image/jpeg'
-                    });
-                    const url = URL.createObjectURL(blob);
-                    createdUrlsRef.current.push(url);
-                    return { bannerId: banner.id, url };
-                } catch (error) {
-                    console.error(`Error loading image for banner ${banner.id}:`, error);
-                    // Fallback to imageUrl if fetch fails
-                    if (banner.imageUrl) {
-                        return { bannerId: banner.id, url: buildImageUrl(banner.imageUrl) };
-                    }
-                    return { bannerId: banner.id, url: null };
-                }
-            } else if (banner.imageUrl) {
-                // Use imageUrl as fallback
-                return { bannerId: banner.id, url: buildImageUrl(banner.imageUrl) };
-            }
-            return { bannerId: banner.id, url: null };
-        });
-
-        const results = await Promise.all(imagePromises);
         const urlMap = {};
-        results.forEach(({ bannerId, url }) => {
-            if (url) {
-                urlMap[bannerId] = url;
+        banners.forEach((banner) => {
+            if (banner.imageId) {
+                urlMap[banner.id] = `/v1/file-storage/get/${banner.imageId}`;
+            } else if (banner.imageUrl) {
+                urlMap[banner.id] = buildImageUrl(banner.imageUrl);
             }
         });
         setBannerImageUrls(prev => ({ ...prev, ...urlMap }));

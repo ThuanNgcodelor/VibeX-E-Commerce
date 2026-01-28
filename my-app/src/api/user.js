@@ -59,8 +59,8 @@ export const getCart = async () => {
     try {
         const response = await api.get("/cart");
         return response.data;
-    } catch {
-        throw new Error("Failed to fetch cart data");
+    } catch (error) {
+        throw error;
     }
 };
 
@@ -72,8 +72,8 @@ export const getUser = async () => {
     try {
         const response = await api.get("/information");
         return response.data;
-    } catch {
-        throw new Error("Failed to fetch user data");
+    } catch (error) {
+        throw error;
     }
 };
 

@@ -55,16 +55,7 @@ export const fetchProductById = (productId) => {
     return api.get(`/stock/product/getProductById/${productId}`);
 };
 
-/**
- * Lấy ảnh sản phẩm theo ID
- * @param {string} imageId - ID của ảnh
- * @returns {Promise<ArrayBuffer>} - Promise trả về dữ liệu ảnh dạng arraybuffer
- */
-export const fetchProductImageById = (imageId) => {
-    return api.get(`/file-storage/get/${imageId}`, {
-        responseType: "arraybuffer",
-    });
-};
+
 
 /**
  * Thêm sản phẩm vào giỏ hàng

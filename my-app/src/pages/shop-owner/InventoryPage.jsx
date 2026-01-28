@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getInventoryLogs, getLowStockProducts, adjustStock, getProductImageUrl } from '../../api/inventory';
+import { getInventoryLogs, getLowStockProducts, adjustStock } from '../../api/inventory';
 import Swal from 'sweetalert2';
 
 const InventoryPage = () => {
@@ -9,35 +9,17 @@ const InventoryPage = () => {
     const [loading, setLoading] = useState(false);
     const [page, setPage] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
-    const [productImages, setProductImages] = useState({});
-
     // Load Low Stock
     const fetchLowStock = async () => {
         setLoading(true);
         try {
             const data = await getLowStockProducts();
             setLowStockItems(data);
-            // Load product images
-            loadProductImages(data);
         } catch (error) {
             console.error(error);
         } finally {
             setLoading(false);
         }
-    };
-
-    // Load product images via API
-    const loadProductImages = async (products) => {
-        const newImages = {};
-        await Promise.all(products.map(async (product) => {
-            if (product.imageId && !productImages[product.id]) {
-                const url = await getProductImageUrl(product.imageId);
-                if (url) {
-                    newImages[product.id] = url;
-                }
-            }
-        }));
-        setProductImages(prev => ({ ...prev, ...newImages }));
     };
 
     // Load History
@@ -155,10 +137,11 @@ const InventoryPage = () => {
                                                         <td>
                                                             <div className="d-flex align-items-center">
                                                                 <img
-                                                                    src={productImages[product.id] || '/placeholder.png'}
+                                                                    src={product.imageId ? `/v1/file-storage/get/${product.imageId}` : '/placeholder.png'}
                                                                     alt={product.name}
                                                                     style={{ width: 40, height: 40, objectFit: 'cover', marginRight: 10, borderRadius: 4 }}
                                                                     onError={(e) => { e.target.onerror = null; e.target.src = '/placeholder.png'; }}
+                                                                    loading="lazy"
                                                                 />
                                                                 {product.name}
                                                             </div>

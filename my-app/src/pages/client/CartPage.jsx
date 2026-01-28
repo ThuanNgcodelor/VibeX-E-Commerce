@@ -15,7 +15,6 @@ import {
   updateCartItemQuantity,
   fetchProductById
 } from "../../api/product.js";
-import { fetchImageById } from "../../api/image.js";
 
 export default function CartPage() {
   const { t } = useTranslation();
@@ -88,7 +87,6 @@ export default function CartPage() {
   // preload images, names, and shop owners
   useEffect(() => {
     let revoked = false;
-    const blobUrls = [];
     (async () => {
       if (!Array.isArray(cart?.items) || cart.items.length === 0) return;
       const urls = {};
@@ -141,17 +139,9 @@ export default function CartPage() {
             owners[pid] = item.shopOwnerName || item.shopName || 'Unknown Shop';
           }
 
-          // Fetch image
+          // Use Direct URL instead of blob
           if (imageId) {
-            try {
-              const res = await fetchImageById(imageId);
-              const blob = new Blob([res.data], { type: res.headers["content-type"] });
-              const url = URL.createObjectURL(blob);
-              blobUrls.push(url);
-              urls[pid] = url;
-            } catch {
-              urls[pid] = null;
-            }
+            urls[pid] = `/v1/file-storage/get/${imageId}`;
           } else {
             urls[pid] = null;
           }
@@ -167,7 +157,6 @@ export default function CartPage() {
     })();
     return () => {
       revoked = true;
-      blobUrls.forEach((u) => URL.revokeObjectURL(u));
     };
   }, [cart]);
 

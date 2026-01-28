@@ -6,7 +6,6 @@ import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { getOrdersByUser, cancelOrder, confirmReceipt } from "../../../api/order.js";
 import { createReview } from "../../../api/review.js";
 import { getUser, getShopOwnerByUserId } from "../../../api/user.js";
-import { fetchImageById } from "../../../api/image.js";
 import { fetchProductById } from "../../../api/product.js";
 import Loading from "../Loading.jsx";
 
@@ -248,7 +247,7 @@ export default function OrderList() {
         })();
     }, [location.key]); // Re-fetch when navigating to this page
 
-    // Load images for order items
+    // Load images for order items (resolve direct URLs)
     useEffect(() => {
         if (orders.length === 0) return;
 
@@ -257,70 +256,43 @@ export default function OrderList() {
         const productCache = new Map();
 
         const loadImages = async () => {
-            const imagePromises = [];
+            const productPromises = [];
 
             orders.forEach((order) => {
                 (order.orderItems || []).forEach((item) => {
                     const itemKey = item.id || `${item.productId}-${item.sizeId}`;
-                    let imageId = item.imageId;
 
-                    // If no imageId, try to fetch from product
-                    if (!imageId && item.productId) {
-                        imagePromises.push(
-                            (async () => {
-                                try {
-                                    let product = productCache.get(item.productId);
-                                    if (!product) {
-                                        const prodRes = await fetchProductById(item.productId);
-                                        product = prodRes?.data;
-                                        if (product) productCache.set(item.productId, product);
-                                    }
-                                    imageId = product?.imageId || null;
-
-                                    if (imageId && !urls[imageId]) {
-                                        try {
-                                            const res = await fetchImageById(imageId);
-                                            const blob = new Blob([res.data], {
-                                                type: res.headers["content-type"] || "image/jpeg",
-                                            });
-                                            const url = URL.createObjectURL(blob);
-                                            urls[imageId] = url;
-                                            urls[itemKey] = url; // Also store by item key
-                                        } catch {
-                                            urls[imageId] = null;
-                                            urls[itemKey] = null;
-                                        }
-                                    } else {
-                                        urls[itemKey] = urls[imageId] || null;
-                                    }
-                                } catch {
-                                    urls[itemKey] = null;
+                    if (item.imageId) {
+                        const url = `/v1/file-storage/get/${item.imageId}`;
+                        urls[item.imageId] = url;
+                        urls[itemKey] = url;
+                    } else if (item.productId) {
+                        // Need to fetch product to find imageId
+                        productPromises.push((async () => {
+                            try {
+                                let product = productCache.get(item.productId);
+                                if (!product) {
+                                    const prodRes = await fetchProductById(item.productId);
+                                    product = prodRes?.data;
+                                    if (product) productCache.set(item.productId, product);
                                 }
-                            })()
-                        );
-                    } else if (imageId && !urls[imageId]) {
-                        imagePromises.push(
-                            fetchImageById(imageId)
-                                .then((res) => {
-                                    const blob = new Blob([res.data], {
-                                        type: res.headers["content-type"] || "image/jpeg",
-                                    });
-                                    const url = URL.createObjectURL(blob);
-                                    urls[imageId] = url;
-                                    urls[itemKey] = url; // Also store by item key
-                                })
-                                .catch(() => {
-                                    urls[imageId] = null;
-                                    urls[itemKey] = null;
-                                })
-                        );
-                    } else if (imageId && urls[imageId]) {
-                        urls[itemKey] = urls[imageId];
+                                const imgId = product?.imageId;
+                                if (imgId) {
+                                    const url = `/v1/file-storage/get/${imgId}`;
+                                    urls[imgId] = url;
+                                    urls[itemKey] = url;
+                                }
+                            } catch {
+                                // Ignore failure
+                            }
+                        })());
                     }
                 });
             });
 
-            await Promise.all(imagePromises);
+            if (productPromises.length > 0) {
+                await Promise.all(productPromises);
+            }
 
             if (isActive) {
                 setImageUrls(urls);
@@ -331,11 +303,6 @@ export default function OrderList() {
 
         return () => {
             isActive = false;
-            Object.values(imageUrls).forEach((url) => {
-                if (url && url.startsWith("blob:")) {
-                    URL.revokeObjectURL(url);
-                }
-            });
         };
     }, [orders]);
 

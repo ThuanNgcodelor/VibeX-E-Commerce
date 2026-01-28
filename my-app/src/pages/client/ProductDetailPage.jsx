@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import Header from "../../components/client/Header.jsx";
 import ShopInfoBar from "../../components/client/product/ShopInfoBar.jsx";
-import { fetchProductById, fetchProductImageById, fetchAddToCart } from "../../api/product.js";
+import { fetchProductById, fetchAddToCart } from "../../api/product.js";
 import { fetchReviewsByProductId } from "../../api/review.js";
 import { trackProductView, trackAddToCart } from "../../api/analyticsApi.js";
 import { getCart, getShopOwnerByUserId } from "../../api/user.js";
@@ -14,15 +14,7 @@ import imgFallback from "../../assets/images/shop/6.png";
 import { useTrackProductView } from "../../hooks/useTrackBehavior";
 import { trackCart } from "../../api/tracking";
 
-const USE_OBJECT_URL = true;
 
-const arrayBufferToDataUrl = (buffer, contentType) => {
-    const bytes = new Uint8Array(buffer);
-    let binary = "";
-    for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
-    const base64 = btoa(binary);
-    return `data:${contentType};base64,${base64}`;
-};
 
 export default function ProductDetailPage() {
     const { t } = useTranslation();
@@ -45,7 +37,6 @@ export default function ProductDetailPage() {
     const [lightboxOpen, setLightboxOpen] = useState(false); // Lightbox modal
     const [lightboxIndex, setLightboxIndex] = useState(0); // Current image in lightbox
     const [activeLightboxImages, setActiveLightboxImages] = useState([]); // Images currently in lightbox
-    const createdUrlsRef = useRef([]);
     const [error, setError] = useState(null);
     const [posting, setPosting] = useState(false);
     const [detailTab, setDetailTab] = useState("spec");
@@ -96,8 +87,6 @@ export default function ProductDetailPage() {
                         const shopData = await getShopOwnerByUserId(p.userId);
                         setShopOwner(shopData);
                     } catch (err) {
-                        // Shop owner loading failed, continue without it
-                        // Guest users may not have access, which is fine
                         console.log('Shop owner info not available:', err.message);
                     }
                 }
@@ -114,27 +103,10 @@ export default function ProductDetailPage() {
                 }
 
                 if (allImageIds.length > 0) {
-                    const loadedUrls = [];
-                    for (let i = 0; i < allImageIds.length; i++) {
-                        try {
-                            const imgRes = await fetchProductImageById(allImageIds[i]);
-                            const contentType = imgRes.headers["content-type"] || "image/jpeg";
-                            let url;
-                            if (USE_OBJECT_URL && imgRes.data) {
-                                const blob = new Blob([imgRes.data], { type: contentType });
-                                url = URL.createObjectURL(blob);
-                                createdUrlsRef.current.push(url);
-                            } else {
-                                url = arrayBufferToDataUrl(imgRes.data, contentType);
-                            }
-                            loadedUrls.push({ url, type: contentType.startsWith('video/') ? 'video' : 'image' });
-                            if (i === 0) {
-                                setImgUrl(url);
-                            }
-                        } catch {
-                            // Skip failed images
-                        }
-                    }
+                    const loadedUrls = allImageIds.map(id => ({
+                        url: `/v1/file-storage/get/${id}`,
+                        type: 'image'
+                    }));
                     setImageUrls(loadedUrls);
                     if (loadedUrls.length > 0 && !imgUrl) {
                         setImgUrl(loadedUrls[0].url);
@@ -155,12 +127,6 @@ export default function ProductDetailPage() {
             }
         };
         load();
-        return () => {
-            if (USE_OBJECT_URL && createdUrlsRef.current.length) {
-                createdUrlsRef.current.forEach((u) => URL.revokeObjectURL(u));
-                createdUrlsRef.current = [];
-            }
-        };
     }, [id]);
 
     // Keyboard navigation for lightbox
@@ -1309,32 +1275,9 @@ export default function ProductDetailPage() {
 
 // Helper component to load review images
 function ReviewImages({ imageIds, onImageClick }) {
-    const [urls, setUrls] = useState([]);
+    if (!imageIds || imageIds.length === 0) return null;
 
-    useEffect(() => {
-        let isActive = true;
-        const loadImages = async () => {
-            const loaded = [];
-            for (const id of imageIds) {
-                try {
-                    const res = await fetchProductImageById(id);
-                    const blob = new Blob([res.data], { type: res.headers["content-type"] || "image/jpeg" });
-                    const url = URL.createObjectURL(blob);
-                    loaded.push(url);
-                } catch (e) {
-                    console.error("Failed to load review image", id, e);
-                }
-            }
-            if (isActive) setUrls(loaded);
-        };
-        if (imageIds && imageIds.length > 0) loadImages();
-        return () => {
-            isActive = false;
-            urls.forEach(u => URL.revokeObjectURL(u));
-        };
-    }, [imageIds]);
-
-    if (urls.length === 0) return null;
+    const urls = imageIds.map(id => `/v1/file-storage/get/${id}`);
 
     return (
         <div className="d-flex gap-2 flex-wrap">
@@ -1351,7 +1294,12 @@ function ReviewImages({ imageIds, onImageClick }) {
                     }}
                     onClick={() => onImageClick && onImageClick(i, urls)}
                 >
-                    <img src={url} alt="Review" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img
+                        src={url}
+                        alt="Review"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        loading="lazy"
+                    />
                 </div>
             ))}
         </div>

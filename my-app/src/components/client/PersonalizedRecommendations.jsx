@@ -2,9 +2,10 @@ import React, { useEffect, useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { isAuthenticated } from "../../api/auth.js";
-import { getRecentlyViewed } from "../../api/tracking.js";
-import { fetchProductById, fetchProductImageById, fetchProducts } from "../../api/product.js";
+import { getSimilarProducts } from "../../api/recommendation.js";
+import { fetchProductById, fetchProducts } from "../../api/product.js";
 import imgFallback from "../../assets/images/shop/6.png";
+import { getRecentlyViewed } from "../../api/tracking.js";
 import Loading from "./Loading.jsx";
 
 /**
@@ -16,9 +17,7 @@ export default function PersonalizedRecommendations() {
     const { t } = useTranslation();
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [imageUrls, setImageUrls] = useState({});
     const [recommendReason, setRecommendReason] = useState("");
-    const createdUrlsRef = useRef([]);
 
     const isLoggedIn = isAuthenticated();
 
@@ -42,36 +41,23 @@ export default function PersonalizedRecommendations() {
                 // Get first viewed product for recommendation reason
                 let firstProductName = "";
                 try {
-                    const firstRes = await fetchProductById(recentlyViewedIds[0]);
+                    const lastViewedId = recentlyViewedIds[0];
+                    const firstRes = await fetchProductById(lastViewedId);
                     firstProductName = firstRes.data?.name || "";
+                    setRecommendReason(firstProductName);
 
-                    // Get category of first product
-                    const categoryId = firstRes.data?.categoryId;
+                    // Optimized: Fetch similar products directly instead of all products
+                    const similarProducts = await getSimilarProducts(lastViewedId, 12);
 
-                    if (categoryId) {
-                        // Fetch products from same category
-                        const allProducts = await fetchProducts();
-                        const categoryProducts = allProducts.data
-                            .filter(p => p.categoryId === categoryId && !recentlyViewedIds.includes(p.id))
-                            .slice(0, 12);
+                    // Client-side filter to exclude recently viewed items if needed
+                    const filtered = similarProducts.filter(p => !recentlyViewedIds.includes(p.id));
+                    setProducts(filtered);
 
-                        setProducts(categoryProducts);
-                        setRecommendReason(firstProductName);
-                    } else {
-                        // Fallback: get random products
-                        const allProducts = await fetchProducts();
-                        const randomProducts = allProducts.data
-                            .filter(p => !recentlyViewedIds.includes(p.id))
-                            .sort(() => Math.random() - 0.5)
-                            .slice(0, 12);
-
-                        setProducts(randomProducts);
-                        setRecommendReason(firstProductName);
-                    }
                 } catch (error) {
                     console.error("Failed to get recommendations:", error);
                     setProducts([]);
                 }
+
             } catch (error) {
                 console.error("Failed to load recommendations:", error);
                 setProducts([]);
@@ -83,56 +69,7 @@ export default function PersonalizedRecommendations() {
         loadRecommendations();
     }, [isLoggedIn]);
 
-    // Load product images
-    useEffect(() => {
-        if (products.length === 0) {
-            setImageUrls({});
-            return;
-        }
 
-        let isActive = true;
-        const newUrls = {};
-        const tempCreatedUrls = [];
-
-        const loadImages = async () => {
-            await Promise.all(
-                products.map(async (product) => {
-                    try {
-                        if (product.imageId) {
-                            const res = await fetchProductImageById(product.imageId);
-                            const contentType = res.headers?.["content-type"] || "image/png";
-                            const blob = new Blob([res.data], { type: contentType });
-                            const url = URL.createObjectURL(blob);
-                            newUrls[product.id] = url;
-                            tempCreatedUrls.push(url);
-                        } else {
-                            newUrls[product.id] = imgFallback;
-                        }
-                    } catch {
-                        newUrls[product.id] = imgFallback;
-                    }
-                })
-            );
-
-            if (!isActive) return;
-
-            if (createdUrlsRef.current.length) {
-                createdUrlsRef.current.forEach((u) => URL.revokeObjectURL(u));
-            }
-            createdUrlsRef.current = tempCreatedUrls;
-            setImageUrls(newUrls);
-        };
-
-        loadImages();
-
-        return () => {
-            isActive = false;
-            if (createdUrlsRef.current.length) {
-                createdUrlsRef.current.forEach((u) => URL.revokeObjectURL(u));
-                createdUrlsRef.current = [];
-            }
-        };
-    }, [products]);
 
     const formatVND = (n) => (Number(n) || 0).toLocaleString("vi-VN") + "₫";
     const calculateDiscount = (original, current) => {
@@ -237,9 +174,10 @@ export default function PersonalizedRecommendations() {
                                 >
                                     <div style={{ position: 'relative', paddingBottom: '100%', background: '#f5f5f5' }}>
                                         <img
-                                            src={imageUrls[product.id] || imgFallback}
+                                            src={product.imageId ? `/v1/file-storage/get/${product.imageId}` : imgFallback}
                                             onError={(e) => { e.currentTarget.src = imgFallback; }}
                                             alt={product.name}
+                                            loading="lazy"
                                             style={{
                                                 position: 'absolute',
                                                 top: 0,

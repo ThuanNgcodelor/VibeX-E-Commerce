@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getShippingByOrderId, getOrderById, getAddressById } from '../../api/order.js';
-import { fetchImageById } from '../../api/image.js';
+
 import { fetchProductById } from '../../api/product.js';
 import Loading from '../../components/client/Loading.jsx';
 import Header from '../../components/client/Header.jsx';
@@ -217,22 +217,10 @@ export default function TrackingPage() {
                                 }
                             }
 
-                            if (imageId && !urls[imageId]) {
-                                try {
-                                    const res = await fetchImageById(imageId);
-                                    const blob = new Blob([res.data], {
-                                        type: res.headers["content-type"] || "image/jpeg"
-                                    });
-                                    const url = URL.createObjectURL(blob);
-                                    urls[imageId] = url;
-                                    urls[itemKey] = url;
-                                } catch (e) {
-                                    console.warn('Failed to load image', e);
-                                    urls[imageId] = null;
-                                    urls[itemKey] = null;
-                                }
-                            } else if (imageId && urls[imageId]) {
-                                urls[itemKey] = urls[imageId];
+                            if (imageId) {
+                                const url = `/v1/file-storage/get/${imageId}`;
+                                urls[itemKey] = url;
+                                urls[imageId] = url;
                             }
                         }));
                         setImageUrls(urls);
@@ -712,6 +700,7 @@ export default function TrackingPage() {
                                                     height: '100%',
                                                     objectFit: 'cover'
                                                 }}
+                                                loading="lazy"
                                             />
                                         ) : (
                                             <div style={{

@@ -3,7 +3,7 @@ import Swal from 'sweetalert2';
 import { useSearchParams } from 'react-router-dom';
 import { getShopOwnerOrders, updateOrderStatusForShopOwner, getAllShopOwnerOrders, getShippingByOrderId, bulkUpdateOrderStatus, searchOrders, getAllOrderIds, getShopOwnerOrderById } from '../../api/order';
 import { getUserById } from '../../api/user';
-import { fetchImageById } from '../../api/image';
+
 import { fetchProductById } from '../../api/product';
 import { getImageUrl } from '../../api/image';
 import { useTranslation } from 'react-i18next';
@@ -130,8 +130,6 @@ export default function BulkShippingPage() {
                     const itemKey = item.id || `${item.productId}-${item.sizeId}`;
                     let imageId = item.imageId || item.productImage;
 
-                    // If name looks like ID (number or UUID) or is missing, we should try to fetch it
-                    // Simple check: if it's purely numeric or looks like UUID
                     const needsNameDetails = !item.productName || /^\d+$/.test(item.productName);
 
                     if ((!imageId && item.productId) || needsNameDetails) {
@@ -148,27 +146,16 @@ export default function BulkShippingPage() {
                                     // Handle Image
                                     if (!imageId) {
                                         imageId = product?.imageId || null;
-                                        if (imageId && !urls[imageId]) {
-                                            try {
-                                                const res = await fetchImageById(imageId);
-                                                const blob = new Blob([res.data], {
-                                                    type: res.headers["content-type"] || "image/jpeg",
-                                                });
-                                                const url = URL.createObjectURL(blob);
-                                                urls[imageId] = url;
-                                                urls[itemKey] = url;
-                                            } catch {
-                                                urls[imageId] = null;
-                                                urls[itemKey] = null;
-                                            }
-                                        } else {
-                                            urls[itemKey] = urls[imageId] || null;
-                                        }
+                                    }
+
+                                    if (imageId) {
+                                        const url = `/v1/file-storage/get/${imageId}`;
+                                        urls[imageId] = url;
+                                        urls[itemKey] = url;
                                     }
 
                                     // Handle Details
                                     if (product) {
-                                        // Find size name if we have sizeId
                                         let sizeName = null;
                                         if (item.sizeId && product.sizes) {
                                             const sizeObj = product.sizes.find(s => s.id === item.sizeId);
@@ -179,33 +166,17 @@ export default function BulkShippingPage() {
                                             productName: product.name,
                                             sizeName: sizeName
                                         };
-                                        details[item.productId] = { productName: product.name }; // fallback
+                                        details[item.productId] = { productName: product.name };
                                     }
                                 } catch (e) {
                                     console.error("Failed to load details for item", item.productId, e);
-                                    urls[itemKey] = null;
                                 }
                             })()
                         );
-                    } else if (imageId && !urls[imageId]) {
-                        // Just fetch image
-                        promises.push(
-                            fetchImageById(imageId)
-                                .then((res) => {
-                                    const blob = new Blob([res.data], {
-                                        type: res.headers["content-type"] || "image/jpeg",
-                                    });
-                                    const url = URL.createObjectURL(blob);
-                                    urls[imageId] = url;
-                                    urls[itemKey] = url;
-                                })
-                                .catch(() => {
-                                    urls[imageId] = null;
-                                    urls[itemKey] = null;
-                                })
-                        );
-                    } else if (imageId && urls[imageId]) {
-                        urls[itemKey] = urls[imageId];
+                    } else if (imageId) {
+                        const url = `/v1/file-storage/get/${imageId}`;
+                        urls[imageId] = url;
+                        urls[itemKey] = url;
                     }
                 });
             });
