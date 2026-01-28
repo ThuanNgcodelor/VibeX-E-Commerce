@@ -11,6 +11,7 @@ import { fetchProductById } from '../../api/product';
 import { getUser } from '../../api/user';
 
 import { useTranslation } from 'react-i18next'; // Added import
+import Swal from 'sweetalert2';
 
 export default function LiveWatchPage() {
     const { t } = useTranslation(); // Added hook
@@ -85,7 +86,13 @@ export default function LiveWatchPage() {
                 client.subscribe(`/topic/live/${roomId}/chat`, (message) => {
                     const chatMsg = JSON.parse(message.body);
                     console.log('New chat message:', chatMsg);
-                    setMessages(prev => [...prev, chatMsg]);
+                    setMessages(prev => {
+                        // Deduplicate based on ID
+                        if (chatMsg.id && prev.some(m => m.id === chatMsg.id)) {
+                            return prev;
+                        }
+                        return [...prev, chatMsg];
+                    });
 
                     // Auto scroll
                     if (chatContainerRef.current) {
@@ -230,7 +237,11 @@ export default function LiveWatchPage() {
     // Open Size Modal
     const handleOpenSizeModal = async (product) => {
         if (!isLoggedIn) {
-            alert(t('liveStream.watch.loginRequired'));
+            Swal.fire({
+                icon: 'warning',
+                title: t('liveStream.watch.loginRequired'),
+                showConfirmButton: true
+            });
             return;
         }
         setSelectedLiveProduct(product);
@@ -258,7 +269,12 @@ export default function LiveWatchPage() {
     // Confirm Add to Cart
     const handleConfirmAddToCart = async () => {
         if (!selectedSizeId) {
-            alert(t('liveStream.watch.selectVariation'));
+            Swal.fire({
+                icon: 'warning',
+                title: t('liveStream.watch.selectVariation'),
+                timer: 2000,
+                showConfirmButton: false
+            });
             return;
         }
         if (!selectedLiveProduct) return;
@@ -274,12 +290,21 @@ export default function LiveWatchPage() {
                 livePrice: selectedLiveProduct.livePrice,
                 originalPrice: selectedLiveProduct.originalPrice
             });
-            alert(t('liveStream.watch.addedToCart'));
+            Swal.fire({
+                icon: 'success',
+                title: t('liveStream.watch.addedToCart'),
+                showConfirmButton: false,
+                timer: 1500
+            });
             setShowSizeModal(false);
             // navigate('/cart'); // Optional: user might want to stay in live stream
         } catch (err) {
             console.error('Error adding to cart:', err);
-            alert(t('liveStream.watch.addToCartError'));
+            Swal.fire({
+                icon: 'error',
+                title: 'Oops...',
+                text: t('liveStream.watch.addToCartError')
+            });
         } finally {
             setAddingToCart(null);
         }
@@ -622,13 +647,17 @@ export default function LiveWatchPage() {
                                     color: 'white',
                                     overflow: 'hidden'
                                 }}>
-                                    {room.shopAvatarUrl ? (
+                                    {room.shopAvatarUrl || room.shopImageUrl ? (
                                         <img
-                                            src={room.shopAvatarUrl}
+                                            src={room.shopAvatarUrl || room.shopImageUrl}
                                             alt={room.shopName}
                                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                         />
-                                    ) : '🏪'}
+                                    ) : (
+                                        <span style={{ fontSize: '24px' }}>
+                                            {room.shopName?.charAt(0) || 'S'}
+                                        </span>
+                                    )}
                                 </div>
                                 <div>
                                     <div style={{ color: 'white', fontWeight: '600' }}>

@@ -1,17 +1,22 @@
 package com.example.stockservice.service;
 
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.example.stockservice.client.ShopCoinClient;
 import com.example.stockservice.dto.ReviewDto;
 import com.example.stockservice.model.Review;
 import com.example.stockservice.repository.ReviewRepository;
 import com.example.stockservice.request.ReviewRequest;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -50,13 +55,10 @@ public class ReviewService {
                 .collect(Collectors.toList());
     }
 
-    public List<ReviewDto> getReviewsByShopId(String shopId) {
-        System.out.println("DEBUG: Fetching reviews for shopId: " + shopId);
-        List<Review> reviews = reviewRepository.findByShopId(shopId);
-        System.out.println("DEBUG: Found " + reviews.size() + " reviews for shopId: " + shopId);
-        return reviews.stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
+    public Page<ReviewDto> getReviewsByShopId(String shopId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Review> reviewPage = reviewRepository.findByShopId(shopId, pageable);
+        return reviewPage.map(this::mapToDto);
     }
 
     public ReviewDto replyToReview(String reviewId, String reply) {

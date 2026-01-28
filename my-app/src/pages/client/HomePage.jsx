@@ -6,7 +6,7 @@ import ShopeeCategoryGrid from "../../components/client/ShopeeCategoryGrid.jsx";
 import FlashSale from "../../components/client/FlashSale.jsx";
 import TopSearch from "../../components/client/TopSearch.jsx";
 import TodaysSuggestions from "../../components/client/TodaysSuggestions.jsx";
-// import AdDisplay from "../../components/client/ads/AdDisplay.jsx";
+import AdDisplay from "../../components/client/ads/AdDisplay.jsx";
 
 import PersonalizedRecommendations from "../../components/client/PersonalizedRecommendations.jsx";
 import TrendingProducts from "../../components/client/TrendingProducts.jsx";
@@ -20,7 +20,7 @@ export default function HomePage() {
 
   return (
     <div className="wrapper" style={{ background: '#F5F5F5', minHeight: '100vh' }}>
-      {/* <AdDisplay placement="POPUP" /> */}
+      <AdDisplay placement="POPUP" />
       <Header />
       <main style={{ width: '100%', overflowX: 'hidden' }}>
         {/* Banner Section - Shopee Style */}

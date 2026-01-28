@@ -400,6 +400,7 @@ public class LiveService {
                 .type(LiveChatType.ORDER)
                 .message(username + " vừa mua " + productName + "!")
                 .createdAt(LocalDateTime.now())
+                .id(java.util.UUID.randomUUID().toString())
                 .build();
 
         messagingTemplate.convertAndSend("/topic/live/" + roomId + "/order", orderChat);
@@ -438,10 +439,10 @@ public class LiveService {
                 ? room.getProducts().stream().map(this::mapToDto).collect(Collectors.toList())
                 : List.of();
 
-        String thumbnailUrl = room.getThumbnailUrl();
-        if (thumbnailUrl != null && thumbnailUrl.contains(fileStorageBaseUrl)) {
-            thumbnailUrl = thumbnailUrl.replace(fileStorageBaseUrl, "");
-        }
+        // String thumbnailUrl = room.getThumbnailUrl();
+        // if (thumbnailUrl != null && thumbnailUrl.contains(fileStorageBaseUrl)) {
+        //     thumbnailUrl = thumbnailUrl.replace(fileStorageBaseUrl, "");
+        // }
 
         return LiveRoomDto.builder()
                 .id(room.getId())
@@ -452,7 +453,7 @@ public class LiveService {
                 .description(room.getDescription())
                 .streamKey(includeStreamKey ? room.getStreamKey() : null)
                 .streamUrl(HLS_BASE_URL + room.getStreamKey() + ".m3u8")
-                .thumbnailUrl(thumbnailUrl)
+                .thumbnailUrl(room.getThumbnailUrl())
                 .status(room.getStatus())
                 .viewerCount(room.getViewerCount())
                 .peakViewers(room.getPeakViewers())
@@ -473,9 +474,9 @@ public class LiveService {
         Boolean isOutOfStock = remainingQuantity <= 0;
 
         String imageUrl = product.getProductImageUrl();
-        if (imageUrl != null && imageUrl.contains(fileStorageBaseUrl)) {
-            imageUrl = imageUrl.replace(fileStorageBaseUrl, "");
-        }
+        // if (imageUrl != null && imageUrl.contains(fileStorageBaseUrl)) {
+        //     imageUrl = imageUrl.replace(fileStorageBaseUrl, "");
+        // }
 
         return LiveProductDto.builder()
                 .id(product.getId())

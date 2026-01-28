@@ -26,8 +26,10 @@ export const fetchReviewsByProductId = (productId) => {
  * @param {string} shopId
  * @returns {Promise}
  */
-export const getReviewsByShopId = (shopId) => {
-    return api.get(`/stock/reviews/shop/${shopId}`);
+export const getReviewsByShopId = (shopId, page = 0, size = 20) => {
+    return api.get(`/stock/reviews/shop/${shopId}`, {
+        params: { page, size }
+    });
 };
 
 /**

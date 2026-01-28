@@ -94,6 +94,7 @@ public class LiveWebSocketController {
                 .type(LiveChatType.CHAT)
                 .isOwner(isOwner)
                 .createdAt(LocalDateTime.now())
+                .id(java.util.UUID.randomUUID().toString())
                 .build();
 
         // Broadcast to all subscribers
@@ -147,6 +148,7 @@ public class LiveWebSocketController {
                 .type(LiveChatType.SYSTEM)
                 .message("A new person has just joined.!")
                 .createdAt(LocalDateTime.now())
+                .id(java.util.UUID.randomUUID().toString())
                 .build();
         messagingTemplate.convertAndSend("/topic/live/" + roomId + "/chat", systemMsg);
     }
@@ -243,6 +245,7 @@ public class LiveWebSocketController {
                 .type(LiveChatType.ORDER)
                 .message("🎉 " + username + " vừa mua " + productName + "!")
                 .createdAt(LocalDateTime.now())
+                .id(java.util.UUID.randomUUID().toString())
                 .build();
 
         messagingTemplate.convertAndSend("/topic/live/" + roomId + "/order", orderMsg);

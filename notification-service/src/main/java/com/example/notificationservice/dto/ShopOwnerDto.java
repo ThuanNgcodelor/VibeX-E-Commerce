@@ -17,4 +17,12 @@ public class ShopOwnerDto {
     private String phone;
     private String imageUrl; // This is likely the logo
     private String email;
+
+    public String getUserId() { return userId; }
+    public String getShopName() { return shopName; }
+    public String getOwnerName() { return ownerName; }
+    public String getAddress() { return address; }
+    public String getPhone() { return phone; }
+    public String getImageUrl() { return imageUrl; }
+    public String getEmail() { return email; }
 }

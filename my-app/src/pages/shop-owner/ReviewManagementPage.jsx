@@ -13,6 +13,10 @@ export default function ReviewManagementPage() {
     const [reviews, setReviews] = useState([]);
     const [loading, setLoading] = useState(true);
     const [shopId, setShopId] = useState(null);
+    const [currentPage, setCurrentPage] = useState(0);
+    const [totalPages, setTotalPages] = useState(0);
+    const [totalElements, setTotalElements] = useState(0);
+    const PAGE_SIZE = 20;
 
     // UI States
     const [activeTab, setActiveTab] = useState('ALL'); // ALL, UNREPLIED, REPLIED
@@ -41,19 +45,22 @@ export default function ReviewManagementPage() {
         fetchInitialData();
     }, []);
 
-    const loadReviews = async (id) => {
+    const loadReviews = async (id, page = 0) => {
         setLoading(true);
         try {
-            const res = await getReviewsByShopId(id);
-            const data = res.data || [];
-            setReviews(data);
-
-            // Extract unique Product IDs (No longer needed for fetching details)
-            // const productIds = [...new Set(data.map(r => r.productId))];
-
-            // Fetch product details lazily (Removed)
-            // fetchProductDetails(productIds);
-
+            const res = await getReviewsByShopId(id, page, PAGE_SIZE);
+            if (res.data && res.data.content) {
+                // Handle Page<ReviewDto> response
+                setReviews(res.data.content);
+                setTotalPages(res.data.totalPages);
+                setTotalElements(res.data.totalElements);
+                setCurrentPage(res.data.number);
+            } else {
+                // Fallback for List<ReviewDto> or unexpected format
+                // Ensure it's an array to avoid filter error
+                const data = Array.isArray(res.data) ? res.data : [];
+                setReviews(data);
+            }
         } catch (error) {
             console.error("Error fetching reviews:", error);
         } finally {
@@ -72,7 +79,7 @@ export default function ReviewManagementPage() {
             setReplyingId(null);
             setReplyText('');
             // Reload reviews to show updated state
-            loadReviews(shopId);
+            loadReviews(shopId, currentPage);
         } catch (error) {
             toast.error(t('shopOwner.reviews.failedReply'));
         }
@@ -148,6 +155,86 @@ export default function ReviewManagementPage() {
             </div>
         );
     }
+
+    const handlePageChange = (page) => {
+        if (page >= 0 && page < totalPages) {
+            loadReviews(shopId, page);
+        }
+    };
+
+    const renderPagination = () => {
+        if (totalPages <= 1) return null;
+
+        const pages = [];
+        const maxVisible = 5; // Show 1, 2, 3 ... 9, 10 style (simplified)
+
+        // Always show first page
+        pages.push(
+            <button
+                key={0}
+                className={`btn btn-sm ${currentPage === 0 ? 'btn-primary' : 'btn-outline-secondary'} me-1`}
+                onClick={() => handlePageChange(0)}
+            >
+                1
+            </button>
+        );
+
+        let startPage = Math.max(1, currentPage - 2);
+        let endPage = Math.min(totalPages - 2, currentPage + 2);
+
+        if (startPage > 1) {
+            pages.push(<span key="dots1" className="mx-1">...</span>);
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            pages.push(
+                <button
+                    key={i}
+                    className={`btn btn-sm ${currentPage === i ? 'btn-primary' : 'btn-outline-secondary'} me-1`}
+                    onClick={() => handlePageChange(i)}
+                >
+                    {i + 1}
+                </button>
+            );
+        }
+
+        if (endPage < totalPages - 2) {
+            pages.push(<span key="dots2" className="mx-1">...</span>);
+        }
+
+        // Always show last page if more than 1 page
+        if (totalPages > 1) {
+            pages.push(
+                <button
+                    key={totalPages - 1}
+                    className={`btn btn-sm ${currentPage === totalPages - 1 ? 'btn-primary' : 'btn-outline-secondary'} me-1`}
+                    onClick={() => handlePageChange(totalPages - 1)}
+                >
+                    {totalPages}
+                </button>
+            );
+        }
+
+        return (
+            <div className="d-flex justify-content-center mt-4">
+                <button
+                    className="btn btn-sm btn-outline-secondary me-2"
+                    disabled={currentPage === 0}
+                    onClick={() => handlePageChange(currentPage - 1)}
+                >
+                    &laquo;
+                </button>
+                {pages}
+                <button
+                    className="btn btn-sm btn-outline-secondary ms-2"
+                    disabled={currentPage === totalPages - 1}
+                    onClick={() => handlePageChange(currentPage + 1)}
+                >
+                    &raquo;
+                </button>
+            </div>
+        );
+    };
 
     return (
         <div className="container-fluid p-4 review-management-container">
@@ -247,7 +334,11 @@ export default function ReviewManagementPage() {
                                             }
                                             alt="User"
                                             className="user-avatar"
-                                            onError={(e) => e.target.src = "https://via.placeholder.com/45"}
+                                            onError={(e) => {
+                                                if (e.target.src !== "https://via.placeholder.com/45") {
+                                                    e.target.src = "https://via.placeholder.com/45";
+                                                }
+                                            }}
                                         />
                                         <div className="user-meta">
                                             <h5>{review.username || t('shopOwner.reviews.anonymous')}</h5>
@@ -367,6 +458,8 @@ export default function ReviewManagementPage() {
                     })
                 )}
             </div>
+            {/* Pagination Controls */}
+            {renderPagination()}
         </div>
     );
 }

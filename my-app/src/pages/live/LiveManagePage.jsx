@@ -100,22 +100,28 @@ export default function LiveManagePage() {
     useEffect(() => {
         if (step === 'streaming' && currentRoom?.id) {
             const token = getToken();
-            // Use dynamic URL based on current location
-            // WS URL must use http/https for SockJS
-            // Use relative path so it adapts to host/proxy automatically
-            // e.g. /ws/live -> http(s)://host/ws/live
             const wsUrl = `${window.location.origin}/ws/live`;
 
             const client = new Client({
                 webSocketFactory: () => new SockJS(wsUrl),
                 connectHeaders: token ? { Authorization: `Bearer ${token}` } : {},
                 onConnect: () => {
-                    console.log('Connected to live chat WebSocket');
 
                     // Subscribe to chat messages
                     client.subscribe(`/topic/live/${currentRoom.id}/chat`, (message) => {
                         const chat = JSON.parse(message.body);
-                        setChatMessages(prev => [...prev, chat]);
+                        console.log("Chat incoming:", chat);
+                        setChatMessages(prev => {
+                            if (!chat.id) {
+                                console.warn("Chat message missing ID:", chat);
+                            }
+                            // Strict deduplication
+                            if (chat.id && prev.some(m => String(m.id) === String(chat.id))) {
+                                console.log("Duplicate chat ignored:", chat.id);
+                                return prev;
+                            }
+                            return [...prev, chat];
+                        });
                     });
 
                     // Subscribe to viewer count
@@ -462,20 +468,33 @@ export default function LiveManagePage() {
                         gap: '8px',
                         cursor: 'pointer'
                     }}>
-                        <div style={{
-                            width: '32px',
-                            height: '32px',
-                            borderRadius: '50%',
-                            background: '#ee4d2d',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            color: 'white',
-                            fontSize: '14px'
-                        }}>
-                            S
-                        </div>
-                        <span style={{ fontSize: '14px' }}>Your Shop</span>
+                        {shopInfo?.avatarUrl || shopInfo?.imageUrl ? (
+                            <img
+                                src={shopInfo.avatarUrl || shopInfo.imageUrl}
+                                alt="Avatar"
+                                style={{
+                                    width: '32px',
+                                    height: '32px',
+                                    borderRadius: '50%',
+                                    objectFit: 'cover'
+                                }}
+                            />
+                        ) : (
+                            <div style={{
+                                width: '32px',
+                                height: '32px',
+                                borderRadius: '50%',
+                                background: '#ee4d2d',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: 'white',
+                                fontSize: '14px'
+                            }}>
+                                {shopInfo?.shopName?.charAt(0) || 'S'}
+                            </div>
+                        )}
+                        <span style={{ fontSize: '14px' }}>{shopInfo?.shopName || 'Your Shop'}</span>
                     </div>
                 </div>
             </header>
@@ -1227,7 +1246,7 @@ export default function LiveManagePage() {
                                         chatMessages.map((chat, idx) => {
                                             const isSystem = chat.type === 'SYSTEM' || chat.type === 'ORDER';
                                             return (
-                                                <div key={idx} style={{ marginBottom: '6px', fontSize: '13px', lineHeight: '1.4' }}>
+                                                <div key={chat.id || idx} style={{ marginBottom: '6px', fontSize: '13px', lineHeight: '1.4' }}>
                                                     {!isSystem && (
                                                         <span style={{
                                                             fontWeight: '600',
@@ -1486,7 +1505,11 @@ export default function LiveManagePage() {
                                                                     fontSize: '12px',
                                                                     overflow: 'hidden',
                                                                     textOverflow: 'ellipsis',
-                                                                    whiteSpace: 'nowrap',
+                                                                    display: '-webkit-box',
+                                                                    WebkitLineClamp: '2',
+                                                                    WebkitBoxOrient: 'vertical',
+                                                                    lineHeight: '1.4',
+                                                                    height: '2.8em',
                                                                     marginBottom: '4px'
                                                                 }}>
                                                                     {product.name}
